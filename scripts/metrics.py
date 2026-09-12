@@ -350,6 +350,26 @@ def pick_level(bpm, support, density):
     return bpm, note
 
 
+#: 候选速度的折叠窗口。折叠的目的是把八度相关的候选并到**同一层**比较，
+#: 它**不是**"速度不可能超出这个范围"的断言。原来窗口外的曲子被折上来之后不留任何痕迹 ——
+#: 实测 55BPM 的底鼓+踩镲被报成 110.5（+100.9%），属于静默给错答案。
+#: 现在窗口本身不动（读数行为零变更），但**窗口外同样成立的层级会显式报出来**（见 detect_bpm）。
+BPM_FOLD = (60.0, 180.0)
+
+#: 窗口外层级要多高的支持度才值得报（相对于本层）。1.0 = 只报更强的那层。
+WINDOW_ALT_RATIO = 0.85
+
+
+def _fold_bpm(bpm):
+    """把候选速度按八度折进 `BPM_FOLD` 窗口（独立成函数是为了能被变异测试注入）。"""
+    lo, hi = BPM_FOLD
+    while bpm < lo:
+        bpm *= 2
+    while bpm > hi:
+        bpm /= 2
+    return bpm
+
+
 def detect_bpm(m, sr):
     """低频脉冲周期性定速度（比起音包络稳）。
 
@@ -392,11 +412,7 @@ def detect_bpm(m, sr):
     cands = set()
     for lag in range(int(0.35 * fps), min(int(2.6 * fps), len(ac))):
         bpm = 60.0 / (lag / fps)
-        while bpm < 60:
-            bpm *= 2
-        while bpm > 180:
-            bpm /= 2
-        cands.add(round(bpm, 1))
+        cands.add(round(_fold_bpm(bpm), 1))
     ranked = sorted(((score_of(b), b) for b in cands), reverse=True)
     best_s, best_bpm = (ranked[0] if ranked else (-9.0, 120.0))
 
@@ -425,6 +441,23 @@ def detect_bpm(m, sr):
         info['level_hi_score'] = round(float(best_s), 3)
         info['level_lo'] = round(best_bpm / 2, 1)
         info['level_lo_score'] = round(float(score_of(best_bpm / 2)), 3)
+
+    # 窗口外层级：折叠窗口 [60,180] 之外的曲子会被折上来（55→110、230→115），
+    # 而折叠本身不留痕迹。这里把"窗口外同样成立、甚至更成立的层级"显式报出来，
+    # 让上层（check_audio / profile_ref / 成绩单）能提示**用 --bpm 钉死**，
+    # 而不是让人拿着一个折半/加倍的值去写画像。判据与 low_level 同源（支持度比值）。
+    alts = [(round(float(score_of(v)), 3), round(v, 1))
+            for v in (best_bpm / 4.0, best_bpm / 3.0, best_bpm / 2.0,
+                      best_bpm * 2.0, best_bpm * 3.0, best_bpm * 4.0)
+            if 40.0 <= v <= 240.0 and not (BPM_FOLD[0] <= v <= BPM_FOLD[1])]
+    if alts:
+        s_alt, v_alt = max(alts)
+        if s_alt >= WINDOW_ALT_RATIO * best_s:
+            info['window_alt'] = v_alt
+            info['window_alt_score'] = s_alt
+            info['level_note'] += ('；**窗口外层级同样成立：%.1f BPM（支持度 %.3f vs %.3f）**'
+                                   '→ 超出自动定层窗口 %.0f–%.0f，请用 `--bpm %.1f` 核对'
+                                   % (v_alt, s_alt, best_s, BPM_FOLD[0], BPM_FOLD[1], v_alt))
     return round(float(best_bpm), 1), round(float(best_s), 3), info
 
 

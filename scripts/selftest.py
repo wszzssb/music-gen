@@ -2454,6 +2454,55 @@ def t_render_json_mid_matches_name():
     assert not bad, '改过名字却没同步 render.json（渲染的是旧 MIDI）: ' + '; '.join(bad)
 
 
+@check
+def t_bpm_out_of_window_reported():
+    """<60 BPM 的曲子**不许被静默折半**：窗口外层必须显式报出来。
+
+    实测（修复前）：55BPM 的"底鼓每拍 + 踩镲每半拍"被报成 111.1，而 info 里没有任何
+    "这已经超出自动定层窗口"的说法 —— 扒新参考曲的人会直接把 111.1 写进画像。
+    （同类：45BPM→90.7、180BPM→60.4，参考池里 64BPM 的曲子同样读成 110。）
+
+    判据（双向契约）：
+      · 45 / 55 BPM：报出来的值、或 `window_alt`，必须命中真值（±5%）；
+      · 120 BPM（窗内）：**不许**冒出 `window_alt`（不该响不许响）。
+    **已知边界（不算通过）**：>180 BPM 的信号（210/230 实测）自相关峰落在三拍关系上，
+      窗口外提示**不**触发 —— 那一档仍然只能靠 `--bpm` 人工钉死，本用例不替它担保。
+    """
+    def train(bpm, sr=22050, seconds=20.0):
+        """底鼓(60Hz)每拍 + 踩镲(噪声)每半拍。
+
+        **不能用等幅脉冲串**：那样所有整数倍周期等强，自相关分不出"拍"与"4 拍"。
+        """
+        n = int(sr * seconds)
+        x = np.zeros(n)
+        beat = sr * 60.0 / bpm
+        rng = np.random.default_rng(7)
+        t = np.arange(int(sr * 0.12)) / sr
+        k = np.sin(2 * np.pi * 60 * t) * np.exp(-t * 30.0)
+        th = np.arange(int(sr * 0.03)) / sr
+        h = rng.standard_normal(len(th)) * np.exp(-th * 120.0) * 0.35
+        for i in range(int(n / beat) + 1):
+            p = int(i * beat)
+            if p + len(k) < n:
+                x[p:p + len(k)] += k
+            q = p + int(beat / 2)
+            if q + len(h) < n:
+                x[q:q + len(h)] += h
+        return x.astype(np.float32), sr
+
+    for true in (45.0, 55.0):
+        m, sr = train(true)
+        bpm, _s, info = quiet(metrics.detect_bpm, m, sr)[0]
+        got = [v for v in (bpm, info.get('window_alt')) if v]
+        assert any(abs(v - true) / true <= 0.05 for v in got), \
+            '%.0fBPM 既没报对也没报窗口外层：bpm=%.1f info=%s' % (true, bpm, info)
+        assert info.get('window_alt'), \
+            '%.0fBPM 超出窗口却没给提示（静默折半）：%s' % (true, info)
+    m, sr = train(120.0)
+    _b, _s, info = quiet(metrics.detect_bpm, m, sr)[0]
+    assert not info.get('window_alt'), '120BPM 是窗内速度，不该报 window_alt：%s' % info
+
+
 def main():
     print('自检 %d 项 %s' % (len(CHECKS), '(--fast，跳过渲染)' if FAST else ''))
     for fn in CHECKS:

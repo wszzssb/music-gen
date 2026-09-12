@@ -100,6 +100,8 @@ def check_one(path, bpm_force=None, deep=False):
                '%.1f' % info['level_lo']: info['level_lo_score']}
         if info.get('high_level'):
             lev['%.1f' % info['high_level']] = None
+        if info.get('window_alt'):           # 窗口外（<60 / >180）同样成立的层级，也要列出来
+            lev['%.1f' % info['window_alt']] = info.get('window_alt_score')
         rec['levels'] = lev
         rec['bpm_peak'] = score
         rec['bpm_note'] = info.get('level_note') or '无八度歧义（只有一层成立）'

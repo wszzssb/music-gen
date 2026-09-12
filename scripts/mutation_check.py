@@ -785,6 +785,11 @@ def main():
     results.append(case('render.json.mid 与曲名脱钩', 'render_json_mid_matches_name',
                         lambda: _FakeRoot()))
 
+    # 窗口外层级的支持度阈值关掉 → <60BPM 又变回"静默折半"
+    results.append(case('窗口外层级不再上报（<60BPM 静默折半）',
+                        'bpm_out_of_window_reported',
+                        lambda: Mut(metrics, 'WINDOW_ALT_RATIO', 9.9)))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')
