@@ -1,4 +1,5 @@
 @echo off
+rem 本文件用 GBK 编码 + CRLF 保存（cmd.exe 按系统代码页解析批处理；改成 UTF-8 会报 "x is not recognized"）。
 chcp 936 >nul
 setlocal
 cd /d "%~dp0"
@@ -54,4 +55,3 @@ echo [X] 这一步失败了 —— 看上面的报错；也可以按 INSTALL.md 手动做一遍。
 echo.
 pause
 exit /b 1
-
