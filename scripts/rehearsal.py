@@ -4,7 +4,8 @@
 
 覆盖：
   1. 全新参考曲扒谱（缓存进 refs/）
-  2. 5 套风格各自端到端：作曲 → 真音源渲染 → 自动调参 → 对齐/削波验收
+  2. 5 套风格各自端到端：作曲 → 真音源渲染 → 自动调参 → 验收
+     （判据只含"管线通 / 调参有效 / 速度一致"；**"对齐 dB"只打印、不进判据**，见 README 第 10 条）
   3. 边界情况：1 小节、某段无打击乐、显式覆盖风格预设、斜杠和弦、
      旋律落在末小节、voicing_shift、32 小节长曲
   4. 文档里写的命令行开关必须真的存在
@@ -35,6 +36,10 @@ import midi_probe           # noqa: E402
 TMP = tempfile.mkdtemp(prefix='rehearsal_')
 KEEP = '--keep' in sys.argv
 FAILS = []
+
+#: 调参误差的"已经够好"下限。`tune_error` 是 3~4 个分组误差之和，每组容差 `metrics.TOL`＝1.5dB，
+#: 所以 3.0 ≈ "各组都在容差内"。误差本来就在这个量级时，调参前后的小幅波动不算退化。
+TUNE_FLOOR = 3.0
 
 
 def log(ok, name, detail=''):
@@ -79,6 +84,18 @@ def max_gap(prof, ref):
     return max(abs(prof['bands'][k] - ref['bands'][k]) for k in keys)
 
 
+def tune_error(prof, ref):
+    """**自动调参实际在优化的那个量**：分组误差绝对值之和（low / 1.2-5k / 5-18k，+ 可选 20-40）。
+
+    为什么不拿"最大频段偏差"当判据：`make_song.autotune` 走的是 `target_gaps()` 的**分组**
+    误差（`tune_step` 只看 low/mid/top/sub），最大频段偏差**不在它的目标里** ——
+    拿它当门就会出现"调参明明有效却被判失败"（或反之）。实测：五套风格里多组 runs 的
+    最大频段偏差调参前后**一模一样**（4.3→4.3），因为它改的是分组平均。
+    """
+    g = make_song.target_gaps(prof, ref)
+    return abs(g['low']) + abs(g['mid_db']) + abs(g['shelf']) + abs(g['hp'])
+
+
 def run_style(style, ref, bars=4, **kw):
     """端到端跑一套风格：作曲 → 渲染 → 自动调参 → 验收"""
     name = 'rh_%s' % style
@@ -106,26 +123,35 @@ def run_style(style, ref, bars=4, **kw):
                            shelf_db=cfg['shelf'], hp_hz=cfg['hp'],
                            low_db=cfg['low'], drive=cfg['drive'],
                            mid_db=cfg['mid_db'], verbose=False)
-        gap_before = max_gap(metrics.profile(out + '.wav', ref['bpm']), ref)
+        mine_before = metrics.profile(out + '.wav', ref['bpm'])
+        gap_before = max_gap(mine_before, ref)
+        err_before = tune_error(mine_before, ref)
         cfg = make_song.autotune(cfg, ref, mid, out, max_iter=3)
     y, sr = sf.read(out + '.wav', dtype='float64', always_2d=True)
     mine = metrics.profile(out + '.wav', ref['bpm'])
     gap_after = max_gap(mine, ref)
+    err_after = tune_error(mine, ref)
     pk = float(np.abs(y).max())
-    # 不变量：①有音符 ②产出 OGG ③不削波 ④**调参确实改善了（或本来就够近）**
-    #         ⑤**小样确实按参考速度写的** —— 直接读 MIDI 的 tempo 元事件（确定值）。
-    #           不用音频测速：连奏编配（竖琴/弦乐/合唱）会被 detect_bpm 误判
-    #           （实测 gorgeous 编配的 106BPM 样带读成 154.3，而自相关峰值正好落在一小节上）。
+    # 判据只留**不依赖"像不像"**的三件事：
+    #   ① 管线通：有音符 / 出 OGG / 不削波 / 无 NaN
+    #   ② 调参有效：`tune_error`（它真正优化的那个量）**确实变小了，或本来就够好**（≤ TUNE_FLOOR）
+    #      —— 不像"更差就算数"那种写法，"调参整个失效"（前后一模一样且误差还很大）会红。
+    #   ③ 速度一致：小样确实按参考速度写（读 MIDI tempo 元事件，不音频测速；见下）
+    # **"对齐 dB"不进判据**：4 小节通用骨架 vs 完整制作，差 5–20dB 是正常的
+    # （实测"无打击乐段落"18.8→15.0dB 仍应通过）—— 拿它当门等于用测不准的尺子判分。
+    # 不用音频测速：连奏编配（竖琴/弦乐/合唱）会被 detect_bpm 误判
+    # （实测 gorgeous 编配的 106BPM 样带读成 154.3，而自相关峰值正好落在一小节上）。
     wrote = midi_probe.parse(mid, quiet=True).get('bpm')
     grid_ok = wrote is not None and abs(wrote - ref['bpm']) < 0.05
+    tuned_ok = (err_after <= TUNE_FLOOR) or (err_after < err_before)
     det = metrics.profile(out + '.wav')['bpm']          # 仅作参考打印
     ok = (n_notes > 10 and os.path.exists(out + '.ogg') and pk <= 1.0
-          and np.isfinite(y).all() and grid_ok
-          and (gap_after <= max(3.5, gap_before) or gap_after <= 8.0))
+          and np.isfinite(y).all() and grid_ok and tuned_ok)
     log(ok, '风格 %s' % style,
-        '音符%d 时长%.0fs 峰值%.3f 对齐 %.1f→%.1fdB 速度%.1f=写(参考%.1f) 测速%.1f* %.0fs'
-        % (n_notes, len(y) / sr, pk, gap_before, gap_after, wrote or -1,
-           ref['bpm'], det, time.time() - t0))
+        '音符%d 时长%.0fs 峰值%.3f 调参误差 %.1f→%.1f 对齐 %.1f→%.1fdB(仅供参考) '
+        '速度%.1f=写(参考%.1f) 测速%.1f* %.0fs'
+        % (n_notes, len(y) / sr, pk, err_before, err_after, gap_before, gap_after,
+           wrote or -1, ref['bpm'], det, time.time() - t0))
     return gap_after
     return worst
 
