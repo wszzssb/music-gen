@@ -1,56 +1,57 @@
 @echo off
-chcp 65001 >nul
+chcp 936 >nul
 setlocal
 cd /d "%~dp0"
 
 echo ============================================================
-echo   music-gen ä¸€é”®å®‰è£…ï¼ˆé¦–æ¬¡è¿è¡Œï¼›å·²è£…è¿‡çš„æ­¥éª¤ä¼šè‡ªåŠ¨è·³è¿‡ï¼‰
+echo   music-gen Ò»¼ü°²×°£¨Ê×´ÎÔËĞĞ£»ÒÑ×°¹ıµÄ²½Öè»á×Ô¶¯Ìø¹ı£©
 echo ============================================================
 echo.
 
 where python >nul 2>nul
 if errorlevel 1 (
-  echo [X] æ‰¾ä¸åˆ° pythonã€‚è¯·å…ˆå®‰è£… Python 3.10 æˆ–æ›´é«˜ç‰ˆæœ¬ï¼Œ
-  echo     å®‰è£…æ—¶å‹¾é€‰ "Add python.exe to PATH"ã€‚
-  echo     ä¸‹è½½åœ°å€: https://www.python.org/downloads/
+  echo [X] ÕÒ²»µ½ python¡£ÇëÏÈ°²×° Python 3.10 »ò¸ü¸ß°æ±¾£¬
+  echo     °²×°Ê±¹´Ñ¡ "Add python.exe to PATH"¡£
+  echo     ÏÂÔØµØÖ·: https://www.python.org/downloads/
   echo.
   pause
   exit /b 1
 )
 
-echo [1/4] è™šæ‹Ÿç¯å¢ƒ .venv
+echo [1/4] ĞéÄâ»·¾³ .venv
 if exist ".venv\Scripts\python.exe" (
-  echo       å·²å­˜åœ¨ï¼Œè·³è¿‡
+  echo       ÒÑ´æÔÚ£¬Ìø¹ı
 ) else (
   python -m venv .venv
   if errorlevel 1 goto fail
 )
 
-echo [2/4] ä¾èµ– numpy / soundfile / imageio-ffmpeg
+echo [2/4] ÒÀÀµ numpy / soundfile / imageio-ffmpeg
 ".venv\Scripts\python.exe" -m pip install -q --upgrade pip
 ".venv\Scripts\python.exe" -m pip install -q numpy soundfile imageio-ffmpeg
 if errorlevel 1 goto fail
 
-echo [3/4] éŸ³æº GeneralUser GS + fluidsynth çº¦ 32MB
-echo       ï¼ˆå¤šé•œåƒè‡ªåŠ¨é‡è¯•ï¼›å›½å†…ç½‘ç»œå‰å‡ æ¬¡æ–­è¿å¾ˆæ­£å¸¸ï¼Œå®ƒä¼šæ¢é•œåƒï¼‰
+echo [3/4] ÒôÔ´ GeneralUser GS + fluidsynth£¨Ô¼ 32MB£©
+echo       ¶à¾µÏñ×Ô¶¯ÖØÊÔ£»¹úÄÚÍøÂçÇ°¼¸´Î¶ÏÁ¬ºÜÕı³££¬Ëü»á»»¾µÏñ¼ÌĞø
 ".venv\Scripts\python.exe" scripts\setup_soundfont.py
 if errorlevel 1 goto fail
 
 echo.
-echo [4/4] è‡ªæ£€ï¼š78 é¡¹å…¨ç»¿å°±è¯´æ˜ç¯å¢ƒå¯ç”¨
+echo [4/4] ×Ô¼ì£º78 ÏîÈ«ÂÌ¾ÍËµÃ÷»·¾³¿ÉÓÃ
 ".venv\Scripts\python.exe" scripts\selftest.py
 echo.
 echo ============================================================
-echo   è£…å¥½äº†ã€‚
-echo   æƒ³å¬ç°æˆçš„ç¤ºä¾‹:  songs\23_d150_skip_along\d150_skip_along_sf.ogg
-echo   æƒ³å†™ç¬¬ä¸€é¦–æ­Œ:    çœ‹ INSTALL.md çš„ã€Œäº”åˆ†é’Ÿå‡ºç¬¬ä¸€é¦–ã€
+echo   ×°ºÃÁË¡£
+echo   ÏëÌıÏÖ³ÉµÄÊ¾Àı:  songs\23_d150_skip_along\d150_skip_along_sf.ogg
+echo   ÏëĞ´µÚÒ»Ê×¸è:    ¿´ INSTALL.md µÄ¡¸Îå·ÖÖÓ³öµÚÒ»Ê×¡¹
 echo ============================================================
 pause
 exit /b 0
 
 :fail
 echo.
-echo [X] è¿™ä¸€æ­¥å¤±è´¥äº† â€”â€” çœ‹ä¸Šé¢çš„æŠ¥é”™ï¼›ä¹Ÿå¯ä»¥æŒ‰ INSTALL.md æ‰‹åŠ¨åšä¸€éã€‚
+echo [X] ÕâÒ»²½Ê§°ÜÁË ¡ª¡ª ¿´ÉÏÃæµÄ±¨´í£»Ò²¿ÉÒÔ°´ INSTALL.md ÊÖ¶¯×öÒ»±é¡£
 echo.
 pause
 exit /b 1
+
