@@ -1,4 +1,6 @@
 {
+ "legacy": true,
+ "legacy_why": "脚本式作曲期的测试曲（无 song.json），只经过「和弦名 vs 音集」校验，没做过音乐性/对标校验 —— 不参与对标（坑 32）",
  "composer": "summer_seaside.py",
  "mid": "ac150_seaside.mid",
  "out": "ac150_seaside_sf",
