@@ -643,9 +643,10 @@ def t_melody_breathing():
         j2 = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
         tot = lng = dur = 0.0
         n = 0
+        bb = song_engine.bar_beats(j2)          # 一小节几个四分音符（拍号；3/4 → 3）
         for sec in j2['sections']:
             bars = sec['bars']
-            tot += bars * 4.0
+            tot += bars * bb
             arr = [x for x in (j2['melody'].get(sec['melody']) or [])
                    if 0 <= x[0] < bars]
             n += len(arr)
@@ -656,8 +657,8 @@ def t_melody_breathing():
             continue
         checked += 1
         if n / tot * 4 > 3.5 and lng <= 2.0 and (1 - dur / tot) < 0.08:
-            thin.append('%s(%d音/小节,最长%.0f拍,静音%.0f%%)'
-                        % (os.path.basename(d), n / tot * 4, lng, (1 - dur / tot) * 100))
+            thin.append('%s(%.1f音/小节,最长%.0f拍,静音%.0f%%)'
+                        % (os.path.basename(d), n / tot * bb, lng, (1 - dur / tot) * 100))
     assert checked > 0, '没有可检查的曲目（songs/ 路径或 glob 坏了）'
     if thin:
         print('        （旋律过满提示：%s —— 每拍都有新音且无长音/静音，听感会累）'
