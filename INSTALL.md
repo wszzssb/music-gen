@@ -1,6 +1,11 @@
 # 安装与首次运行（clone 之后）
 
-## 三步装好
+## 一条命令装好（Windows）
+
+**双击 `setup.cmd`** —— 自动建虚拟环境、装依赖、取音源、跑自检，装完告诉你下一步看哪。
+**已装过的步骤会自动跳过，重复运行安全。**
+
+手动三步也行（与上面等价）：
 
 ```powershell
 python -m venv .venv                                                          # ① 环境（Python 3.10+）
@@ -41,12 +46,35 @@ python -m venv .venv                                                          # 
 | `refs\` 里的参考曲画像（41 个 + 子目录） | `vendor\`（音源，按 ③ 获取） |
 | 质量分级「很好」的曲目带**成品 ogg**（开箱可听；wav 母版跑 make_song.py 重生成） | 其余曲目的音频（跑 `make_song.py <曲目>` 重生成）；质量差的已归档到 `songs\_archive\`（不进仓库） |
 
-## 上手写第一首歌
+## 五分钟出第一首
 
-```powershell
-.\.venv\Scripts\python.exe scripts\build_song.py <你的 spec.json> --out songs\99_my_song
-.\.venv\Scripts\python.exe scripts\make_song.py 99_my_song
+**① 写一份 mini spec** —— 只写「和弦走向 + 旋律骨架」，时值、和弦排列、编配全部自动推导。
+存成 `my_spec.json`：
+
+```json
+{
+ "name": "my_first", "bpm": 150, "style": "daily", "ref": "BGM16c",
+ "desc": "我的第一首",
+ "sections": [
+   {"name": "A", "bars": 8, "chords": "D A Bm7 G6 D A G6 A",
+    "melody": {"m": [[0,0,74],[0,2,78],[1,0,81],[2,0,83],[3,0,79],
+                     [4,0,74],[5,0,81],[6,0,79],[7,0,81]]}}
+ ]
+}
 ```
 
-只想先听听示例：`songs\23_d150_skip_along\skip_along_sf.ogg`。
-命令全表见 `CHEATSHEET.md`；曲式与风格预设见 `docs/SONG-FORMAT.md`。
+旋律写成 `[小节, 拍, 音高]` 三元组，**时值自动推**到下一个音；和弦用符号写（`Bm7` / `G6` / `Fsus4` / `A/C#`），
+排列自动推导。上面这份 8 小节、24 个音的 spec 是**实测可跑**的（强拍零错音）。
+
+**② 两条命令**：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\build_song.py my_spec.json --out songs\99_my_first
+.\.venv\Scripts\python.exe scripts\make_song.py 99_my_first
+```
+
+产物在 `songs\99_my_first\`：**`.mid`**（9 轨 GM，可挂任何更好的音源）+ `_sf.wav` + `_sf.ogg` + 对标成绩单。
+
+只想先听现成的示例：`songs\23_d150_skip_along\d150_skip_along_sf.ogg`。
+命令全表见 `CHEATSHEET.md`；曲式与风格预设见 `docs/SONG-FORMAT.md`；
+要把参考曲换成你自己的，见上面「参考曲：自备」。

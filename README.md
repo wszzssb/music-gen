@@ -41,7 +41,7 @@ music-gen\
 **每曲的 `notes.md` 写了调性/速度/结构/复现命令/实测对比**，接手先读它。
 `render.json` 存该曲的渲染参数（`make_song.py` 直接读，不用在命令行重复）。
 
-**clone 后先看 `INSTALL.md`**；运行时一律用 `.venv\Scripts\python.exe`。
+**clone 后先双击 `setup.cmd`**（自动建环境 + 取音源 + 自检），细节见 `INSTALL.md`；运行时一律用 `.venv\Scripts\python.exe`。
 
 ---
 
