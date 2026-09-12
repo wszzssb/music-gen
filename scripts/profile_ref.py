@@ -53,6 +53,16 @@ def main():
     print('  高频型 %s' % p['rhythm_high'])
     print('  调式   %s' % ' '.join('%s(%.2f)' % (k, v)
                                    for k, v in list(p['quiet_chroma'].items())[:5]))
+    if str(p.get('bpm_source', '')).startswith('auto'):
+        print('  ⚠ 这个速度是**自动测速**出来的，没人核对过。实测：外部参考曲上与人工钉死值的'
+              '一致率 4%（23 首里精确 1、八度内 3）—— 它只是"给的候选"，不是真相。')
+        lad = p.get('bpm_ladder') or {}
+        if lad:
+            print('     候选层级（值: 支持度）: %s'
+                  % '  '.join('%s:%.3f' % (k, v) for k, v in
+                              sorted(lad.items(), key=lambda kv: -kv[1])[:6]))
+        print('     → 与 `probe_style.py` 的逐拍节奏型对不上就是判错了；'
+              '确认后用 `profile_ref.py <音频> %s --bpm <值>` 重写画像' % p['name'])
     return 0
 
 

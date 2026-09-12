@@ -446,12 +446,20 @@ def detect_bpm(m, sr):
     # 而折叠本身不留痕迹。这里把"窗口外同样成立、甚至更成立的层级"显式报出来，
     # 让上层（check_audio / profile_ref / 成绩单）能提示**用 --bpm 钉死**，
     # 而不是让人拿着一个折半/加倍的值去写画像。判据与 low_level 同源（支持度比值）。
-    alts = [(round(float(score_of(v)), 3), round(v, 1))
-            for v in (best_bpm / 4.0, best_bpm / 3.0, best_bpm / 2.0,
-                      best_bpm * 2.0, best_bpm * 3.0, best_bpm * 4.0)
-            if 40.0 <= v <= 240.0 and not (BPM_FOLD[0] <= v <= BPM_FOLD[1])]
-    if alts:
-        s_alt, v_alt = max(alts)
+    # 层级阶梯：把"同样成立的层"**全列出来**（本层 + ×2/÷2/×3/÷3/×4/÷4，落在 40–240 内）并带支持度
+    # —— 人工核对时直接挑一个，而不是凭感觉试数。实测自动测速与人工钉死的一致率在外部参考曲上
+    # 只有 4%（坑 106），所以"给人一份候选表"才是这个工具能负责的部分。
+    ladder = {}
+    for v in (best_bpm, best_bpm / 2.0, best_bpm * 2.0, best_bpm / 3.0,
+              best_bpm * 3.0, best_bpm / 4.0, best_bpm * 4.0):
+        v = round(float(v), 1)
+        if 40.0 <= v <= 240.0:
+            ladder['%.1f' % v] = round(float(score_of(v)), 3)
+    info['level_ladder'] = ladder
+    outside = [(s, float(k)) for k, s in ladder.items()
+               if not (BPM_FOLD[0] <= float(k) <= BPM_FOLD[1])]
+    if outside:
+        s_alt, v_alt = max(outside)
         if s_alt >= WINDOW_ALT_RATIO * best_s:
             info['window_alt'] = v_alt
             info['window_alt_score'] = s_alt
@@ -542,6 +550,14 @@ def profile(path, bpm=None, name=None):
     }
     if periodicity is not None:
         p['periodicity'] = periodicity
+    # 速度**来源**必须写进画像：自动测速的值不许被当真相（实测外部参考曲上与人工钉死的一致率
+    # 4%，见坑 106）。下游（scorecard/new_song）读这个字段就知道该不该提醒人复核。
+    p['bpm_source'] = 'forced(--bpm)' if tempo is None else 'auto(未核对)'
+    if tempo:
+        if tempo.get('level_ladder'):
+            p['bpm_ladder'] = tempo['level_ladder']
+        if tempo.get('window_alt'):
+            p['window_alt'] = tempo['window_alt']
     if tempo:
         # 半/倍速层级（坑 66）：后续命令（new_song 填 BPM / scorecard 比速度）读这两个
         # 字段，**显式选一层**，避免"两边各选一层 → 速度差 100% 假报警"

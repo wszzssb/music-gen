@@ -102,6 +102,8 @@ def check_one(path, bpm_force=None, deep=False):
             lev['%.1f' % info['high_level']] = None
         if info.get('window_alt'):           # 窗口外（<60 / >180）同样成立的层级，也要列出来
             lev['%.1f' % info['window_alt']] = info.get('window_alt_score')
+        for k, s in (info.get('level_ladder') or {}).items():
+            lev.setdefault(k, s)             # 层级阶梯：人工核对时直接挑一个（坑 106）
         rec['levels'] = lev
         rec['bpm_peak'] = score
         rec['bpm_note'] = info.get('level_note') or '无八度歧义（只有一层成立）'
