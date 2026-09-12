@@ -821,6 +821,23 @@ def main():
                         'melody_distinct',
                         lambda: Mut(st, 'MELODY_SIM_MAX', -1.0)))
 
+    # "语言重合"的孪生判据被放到 0 → 任何一对都算孪生，检查必须按上限断言失败
+    # （这条防的是"改了 melody_gen 又把 10 首写成一套口音"，见 probe_melody_lang）
+    import probe_melody_lang as _pl
+    results.append(case('旋律语言孪生判据被改坏',
+                        'melody_lang_diverse',
+                        lambda: Mut(_pl, 'TWIN', 0.0)))
+    results.append(case('语言孪生上限被放成负数（永远不许有孪生）',
+                        'melody_lang_diverse',
+                        lambda: Mut(st, 'MELODY_LANG_TWIN_MAX', -1)))
+
+    # "生成旋律必须像画像"的承接度下限被抬到不可能达到 → 必须按阈值断言失败。
+    # （真注入回归：把 melody_gen 出口的 `max(0.25, e[2])` 改回 `min(e[2], SPB-e[1])`
+    #   复现坑 114 的裁剪 → 该检查实测 FAIL，落点 53%/时值 66%）
+    results.append(case('旋律-画像承接度下限被改坏',
+                        'melody_matches_profile',
+                        lambda: Mut(st, 'MELODY_ACCEPT_MIN', 1.5)))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

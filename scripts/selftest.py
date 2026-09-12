@@ -2651,6 +2651,8 @@ def t_breath_fix_works():
 
 MELODY_WIN = 8          # 旋律窗口：连续 8 个音（≈2–3 小节）
 MELODY_SIM_MAX = 0.05   # 允许的"跨曲共享窗口"比例上限
+MELODY_LANG_TWIN_MAX = 2   # 允许的"孪生对"数（语言重合 ≥85% = 同一种说话方式）
+MELODY_ACCEPT_MIN = 0.55   # 生成旋律与画像的逐维承接度下限（落点/时值）
 
 
 def _melody_windows(notes, w=MELODY_WIN):
@@ -2712,6 +2714,85 @@ def t_melody_distinct():
     assert ratio <= MELODY_SIM_MAX, \
         ('跨曲主旋律雷同：%d/%d = %.1f%%（上限 %.0f%%）；单曲超限: %s'
          % (shared, tot, ratio * 100, MELODY_SIM_MAX * 100, ', '.join(bad)))
+
+
+@check
+def t_melody_lang_diverse():
+    """**每首歌要有自己的说话方式**（用户原话："怎么这么多歌的主旋律都是一样的"）。
+
+    量的是**分布级**重合：落点(16 分格)/时值/音程/句长/拱形 5 组直方图的平均交叠率，
+    和 `melody_distinct`（形状级，防照抄/退化）不是一回事 —— 这条防"一套口音"。
+    实测（2026-09-13）：修 `melody_gen` 前，全库**跨曲共享片段只有 0.5%**（不是照抄），
+    但最像的一对 87%（12~13）、落点维度两两平均 58% —— 听感"每首都像"来自这里。
+    修好后（真读画像的句长/落点/音程/时值 + 每首一份画像 + 生成去重筛选）：孪生对 0、
+    落点维度平均 41%。工具 `probe_melody_lang.py`。
+    """
+    import probe_melody_lang as PL
+    # 判据自证：同一句整体移调 = 100% 重合；节奏和走向都换掉 = 明显更低
+    a = [(i * 1.0, 0.5 + (i % 3) * 0.25, 60 + (i % 5)) for i in range(24)]
+    b = [(i * 1.0, d, p + 7) for (i, d, p) in a]
+    c = [(i * 2.0, 1.0, 60 + (i % 7)) for i in range(24)]
+    assert PL.sim(PL.feats(a), PL.feats(b)) > 0.999, '整体移调的同一句必须 100% 重合'
+    assert PL.sim(PL.feats(a), PL.feats(c)) < 0.9, '节奏/走向都换掉的句子不该是同一种说话方式'
+    r = PL.report()
+    assert len(r['items']) >= 3, '带旋律的曲目太少（%d），这条检查会空转' % len(r['items'])
+    n = len(r['twin'])
+    print('        孪生对 %d 对（上限 %d）；落点维度两两平均 %.0f%%、最高 %.0f%%'
+          % (n, MELODY_LANG_TWIN_MAX, r['dims']['onset'][0] * 100,
+             r['dims']['onset'][1] * 100))
+    assert n <= MELODY_LANG_TWIN_MAX, \
+        ('旋律语言雷同：%d 对孪生（上限 %d）→ %s'
+         % (n, MELODY_LANG_TWIN_MAX,
+            '；'.join('%.0f%% %s~%s' % (cc * 100, x, y) for cc, x, y in r['twin'])))
+
+
+@check
+def t_melody_matches_profile():
+    """**生成出来的旋律必须像它的画像**（统计层守卫）。
+
+    防的是坑 114/115 那一类：旋律在生成过程里看着对，落盘却因为**出口裁剪 / 概率过滤**
+    而偏离画像 —— 实测那首 31 号：0.25 拍碎音 11%（画像 0%）、2 拍长音 0%（画像 48%）、
+    正拍被长尾过滤滤光…… 而**频段类守卫一个都抓不到**（频谱完全正常）。
+
+    只查带 `melody_gen` 元数据的曲子（= 旋律确实由画像生成；手写旋律没有"该像谁"这回事）。
+    判据：**落点、时值**两维的直方图交叠率 ≥ `MELODY_ACCEPT_MIN`。
+    """
+    import probe_melody_lang as PL
+    rows = []
+    for d in song_dirs():
+        p = os.path.join(d, 'song.json')
+        j2 = json.load(open(p, encoding='utf-8'))
+        pname = (j2.get('melody_gen') or {}).get('profile')
+        if not pname:
+            continue
+        pp = os.path.join(ROOT, 'refs', 'melody', pname + '_melody.json')
+        if not os.path.isfile(pp):
+            continue
+        notes, is44 = PL.notes_of(p)
+        f = PL.feats(notes, is44)
+        pf = PL.prof_feats(json.load(open(pp, encoding='utf-8')))
+        if not f or not pf:
+            continue
+        dims = {k: PL.sim({k: f[k]}, {k: pf[k]})
+                for k in ('onset', 'dur') if k in f and k in pf}
+        if dims:
+            rows.append((os.path.basename(d), pname, dims))
+    assert rows, '没有带 melody_gen 元数据的曲子（%d），这条检查会空转' % len(rows)
+    # 判据自证：同一分布自比 = 100%；全碎音的旋律，时值维必须明显掉下来
+    long_n = [(i * 2.0, 2.0, 60) for i in range(16)]
+    chop_n = [(i * 0.25, 0.25, 60) for i in range(16)]
+    fl, fc = PL.feats(long_n), PL.feats(chop_n)
+    assert PL.sim({'dur': fl['dur']}, {'dur': fl['dur']}) > 0.999, '同一分布自比必须 100%'
+    assert PL.sim({'dur': fl['dur']}, {'dur': fc['dur']}) < 0.5, '全碎音不该判成与长音分布相似'
+    for n, pn, dims in rows:
+        print('        %-22s 画像 %-18s 落点 %3.0f%%  时值 %3.0f%%'
+              % (n, pn, dims.get('onset', 0) * 100, dims.get('dur', 0) * 100))
+    bad = ['%s（画像 %s）落点 %.0f%%/时值 %.0f%%'
+           % (n, pn, dims.get('onset', 0) * 100, dims.get('dur', 0) * 100)
+           for n, pn, dims in rows if min(dims.values()) < MELODY_ACCEPT_MIN]
+    assert not bad, ('生成旋律离画像太远（承接度下限 %.0f%%）：%s —— 先查 melody_gen 的'
+                     '出口裁剪/落点过滤（坑 114/115），别去调画像'
+                     % (MELODY_ACCEPT_MIN * 100, '；'.join(bad)))
 
 
 def main():

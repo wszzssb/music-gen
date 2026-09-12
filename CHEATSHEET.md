@@ -23,6 +23,15 @@ $py = ".\.venv\Scripts\python.exe"
 & $py scripts\make_song.py 06_morning --no-tune           # 只渲染一轮不调参
 ```
 
+### 旋律：**一首一份画像**（共用一份 = 十首一套口音，实测孪生 5 对）
+
+```powershell
+# 画像一首一份；--avoid 拿库里已有旋律做去重筛选（生成 8 条取最不像的一条）
+& $py scripts\melody_gen.py songs\23_x\song.json refs\melody\psg_BGM16b_melody.json `
+      --seed 23 --avoid songs --candidates 8
+& $py scripts\probe_melody_lang.py      # 验收：孪生对（≥85%）必须 0；落点/音程维看全库平均
+```
+
 ### 成绩单输出长这样
 
 ```
