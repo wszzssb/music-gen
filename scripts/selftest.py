@@ -1759,6 +1759,39 @@ def t_pump_groove():
 
 
 @check
+def t_waltz_groove():
+    """3/4 要的是**地道华尔兹**，不是"把 4/4 的落点按拍缩放一遍"（本轮实测踩到）：
+
+    · `bass_style: waltz` → 贝斯只踩**第 1 拍**（"oom"）—— 不再是"第 1 拍 + 第 3 拍"那种缩放结果
+    · 钢琴/电钢的奇数拍分支 → 和弦落在**第 2、3 拍**（"pah-pah"）
+    · `perc_style: waltz` → 底鼓只踩第 1 拍，侧棒点第 2、3 拍，八分沙锤铺连续性
+    · 全部落在**一小节内**（3 拍）
+    """
+    d = {'name': 'wz', 'bpm': 150, 'meter': [3, 4], 'style': 'ballad',
+         'chords': {'Dm': [38, [57, 62, 65, 69, 74]]},
+         'melody': {'m': [[0, 0, 1, 74]]},
+         'sections': [{'name': 'A', 'bars': 1, 'chords': ['Dm'], 'melody': 'm',
+                       'arr': {'bass': True, 'piano': True, 'perc': 2}}],
+         'patterns': {'bass_style': 'waltz', 'perc_style': 'waltz'}}
+    sp = os.path.join(TMP, 'waltz.json')
+    json.dump(d, open(sp, 'w', encoding='utf-8'))
+    ev, _nb = build(quiet(song_engine.load, sp)[0])
+
+    def pos(track, pred=None):
+        return sorted({round(t % 3.0, 2) for (t, _dd, m, _v) in ev.get(track, [])
+                       if pred is None or pred(m)})
+
+    assert pos('Bass') == [0.0, 2.0], \
+        'waltz 贝斯应只踩第 1 拍（+ 第 3 拍轻五度），实得 %s' % pos('Bass')
+    assert pos('Piano') == [1.0, 2.0], \
+        'waltz 和弦应在第 2、3 拍（pah-pah），实得 %s' % pos('Piano')
+    assert pos('Perc', lambda m: m == 36) == [0.0], \
+        'waltz 底鼓只踩第 1 拍，实得 %s' % pos('Perc', lambda m: m == 36)
+    assert pos('Perc', lambda m: m == 37) == [1.0, 2.0], \
+        'waltz 侧棒应在第 2、3 拍，实得 %s' % pos('Perc', lambda m: m == 37)
+
+
+@check
 def t_render_duration_matches_midi():
     """成品 WAV 的时长必须 ≈ MIDI 时长 + 混响尾巴（允许多 10 秒）。
 

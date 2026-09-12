@@ -796,6 +796,13 @@ def main():
                         lambda: Mut(song_engine, 'strong_beats',
                                     lambda meter: [0.0, 2.0])))
 
+    # 华尔兹的和弦退回 4/4 反拍写法（0.5 / 1.5）→ pah-pah 不在第 2、3 拍上
+    results.append(case('华尔兹和弦退回 4/4 反拍写法',
+                        'waltz_groove',
+                        lambda: Mut(song_engine, 'piano_part',
+                                    lambda ch, i, B=4.0: [(0.5, 0.28, m, 60)
+                                                          for m in ch[1][:3]])))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

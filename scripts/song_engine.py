@@ -3,9 +3,12 @@
 """曲目引擎：读 songs/<曲名>/song.json（**纯数据**）→ 展开编配 → 输出 MIDI + 可选合成器试听
 
 设计目标：**新歌只写一个 JSON，不写代码**。编配风格用字符串选：
-  patterns.bass_style: offbeat | eighth | sixteenth | simple
-  patterns.perc_style: light | dance | none
+  patterns.bass_style: offbeat | eighth | sixteenth | simple | pump16 | waltz（3/4 华尔兹）
+  patterns.perc_style: light | dance | orchestral | pump | none | waltz（3/4 华尔兹）
   patterns.arpeggio  : 和弦音序号序列（默认 [0,2,3,4,3,2,4]）
+
+**拍号**：`meter: [3,4]` / `[6,8]`（缺省 `[4,4]`）。引擎内部的"拍"一律是四分音符；
+奇数拍号（3/4）下钢琴/电钢自动改走华尔兹的 pah-pah（和弦落在第 2、3 拍），4/4 输出逐字节不变。
 
 song.json 结构见 songs/05_d135_cheerful/song.json；字段缺省会自动补默认值。
 """
@@ -247,8 +250,15 @@ def guitar_arpeggio(ch, i, arp, B=4.0):
 
 
 def piano_part(ch, i, B=4.0):
-    """钢琴：反拍和弦短音（含根音） + 高音持续音"""
+    """钢琴：反拍和弦短音（含根音） + 高音持续音
+
+    **奇数拍（3/4）走华尔兹写法**：和弦落在第 2、3 拍 = "oom-pah-pah" 的 pah（4/4 的反拍写法
+    在三拍里会糊成一片，实测听感没有圆舞曲的推动感）。
+    """
     _, tones = ch
+    if int(round(B)) % 2:
+        return [(float(b), 0.42, m, 66 if b == 1 else 58)
+                for b in range(1, int(round(B))) for m in tones[:3]]
     out = []
     for b in (0.5, B - 1.5):
         for m in tones[:3]:
@@ -317,6 +327,15 @@ def bass_part(ch, nxt, i, pat, B=4.0):
         if sub_gain:
             out.append((0.75, sub_dur, bass - 12, int(72 * sub_gain)))
             out.append((B - 1.25, sub_dur, bass - 12, int(68 * sub_gain)))
+    elif style == 'waltz':
+        # 华尔兹的 "oom"：根音踩**第 1 拍**（长音铺住前两拍），第 3 拍给一个轻五度。
+        # "pah-pah" 交给钢琴/电钢（`piano_part` / `ep_part` 的奇数拍分支）。
+        out = [(0.0, 1.9, bass, 96)]
+        if NB >= 3:
+            out.append((float(NB - 1), 0.8,
+                        bass + 7 if bass + 7 <= 47 else bass - 5, 70))
+        if sub_gain:
+            out.append((0.0, max(sub_dur, 1.2), bass - 12, int(70 * sub_gain)))
     else:                                       # simple
         out = [(0.0, 1.4, bass, 96)]
         for k in range(2, NB):                  # 4/4 → 第 2、3 拍（与老行为一致）
@@ -333,8 +352,11 @@ def bass_part(ch, nxt, i, pat, B=4.0):
 
 
 def ep_part(ch, i, B=4.0):
-    """电钢琴：反拍切分和弦（走 Hook 轨）"""
+    """电钢琴：反拍切分和弦（走 Hook 轨）。奇数拍同样改成华尔兹的 pah-pah（见 `piano_part`）"""
     _, tones = ch
+    if int(round(B)) % 2:
+        return [(float(b), 0.36, m, 62 if b == 1 else 54)
+                for b in range(1, int(round(B))) for m in tones[1:4]]
     acc = B / 2.0 + 0.5                        # 4/4 → 2.5（原来的重音位）
     out = []
     for b in [k + 0.5 for k in range(max(1, int(round(B))))]:
@@ -461,6 +483,16 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0):
                     out.append((b - sh, 0.1, m, v))
         if i % 8 == 7:                                    # 8 小节加一次大过门
             out.append((3.875 - (4.0 - B), 0.1, 49, 88))  # 吊镲（不冲太高，保持均匀）
+    elif style == 'waltz':
+        # 圆舞曲的打击：底鼓只踩第 1 拍（轻），第 2、3 拍用侧棒点一下，八分沙锤铺连续性。
+        # 目的不是"更响"，而是让三拍的**层级**听得出来（1 强 2 弱 3 弱）。
+        out.append((0.0, 0.12, 36, 68))
+        for b in range(1, NB):
+            out.append((float(b), 0.12, 37, 52 if b % 2 else 46))
+        for k in range(NB * 2):
+            out.append((k * 0.5, 0.2, 82, 34 if k % 2 else 44))
+        if level >= 3:
+            out.append((B - 0.25, 0.3, 81, 58))
     elif style == 'orchestral':
         # 定音鼓 + 三角铁微光 + 吊镲：华丽/盛大向，不用鼓组
         out.append((0.0, 0.35, 47, 96))                   # 低定音鼓（正拍）

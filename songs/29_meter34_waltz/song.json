@@ -6,8 +6,8 @@
  "style": "ballad",
  "ref": "BGM18b",
  "patterns": {
-  "bass_style": "simple",
-  "perc_style": "light",
+  "bass_style": "waltz",
+  "perc_style": "waltz",
   "arpeggio": [0, 2, 3, 2, 1]
  },
  "chords": {
