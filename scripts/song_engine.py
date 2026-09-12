@@ -103,6 +103,36 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             'perc', 'harmony', 'shimmer', 'mix')
 
 
+def _norm_meter(v):
+    """拍号 `[拍数, 音符单位]`，缺省 `[4,4]`。
+
+    引擎内部的"拍"**一律是四分音符**（`bpm` 也是四分音符速度），所以拍号只影响三件事：
+    ① 一小节有多少个四分音符（`[6,8]` → 3 个）；② 写进 MIDI 的拍号元事件；③ 强拍位置。
+    **不支持的写法当场报错**，不许静默按 4/4 处理（那正是这套工具最怕的"静默给错答案"）。
+    """
+    if v is None:
+        return [4, 4]
+    if not (isinstance(v, (list, tuple)) and len(v) == 2):
+        raise SystemExit('meter 应写成 [拍数, 音符单位]，如 [3,4] / [6,8]；收到 %r' % (v,))
+    try:
+        beats, unit = int(v[0]), int(v[1])
+    except (TypeError, ValueError):
+        raise SystemExit('meter 的两项必须是整数：%r' % (v,))
+    if not (2 <= beats <= 12):
+        raise SystemExit('meter 的拍数应在 2–12：%r' % (v,))
+    if unit not in (4, 8):
+        raise SystemExit('meter 的音符单位目前只支持 4 与 8（如 [3,4] / [6,8]）：%r' % (v,))
+    return [beats, unit]
+
+
+def bar_beats(d_or_meter):
+    """一小节 = 几个**四分音符**（引擎内部时间单位）。[4,4]→4；[3,4]→3；[6,8]→3。"""
+    m = d_or_meter.get('meter') if isinstance(d_or_meter, dict) else d_or_meter
+    if not m:
+        m = [4, 4]
+    return float(m[0]) * (4.0 / float(m[1]))
+
+
 def load(path):
     try:
         with open(path, encoding='utf-8') as f:
@@ -122,6 +152,8 @@ def load(path):
     if not d['sections']:
         raise SystemExit('song.json 的 sections 是空的')
     d.setdefault('bpm', 120.0)
+    d['meter'] = _norm_meter(d.get('meter'))
+    d['bar_beats'] = bar_beats(d['meter'])         # 一小节几个四分音符（下游统一用它）
     # --- 风格预设打底，song.json 里显式写的覆盖
     style = d.get('style')
     preset = {}
@@ -184,10 +216,13 @@ def tone(tones, i):
 
 
 # ---------------------------------------------------------------- 编配生成
-def guitar_arpeggio(ch, i, arp):
-    """吉他/尤克里里分解：第 1 拍必须是根音（否则和声含糊、扒谱都对不上）"""
+def guitar_arpeggio(ch, i, arp, B=4.0):
+    """吉他/尤克里里分解：第 1 拍必须是根音（否则和声含糊、扒谱都对不上）
+
+    `B` = 一小节的四分音符数（默认 4 = 老行为，逐字节不变）。3/4 → 一小节 5 个八分位。
+    """
     bass, tones = ch
-    beats = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+    beats = [k * 0.5 for k in range(max(1, int(round(B * 2)) - 1))]
     out = []
     for k, b in enumerate(beats):
         m = tone(tones, arp[k % len(arp)])
@@ -195,48 +230,56 @@ def guitar_arpeggio(ch, i, arp):
     return out
 
 
-def piano_part(ch, i):
+def piano_part(ch, i, B=4.0):
     """钢琴：反拍和弦短音（含根音） + 高音持续音"""
     _, tones = ch
     out = []
-    for b in (0.5, 2.5):
+    for b in (0.5, B - 1.5):
         for m in tones[:3]:
             out.append((b, 0.28, m, 60))
     out.append((0.0, 1.5, tone(tones, 3), 54))
     if i % 4 == 3:
-        out.append((3.5, 0.4, tone(tones, 2) + 12, 62))
+        out.append((B - 0.5, 0.4, tone(tones, 2) + 12, 62))
     return out
 
 
-def bass_part(ch, nxt, i, pat):
+def bass_part(ch, nxt, i, pat, B=4.0):
     """贝斯：四种风格（都由参考曲低频节奏型反推出来的）
     sub_gain / sub_dur 可调：sub 层必须用**短音**（默认 0.3 拍），
-    长音会把低频节奏型糊成连续块；但 sub 太少会缺 20-40Hz 的能量。"""
+    长音会把低频节奏型糊成连续块；但 sub 太少会缺 20-40Hz 的能量。
+
+    `B` = 一小节的四分音符数（默认 4 = 老行为）。各风格都按"拍"展开，因此 3/4 会自动缩短
+    （`simple` 在第 2..B-1 拍各给一个短音，`offbeat`/`pump16` 的收束音按 `B-…` 定位）。
+    """
     style = pat['bass_style']
     sub_gain = pat.get('sub_gain', 1.0)
     sub_dur = pat.get('sub_dur', 0.3)
     bass, tones = ch
+    NB = max(1, int(round(B)))
     if style == 'offbeat':
-        # 反拍驱动：重音在每拍第 2、4 个十六分（0.25/0.75/2.25/3.25）
+        # 反拍驱动：重音在每拍第 2、4 个十六分（0.25/0.75 与 B-1.75/B-1.25/B-0.75）
         out = [(0.25, 0.35, bass, 96), (0.75, 0.3, bass, 80),
-               (2.25, 0.35, bass, 92), (2.75, 0.3, bass, 76),
-               (3.25, 0.3, bass, 84)]
+               (B - 1.75, 0.35, bass, 92), (B - 1.25, 0.3, bass, 76),
+               (B - 0.75, 0.3, bass, 84)]
         out.append((0.25, sub_dur, bass - 12, int(72 * sub_gain)))
-        out.append((2.25, sub_dur, bass - 12, int(68 * sub_gain)))
+        out.append((B - 1.75, sub_dur, bass - 12, int(68 * sub_gain)))
     elif style == 'eighth':
-        out = [(0.0, 0.22, bass, 104), (0.5, 0.22, bass, 84),
-               (1.0, 0.22, bass, 96), (1.5, 0.22, bass + 12, 80),
-               (2.0, 0.22, bass, 104), (2.5, 0.22, bass, 84),
-               (3.0, 0.22, bass, 96), (3.5, 0.22, bass + 7, 82)]
+        pc = [bass, bass, bass, bass + 12, bass, bass, bass, bass + 7]
+        vc = [104, 84, 96, 80, 104, 84, 96, 82]
+        out = [(k * 0.5, 0.22, pc[k % 8], vc[k % 8])
+               for k in range(max(1, int(round(B * 2))))]
         if sub_gain:                       # sub 层：参考曲 20-40Hz 常有能量
             out.append((0.0, max(sub_dur, 0.8), bass - 12, int(70 * sub_gain)))
-            out.append((2.0, max(sub_dur, 0.8), bass - 12, int(64 * sub_gain)))
+            out.append((B / 2.0, max(sub_dur, 0.8), bass - 12, int(64 * sub_gain)))
     elif style == 'sixteenth':
         f5, up = bass + 7, bass + 12
-        out = [(0.0, 0.18, bass, 106), (0.25, 0.18, bass, 104), (0.5, 0.18, bass, 80),
-               (1.0, 0.18, bass, 100), (1.25, 0.18, bass, 100), (1.5, 0.18, up, 78),
-               (2.0, 0.18, bass, 106), (2.25, 0.18, bass, 104), (2.5, 0.18, bass, 80),
-               (3.0, 0.18, bass, 100), (3.25, 0.18, f5, 100), (3.5, 0.18, up, 82)]
+        # 每拍三条（正拍 + e + a）；四拍模板逐拍等价于原来的 12 个手写元组
+        tpl = [((0.0, 0.18, bass, 106), (0.25, 0.18, bass, 104), (0.5, 0.18, bass, 80)),
+               ((0.0, 0.18, bass, 100), (0.25, 0.18, bass, 100), (0.5, 0.18, up, 78)),
+               ((0.0, 0.18, bass, 106), (0.25, 0.18, bass, 104), (0.5, 0.18, bass, 80)),
+               ((0.0, 0.18, bass, 100), (0.25, 0.18, f5, 100), (0.5, 0.18, up, 82))]
+        out = [(beat + p, dd, m, v) for beat in range(NB)
+               for (p, dd, m, v) in tpl[beat % 4]]
     elif style == 'pump16':
         # 反拍推动（照 BGM33 的低频节奏型反推）：**每拍的"e/a"两个十六分都推**，
         # 正拍留给鼓 → 低频显著起音全落在反拍：◇★◇★◇★◇★·★◇★◇★◇★
@@ -244,67 +287,72 @@ def bass_part(ch, nxt, i, pat):
         #   所以音长要**短**（0.28 拍 = 断开），力度要拉开（重音 108 / 弱音 66），
         #   绝不能是一整小节的长音（那会变成 98% 占用 / 13dB 动态的"嗡"）。
         f5 = bass + 7
-        # `bass_vel`（opt-in）：直接给 8 个 e/a 位置的力度。默认那套是**故意有起伏**的
+        # `bass_vel`（opt-in）：直接给 e/a 位置的力度。默认那套是**故意有起伏**的
         # （逐声部实测：例曲 bass 动态 48~52dB = 有颗粒）；但**整曲低频的 16 分律动型**
         # 要求每个 e/a 都是强格（`◇★◇★◇★◇★`）—— 两个指标会打架，
         # 想要"律动型逐格对齐"就把它拉平（差 ≤20），想要"颗粒感"就用默认。
         d8 = pat.get('bass_vel') or (106, 110, 62, 88, 102, 108, 58, 92)
-        out = [(0.25, 0.22, bass, d8[0]), (0.75, 0.24, bass, d8[1]),
-               (1.25, 0.22, bass, d8[2]), (1.75, 0.24, bass, d8[3]),
-               (2.25, 0.22, bass, d8[4]), (2.75, 0.24, f5, d8[5]),
-               (3.25, 0.22, bass, d8[6]), (3.75, 0.24, bass, d8[7])]
+        out = []
+        for beat in range(NB):
+            out.append((beat + 0.25, 0.22, bass, d8[(2 * beat) % 8]))
+            out.append((beat + 0.75, 0.24,
+                        f5 if (2 * beat + 1) % 8 == 5 else bass, d8[(2 * beat + 1) % 8]))
         out.append((0.0, 0.18, bass, 60))             # 正拍只给短促弱音（有颗粒、不断层）
         if sub_gain:
             out.append((0.75, sub_dur, bass - 12, int(72 * sub_gain)))
-            out.append((2.75, sub_dur, bass - 12, int(68 * sub_gain)))
+            out.append((B - 1.25, sub_dur, bass - 12, int(68 * sub_gain)))
     else:                                       # simple
-        out = [(0.0, 1.4, bass, 96), (2.0, 0.9, bass, 80), (3.0, 0.9, bass, 74)]
+        out = [(0.0, 1.4, bass, 96)]
+        for k in range(2, NB):                  # 4/4 → 第 2、3 拍（与老行为一致）
+            out.append((float(k), 0.9, bass, 74 if k == NB - 1 else 80))
         if i % 2 == 1:
-            out.append((2.5, 0.45, bass + 7 if bass + 7 <= 47 else bass - 5, 72))
+            out.append((B - 1.5, 0.45, bass + 7 if bass + 7 <= 47 else bass - 5, 72))
         # sub 层（20-40Hz）：参考曲这一段常有能量，主贝斯落在 40-80 时补不上
         if sub_gain:
             out.append((0.0, max(sub_dur, 1.2), bass - 12, int(70 * sub_gain)))
     if i % 4 == 3 and nxt:                       # 句尾半音引导
         nb = nxt[0]
-        out.append((3.75, 0.3, nb + (1 if nb > bass else -1), 78))
+        out.append((B - 0.25, 0.3, nb + (1 if nb > bass else -1), 78))
     return out
 
 
-def ep_part(ch, i):
+def ep_part(ch, i, B=4.0):
     """电钢琴：反拍切分和弦（走 Hook 轨）"""
     _, tones = ch
+    acc = B / 2.0 + 0.5                        # 4/4 → 2.5（原来的重音位）
     out = []
-    for b in (0.5, 1.5, 2.5, 3.5):
+    for b in [k + 0.5 for k in range(max(1, int(round(B))))]:
         for m in tones[1:4]:
-            out.append((b, 0.22, m, 54 if b != 2.5 else 62))
+            out.append((b, 0.22, m, 62 if b == acc else 54))
     if i % 4 == 3:
-        out.append((3.25, 0.2, tone(tones, 4), 66))
+        out.append((B - 0.75, 0.2, tone(tones, 4), 66))
     return out
 
 
-def pad_part(ch):
+def pad_part(ch, B=4.0):
     _, tones = ch
-    return [(0.0, 4.1, m, 52) for m in tones[:2]]
+    return [(0.0, B + 0.1, m, 52) for m in tones[:2]]
 
 
-def strings_part(ch):
+def strings_part(ch, B=4.0):
     _, tones = ch
-    return [(0.0, 4.1, m + 12, 50) for m in tones[:3]]
+    return [(0.0, B + 0.1, m + 12, 50) for m in tones[:3]]
 
 
-def glock_part(ch, i):
+def glock_part(ch, i, B=4.0):
     _, tones = ch
     if i % 4 == 2:
-        return [(1.5, 0.4, tone(tones, 3) + 24, 58),
-                (3.0, 0.4, tone(tones, 2) + 24, 54)]
+        return [(B - 2.5, 0.4, tone(tones, 3) + 24, 58),
+                (B - 1.0, 0.4, tone(tones, 2) + 24, 54)]
     if i % 4 == 3:
         return [(0.0, 0.4, tone(tones, 4) + 24, 60)]
     return []
 
 
-def perc_part(style, level, i, nbars, layers=None, kick_vel=None):
+def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0):
     """打击：light = 沙锤+轻底鼓（抒情向）；dance = 四踩+反拍踩镲（舞曲向）
 
+    `B` = 一小节的四分音符数（默认 4 = 老行为，逐字节不变）；十六分格数 = B*4。
     `layers`（opt-in，默认 None = 输出与以前逐字节一致）：给底鼓位置/十六分网格
     额外叠"垫层"，用来补**时间连续性**（占用率），而不是补能量——
     逐声部实测发现我们与例曲差的不是频段能量（EQ 早已对齐），而是
@@ -312,39 +360,41 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None):
     格式 {'kick': [[note, vel, 拍长], ...], 'air': [[note, vel, 拍长], ...]}"""
     if style == 'none' or level == 0:
         return []
+    NB = max(1, int(round(B)))
+    S = NB * 4                                     # 一小节的十六分格数（4/4 → 16）
     out = []
     if style == 'dance':
-        for b in range(4):
+        for b in range(NB):
             out.append((b, 0.1, 36, 100 if b % 2 == 0 else 94))
             if level >= 2:
                 out.append((b + 0.25, 0.1, 36, 84))       # 双踩
-        for b in (1, 3):
+        for b in range(1, NB, 2):                         # 军鼓 2、4（4/4 → 1、3）
             out.append((b, 0.1, 38, 96))
-        for b in range(4):
+        for b in range(NB):
             out.append((b + 0.5, 0.1, 42, 98))            # 只放反拍
             if level >= 3:
                 out.append((b + 0.25, 0.1, 42, 20))
         if level >= 3:
-            out.append((3.5, 0.1, 46, 72))
+            out.append((B - 0.5, 0.1, 46, 72))
     elif style == 'pump':
         # 照 BGM33 的高频节奏型反推 + **逐声部实测目标**：
         #   例曲 drums 占用率 69/57/33/21/15/12/55/84、动态 29~49dB
         #   （我们要的是"密集 + 均匀 + 被压过"，所以：**每个十六分都有东西**、
         #     力度收在 62~104 的窄带里、正拍与反拍差距压小）
-        for k in range(16):                               # 十六分踩镲：全程铺满
+        for k in range(S):                                # 十六分踩镲：全程铺满
             out.append((k * 0.25, 0.25, 42, 84 if k % 4 == 0 else (74 if k % 2 == 0 else 68)))
-        for k in range(8):                                # 八分 ride：长延音铺 2.5–10kHz
+        for k in range(NB * 2):                           # 八分 ride：长延音铺 2.5–10kHz
             out.append((k * 0.5, 0.7, 51, 72 if k % 2 == 0 else 64))
-        for k in range(8):                                # 常驻十六分沙锤（补最上端）
+        for k in range(NB * 2):                           # 常驻十六分沙锤（补最上端）
             out.append((k * 0.5 + 0.25, 0.2, 82, 60))
-        for b in range(4):                                # 反拍铃鼓
+        for b in range(NB):                               # 反拍铃鼓
             out.append((b + 0.5, 0.25, 54, 66))
         if level >= 2:
-            for b in range(4):                            # 十六分幽灵小鼓（密度感）
+            for b in range(NB):                           # 十六分幽灵小鼓（密度感）
                 out.append((b + 0.25, 0.1, 40, 52))
                 out.append((b + 0.75, 0.1, 40, 46))
-        for b in (1.0, 3.0):
-            out.append((b, 0.14, 38, 100))                # 军鼓 2、4
+        for b in range(1, NB, 2):
+            out.append((float(b), 0.14, 38, 100))         # 军鼓 2、4
         # `kick_vel`（opt-in，默认 [94, 98] = 老行为）分开给"正拍"和"a 位"的力度：
         # 例曲的低频律动型是 `◇★◇★◇★◇★` —— **正拍是弱格**（低频重心在反拍推动上）。
         # 我们原来是 `★◇·★★··★`（正拍最强），因为底鼓+垫层都压在正拍上。
@@ -353,13 +403,13 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None):
         kv = kick_vel or (94, 98)
         off_pos = None
         if layers and layers.get('kick_pos') == 'offbeat':
-            off_pos = [k * 0.25 for k in (1, 3, 5, 7, 9, 11, 13, 15)]
+            off_pos = [k * 0.25 for k in range(1, S, 2)]
             kicks = [(p, 0.45, kv[1]) for p in off_pos]
             if kv[0]:        # 正拍留一个**很弱**的底鼓 = 例曲里的 ◇ 格（弱，但不能没有）
-                kicks += [(float(b), 0.3, kv[0]) for b in range(4)]
+                kicks += [(float(b), 0.3, kv[0]) for b in range(NB)]
         else:
-            kicks = [(float(b), 0.55, kv[0]) for b in range(4)] + \
-                    [(b + 0.75, 0.5, kv[1]) for b in range(4)]
+            kicks = [(float(b), 0.55, kv[0]) for b in range(NB)] + \
+                    [(b + 0.75, 0.5, kv[1]) for b in range(NB)]
         for (kb, kd, kkv) in kicks:
             out.append((kb, kd, 36, kkv))
         # 垫层（opt-in）：位置**由上面的 kicks 派生**，保证永远与底鼓对齐
@@ -381,46 +431,48 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None):
             #   时值只要 < n×0.25 就不重叠，而 "时值 > 0.25" 的连续性照样拿得到。
             airs = layers.get('air', [])
             for si, (mn, mv, md) in enumerate(airs):
-                for k in range(si, 16, max(1, len(airs))):
+                for k in range(si, S, max(1, len(airs))):
                     out.append((k * 0.25, md, mn, mv))
         if level >= 3:
-            out.append((3.5, 0.3, 46, 74))                # 开镲收句
+            out.append((B - 0.5, 0.3, 46, 74))            # 开镲收句
         if i % 4 == 3:                                    # 每 4 小节的十六分过门
             fill = [(1.75, 38, 74), (2.0, 48, 84), (2.25, 48, 74),
                     (2.5, 47, 88), (2.75, 47, 78), (3.0, 50, 92),
                     (3.25, 50, 82), (3.5, 45, 96), (3.75, 45, 86)]
+            sh = 4.0 - B                                  # 4/4 → 0（逐字节不变）
             for (b, m, v) in fill:
-                out.append((b, 0.1, m, v))
+                if b - sh >= 0:
+                    out.append((b - sh, 0.1, m, v))
         if i % 8 == 7:                                    # 8 小节加一次大过门
-            out.append((3.875, 0.1, 49, 88))              # 吊镲（不冲太高，保持均匀）
+            out.append((3.875 - (4.0 - B), 0.1, 49, 88))  # 吊镲（不冲太高，保持均匀）
     elif style == 'orchestral':
         # 定音鼓 + 三角铁微光 + 吊镲：华丽/盛大向，不用鼓组
         out.append((0.0, 0.35, 47, 96))                   # 低定音鼓（正拍）
         if level >= 2:
-            out.append((2.0, 0.35, 47, 82))               # 第 3 拍
-            out.append((3.5, 0.35, 48, 72))               # 高定音鼓推进
-        for b in range(4):                                # 三角铁反拍微光（补 5-18kHz）
+            out.append((B / 2.0, 0.35, 47, 82))           # 第 3 拍（4/4 → 2.0）
+            out.append((B - 0.5, 0.35, 48, 72))           # 高定音鼓推进
+        for b in range(NB):                               # 三角铁反拍微光（补 5-18kHz）
             out.append((b + 0.5, 0.25, 81, 54))
             if level >= 2:
                 out.append((b + 0.25, 0.2, 81, 34))
         if level >= 3:
-            out.append((3.75, 0.3, 81, 62))
+            out.append((B - 0.25, 0.3, 81, 62))
     else:                                                 # light
-        for k in range(8):
+        for k in range(NB * 2):
             out.append((k * 0.5, 0.2, 82, 46 if k % 2 else 38))
         if level >= 2:
             out.append((0.0, 0.1, 36, 68))
-            out.append((2.0, 0.1, 36, 60))
-            out.append((1.0, 0.1, 37, 52))
-            out.append((3.0, 0.1, 37, 52))
+            out.append((B / 2.0, 0.1, 36, 60))
+            for b in range(1, NB, 2):                     # 侧棒（4/4 → 1、3）
+                out.append((float(b), 0.1, 37, 52))
     if i == 0:
         out.append((0.0, 0.1, 49, 88))                    # 段首吊镲
     if i == nbars - 1:
         if style == 'dance':
-            out.append((3.5, 0.1, 48, 88))
-            out.append((3.75, 0.1, 45, 92))
+            out.append((B - 0.5, 0.1, 48, 88))
+            out.append((B - 0.25, 0.1, 45, 92))
         elif level >= 2:
-            out.append((3.5, 0.1, 39, 58))                # 轻过门
+            out.append((B - 0.5, 0.1, 39, 58))            # 轻过门
     return out
 
 
@@ -437,6 +489,7 @@ def build_events(d):
     mel_all = d['melody']
     pat = d['patterns']
     shift = pat.get('voicing_shift', 0)      # 和弦声部整体上/下移（华丽太厚时 +12 更清亮）
+    B = float(d.get('bar_beats') or 4.0)     # 一小节几个四分音符（拍号；默认 4 = 老行为）
 
     def voicing(ch):
         return (ch[0], [m + shift for m in ch[1]]) if shift else ch
@@ -466,33 +519,33 @@ def build_events(d):
                     raise SystemExit('段落 %s 第 %d 小节引用了未定义的和弦 "%s"'
                                      % (sec.get('name', '?'), i + 2, nn))
                 nxt = voicing(ch_all[nn])
-            t0 = (bar0 + i) * 4.0
+            t0 = (bar0 + i) * B
             if arr.get('bass'):
-                for (b, dd, m, v) in bass_part(ch, nxt, i, pat):
+                for (b, dd, m, v) in bass_part(ch, nxt, i, pat, B):
                     bucket['Bass'].append((t0 + b, dd, m, v))
             if arr.get('uku'):
-                for (b, dd, m, v) in guitar_arpeggio(ch, i, pat['arpeggio']):
+                for (b, dd, m, v) in guitar_arpeggio(ch, i, pat['arpeggio'], B):
                     bucket['Hook'].append((t0 + b, dd * sc, m, v))
             if arr.get('ep'):                      # 电钢琴反拍切分（Hook 轨）
-                for (b, dd, m, v) in ep_part(ch, i):
+                for (b, dd, m, v) in ep_part(ch, i, B):
                     bucket['Hook'].append((t0 + b, dd * sc, m, v))
             if arr.get('piano'):
                 # 钢琴轨缺失时依次退到 Hook / Arp，避免落到音色不对的轨道
                 tr = next((k for k in ('Piano', 'Hook', 'Arp') if k in bucket), None)
                 if tr:
-                    for (b, dd, m, v) in piano_part(ch, i):
+                    for (b, dd, m, v) in piano_part(ch, i, B):
                         bucket[tr].append((t0 + b, dd * sc, m, v))
             if arr.get('pad'):
-                for (b, dd, m, v) in pad_part(ch):
+                for (b, dd, m, v) in pad_part(ch, B):
                     bucket['Pad'].append((t0 + b, dd, m, v))
             if arr.get('strings'):
-                for (b, dd, m, v) in strings_part(ch):
+                for (b, dd, m, v) in strings_part(ch, B):
                     bucket['Strings'].append((t0 + b, dd, m, v))
             if arr.get('glock'):
-                for (b, dd, m, v) in glock_part(ch, i):
+                for (b, dd, m, v) in glock_part(ch, i, B):
                     bucket['Glock'].append((t0 + b, dd, m, v))
             if arr.get('arp'):
-                for k in range(8):
+                for k in range(max(1, int(round(B * 2)))):
                     seq = [tone(ch[1], 0), tone(ch[1], 2), tone(ch[1], 4), tone(ch[1], 2)]
                     bucket['Arp'].append((t0 + k * 0.5, 0.28 * sc, seq[k % 4] + 12,
                                           42 + (8 if k % 2 == 0 else 0)))
@@ -504,16 +557,16 @@ def build_events(d):
                 # 两个八度同时铺（+24 进 630–1250、+36 进 1.2–4kHz），音色要选**有延音**的
                 # （颤音琴/音乐盒），否则高频只剩打击点 → "点+空"，例曲是连续的墙
                 for m in [t + 24 for t in tones if t + 24 <= 104][:3]:
-                    bucket['Arp'].append((t0, 3.9, m, 58))
+                    bucket['Arp'].append((t0, B - 0.1, m, 58))
                 for m in [t + 36 for t in tones if t + 36 <= 108][:3]:
-                    bucket['Arp'].append((t0, 3.9, m, 72))
+                    bucket['Arp'].append((t0, B - 0.1, m, 72))
             if arr.get('perc'):
                 for (b, dd, m, v) in perc_part(pat['perc_style'], arr['perc'], i, nbars,
                                                pat.get('perc_layers'),
-                                               pat.get('kick_vel')):
+                                               pat.get('kick_vel'), B):
                     bucket['Perc'].append((t0 + b, dd, m, v))
         for (b, beat, dur, m) in mel:
-            t = (bar0 + b) * 4.0 + beat
+            t = (bar0 + b) * B + beat
             # 低八度加厚：越界就**不加这一层**（以前是夹到 0/127 —— 会变成另一个音）
             # `patterns.mel_vel`（opt-in，默认 1.0）：旋律力度缩放。
             # 为什么需要：旋律力度原先是**硬编码**的，而 `mix.Melody` 的 CC7 会被
@@ -542,7 +595,7 @@ def build_events(d):
                     tones = voicing(ch_all[cn2])[1]
                     hm = harmony_below(tones, m)
                     if hm is not None:
-                        t = (bar0 + b) * 4.0 + beat
+                        t = (bar0 + b) * B + beat
                         bucket[ht].append((t, dur * 0.9, hm, 50))
         for k in bucket:
             for (t, dd, m, v) in bucket[k]:
@@ -564,10 +617,11 @@ def write_midi(d, ev, path):
     # → 在该段起点写 CC7。这是"起伏"最直接的手段：不用改音符，光靠推子就能做出层次。
     auto = {}
     bar0 = 0
+    B = float(d.get('bar_beats') or 4.0)
     for sec in d.get('sections', []):
         amix = (sec.get('arr') or {}).get('mix') or {}
         for name, vol in amix.items():
-            auto.setdefault(name, []).append(((bar0) * 4.0, 7, max(0, min(127, int(vol)))))
+            auto.setdefault(name, []).append(((bar0) * B, 7, max(0, min(127, int(vol)))))
         bar0 += sec['bars']
     for name, (prog, chan) in d['programs'].items():
         if not ev.get(name):
@@ -579,7 +633,7 @@ def write_midi(d, ev, path):
     if skipped:
         print('  (跳过空轨: %s)' % ', '.join(skipped))
     bs.BPM = d['bpm']
-    bs.write_midi(path, tracks, ppq=480)
+    bs.write_midi(path, tracks, ppq=480, meter=tuple(d.get('meter') or (4, 4)))
 
 
 def compose(song_json, out_mid=None, quiet=True):
@@ -594,10 +648,11 @@ def compose(song_json, out_mid=None, quiet=True):
                                       d.get('name', 'song') + '.mid')
     write_midi(d, ev, out_mid)
     if not quiet:
-        bar = 4 * 60.0 / d['bpm']
+        bar = d['bar_beats'] * 60.0 / d['bpm']
         counts = ', '.join('%s:%d' % (k, len(v)) for k, v in ev.items())
-        print('  %d 小节 ≈ %.0f 秒 @%.1fBPM | %s'
-              % (nbars, nbars * bar, d['bpm'], counts))
+        print('  %d 小节 ≈ %.0f 秒 @%.1fBPM%s | %s'
+              % (nbars, nbars * bar, d['bpm'],
+                 '' if d['meter'] == [4, 4] else ' %d/%d' % tuple(d['meter']), counts))
     print('  MIDI: %s' % out_mid)
     return out_mid
 

@@ -36,6 +36,7 @@ def parse(path, quiet=False):
     say('%s   format=%d  tracks=%d  division=%d tick/四分音符' %
         (path.split('\\')[-1], fmt, ntrk, div))
     tempo = None
+    timesig = None          # **必须在轨道循环外**：拍号只写在第一轨，写在循环内会被后一轨抹成 None
     total_notes = 0
     all_notes = []
     for t in range(ntrk):
@@ -51,7 +52,6 @@ def parse(path, quiet=False):
         notes = []
         ccs = []                # [(tick, CC号, 值)]：用于验证段落级混音自动化
         active = {}
-        timesig = None
         last_st = None
         while i < len(body):
             d = 0
@@ -148,9 +148,11 @@ def parse(path, quiet=False):
         ('%.1f BPM' % bpm if bpm else '默认120', timesig or '4/4', total_notes))
     if all_notes:
         end = max(n[0] + n[1] for n in all_notes) / div
+        num, den = (timesig or (4, 4))
+        bb = num * 4.0 / den              # 一小节的四分音符数（3/4 → 3；6/8 → 3）
         res['end_tick'] = max(n[0] + n[1] for n in all_notes)
         say('  长度 %.1f 小节 (%d ticks)  约 %.1fs' %
-            (end / 4, max(n[0] + n[1] for n in all_notes),
+            (end / bb, max(n[0] + n[1] for n in all_notes),
              end * 60 / (bpm or 120)))
     return res
 

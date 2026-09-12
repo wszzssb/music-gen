@@ -340,11 +340,19 @@ def _vlq(n):
     return bytes(out)
 
 
-def write_midi(path, tracks, ppq=480):
+def write_midi(path, tracks, ppq=480, meter=None):
     """tracks: (name, program, channel, events[, ccs])
     events = [(起始拍, 时值拍, 音高, 力度)]
-    ccs    = [(拍, CC号, 值)]  —— 用来写声像 CC10 / 音量 CC7 等"""
+    ccs    = [(拍, CC号, 值)]  —— 用来写声像 CC10 / 音量 CC7 等
+    meter  = (拍数, 音符单位)，默认 (4,4)：写**拍号元事件**（FF 58）。
+             **不给就会让 DAW/播放器按 4/4 显示** —— 3/4 的曲子必须写对，
+             否则小节线在外部软件里全是错的（内部网格再对也没用）。"""
     chunks = []
+    num, den = (meter or (4, 4))
+    den_exp = {4: 2, 8: 3}.get(int(den))
+    if den_exp is None:
+        raise ValueError('拍号分母只支持 4 与 8：%r' % (meter,))
+    clocks = max(1, int(round(24.0 * 4.0 / int(den))))    # 四分音符 = 24 clocks
     for idx, track in enumerate(tracks):
         name, program, channel, events = track[:4]
         ccs = track[4] if len(track) > 4 else []
@@ -355,7 +363,8 @@ def write_midi(path, tracks, ppq=480):
         if idx == 0:
             micro = int(60_000_000 / BPM)
             ev.append((0, b'\xff\x51\x03' + micro.to_bytes(3, 'big')))
-            ev.append((0, b'\xff\x58\x04\x04\x02\x18\x08'))
+            ev.append((0, b'\xff\x58\x04' + bytes([int(num) & 0xFF, den_exp,
+                                                   clocks, 8])))
         if program is not None:
             ev.append((0, bytes([0xC0 | channel, program])))
         for (tick, cc, val) in ccs:
