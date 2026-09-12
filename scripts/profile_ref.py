@@ -3,9 +3,10 @@
 """剖析参考曲 → 存成紧凑 JSON（只跑一次，之后对比不用再读参考曲）
 
 用法:
-  python profile_ref.py <参考曲> [名字] [--bpm N]
+  python profile_ref.py <参考曲> [名字] [--bpm N] [--meter 3/4]
   # 例: python profile_ref.py "D:/.../bgm01c.ogg" bgm01c --bpm 128
 产出: refs/<名字>.json
+说明: **分析侧只支持 4/4**（小节网格）；--meter 给了别的拍号会直接拒绝，而不是算错。
 """
 import json
 import os
@@ -27,11 +28,25 @@ def main():
     bpm = None
     if '--bpm' in sys.argv:
         bpm = float(sys.argv[sys.argv.index('--bpm') + 1])
+    meter = [4, 4]
+    if '--meter' in sys.argv:
+        raw = sys.argv[sys.argv.index('--meter') + 1]
+        try:
+            a, b = [int(v) for v in str(raw).replace('/', ' ').split()]
+        except Exception:
+            print('--meter 要写成 3/4 或 6/8；收到 %r' % (raw,))
+            return 1
+        meter = [a, b]
+        if meter != [4, 4]:
+            print('参考曲画像**只按 4/4 切小节**（结构曲线 / 安静段 chroma / 节奏型格数都建在'
+                  '小节网格上）。作曲侧已支持非 4/4，但分析侧还没适配 —— 与其给你一份算错的'
+                  '画像，不如在这里拒绝。')
+            return 1
     if not os.path.exists(path):
         print('找不到音频文件: %s' % path)
         return 1
     try:
-        p = metrics.profile(path, bpm, name)
+        p = metrics.profile(path, bpm, name, meter)
     except Exception as e:
         print('无法解析 %s：%s\n  （支持 libsndfile 的 26 种容器 + 本机 ffmpeg 兜底的 '
               'm4a/mp4/aac/wma/ape/视频容器等；先跑 `check_audio.py <文件>` 确认能不能读）'

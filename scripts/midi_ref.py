@@ -108,7 +108,12 @@ def analyze(path, lo=None, hi=None):
     res = mp.parse(path, quiet=True)
     div = res['division'] or 480
     bpm = res['bpm'] or 120.0
-    bar_ticks = div * 4                       # 4/4 口径（本工具按 4/4 量化）
+    num, den = res['timesig'] or (4, 4)
+    # 一小节 tick 数**按拍号算**（以前写死 div*4）：4/4 → div*4；3/4 → div*3；6/8 → div*3。
+    # 拍号取自 MIDI 元事件 —— 注意 `midi_probe` 过去把它读成 None（字段写在轨道循环里被抹掉），
+    # 所以这里以前拿到的其实一直是默认值（见坑 107）。
+    bar_ticks = int(round(div * num * 4.0 / den))
+    slots = int(round(num * 16.0 / den))      # 一小节的十六分格数：4/4 → 16；3/4、6/8 → 12
     notes = []
     for t in res['tracks']:
         for (s, d, n, v) in t['notes']:
@@ -135,9 +140,9 @@ def analyze(path, lo=None, hi=None):
                      'bass': bass, 'top': top, 'pcs': sorted(pcs)})
 
     # 16 分节奏型（全曲合并；按音高拆低频/高频两组）
-    grid_lo, grid_hi = [0] * 16, [0] * 16
+    grid_lo, grid_hi = [0] * slots, [0] * slots
     for s, d, n, v, _ in notes:
-        slot = int(round((s % bar_ticks) / (bar_ticks / 16.0))) % 16
+        slot = int(round((s % bar_ticks) / (bar_ticks / float(slots)))) % slots
         if n < 60:
             grid_lo[slot] += 1
         else:

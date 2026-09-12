@@ -166,6 +166,14 @@ def main():
     seed = int(sys.argv[sys.argv.index('--seed') + 1]) if '--seed' in sys.argv else 7
     prof = json.load(open(prof_path, encoding='utf-8'))
     d = json.load(open(song, encoding='utf-8'))
+    # **拍号守卫**：这个生成器的落点/网格/拱形全是按"一小节 4 拍、16 个十六分格"写的 ——
+    # 非 4/4 时它会静默把音撒到小节外。宁可拒绝，也不给错旋律（曲线救国留给以后再说）。
+    meter = song_engine._norm_meter(d.get('meter'))
+    if meter != [4, 4]:
+        print('melody_gen 目前只支持 4/4（本曲 meter=%s）。'
+              '引擎侧已支持非 4/4 编配，但**旋律生成器还没适配** —— '
+              '请手写 melody，或先把 meter 改成 [4,4]。' % meter)
+        return 1
     chords = d['chords']
     rng = random.Random(seed)
     names = list(d['melody'].keys())

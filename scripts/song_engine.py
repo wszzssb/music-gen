@@ -133,6 +133,22 @@ def bar_beats(d_or_meter):
     return float(m[0]) * (4.0 / float(m[1]))
 
 
+def strong_beats(meter):
+    """一 **小节内** 的强拍位置（单位：四分音符，与曲内时间轴同口径）。
+
+    口径（唯一来源，`check_song` / `melody_gen` / `selftest` 都从这里取）：
+    - 偶数拍号 → `[0, 半小节]`：`[4,4]`→`[0,2]`、`[6,8]`→`[0,1.5]`（两个附点四分脉冲）、`[2,4]`→`[0,1]`
+    - 奇数拍号 → `[0]`：`[3,4]` 的第 2 拍是**弱拍**，把它当强拍判会误报（老代码写死第 1、3 拍）
+    """
+    m = meter if isinstance(meter, (list, tuple)) else (meter or {}).get('meter')
+    num, den = (m or (4, 4))
+    num, den = int(num), int(den)
+    unit = 4.0 / den                       # 一拍 = 几个四分音符
+    if num % 2:                            # 奇数拍：只有第 1 拍是强拍
+        return [0.0]
+    return [0.0, round(num / 2.0 * unit, 4)]
+
+
 def load(path):
     try:
         with open(path, encoding='utf-8') as f:

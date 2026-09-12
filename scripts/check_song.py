@@ -86,7 +86,10 @@ def cleanup(tmp_root):
 
 
 def _strict_downbeats(path):
-    """单曲严判：**每个**强拍（第 1、3 拍）都必须落在该小节和弦音上。
+    """单曲严判：**每个**强拍都必须落在该小节和弦音上。
+
+    强拍位置由**拍号**决定（`song_engine.strong_beats`，唯一口径）：
+    `[4,4]`→第 1、3 拍；`[3,4]`→只有第 1 拍（第 2 拍是弱拍）；`[6,8]`→第 1 拍与第 4 个八分。
 
     **为什么默认只警告、不作门（实测校准）**：库里既有曲目普遍有 7~15 处"强拍经过音"
     （如 `A 和弦小节强拍写 86=D`、`G 小节强拍写 81=A`），这是正常写法；项目判据
@@ -95,6 +98,7 @@ def _strict_downbeats(path):
     """
     d = json_io.load(path)
     ch, mel = d['chords'], d['melody']
+    strong = song_engine.strong_beats(d.get('meter'))
     bad = []
     for sec in d['sections']:
         arr = mel.get(sec.get('melody'))
@@ -106,7 +110,7 @@ def _strict_downbeats(path):
             tones = [int(t) % 12 for t in ch[cname][1]]
             root = int(ch[cname][0]) % 12
             for it in arr:
-                if len(it) < 4 or it[0] != bi or it[1] not in (0.0, 2.0):
+                if len(it) < 4 or it[0] != bi or it[1] not in strong:
                     continue
                 pc = int(it[3]) % 12
                 if pc in tones:
@@ -217,8 +221,10 @@ def _build_voicing(sym, lo=55):
     return [bass, notes]
 
 
-def _fix_one_bar(ch, sec, bi, groups, cname, fixed):
+def _fix_one_bar(ch, sec, bi, groups, cname, fixed, strong=(0.0, 2.0)):
     """修一个小节的强拍：先试换和弦品质（能覆盖全部强拍音），不行才逐个吸附到弦内音。
+
+    `strong` = 强拍位置（默认第 1、3 拍 = 4/4；由 `song_engine.strong_beats` 给，拍号变了要跟着变）。
 
     提取出来的原因：这段是 `autofix` 里唯一有 5 层嵌套的部分，留在主流程里既难读
     也难单独验证（"为什么这行改了那个音"要翻半屏）。"""
@@ -227,7 +233,7 @@ def _fix_one_bar(ch, sec, bi, groups, cname, fixed):
         if not isinstance(arr, list):
             continue
         for i, it in enumerate(arr):
-            if len(it) >= 4 and it[0] == bi and it[1] in (0.0, 2.0):
+            if len(it) >= 4 and it[0] == bi and it[1] in strong:
                 slab.append((arr, i, int(it[3])))
     if not slab:
         return
@@ -294,13 +300,14 @@ def autofix(path):
                                 ' '.join(PCN[int(t) % 12] for t in nv[1])))
 
     # ---- ② 旋律强拍（按小节整体；原数组不能拷贝，否则改的是副本）
+    strong = song_engine.strong_beats(d.get('meter'))
     for sec in d['sections']:
         groups = [mel.get(sec.get('melody'))]
         if isinstance(sec.get('melody_extra'), list):
             groups.append(sec['melody_extra'])
         for bi, cname in enumerate(sec.get('chords', [])):
             if cname in ch:
-                _fix_one_bar(ch, sec, bi, groups, cname, fixed)
+                _fix_one_bar(ch, sec, bi, groups, cname, fixed, strong)
     if fixed:
         json_io.save(path, d)
     return fixed

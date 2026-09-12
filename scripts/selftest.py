@@ -1665,18 +1665,20 @@ def t_melody_chord_fit():
     也就是说：越写越自由、不再检查"这个音在这小节的和弦里成不成立"，旋律就会一直悬着、
     听感发飘发脏。**这不是口味问题，是能查出来的。**
 
-    判据：强拍（每小节第 1、3 拍）和弦音占比 ≥ 70%；根音上方半音（♭9，最刺耳）≤ 2 处。
-    弱拍不做限制 —— 经过音/倚音本来就该在弱拍。"""
+    判据：**强拍**（位置由拍号定，`song_engine.strong_beats`：4/4 → 第 1、3 拍；
+    3/4 → 只有第 1 拍；6/8 → 第 1 拍与第 4 个八分）和弦音占比 ≥ 70%；
+    根音上方半音（♭9，最刺耳）≤ 2 处。弱拍不做限制 —— 经过音/倚音本来就该在弱拍。"""
     rows = []
     for d in songs_or_fail():
         name = os.path.basename(d)
         data = song_engine.load(os.path.join(d, 'song.json'))
         chords = data['chords']
+        strong = song_engine.strong_beats(data.get('meter'))
         tot = fit = b9 = 0
         for sec in data['sections']:
             mel = data['melody'].get(sec['melody'], []) + (sec.get('melody_extra') or [])
             for (b, beat, _dur, m) in mel:
-                if beat not in (0.0, 2.0) or b >= len(sec['chords']):
+                if beat not in strong or b >= len(sec['chords']):
                     continue
                 cname = sec['chords'][b]
                 tones = [t % 12 for t in chords[cname][1]]
@@ -1692,7 +1694,7 @@ def t_melody_chord_fit():
         print('        %-20s 强拍%3d 个：弦内音 %3.0f%%  ♭9 冲突 %d' % (n, t, r, c))
     bad = ['%s 只 %.0f%%' % (n, r) for n, _t, r, _c in rows if r < 70.0]
     assert not bad, ('旋律强拍没落在和弦音上（经过音该放弱拍）: ' + ', '.join(bad)
-                     + ' —— 改 song.json 的 melody：每小节第 1、3 拍用该小节和弦的音')
+                     + ' —— 改 song.json 的 melody：每小节强拍用该小节和弦的音')
     bad9 = ['%s %d 处' % (n, c) for n, _t, _r, c in rows if c > 2]
     assert not bad9, '强拍出现根音上方半音（♭9，最刺耳的不协和）: ' + ', '.join(bad9)
 
@@ -2502,6 +2504,63 @@ def t_bpm_out_of_window_reported():
     m, sr = train(120.0)
     _b, _s, info = quiet(metrics.detect_bpm, m, sr)[0]
     assert not info.get('window_alt'), '120BPM 是窗内速度，不该报 window_alt：%s' % info
+
+
+@check
+def t_meter_34_68():
+    """**3/4 与 6/8 真的走通了**（不只是"引擎里没写死 4.0"）：
+
+    · MIDI 拍号元事件写对（否则 DAW 里小节线全错，内部再对也没用）
+    · 每个音都落在**本小节内**（还在按 4 拍排的话，3/4 的曲子第 4 拍会溢出到下一小节）
+    · 强拍口径跟着拍号（3/4 的第 2 拍是**弱拍** —— 那里放经过音是合法的，
+      拿 4/4 的"第 1、3 拍"去判会误报；注入用例就是打这一条）
+    """
+    def probe(meter, melody):
+        import midi_probe
+        name = 'meter%d%d' % tuple(meter)
+        d = {'name': name, 'bpm': 150, 'style': 'daily', 'meter': list(meter),
+             'chords': {'D': [38, [57, 62, 66, 69, 74]],
+                        'A': [33, [57, 61, 64, 69, 73]]},
+             'melody': {'m': melody},
+             'sections': [{'name': 'A', 'bars': 4, 'chords': ['D', 'A'] * 2,
+                           'melody': 'm',
+                           'arr': {'piano': True, 'bass': True, 'perc': 1}}]}
+        p = os.path.join(TMP, name + '.json')
+        json.dump(d, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
+        mid = os.path.join(TMP, name + '.mid')
+        print('        %s 的编配输出：' % name)          # compose 内部会打印，缩进一下免得刷屏
+        song_engine.compose(p, mid, quiet=True)
+        data = song_engine.load(p)
+        ev, nbars = song_engine.build_events(data)
+        B = song_engine.bar_beats(data['meter'])
+        res = quiet(midi_probe.parse, mid, True)[0]
+        assert tuple(res['timesig'] or ()) == tuple(meter), \
+            '%s 的 MIDI 拍号写成 %s（应为 %s）' % (name, res['timesig'], tuple(meter))
+        for k, notes in ev.items():
+            for (t, dd, m, _v) in notes:
+                bar = int(t // B)
+                assert t >= -1e-6 and t < bar * B + B + 1e-6, \
+                    '%s 的 %s 有音落在小节外：起始拍 %.2f（一小节 %s 拍）' % (name, k, t, B)
+                # Pad/Strings 的尾音故意比小节长 0.1 拍（老行为），其余不许溢出
+                lim = B + (0.15 if k in ('Pad', 'Strings') else 0.02)
+                assert t - bar * B + dd <= lim, \
+                    '%s 的 %s 时值溢出小节：%.2f 拍 > %.2f' % (name, k, t - bar * B + dd, lim)
+        strong = song_engine.strong_beats(data['meter'])
+        for (b, beat, _dd, m) in melody:
+            if beat in strong:
+                tones = [x % 12 for x in data['chords'][['D', 'A'][b % 2]][1]]
+                assert m % 12 in tones, \
+                    '%s 的强拍 %.1f（%s）放了弦外音 %d' % (name, beat, strong, m)
+        return res
+
+    # 3/4：第 2 拍放**经过音 63**（在 D 和弦小节里是弦外音）—— 那在 3/4 里是弱拍，合法
+    res = probe([3, 4], [[0, 0, 1, 62], [0, 2, 1, 63], [1, 0, 1, 61], [1, 2, 1, 62],
+                         [2, 0, 1, 62], [2, 2, 1, 63], [3, 0, 1, 61], [3, 2, 1, 62]])
+    assert res['bpm'] and abs(res['bpm'] - 150.0) < 0.01, '3/4 的速度写错: %s' % res['bpm']
+    # 6/8：强拍在 0 与 1.5（每小节两个附点四分脉冲），第 1 拍放经过音
+    probe([6, 8], [[0, 0, 1, 62], [0, 1.0, 1, 63], [0, 1.5, 1, 66],
+                   [1, 0, 1, 61], [1, 1.0, 1, 62], [1, 1.5, 1, 64],
+                   [2, 0, 1, 62], [2, 1.5, 1, 69]])
 
 
 def main():

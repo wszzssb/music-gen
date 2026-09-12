@@ -790,6 +790,12 @@ def main():
                         'bpm_out_of_window_reported',
                         lambda: Mut(metrics, 'WINDOW_ALT_RATIO', 9.9)))
 
+    # 强拍口径退回写死的 4/4（第 1、3 拍）→ 3/4 的弱拍经过音会被误判成错音
+    results.append(case('强拍口径退回写死 4/4（3/4 误报）',
+                        'meter_34_68',
+                        lambda: Mut(song_engine, 'strong_beats',
+                                    lambda meter: [0.0, 2.0])))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

@@ -540,7 +540,7 @@ def judge_gaps(mine, ref):
     return out
 
 
-def profile(path, bpm=None, name=None):
+def profile(path, bpm=None, name=None, meter=(4, 4)):
     m, sr, x = load(path)
     tempo = None
     if bpm is None:
@@ -574,6 +574,10 @@ def profile(path, bpm=None, name=None):
     # 速度**来源**必须写进画像：自动测速的值不许被当真相（实测外部参考曲上与人工钉死的一致率
     # 4%，见坑 106）。下游（scorecard/new_song）读这个字段就知道该不该提醒人复核。
     p['bpm_source'] = 'forced(--bpm)' if tempo is None else 'auto(未核对)'
+    # 分析侧的拍号假设：音频画像无法自己知道拍号，**按 4/4 切小节**。
+    # 非 4/4 的参考曲拿这份画像去比结构/节奏型会算错 —— 所以把假设写进画像，
+    # 并由 `profile_ref.py --meter` 在入口处拒绝非 4/4（作曲侧已支持 3/4、6/8，分析侧还没）。
+    p['meter_assumed'] = [int(meter[0]), int(meter[1])]
     if tempo:
         if tempo.get('level_ladder'):
             p['bpm_ladder'] = tempo['level_ladder']
