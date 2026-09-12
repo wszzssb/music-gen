@@ -1,0 +1,170 @@
+{
+ "name": "20_d73_quiet_night",
+ "bpm": 72.8,
+ "style": "daily",
+ "ref": "hitorigohan_new",
+ "desc": "全新识别的 (17)ひとりごはんのよる：F 为轴 72.8BPM 慢抒情；主歌小调色彩（Fm7-Cm7-G#-A#m7）、副歌转大调（F-A#-C#-C7）；按既有标准生成",
+ "patterns": {
+  "bass_style": "simple",
+  "perc_style": "light",
+  "sub_gain": 0.3,
+  "sub_dur": 0.4,
+  "staccato": 1.0
+ },
+ "mix": {
+  "Melody": [
+   76,
+   104
+  ],
+  "Hook": [
+   40,
+   30
+  ],
+  "Piano": [
+   88,
+   70
+  ],
+  "Arp": [
+   80,
+   44
+  ],
+  "Pad": [
+   64,
+   58
+  ],
+  "Strings": [
+   54,
+   26
+  ],
+  "Bass": [
+   64,
+   84
+  ],
+  "Glock": [
+   100,
+   22
+  ],
+  "Perc": [
+   64,
+   26
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 4,
+   "chords": "Cm7 Fm7 G# A#m7",
+   "arr": {
+    "strings": true
+   },
+   "mix": {
+    "Strings": 16,
+    "Perc": 10,
+    "Glock": 0
+   },
+   "vel": 0.84
+  },
+  {
+   "name": "A",
+   "bars": 16,
+   "chords": "Cm7 Fm7 G# A#m7 Cm7 Fm7 G# C7 Cm7 Fm7 G# A#m7 A#m7 G# C7 C7",
+   "arr": {
+    "strings": true
+   },
+   "mix": {
+    "Strings": 22,
+    "Perc": 18,
+    "Glock": 0
+   },
+   "vel": 0.9
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": "F A# C# C7 F A# C C7",
+   "arr": {
+    "strings": true,
+    "glock": true
+   },
+   "mix": {
+    "Strings": 32,
+    "Perc": 30,
+    "Glock": 34
+   },
+   "vel": 0.98
+  },
+  {
+   "name": "C1",
+   "bars": 8,
+   "chords": "F A# C# C7 F A# C C7",
+   "arr": {
+    "strings": true,
+    "glock": true
+   },
+   "mix": {
+    "Strings": 40,
+    "Perc": 42,
+    "Glock": 48
+   },
+   "vel": 1.06
+  },
+  {
+   "name": "C2",
+   "bars": 8,
+   "chords": "F A# C# C7 F A# C C7",
+   "arr": {
+    "strings": true,
+    "glock": true
+   },
+   "mix": {
+    "Strings": 40,
+    "Perc": 42,
+    "Glock": 48
+   },
+   "vel": 1.06
+  },
+  {
+   "name": "D",
+   "bars": 8,
+   "chords": "A#m7 G# C7 Fm7 A#m7 G# C7 C7",
+   "arr": {
+    "strings": true
+   },
+   "mix": {
+    "Strings": 20,
+    "Perc": 16,
+    "Glock": 0
+   },
+   "vel": 0.9
+  },
+  {
+   "name": "C3",
+   "bars": 8,
+   "chords": "F A# C# C7 F A# C F",
+   "arr": {
+    "strings": true,
+    "glock": true
+   },
+   "mix": {
+    "Strings": 42,
+    "Perc": 44,
+    "Glock": 52
+   },
+   "vel": 1.08
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": "A# F A# F",
+   "arr": {
+    "strings": true
+   },
+   "mix": {
+    "Strings": 16,
+    "Perc": 8,
+    "Glock": 0
+   },
+   "vel": 0.86
+  }
+ ]
+}

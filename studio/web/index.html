@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>BGM Studio — 按音轨制作 / 可视化编曲 / 合并导出</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header id="bar">
+  <span class="brand">🎛 BGM Studio</span>
+  <select id="songSel" title="选择曲目"></select>
+  <span id="songInfo" class="dim"></span>
+  <span class="spacer"></span>
+  <button id="btnSave" title="写回 song.json（规范格式）">💾 保存</button>
+  <button id="btnCheck" title="check_song.py：和弦音集/强拍/通道等数据契约">✅ 校验</button>
+  <button id="btnCompose" title="song_engine：song.json → MIDI">🎼 作曲</button>
+  <button id="btnRender" title="make_song --no-tune：作曲+渲染（约 30 秒）">🔊 渲染</button>
+  <button id="btnTune" title="make_song：渲染+自动调参（2~3 分钟）">✨ 渲染+调参</button>
+  <span class="sep"></span>
+  <button id="btnPlay" title="播放（空格）">▶ 播放</button>
+  <button id="btnStop" title="停止">⏹</button>
+  <span class="seg" id="modeSeg">
+    <button data-mode="master" class="on" title="听渲染好的成品">主混音</button>
+    <button data-mode="stems" title="分轨实时混音（先"载入分轨"）">分轨混音</button>
+    <button data-mode="ref" title="听参考曲（同位置 A/B）">参考曲</button>
+  </span>
+  <label class="chk"><input type="checkbox" id="loopChk"> 循环</label>
+  <label class="dim">A <input type="number" id="loopA" step="0.1" style="width:62px"></label>
+  <label class="dim">B <input type="number" id="loopB" step="0.1" style="width:62px"></label>
+  <span class="dim" id="posInfo">0.0 / 0.0s</span>
+  <span class="sep"></span>
+  <button id="btnExport" title="把 MIDI/OGG/WAV/notes 拷到导出目录 = 合并交付">📦 合并导出</button>
+  <button id="btnStems" title="逐轨渲染成 OGG（合并前的一轨一文件）">🎚 分轨导出</button>
+</header>
+
+<main id="grid">
+  <!-- 左：音轨 -->
+  <section id="tracks" class="panel">
+    <h2>音轨 <span class="dim" id="trackHint">（点轨名 → 卷帘高亮）</span></h2>
+    <div id="trackList"></div>
+    <div class="row">
+      <button id="btnNew" class="mini" title="脚手架：新建曲目（new_song.py）">➕ 新建</button>
+      <button id="btnRefresh" class="mini">↻ 刷新</button>
+      <span class="dim" id="filesHint"></span>
+    </div>
+    <div id="files"></div>
+  </section>
+
+  <!-- 中：段落 + 卷帘 -->
+  <section class="panel">
+    <h2>段落时间轴 <span class="dim">（点选一段编辑；宽度 ∝ 小节数）</span></h2>
+    <div id="secStrip"></div>
+    <div id="secEdit"></div>
+    <h2>钢琴卷帘 <span class="dim" id="rollHint">（拖拽=移动，空白处拖=新建，右键=删除；只对 Melody 可编辑）</span></h2>
+    <canvas id="wave" height="56" title="拖动波形定位；Shift+拖 = 设循环区间"></canvas>
+    <canvas id="roll" width="1200" height="360"></canvas>
+  </section>
+
+  <!-- 右：指标 -->
+  <section class="panel">
+    <h2>指标 <span class="dim">（绝对倍频程 + 占用率）</span></h2>
+    <div class="row">
+      <label class="dim">时间窗
+        <select id="winSel">
+          <option value="">整曲</option>
+          <option value="0-3">引子 0-3s</option>
+          <option value="6-20">安静段 6-20s</option>
+          <option value="45-90">主体段 45-90s</option>
+          <option value="93-99">尾奏 93-99s</option>
+        </select></label>
+      <button id="btnChords" class="mini" title="编辑和弦表（名字必须能被 song_engine 校验）">🎹 和弦表</button>
+    </div>
+    <div id="metrics"></div>
+    <div class="row">
+      <button id="btnMetrics" class="mini">↻ 重新测量</button>
+    </div>
+  </section>
+</main>
+
+<section id="mixer" class="panel">
+  <h2>混音台 <span class="dim" id="stemInfo">（分轨实时混音 → 写回 song.json → 渲染即成合并成品）</span>
+    <button id="btnLoadStems" class="mini" title="逐轨渲染成 OGG（bridge stems），缓存到临时目录">⬇ 载入分轨</button>
+    <button id="btnApplyMix" class="mini" title="把推子/声像写回 song.json 的 mix">↩ 写回 song.json</button>
+    <button id="btnRenderMix" class="mini" title="保存 + 渲染（合并成品）">🔊 以当前混音渲染</button>
+    <button id="btnPreview" class="mini" title="只渲染当前段落切片（约 1 秒）并循环播放 —— 改一版立刻听">⚡ 试听本段</button>
+    <button id="btnMixfit" class="mini" title="按分轨解方程配平每轨音量：解 → 真渲染 → 实测 → 更好才留（会自动回滚）">🎚 自动配平</button>
+  </h2>
+  <div id="strips"></div>
+</section>
+
+<section id="search" class="panel">
+  <h2>🧬 候选搜索 <span class="dim" id="searchHint">（只渲染 8 小节切片 + 多路并行 → 秒级/轮；用指标当适应度）</span></h2>
+  <div class="row">
+    <label class="dim">段 <select id="searchSec"></select></label>
+    <label class="dim">速度档 <select id="searchSpeed">
+      <option value="fast">快（4 小节 / 24 次 / 60s）</option>
+      <option value="normal" selected>标准（8 小节 / 48 次 / 120s）</option>
+      <option value="deep">细致（16 小节 / 96 次 / 300s）</option>
+    </select></label>
+    <label class="dim">并行 <input type="number" id="searchWorkers" value="4" min="1" max="8" style="width:48px"></label>
+    <button id="btnSearch" class="primary">▶ 开始搜索</button>
+    <button id="btnSearchStop">⏹ 停止</button>
+    <span class="dim" id="searchEta"></span>
+  </div>
+  <div id="searchOut" class="hint">搜索结果会显示在这里（每行一个候选：mad = 对齐带平均差，越小越像）。</div>
+</section>
+
+<footer id="logWrap" class="panel">
+  <h2>日志 <span class="dim" id="jobInfo"></span></h2>
+  <pre id="log"></pre>
+</footer>
+
+<audio id="player" preload="auto"></audio>
+<script src="/engine.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

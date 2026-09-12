@@ -1,0 +1,13 @@
+# 行尾统一：仓库里一律 LF（避免 Windows 检出后全库显示"已修改"）
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# 二进制：不要做行尾/文本转换
+*.sf2 binary
+*.mid binary
+*.ogg binary
+*.wav binary
+*.flac binary
+*.png binary
+*.jpg binary

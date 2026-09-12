@@ -1,0 +1,393 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""MIDI → 真音源渲染管线（FluidSynth + GeneralUser GS）
+
+流程: MIDI → FluidSynth 渲染(含混响/合唱) → 归一化 → 中侧加宽 → WAV → OGG(q=8)
+      → 客观体检（响度/宽度/质心/削波）
+
+用法:
+  python render_midi.py summer_seaside.mid [输出名] [--width 1.7] [--rms -17]
+"""
+import math
+import os
+import subprocess
+import sys
+
+import numpy as np
+import soundfile as sf
+
+import to_ogg
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+VENDOR = os.path.join(os.path.dirname(HERE), 'vendor')   # fluidsynth + SF2 音源
+
+# 渲染超时（见 render()）：底 + 按曲长线性。实测 313 秒的歌单轮 29 秒，余量 >100 倍，
+# 所以正常曲目**永远碰不到**；它只是防"坏音源/坏 MIDI 让 FluidSynth 永久阻塞"。
+RENDER_TIMEOUT_BASE = 60.0
+RENDER_TIMEOUT_PER_SEC = 20.0
+RENDER_TIMEOUT_MAX = 900.0       # 硬上限 15 分钟：任何"正常的慢"都在里面
+
+
+def _audio_seconds(mid_path):
+    """从 MIDI 估个"不会低估"的时长（秒）——只读文件头 8KB，几毫秒的事。
+
+    不做完整解析（那要引入 MIDI 解析器）：取 SMF header 的 division 与 header 之后的
+    最大 delta-time 当**下界**，再乘 1.5 的余量。解析失败就按 300 秒算（足够宽松）。
+    """
+    try:
+        with open(mid_path, 'rb') as f:
+            raw = f.read(8192)
+        if raw[:4] != b'MThd':
+            return 300.0
+        division = int.from_bytes(raw[12:14], 'big')
+        if division & 0x8000:                      # SMPTE 时间码，少见
+            return 300.0
+        body = raw[14:]
+        big, i = 0, 0
+        while i < len(body):
+            v, shift = 0, 0
+            while i < len(body) and shift < 28:
+                b = body[i]
+                i += 1
+                v = (v << 7) | (b & 0x7F)
+                shift += 7
+                if not b & 0x80:
+                    break
+            big = max(big, v)
+        ticks = big + 96                           # 留一点尾巴
+        secs = ticks / max(1, division) / 2.0 * 1.5     # 按 120BPM 二分音符保守估
+        return min(600.0, max(10.0, secs))         # **必须封顶**：见函数 docstring
+    except Exception:
+        return 300.0
+
+
+# FluidSynth 设置：房间大一点、混响左右拉开、合唱加宽（这些都在音频线程里完成）
+FS_OPTS = [
+    '-o', 'synth.reverb.active=1',
+    '-o', 'synth.reverb.room-size=0.78',
+    '-o', 'synth.reverb.damp=0.35',
+    '-o', 'synth.reverb.width=1.0',
+    '-o', 'synth.reverb.level=0.80',
+    '-o', 'synth.chorus.active=1',
+    '-o', 'synth.chorus.level=1.0',
+    '-o', 'synth.chorus.depth=5.5',
+    '-o', 'synth.gain=1.0',
+]
+
+
+def find_exe():
+    for root, _, files in os.walk(VENDOR):
+        if 'fluidsynth.exe' in files:
+            return os.path.join(root, 'fluidsynth.exe')
+    raise RuntimeError('找不到 fluidsynth.exe，先跑 scripts/setup_soundfont.py')
+
+
+def find_sf2():
+    """找音源：`.sf2` / `.sf3`（FluidSynth 都支持）都认 —— 换成更好的音源只要
+    把文件丢进 `vendor/` 即可（例如 MuseScore_General.sf3、Arachno.sf2、FluidR3_GM.sf2）。
+    多个文件时按名字里的质量提示优先（mscore/arachno/timbres > fluidr3 > generaluser）。"""
+    cands = [f for f in os.listdir(VENDOR)
+             if f.lower().endswith(('.sf2', '.sf3'))]
+    if not cands:
+        raise RuntimeError('找不到 .sf2/.sf3 音源，先跑 scripts/setup_soundfont.py')
+    pref = ('mscore', 'musescore', 'arachno', 'timbres', 'fluidr3', 'sgm')
+    def rank(f):
+        low = f.lower()
+        return next((i for i, k in enumerate(pref) if k in low), len(pref))
+    cands.sort(key=lambda f: (rank(f), f))
+    return os.path.join(VENDOR, cands[0])
+
+
+def trim_tail(x, sr, floor_db=-60.0, keep=1.0, min_tail=3.0):
+    """去掉末尾的"死气"（**只在尾巴明显过长时才动**）。
+
+    为什么需要：FluidSynth 离线渲染在 MIDI 结束后**会一直渲染到所有 voice 完全停止**。
+    带 loop 的镲片采样（`GeneralUser GS` 的开镲）在重叠音符下会留一个极低电平的长尾 voice，
+    于是 4:42 的歌被渲染成 5:03 —— 实测多出来的 **15.7 秒**电平只有 **−72dBFS**
+    （听不见，但真实存在，会让所有"时长/统计"失真）。
+
+    `min_tail` 是**保险**：正常混响尾巴只有 2.0~3.7 秒（实测既有 13 首歌），
+    短于它一律原样返回 —— 这样既有交付物与 `rehearsal.py` 的短样带**一个字节都不变**。
+
+    `floor_db` 之下算静音；`keep` 是最后一声之后再保留的秒数。"""
+    if len(x) == 0:
+        return x
+    m = np.abs(x).max(axis=1)
+    nz = np.where(m > 10.0 ** (floor_db / 20.0))[0]
+    if not nz.size:
+        return x
+    end = min(len(x), int(nz[-1] + keep * sr))
+    if (len(x) - nz[-1]) / float(sr) <= min_tail:      # 尾巴不长 → 原样返回
+        return x
+    return x[:end] if end < len(x) else x
+
+
+def measure(x, sr, tag):
+    mid = x.mean(axis=1)
+    side = (x[:, 0] - x[:, 1]) / 2
+    m = (x[:, 0] + x[:, 1]) / 2
+    rms = 20 * np.log10(max(1e-9, np.sqrt((mid ** 2).mean())))
+    pk = float(np.abs(x).max())
+    w = float(np.sqrt((side ** 2).mean()) / max(1e-9, np.sqrt((m ** 2).mean())))
+    n = 8192
+    acc = np.zeros(n // 2 + 1)
+    cnt = 0
+    for i in range(0, max(1, len(mid) - n), n * 2):
+        acc += np.abs(np.fft.rfft(mid[i:i + n] * np.hanning(n)))
+        cnt += 1
+    acc /= max(1, cnt)
+    f = np.fft.rfftfreq(n, 1 / sr)
+    cen = float((acc * f).sum() / max(1e-9, acc.sum()))
+    print('  %-12s 时长%.1fs 峰值%.3f(%.1fdBFS) RMS%.1fdBFS 宽度%.3f 质心%.0fHz 削波%d'
+          % (tag, len(mid) / sr, pk, 20 * np.log10(max(pk, 1e-9)), rms, w, cen,
+             int((np.abs(x) >= 0.999).sum())))
+    return dict(rms=rms, width=w, centroid=cen, peak=pk)
+
+
+# ---------------------------------------------------------------- 频域 DSP
+# 下面四个滤波器原本都是**逐样本 Python 循环**（一阶递推）。5 分钟的歌有 2760 万样本，
+# 实测 高架 12.3s + 三阶高通 50.6s = **63s/轮**，占单轮渲染时间的约 3/4。
+# 它们都是 LTI 系统，改成频域实现**数学上完全等价**（零初始状态的响应）：
+# 频率响应 H(w) 直接由递推系数写出，比逐样本循环快约两个数量级。
+# 等价性有两道守卫：自检 `dsp_fft_equivalent`（与这里独立写的时域递推逐样本比对）
+# + `mutation_check.py` 里"把 H 换成错的"那条注入用例。
+def _pad_len(n, guard=65536):
+    """零填充长度：>= n + guard 的 2 的幂。
+
+    guard 必须长于任一滤波器冲激响应衰减到 double 精度之外所需的样本数：
+    最慢的是 fc=38Hz 的高通（极点 0.9946 → 衰减到 1e-16 要 ~6800 样本），
+    取 65536 留两个数量级余量 → 循环卷积的"绕回"污染 < 1e-70，
+    与零初始状态的时域递推逐位等价（实测最大逐样本差 ~1e-15）。"""
+    return 1 << max(8, (n + guard - 1).bit_length())
+
+
+def _lp_response(sr, fc, nflt):
+    """一阶低通 `lp[i] = lp[i-1] + a*(x[i]-lp[i-1])` 的频率响应 a/(1-(1-a)e^{-jw})"""
+    a = 1.0 - math.exp(-2 * math.pi * fc / sr)
+    w = 2.0 * math.pi * np.fft.rfftfreq(nflt)
+    return a / (1.0 - (1.0 - a) * np.exp(-1j * w))
+
+
+def _freq_filter(x, H, nflt):
+    """按声道做频域滤波（逐声道变换以限制峰值内存），原地写回 x"""
+    n = len(x)
+    for c in range(x.shape[1]):
+        x[:, c] = np.fft.irfft(np.fft.rfft(x[:, c], n=nflt) * H, n=nflt)[:n]
+    return x
+
+
+def high_shelf_np(x, sr, fc=3000.0, gain_db=3.0):
+    """高频搁架（GM 音源偏暖，抬一点 3kHz 以上补"空气感"）"""
+    if not gain_db:                       # 原实现也会原地跑一遍全曲再原样写回
+        return x
+    g = 10.0 ** (gain_db / 20.0) - 1.0
+    nflt = _pad_len(len(x))
+    return _freq_filter(x, 1.0 + g * (1.0 - _lp_response(sr, fc, nflt)), nflt)
+
+
+def low_shelf_np(x, sr, fc=150.0, gain_db=3.0):
+    """低频搁架：补 40-160Hz 的力度（参考曲这一段最强），不碰 20-40Hz"""
+    if not gain_db:
+        return x
+    g = 10.0 ** (gain_db / 20.0) - 1.0
+    nflt = _pad_len(len(x))
+    return _freq_filter(x, 1.0 + g * _lp_response(sr, fc, nflt), nflt)
+
+
+def highpass_np(x, sr, fc=38.0, order=3):
+    """一阶高通：切掉参考曲里并不存在的 20-40Hz 轰鸣（sub 层的低八度会落在这里），
+    保留 40-80Hz 的力度主体。
+
+    原实现把同一级联跑了 order 次（`ch[i] = ch[i] - lp`，下一阶吃已经滤过的 ch），
+    所以总响应就是 (1-H_lp)**order —— 一次频域乘法即可，不必跑三遍。"""
+    nflt = _pad_len(len(x))
+    H = 1.0 - _lp_response(sr, fc, nflt)
+    return _freq_filter(x, H ** max(1, int(order)), nflt)
+
+
+def mid_boost_np(x, sr, gain_db=0.0, f_lo=1200.0, f_hi=6000.0):
+    """中高频带提升（默认 1.2-6kHz）：GM 音源的中高频常比商业混音薄，
+    而 high_shelf 从 3kHz 才开始抬，管不到 1.2-3kHz 这一段。"""
+    if not gain_db:
+        return x
+    g = 10.0 ** (gain_db / 20.0) - 1.0
+    nflt = _pad_len(len(x))
+    H = 1.0 + g * (_lp_response(sr, f_hi, nflt) - _lp_response(sr, f_lo, nflt))
+    return _freq_filter(x, H, nflt)
+
+
+def soft_limit(x, drive=1.6):
+    """温和软限幅：压掉一点动态余量（crest），让响度能对上参考曲。
+    注意 tanh(x*d)/tanh(d) 在 x>1 时会**超过 1.0**（不是真限幅器），
+    所以末尾必须硬夹一下，保证不满刻度溢出。"""
+    y = np.tanh(x * drive) / np.tanh(drive)
+    return np.clip(y, -1.0, 1.0)
+
+
+def set_width_exact(wav, target_width, ceiling=0.97):
+    """把已渲染好的 WAV 的立体声宽度**精确**调到 target_width（无需重渲染）。
+
+    加宽发生在整条链的最后，所以 mid 不变、side 只被乘了一个已知系数：
+      side_src = side_out / w_used   →   k = rms(side_src)/rms(mid)
+      w_needed = target_width / k
+    这样不受"前面 EQ 改动导致比例系数漂移"的影响（线性拟合会因此失准）。"""
+    y, sr = sf.read(wav, dtype='float64', always_2d=True)
+    mid = (y[:, 0] + y[:, 1]) / 2
+    side = (y[:, 0] - y[:, 1]) / 2
+    # 从文件本身反推 w_used：先当作 1 处理，用两次测量消掉未知数
+    r_mid = np.sqrt((mid ** 2).mean())
+    r_side = np.sqrt((side ** 2).mean())
+    if r_mid <= 1e-9 or r_side <= 1e-9:
+        return None
+    k = r_side / r_mid                    # 当前实际比例
+    scale = target_width / k              # 需要给 side 乘的倍数
+    side2 = side * scale
+    out = np.stack([mid + side2, mid - side2], axis=1)
+    pk = float(np.abs(out).max())
+    if pk > ceiling:
+        out *= ceiling / pk
+    sf.write(wav, out, sr, subtype='PCM_16')
+    return round(float(np.sqrt((side2 ** 2).mean())
+                       / np.sqrt((mid ** 2).mean())), 3)
+
+
+def encode_ogg(out_base):
+    """把已渲染好的 `<out_base>.wav` 编码成 OGG（返回 ogg 路径）。
+
+    单独开这个口子，是因为**自动调参要"循环里不编码、定稿只编一次"**：
+    5 分钟的歌编码一次 ~8s（含 null test 回读），而中间轮次的 OGG 马上会被下一轮覆盖。
+    OGG 的命名规则仍然只在本模块里出现一次（`render` 也走它）。"""
+    return to_ogg.convert(out_base + '.wav')
+
+
+def render(mid_path, out_base, rms_db=-16.9, width=2.2, shelf_db=3.0,
+           hp_hz=38.0, low_db=0.0, drive=1.6, mid_db=0.0, keep_raw=False,
+           verbose=True, ogg=True, reverb=None, trim=True):
+    """out_base 只给名字时，产物写到 MIDI 所在目录（即该曲目的 songs/<曲名>/）
+
+    `ogg=False` 时**不编码 OGG**（仍写 WAV）：自动调参的中间轮次用得上。
+    `reverb`：可选 dict 覆盖 FluidSynth 混响（键如 'room-size'/'damp'/'width'/'level'）。
+    给 None 时**完全用 FS_OPTS 的默认值**，既有曲目的渲染结果一个字节都不变（opt-in）。
+    用途：参考曲的混响尾巴 6.8dB/300ms，我们默认只有 4.6dB —— 差的那截就是"空间感"。"""
+    exe, sf2 = find_exe(), find_sf2()
+    out_base = os.path.abspath(out_base)
+    raw = out_base + '.raw.wav'
+    opts = []
+    skip = {'synth.reverb.%s' % k for k in (reverb or {})}
+    it = iter(FS_OPTS)
+    for a in it:
+        b = next(it)
+        if a == '-o' and b.split('=')[0] in skip:
+            continue
+        opts += [a, b]
+    for k, v in (reverb or {}).items():
+        opts += ['-o', 'synth.reverb.%s=%s' % (k, v)]
+    cmd = [exe, '-ni', '-g', '1.0', '-r', '44100'] + opts + \
+          ['-F', raw, sf2, mid_path]
+    print('  渲染中 ...')
+    # **这是全链路最容易挂住的地方**：FluidSynth 遇到坏音源/坏 MIDI 会一直阻塞，
+    # 而它被 make_song 的自动调参反复调用（最多 6 轮）→ 一旦挂住就是整晚不动。
+    limit = RENDER_TIMEOUT_BASE + RENDER_TIMEOUT_PER_SEC * _audio_seconds(mid_path)
+    limit = min(RENDER_TIMEOUT_MAX, limit)     # 兜住"估出超长"的病态输入
+    try:
+        r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                           text=True, encoding='utf-8', errors='replace', timeout=limit)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError('fluidsynth 渲染超时（>%.0fs）：%s\n'
+                           '  多半是音源/MIDI 坏了，或磁盘写不动' % (limit, os.path.basename(sf2)))
+    if r.returncode != 0:
+        raise RuntimeError('fluidsynth 失败: %s' % (r.stderr or '')[-400:])
+    x, sr = sf.read(raw, dtype='float64', always_2d=True)
+    if trim:                                  # 去掉末尾的"死气"（见 trim_tail）
+        x = trim_tail(x, sr)
+    if verbose:
+        measure(x, sr, '原始渲染')
+    if shelf_db:
+        x = high_shelf_np(x, sr, 3000.0, shelf_db)
+    if mid_db:
+        x = mid_boost_np(x, sr, mid_db)
+    if low_db:
+        x = low_shelf_np(x, sr, 150.0, low_db)
+    if hp_hz:
+        x = highpass_np(x, sr, hp_hz, 3)
+
+    # 响度目标与峰值上限会互相打架：加宽会抬高峰值，天花板于是把整体拉小、
+    # 响度就掉下来了（实测可差 4dB）。真母带的做法是**用限幅压峰值**，而不是整体降增益。
+    base = x
+    target = 10 ** (rms_db / 20.0)
+    drive_now = max(1.0, drive)
+    y = None
+    pk = 0.0
+    for _ in range(4):
+        y = soft_limit(base, drive_now)
+        r = np.sqrt((y ** 2).mean())
+        if r > 0:
+            y = y * (target / r)
+        mid = (y[:, 0] + y[:, 1]) / 2
+        side = (y[:, 0] - y[:, 1]) / 2 * width
+        y = np.stack([mid + side, mid - side], axis=1)
+        pk = float(np.abs(y).max())
+        if pk <= 0.97:
+            break
+        drive_now *= 1.35                      # 限幅更狠一点，用峰值换响度
+    if pk > 0.97:                              # 到极限还不达标：只能整体降，并说明
+        y *= 0.97 / pk
+        if verbose:
+            print('  注意：峰值仍超上限，响度被压低（内容动态过大）')
+    x = y
+    wav = out_base + '.wav'
+    sf.write(wav, x, sr, subtype='PCM_16')
+    if not keep_raw:
+        os.remove(raw)
+    if verbose:
+        measure(x, sr, '成品')
+    if not ogg:
+        return wav, None
+    return wav, encode_ogg(out_base)
+
+
+def main():
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    if not args:
+        print(__doc__)
+        return 1
+    mid = args[0]
+    if len(args) > 1:
+        base = args[1]
+        if not os.path.isabs(base):
+            # 只给名字 → 产物跟 MIDI 放一起（songs/<曲名>/）
+            base = os.path.join(os.path.dirname(os.path.abspath(mid)), base)
+    else:
+        base = os.path.join(os.path.dirname(os.path.abspath(mid)),
+                            os.path.splitext(os.path.basename(mid))[0])
+    # 默认值必须与 render() 的默认一致，否则命令行不给参数时会被这里覆盖
+    width = 2.2
+    rms = -16.9
+    shelf = 3.0
+    hp = 38.0
+    low = 0.0
+    drive = 1.6
+    mid_db = 0.0
+    if '--width' in sys.argv:
+        width = float(sys.argv[sys.argv.index('--width') + 1])
+    if '--rms' in sys.argv:
+        rms = float(sys.argv[sys.argv.index('--rms') + 1])
+    if '--shelf' in sys.argv:
+        shelf = float(sys.argv[sys.argv.index('--shelf') + 1])
+    if '--hp' in sys.argv:
+        hp = float(sys.argv[sys.argv.index('--hp') + 1])
+    if '--low' in sys.argv:
+        low = float(sys.argv[sys.argv.index('--low') + 1])
+    if '--drive' in sys.argv:
+        drive = float(sys.argv[sys.argv.index('--drive') + 1])
+    if '--mid' in sys.argv:
+        mid_db = float(sys.argv[sys.argv.index('--mid') + 1])
+    print('== %s → %s (宽度×%.2f, RMS %+.1f, 搁架%+.1f, 中频%+.1f, 高通%.0f, 低调%+.1f, 限幅%.1f) =='
+          % (mid, base, width, rms, shelf, mid_db, hp, low, drive))
+    render(mid, base, rms, width, shelf, hp, low, drive, mid_db)
+    return 0
+
+
+import cli_utf8 as _cu; _cu.setup()   # 控制台编码兜底（GBK 下打印 ✓ 会崩）
+if __name__ == '__main__':
+    sys.exit(main())

@@ -1,0 +1,310 @@
+{
+ "name": "d75_dark_drive",
+ "bpm": 75.0,
+ "ref": "BGM33",
+ "style": "daily",
+ "desc": "仿 BGM33：D 小调 / 75BPM / 80 小节 · 律动·织体·结构逐层对齐",
+ "chords": {
+  "Dm": [38, [50, 53, 57, 62, 65]],
+  "Dm7": [38, [50, 53, 57, 60, 65]],
+  "Gm": [43, [55, 58, 62, 67, 70]],
+  "Gm7": [43, [55, 58, 62, 65, 70]],
+  "Am": [33, [57, 60, 64]],
+  "A7": [45, [57, 61, 64, 67, 69]],
+  "Bb": [46, [58, 62, 65, 70, 74]],
+  "Bbmaj7": [46, [58, 62, 65, 69, 74]],
+  "F": [41, [53, 57, 60, 65, 69]],
+  "C": [36, [48, 52, 55, 60, 64]]
+ },
+ "melody": {
+  "intro": [
+   [0, 0.75, 2.0, 70], [0, 3.5, 0.5, 72],
+   [1, 0.25, 1.75, 72], [1, 2.75, 1.25, 74],
+   [2, 0.75, 2.0, 79], [2, 3.0, 0.75, 77], [2, 3.5, 0.5, 72],
+   [3, 0.5, 2.0, 74],
+   [4, 0.5, 2.0, 70], [4, 2.75, 1.25, 72],
+   [5, 0.75, 2.0, 70], [5, 3.0, 1.0, 72],
+   [6, 0.25, 2.0, 70], [6, 2.0, 2.0, 76],
+   [7, 0.75, 2.0, 74]
+  ],
+  "a": [
+   [0, 0.75, 2.0, 69], [0, 3.5, 0.5, 74],
+   [1, 0.25, 2.0, 70], [1, 2.5, 1.5, 72],
+   [2, 0.25, 2.0, 74], [2, 2.5, 1.5, 69],
+   [3, 0.0, 2.0, 72],
+   [4, 0.75, 2.0, 81], [4, 3.0, 1.0, 86],
+   [5, 0.25, 2.0, 84], [5, 2.5, 1.5, 86],
+   [6, 0.0, 1.75, 84], [6, 2.25, 1.75, 82],
+   [7, 0.0, 2.0, 77]
+  ],
+  "b": [
+   [0, 0.0, 2.0, 70], [0, 2.5, 1.5, 74],
+   [1, 0.5, 2.0, 69], [1, 3.0, 1.0, 74],
+   [2, 0.5, 2.0, 76], [2, 2.75, 1.25, 81],
+   [3, 0.25, 2.0, 82],
+   [4, 0.5, 2.0, 76], [4, 3.25, 0.75, 81],
+   [5, 0.5, 2.0, 79], [5, 3.25, 0.75, 79],
+   [6, 0.0, 2.0, 84], [6, 2.25, 1.75, 86],
+   [7, 0.75, 2.0, 84]
+  ],
+  "c": [
+   [0, 0.75, 2.0, 75], [0, 3.0, 1.0, 76],
+   [1, 0.5, 2.0, 81], [1, 2.75, 1.25, 82],
+   [2, 0.75, 2.0, 79], [2, 3.0, 1.0, 77],
+   [3, 0.0, 2.0, 81],
+   [4, 0.75, 2.0, 81], [4, 3.5, 0.5, 84],
+   [5, 0.25, 1.75, 79], [5, 2.5, 1.5, 77],
+   [6, 0.0, 2.0, 76], [6, 2.5, 1.5, 77],
+   [7, 0.25, 2.0, 74]
+  ],
+  "bridge": [
+   [0, 0.25, 2.0, 77], [0, 2.5, 1.5, 81],
+   [1, 0.5, 2.0, 82], [1, 3.0, 1.0, 81],
+   [2, 0.75, 2.0, 84], [2, 3.25, 0.75, 86],
+   [3, 0.5, 2.0, 86],
+   [4, 0.0, 2.0, 86], [4, 2.25, 1.0, 86], [4, 3.5, 0.5, 86],
+   [5, 0.5, 2.0, 82], [5, 3.25, 0.75, 79],
+   [6, 0.75, 2.0, 76], [6, 3.5, 0.5, 72],
+   [7, 0.25, 2.0, 76]
+  ],
+  "outro": [
+   [0, 0.75, 2.0, 69], [0, 3.25, 0.75, 70],
+   [1, 0.25, 2.0, 72], [1, 2.5, 0.75, 76], [1, 3.0, 1.0, 76],
+   [2, 0.5, 2.0, 77], [2, 3.0, 1.0, 74],
+   [3, 0.5, 2.0, 77],
+   [4, 0.25, 1.75, 82], [4, 2.25, 1.75, 81],
+   [5, 0.5, 2.0, 82], [5, 2.75, 1.25, 81],
+   [6, 0.0, 2.0, 77], [6, 2.25, 1.75, 76],
+   [7, 0.5, 2.0, 79]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 8,
+   "chords": ["Dm", "Dm", "Bb", "Bb", "F", "F", "C", "C"],
+   "melody": "intro",
+   "arr": {
+    "uku": true,
+    "piano": true,
+    "ep": true,
+    "strings": true,
+    "glock": true,
+    "bass": true,
+    "perc": 2,
+    "pad": true,
+    "shimmer": true,
+    "vel": 0.95
+   }
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["Dm", "Bb", "F", "C", "Dm", "Bb", "C", "Dm"],
+   "melody": "a",
+   "arr": {
+    "uku": true,
+    "piano": true,
+    "ep": true,
+    "strings": true,
+    "glock": true,
+    "bass": true,
+    "perc": 2,
+    "pad": true,
+    "shimmer": true,
+    "vel": 0.98
+   }
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["Dm", "Bb", "F", "C", "Dm", "Bb", "C", "Dm"],
+   "melody": "a",
+   "arr": {
+    "uku": true,
+    "piano": true,
+    "ep": true,
+    "strings": true,
+    "glock": true,
+    "bass": true,
+    "perc": 2,
+    "pad": true,
+    "shimmer": true,
+    "vel": 1.02,
+    "arp": true,
+    "harmony": true
+   }
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["Gm", "Dm", "Bb", "C", "Gm", "Dm", "Am", "Dm"],
+   "melody": "b",
+   "arr": {
+    "uku": true,
+    "piano": true,
+    "ep": true,
+    "strings": true,
+    "glock": true,
+    "bass": true,
+    "perc": 3,
+    "pad": true,
+    "shimmer": true,
+    "vel": 1.06,
+    "harmony": true
+   }
+  },
+  {
+   "name": "B2",
+   "bars": 8,
+   "chords": ["Gm", "Dm", "Bb", "C", "Gm", "Dm", "Am", "Dm"],
+   "melody": "b",
+   "arr": {
+    "uku": true,
+    "piano": true,
+    "ep": true,
+    "strings": true,
+    "glock": true,
+    "bass": true,
+    "perc": 3,
+    "pad": true,
+    "shimmer": true,
+    "vel": 1.08,
+    "arp": true,
+    "harmony": true,
+    "mix": {
+     "Perc": 118,
+     "Strings": 78,
+     "Glock": 62,
+     "Arp": 62
+    }
+   }
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["Dm", "Bb", "F", "C", "Dm", "Bb", "C", "Dm"],
+   "melody": "a",
+   "arr": {
+    "uku": true,
+    "piano": true,
+    "ep": true,
+    "strings": true,
+    "glock": true,
+    "bass": true,
+    "perc": 2,
+    "pad": true,
+    "shimmer": true,
+    "vel": 1.02,
+    "arp": true,
+    "harmony": true
+   }
+  },
+  {
+   "name": "C",
+   "bars": 8,
+   "chords": ["Bb", "F", "Gm", "Am", "Bb", "F", "C", "Dm"],
+   "melody": "c",
+   "arr": {
+    "uku": true,
+    "piano": true,
+    "ep": true,
+    "strings": true,
+    "glock": true,
+    "bass": true,
+    "perc": 3,
+    "pad": true,
+    "shimmer": true,
+    "vel": 1.08,
+    "arp": true,
+    "harmony": true,
+    "mix": {
+     "Perc": 118,
+     "Strings": 78,
+     "Glock": 62,
+     "Arp": 62
+    }
+   }
+  },
+  {
+   "name": "Bridge",
+   "bars": 8,
+   "chords": ["Bb", "F", "Gm", "Am", "Bb", "F", "Gm", "A7"],
+   "melody": "bridge",
+   "arr": {
+    "piano": true,
+    "pad": true,
+    "strings": true,
+    "bass": true,
+    "shimmer": true,
+    "perc": 1,
+    "vel": 0.82
+   }
+  },
+  {
+   "name": "B3",
+   "bars": 8,
+   "chords": ["Gm", "Dm", "Bb", "C", "Gm", "Dm", "Am", "Dm"],
+   "melody": "b",
+   "arr": {
+    "uku": true,
+    "piano": true,
+    "ep": true,
+    "strings": true,
+    "glock": true,
+    "bass": true,
+    "perc": 3,
+    "pad": true,
+    "shimmer": true,
+    "vel": 1.08,
+    "arp": true,
+    "harmony": true,
+    "mix": {
+     "Perc": 118,
+     "Strings": 78,
+     "Glock": 62,
+     "Arp": 62
+    }
+   }
+  },
+  {
+   "name": "Outro",
+   "bars": 8,
+   "chords": ["Dm", "Bb", "F", "Dm", "Bb", "F", "Dm", "Dm"],
+   "melody": "outro",
+   "arr": {
+    "piano": true,
+    "arp": true,
+    "strings": true,
+    "pad": true,
+    "bass": true,
+    "shimmer": true,
+    "perc": 1,
+    "vel": 0.88,
+    "mix": {
+     "Perc": 80,
+     "Arp": 62
+    }
+   }
+  }
+ ],
+ "patterns": {
+  "bass_style": "pump16",
+  "perc_style": "pump",
+  "perc_layers": {
+   "kick": [
+    [41, 54, 0.7],
+    [43, 60, 0.7]
+   ],
+   "kick_pos": "offbeat",
+   "air": [
+    [46, 38, 0.4]
+   ]
+  },
+  "sub_gain": 0.5,
+  "staccato": 1.6,
+  "kick_vel": [42, 98],
+  "bass_vel": [104, 110, 98, 94, 102, 108, 96, 92],
+  "sub_dur": 0.9
+ }
+}

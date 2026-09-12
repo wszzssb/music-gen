@@ -1,0 +1,51 @@
+# ============================================================
+#  music-gen —— 什么进仓库、什么自己生成
+# ============================================================
+
+# ---- ① 环境与依赖：各人自建，绝不入库 ----
+.venv/
+.venv-ml/
+
+# ---- ② 音源与二进制：有各自许可，不下发 ----
+# 跑 `python scripts\setup_soundfont.py` 自动获取（GeneralUser GS v1.471 + fluidsynth.exe）
+vendor/
+
+# ---- ③ 大体积产物：随时能用 make_song.py 重新生成 ----
+# 音视频体积大、可一条命令重生成，故默认只留谱面（song.json/spec.json/MIDI/notes.md）；
+# 仅「很好」的曲目带全套音频，其余跑一次 make_song.py 即出。
+songs/**/*.wav
+songs/**/*.ogg
+# 质量分级为「很好」的曲目带**成品 ogg**（偏差 ≤3.5dB 且强拍 0 错音，开箱可听）；
+# wav 母版体积是 ogg 的 5~6 倍、且一条 make_song.py 就能重生成，故不入库。
+!songs/12_d75_warm/*.ogg
+!songs/13_d75_rising/*.ogg
+!songs/19_d129_tender/*.ogg
+!songs/23_d150_skip_along/*.ogg
+!songs/25_d150_joy/*.ogg
+
+stems/
+export/
+
+# MIDI 参考素材：游戏/动漫 MIDI 多为粉丝转录（版权灰色），只作内部学习，不进仓库。
+# 分析结果 refs/midi/_index.json 是统计事实（速度/和声/曲式），可以进。
+refs/midi/**/*.mid
+refs/midi/**/*.midi
+
+*.preshelf
+*.bak_mixfit
+*.bak
+
+# ---- ④ 运行时临时物 ----
+__pycache__/
+*.pyc
+*.pyo
+_lint_sandbox/
+_lint_*/
+songs/_*/
+
+# ---- ⑤ 编辑器 / 系统 ----
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
