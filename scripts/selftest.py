@@ -2649,6 +2649,71 @@ def t_breath_fix_works():
     assert not again, '修复应当幂等（第二次不该再改）'
 
 
+MELODY_WIN = 8          # 旋律窗口：连续 8 个音（≈2–3 小节）
+MELODY_SIM_MAX = 0.05   # 允许的"跨曲共享窗口"比例上限
+
+
+def _melody_windows(notes, w=MELODY_WIN):
+    """一条旋律的窗口形状集合：音程序列 + 相对时值（**转调/变速不变**）。
+
+    只比形状不比绝对音高 —— 同一个动机换个调、换速度，听起来还是同一句。
+    """
+    out = set()
+    for i in range(max(0, len(notes) - w)):
+        seg = notes[i:i + w]
+        out.add((tuple(seg[k + 1][2] - seg[k][2] for k in range(w - 1)),
+                 tuple(round(seg[k + 1][0] - seg[k][0], 2) for k in range(w - 1))))
+    return out
+
+
+@check
+def t_melody_distinct():
+    """**跨曲主旋律不许雷同**（用户反馈："怎么这么多歌的主旋律都是一样的"）。
+
+    量的是"窗口形状"（连续 8 个音的音程 + 相对时值，转调/变速不变）在**别的曲子里**出现的比例。
+    实测（本轮）：初版全库 **1%**、其中 12/13 是唯一一对句子级重复（各 16/181 个窗口，第 40–50 拍
+    共用一个乐句）→ 已改写 13 那一句 → **0.5%**。
+
+    ⚠ 注意它**抓不到**"同一套旋律语言"（落点/时值分布 90% 重合那一类）—— 那是画像复用的结果，
+    见 HISTORY：10 首歌共用 2 份旋律画像（BGM33 ×5、BGM16c ×5）。这条只防"照抄/退化"。
+    """
+    rows, checked = [], 0
+    for d in song_dirs():
+        j2 = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
+        pos, notes = 0.0, []
+        for sec in j2['sections']:
+            for x in (j2['melody'].get(sec['melody']) or []):
+                if 0 <= x[0] < sec['bars']:
+                    notes.append((pos + x[0] * 4.0 + x[1], x[2], x[3]))
+            pos += sec['bars'] * 4.0
+        if len(notes) > MELODY_WIN:
+            rows.append((os.path.basename(d), notes))
+            checked += 1
+    assert checked >= 2, '带旋律的曲目太少（%d），这条检查会空转' % checked
+    wins = {n: _melody_windows(ns) for n, ns in rows}
+    # 判据自证：整体移调 = 同形；换节奏 = 不同形
+    a = [(i * 1.0, 1.0, 60 + i) for i in range(9)]
+    b = [(i * 1.0, 1.0, 72 + i) for i in range(9)]
+    c = [(i * 2.0, 1.0, 60 + i) for i in range(9)]
+    assert _melody_windows(a) & _melody_windows(b), '整体移调的同一句必须判为同形'
+    assert not (_melody_windows(a) & _melody_windows(c)), '节奏不同的句子不该判为同形'
+    tot = shared = 0
+    bad = []
+    for name, ws in wins.items():
+        tot += len(ws)
+        s = sum(1 for sh in ws if any(sh in wins[o] for o in wins if o != name))
+        shared += s
+        if len(ws) and s / len(ws) > MELODY_SIM_MAX * 2:
+            bad.append('%s %d/%d 个窗口' % (name, s, len(ws)))
+    ratio = shared / max(1, tot)
+    print('        跨曲共享旋律窗口 %d/%d = %.1f%%（上限 %.0f%%）%s'
+          % (shared, tot, ratio * 100, MELODY_SIM_MAX * 100,
+             ('；单曲超限: ' + ', '.join(bad)) if bad else ''))
+    assert ratio <= MELODY_SIM_MAX, \
+        ('跨曲主旋律雷同：%d/%d = %.1f%%（上限 %.0f%%）；单曲超限: %s'
+         % (shared, tot, ratio * 100, MELODY_SIM_MAX * 100, ', '.join(bad)))
+
+
 def main():
     print('自检 %d 项 %s' % (len(CHECKS), '(--fast，跳过渲染)' if FAST else ''))
     for fn in CHECKS:

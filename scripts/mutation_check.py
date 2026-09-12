@@ -816,6 +816,11 @@ def main():
                         'breath_fix_works',
                         lambda: Mut(breath, 'BREATH_SEC', 1e9)))
 
+    # 跨曲雷同的阈值被放到 0 → 任何一点共享都算超标，检查必须按阈值断言失败
+    results.append(case('跨曲雷同阈值被改坏',
+                        'melody_distinct',
+                        lambda: Mut(st, 'MELODY_SIM_MAX', -1.0)))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')
