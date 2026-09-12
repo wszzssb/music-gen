@@ -26,6 +26,7 @@ import render_midi             # noqa: E402
 import bgm_synth as bs         # noqa: E402
 import make_song as ms         # noqa: E402
 import metrics
+import breath
 import token_audit             # noqa: E402
 import json_io                 # noqa: E402
 
@@ -809,6 +810,11 @@ def main():
                         lambda: Mut(st, '_breath_runs',
                                     lambda iv, gap=0.5: [(min(s for s, _e in iv),
                                                           max(e for _s, e in iv))])))
+
+    # 换气阈值被抬到天上（等于"永远不需要换气"）→ 修复工具不会出手，检查必须抓到
+    results.append(case('换气阈值被关掉（工具不再出手）',
+                        'breath_fix_works',
+                        lambda: Mut(breath, 'BREATH_SEC', 1e9)))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):

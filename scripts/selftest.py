@@ -630,20 +630,9 @@ def t_outputs_exist():
 
 
 def _breath_runs(iv, gap=0.5):
-    """把音符区间合并成"不间断段"：相邻两段缝隙 < `gap` 拍就视为连着。
-
-    抽成独立函数是为了**能被自证与被注入**（提示类检查没有断言，一旦这里算错没人知道）。
-    """
-    iv = sorted(iv)
-    runs, cur = [], list(iv[0])
-    for (s, e) in iv[1:]:
-        if s - cur[1] < gap:
-            cur[1] = max(cur[1], e)
-        else:
-            runs.append(tuple(cur))
-            cur = [s, e]
-    runs.append(tuple(cur))
-    return runs
+    """把音符区间合并成"不间断段"（唯一口径在 `breath.py`；这里保留薄封装给自证用）。"""
+    import breath
+    return breath.runs(iv, gap)
 
 
 @check
@@ -657,43 +646,32 @@ def t_melody_breathing():
     超过 `BREATH_SEC` 秒还没换气就提示；短句写满不提示。
 
     只提示不判错（库里早于本约定写的曲子，重写要动旋律），打印清单供人工处置。
+    判据口径与修复工具共用 `breath.py`（避免"检查一个口径、修复另一个口径"）。
     """
-    BREATH_SEC = 20.0            # 超过这么多秒没停顿 → 提示（按**秒**，不按小节）
-    BREATH_GAP = 0.5             # 缝隙 ≥ 0.5 拍才算"换气"（真停顿，不是连奏的呼吸）
+    import breath
     # **判据自证**：提示类检查没有断言，判据坏了没人知道（实测过同类：检查本身写错、
     # 空转假绿）。这里先证明"缝隙怎么算"是对的，再拿它去量曲子。
-    assert _breath_runs([(0.0, 1.0), (1.2, 2.0)], BREATH_GAP) == [(0.0, 2.0)], \
+    assert _breath_runs([(0.0, 1.0), (1.2, 2.0)], breath.BREATH_GAP) == [(0.0, 2.0)], \
         '缝隙 0.2 拍应视为连着（连奏不断句）'
-    assert _breath_runs([(0.0, 1.0), (1.5, 2.0)], BREATH_GAP) == [(0.0, 1.0), (1.5, 2.0)], \
+    assert _breath_runs([(0.0, 1.0), (1.5, 2.0)], breath.BREATH_GAP) == [(0.0, 1.0), (1.5, 2.0)], \
         '缝隙 0.5 拍应视为换气（断开）'
-    assert _breath_runs([(0.0, 2.0), (1.0, 3.0)], BREATH_GAP) == [(0.0, 3.0)], \
+    assert _breath_runs([(0.0, 2.0), (1.0, 3.0)], breath.BREATH_GAP) == [(0.0, 3.0)], \
         '重叠的音应合并成一个不间断段'
     thin, checked = [], 0
     for d in song_dirs():
         j2 = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
-        bb = song_engine.bar_beats(j2)
-        spb = 60.0 / float(j2.get('bpm') or 120.0)     # 一拍几秒
-        pos, iv, n, lng = 0.0, [], 0, 0.0
-        for sec in j2['sections']:
-            bars = sec['bars']
-            for x in (j2['melody'].get(sec['melody']) or []):
-                if not (0 <= x[0] < bars):
-                    continue
-                s = pos + x[0] * bb + x[1]
-                iv.append((s, s + x[2]))
-                n += 1
-                lng = max(lng, x[2])
-            pos += bars * bb
-        if pos <= 0 or not iv:
+        iv, bb, spb = breath.intervals(j2)
+        if not iv:
             continue
         checked += 1
-        iv.sort()
-        runs = _breath_runs(iv, BREATH_GAP)
-        lb = max((e - s) for (s, e) in runs)           # 最长不间断段（拍）
-        if lb * spb > BREATH_SEC:
+        lng = max(x[2] for sec in j2['sections']
+                  for x in (j2['melody'].get(sec['melody']) or []) if 0 <= x[0] < sec['bars'])
+        lb = max(e - s for (s, e) in breath.runs(iv, breath.BREATH_GAP))
+        if lb * spb > breath.BREATH_SEC:
             thin.append('%s(%.0f秒/%.1f小节没换气,占空比%.0f%%,最长音%.0f拍)'
                         % (os.path.basename(d), lb * spb, lb / bb,
-                           100 * sum(e - s for s, e in iv) / pos, lng))
+                           100 * sum(e - s for s, e in iv) / (bb * sum(
+                               sec['bars'] for sec in j2['sections'])), lng))
     assert checked > 0, '没有可检查的曲目（songs/ 路径或 glob 坏了）'
     if thin:
         head = '; '.join(thin[:6])
@@ -2636,6 +2614,39 @@ def t_meter_34_68():
     probe([6, 8], [[0, 0, 1, 62], [0, 1.0, 1, 63], [0, 1.5, 1, 66],
                    [1, 0, 1, 61], [1, 1.0, 1, 62], [1, 1.5, 1, 64],
                    [2, 0, 1, 62], [2, 1.5, 1, 69]])
+
+
+@check
+def t_breath_fix_works():
+    """换气修复工具（`fix_breathing.py`）真的能修，而且**只改时值**：
+
+    · 40 小节连奏（60BPM = 160 秒不断）必须被判需要换气并给出改法
+    · 修完必须达标（不再有 >20 秒不间断）
+    · **落点/音高一个都不许动**（只收短时值）—— 否则等于偷偷改了旋律
+    · 幂等：再跑一次不该再改
+    """
+    import breath
+    import fix_breathing as fb
+    bars = 40
+    mel = [[b, float(k), 1.0, 72 + (k % 2)] for b in range(bars) for k in range(4)]
+    d = {'name': 'breathfix', 'bpm': 60, 'meter': [4, 4], 'style': 'daily',
+         'chords': {'C': [36, [55, 60, 64, 67, 72]]},
+         'melody': {'m': mel},
+         'sections': [{'name': 'A', 'bars': bars, 'chords': ['C'] * bars, 'melody': 'm',
+                       'arr': {'piano': True, 'bass': True}}]}
+    p = os.path.join(TMP, 'breathfix.json')
+    json.dump(d, open(p, 'w', encoding='utf-8'))
+    assert breath.long_runs(d)[0], '夹具本身就该是"长段"，否则这条检查会空转'
+    changes, _run, _step = fb.fix_song(p, dry=True)
+    assert changes, '40 小节连奏（160 秒）应当被判需要换气并给出改法'
+    fb.fix_song(p, dry=False)
+    after = json.load(open(p, encoding='utf-8'))
+    assert not breath.long_runs(after)[0], \
+        '修完仍有 >20 秒不换气：%s' % breath.long_runs(after)[0]
+    assert [(x[0], x[1], x[3]) for x in after['melody']['m']] == \
+        [(x[0], x[1], x[3]) for x in mel], '修复工具不许动落点/音高（只许改时值）'
+    again, _r, _s = fb.fix_song(p, dry=True)
+    assert not again, '修复应当幂等（第二次不该再改）'
 
 
 def main():
