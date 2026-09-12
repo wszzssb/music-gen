@@ -55,3 +55,26 @@ cd D:\software\skill
 
 - **`d150_joy_sf.ogg`** —— 成品（61.3 秒）· `d150_joy_sf.wav` 母版 · `d150_joy.mid`（9 轨）
 - `spec.json`（创作源头）· `song.json` · `render.json` · `notes.md`（本文件）
+
+## 2026-09-13 主旋律重写（治「同质化」，画像驱动生成）
+
+**为什么**：用户反馈"这么多歌的主旋律都像"。根因不是照抄（跨曲共享片段只有 0.5%），
+而是**旋律语言在复用同一套方言** —— 本曲原属 `BGM33`/`BGM16c` 那两批（5 首共用一份画像）。
+详见 `HISTORY.md` 的「治本」一节与坑 109–113。
+
+**做法**：`melody_gen.py` 已改成真读画像的**分布**（句长切成乐句并**句末留休止**、落点按
+`onset16_hist` 的 16 格方言、时值按 `dur16_hist`、音程按 `interval_hist`），并按**本曲和弦**
+推断大小调（不再写死小调）；本曲分到画像 **`shimijimi_new_other`**（十首各一份、互不重复），seed 25，
+8 条候选中按"与库里已有旋律最不像"取一条。
+
+**复现**：
+```
+& $py scripts\melody_gen.py songs\25_d150_joy\song.json refs\melody\shimijimi_new_other_melody.json --seed 25 --avoid songs --candidates 8
+& $py scripts\make_song.py 25_d150_joy
+```
+
+**结果**：124 音 / 36 小节；强拍（第 1、3 拍）落和弦音 **100%**（24 个样本）；
+落点格 **14** 种、正拍 35%；级进 58%、同音重复 24%。
+全库"孪生对（旋律语言重合 ≥85%）"由 5 对降到 **0 对**（`probe_melody_lang.py`）。
+
+**还没验证的**：听感 —— 客观指标只能证明"与其它九首不再说同一种话"，好不好听只能人听。

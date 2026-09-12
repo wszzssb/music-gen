@@ -49,3 +49,4 @@ songs/_*/
 Thumbs.db
 desktop.ini
 .DS_Store
+!songs/31_f123_night_drift/*.ogg
