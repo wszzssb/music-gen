@@ -242,12 +242,7 @@
   "perc_style": "light",
   "sub_gain": 1.5,
   "sub_dur": 0.6,
-  "staccato": 0.95,
-  "perc_layers": {
-   "air": [
-    [46, 62, 0.42]
-   ]
-  }
+  "staccato": 0.95
  },
  "mix": {
   "Melody": [76, 104],

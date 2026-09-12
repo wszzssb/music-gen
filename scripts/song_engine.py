@@ -197,6 +197,20 @@ def load(path):
     mix.update(preset.get('mix', {}))
     mix.update({k: tuple(v) for k, v in d.get('mix', {}).items()})
     d['mix'] = mix
+    # --- 校验：**声明了却不生效的项要报出来**，否则就是"配置写了、声音里没有"（实测踩过：
+    # `perc_style: light` + `perc_layers` 静默无效，见坑 81 的姊妹问题）
+    lay = d.get('patterns', {}).get('perc_layers')
+    if lay and d['patterns'].get('perc_style') not in ('light', 'pump'):
+        print('  !! patterns.perc_layers 在 perc_style=%s 下**不生效**（只支持 light / pump）'
+              % d['patterns'].get('perc_style'))
+    if lay:
+        airs = lay.get('air') or []
+        # 同音高重叠 → FluidSynth 配错 note-off、留下悬空 voice（整曲多渲染十几秒，坑 82）。
+        # 规则：每条音高的重复间隔 = (条目数 × 0.25) 拍，时值必须小于它。
+        if airs and len(airs) * 0.25 <= max(float(a[2]) for a in airs) + 1e-9:
+            print('  !! perc_layers.air 的时值 %.2f 拍 ≥ 重复间隔 %.2f 拍（%d 条）'
+                  '→ 同音高重叠，FluidSynth 会留悬空 voice；请减小时值或加条目交替'
+                  % (max(float(a[2]) for a in airs), len(airs) * 0.25, len(airs)))
     # --- 校验：拼错的编配开关要报出来，否则会静默不生效
     bad = set()
     for sec in d.get('sections', []):
@@ -513,6 +527,17 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0):
             out.append((B / 2.0, 0.1, 36, 60))
             for b in range(1, NB, 2):                     # 侧棒（4/4 → 1、3）
                 out.append((float(b), 0.1, 37, 52))
+        # 垫层（opt-in）：**light 才是最需要它的一档** —— 这一档只有沙锤一个高频来源，
+        # 5–18kHz 的连续性全靠垫层（坑 81：例曲 5000Hz 占用 99%，我们 78%）。
+        # ⚠ 以前这段只写在 `pump` 分支里 → `perc_style: light` 下声明的 `perc_layers`
+        #   **静默不生效**（16/23 号就踩了这个：配置写了、声音里没有）。
+        # ⚠ 条目要 ≥2 个（`n×0.25 > 时值`）：同音高重叠会让 FluidSynth 配错 note-off、
+        #   留下永不关闭的悬空 voice（整曲多渲染十几秒，坑 82）。
+        if layers:
+            airs = layers.get('air', [])
+            for si, (mn, mv, md) in enumerate(airs):
+                for k in range(si, S, max(1, len(airs))):
+                    out.append((k * 0.25, md, mn, mv))
     if i == 0:
         out.append((0.0, 0.1, 49, 88))                    # 段首吊镲
     if i == nbars - 1:

@@ -135,12 +135,7 @@
   "perc_style": "orchestral",
   "sub_gain": 1.6,
   "sub_dur": 1.0,
-  "staccato": 0.95,
-  "perc_layers": {
-   "air": [
-    [46, 46, 0.42]
-   ]
-  }
+  "staccato": 0.95
  },
  "mix": {
   "Melody": [76, 104],

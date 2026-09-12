@@ -473,12 +473,7 @@
   "bass_style": "offbeat",
   "perc_style": "light",
   "sub_gain": 1.2,
-  "sub_dur": 0.55,
-  "perc_layers": {
-   "air": [
-    [46, 50, 0.42]
-   ]
-  }
+  "sub_dur": 0.55
  },
  "mix": {
   "Melody": [76, 104],
