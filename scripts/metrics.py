@@ -442,20 +442,20 @@ def detect_bpm(m, sr):
         info['level_lo'] = round(best_bpm / 2, 1)
         info['level_lo_score'] = round(float(score_of(best_bpm / 2)), 3)
 
-    # 窗口外层级：折叠窗口 [60,180] 之外的曲子会被折上来（55→110、230→115），
-    # 而折叠本身不留痕迹。这里把"窗口外同样成立、甚至更成立的层级"显式报出来，
-    # 让上层（check_audio / profile_ref / 成绩单）能提示**用 --bpm 钉死**，
-    # 而不是让人拿着一个折半/加倍的值去写画像。判据与 low_level 同源（支持度比值）。
+    # 窗口外层级：折叠窗口 [60,180] 之外的曲子会被折上来（55→110、180/210→60/70），
+    # 而折叠本身不留痕迹。这里把"窗口外同样成立、甚至更成立的层级"显式报出来。
     # 层级阶梯：把"同样成立的层"**全列出来**（本层 + ×2/÷2/×3/÷3/×4/÷4，落在 40–240 内）并带支持度
     # —— 人工核对时直接挑一个，而不是凭感觉试数。实测自动测速与人工钉死的一致率在外部参考曲上
     # 只有 4%（坑 106），所以"给人一份候选表"才是这个工具能负责的部分。
-    ladder = {}
-    for v in (best_bpm, best_bpm / 2.0, best_bpm * 2.0, best_bpm / 3.0,
-              best_bpm * 3.0, best_bpm / 4.0, best_bpm * 4.0):
-        v = round(float(v), 1)
-        if 40.0 <= v <= 240.0:
-            ladder['%.1f' % v] = round(float(score_of(v)), 3)
-    info['level_ladder'] = ladder
+    def _ladder_of(base):
+        d = {}
+        for v in (base, base / 2.0, base * 2.0, base / 3.0, base * 3.0, base / 4.0, base * 4.0):
+            v = round(float(v), 1)
+            if 40.0 <= v <= 240.0:
+                d['%.1f' % v] = round(float(score_of(v)), 3)
+        return d
+
+    ladder = _ladder_of(best_bpm)
     outside = [(s, float(k)) for k, s in ladder.items()
                if not (BPM_FOLD[0] <= float(k) <= BPM_FOLD[1])]
     if outside:
@@ -463,9 +463,30 @@ def detect_bpm(m, sr):
         if s_alt >= WINDOW_ALT_RATIO * best_s:
             info['window_alt'] = v_alt
             info['window_alt_score'] = s_alt
-            info['level_note'] += ('；**窗口外层级同样成立：%.1f BPM（支持度 %.3f vs %.3f）**'
-                                   '→ 超出自动定层窗口 %.0f–%.0f，请用 `--bpm %.1f` 核对'
-                                   % (v_alt, s_alt, best_s, BPM_FOLD[0], BPM_FOLD[1], v_alt))
+            if s_alt > best_s and v_alt > BPM_FOLD[1]:
+                # **高于窗口上界（>180）的层级更成立 → 就报它**。上界只是"折叠归一"的历史取值，
+                # 不是判断依据；报 69.8 而把更成立的 209.4 藏在备注里，就是让人自己去乘 3。
+                # 为什么**只对 >180 生效**：向下的折叠（÷2/÷4）是经典的八度歧义，两种读法在音乐上
+                # 都成立 —— 实测若一律"谁高报谁"，14 首参考曲里 4 首读数被翻动（BGM11 90→45、
+                # BGM12 168→42、BGM14 110→55、BGM16 90→45，后两个还是 0.23 vs 0.22 的近平分），
+                # 而**没有证据**说明那 4 处变好了（按人工钉死值看 BGM12 反而更远）。
+                folded, folded_s = round(float(best_bpm), 1), round(float(best_s), 3)
+                best_bpm, best_s = v_alt, s_alt
+                info['level_folded'] = folded
+                info['level_hi'] = round(float(best_bpm), 1)
+                info['level_hi_score'] = round(float(best_s), 3)
+                info['level_lo'] = round(best_bpm / 2.0, 1)
+                info['level_lo_score'] = round(float(score_of(best_bpm / 2.0)), 3)
+                ladder = _ladder_of(best_bpm)
+                info['level_ladder'] = ladder
+                info['level_note'] += ('；**高于窗口上界的层级支持度更高（%.1f/%.3f vs 折上来的 '
+                                       '%.1f/%.3f）→ 已改报该层**' % (v_alt, s_alt, folded, folded_s))
+                info.pop('window_alt', None)
+                info.pop('window_alt_score', None)
+            else:
+                info['level_note'] += ('；**窗口外层级同样成立：%.1f BPM（支持度 %.3f vs %.3f）**'
+                                       '→ 超出自动定层窗口 %.0f–%.0f，请用 `--bpm %.1f` 核对'
+                                       % (v_alt, s_alt, best_s, BPM_FOLD[0], BPM_FOLD[1], v_alt))
     return round(float(best_bpm), 1), round(float(best_s), 3), info
 
 

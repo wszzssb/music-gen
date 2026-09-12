@@ -2496,8 +2496,9 @@ def t_bpm_out_of_window_reported():
         got = [v for v in (bpm, info.get('window_alt')) if v]
         assert any(abs(v - true) / true <= 0.05 for v in got), \
             '%.0fBPM 既没报对也没报窗口外层：bpm=%.1f info=%s' % (true, bpm, info)
-        assert info.get('window_alt'), \
-            '%.0fBPM 超出窗口却没给提示（静默折半）：%s' % (true, info)
+        # "不许静默折半"：要么报了窗口外层，要么报了折上来的值（level_folded）
+        assert info.get('window_alt') or info.get('level_folded'), \
+            '%.0fBPM 超出窗口却没给任何提示（静默折半）：%s' % (true, info)
     m, sr = train(120.0)
     _b, _s, info = quiet(metrics.detect_bpm, m, sr)[0]
     assert not info.get('window_alt'), '120BPM 是窗内速度，不该报 window_alt：%s' % info

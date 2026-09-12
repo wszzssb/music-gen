@@ -113,6 +113,14 @@ def check_one(path, bpm_force=None, deep=False):
                                 ' --bpm 显式钉死，避免画像与成品各选一层'
                                 % (info['level_hi'], info['level_hi_score'],
                                    info['level_lo'], info['level_lo_score']))
+        # >180 BPM：折叠窗口的顶就是 180，**快过它的曲子不可能被自动定层**
+        # （实测 180BPM→报 60.4、210→70.3，落在 2×/3× 关系上）。自动判不出，
+        # 但要把"该看哪一层"指出来，否则人只会看到一个小一半的数。
+        hot = sorted((float(k) for k in lev if float(k) > 180.0), reverse=True)
+        if hot and rec['bpm'] <= 180.0:
+            rec['bpm_note'] += ('；**阶梯里有 >180 的层级（%s）** —— 自动定层窗口上界是 180，'
+                                '快曲（战斗/电子）请优先核对这一层，再 `--bpm` 钉死（坑 104/106）'
+                                % '/'.join('%.1f' % v for v in hot[:2]))
 
     # ---- 深度指标（慢，opt-in）
     if deep:
