@@ -1,0 +1,81 @@
+{
+ "name": "meter34_waltz",
+ "desc": "3/4 圆舞曲探针：验证 meter 字段端到端（作曲→渲染→MIDI 拍号）",
+ "bpm": 150.0,
+ "meter": [3, 4],
+ "style": "ballad",
+ "ref": "BGM18b",
+ "patterns": {
+  "bass_style": "simple",
+  "perc_style": "light",
+  "arpeggio": [0, 2, 3, 2, 1]
+ },
+ "chords": {
+  "Dm": [38, [57, 62, 65, 69, 74]],
+  "Bb": [34, [58, 62, 65, 70, 74]],
+  "Gm": [31, [55, 58, 62, 67, 70]],
+  "A": [33, [57, 61, 64, 69, 73]],
+  "Dm7": [38, [57, 62, 65, 69, 72]]
+ },
+ "melody": {
+  "m": [
+   [0, 0, 1, 74], [0, 1, 1, 77], [0, 2, 1, 81],
+   [1, 0, 1, 70], [1, 1, 1, 74], [1, 2, 1, 77],
+   [2, 0, 1, 67], [2, 1, 1, 70], [2, 2, 1, 74],
+   [3, 0, 1, 73], [3, 1, 1, 69], [3, 2, 1, 76],
+   [4, 0, 1, 74], [4, 1, 1, 77], [4, 2, 2, 81],
+   [5, 0, 1, 70], [5, 1, 1, 74], [5, 2, 1, 72],
+   [6, 0, 1, 67], [6, 1, 1, 70], [6, 2, 1, 74],
+   [7, 0, 1, 73], [7, 1, 1, 69], [7, 2, 2, 64]
+  ]
+ },
+ "sections": [
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["Dm", "Bb", "Gm", "A", "Dm", "Bb", "Gm", "A"],
+   "melody": "m",
+   "arr": {
+    "uku": true,
+    "piano": true,
+    "bass": true,
+    "strings": true,
+    "perc": 1
+   }
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["Bb", "Gm", "A", "Dm", "Bb", "Gm", "A", "A"],
+   "melody": "m",
+   "arr": {
+    "piano": true,
+    "ep": true,
+    "bass": true,
+    "strings": true,
+    "pad": true,
+    "glock": true,
+    "harmony": true,
+    "perc": 2
+   }
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["Dm", "Bb", "Gm", "A", "Dm7", "Bb", "Gm", "A"],
+   "melody": "m",
+   "arr": {
+    "uku": true,
+    "piano": true,
+    "bass": true,
+    "strings": true,
+    "glock": true,
+    "perc": 2,
+    "mix": {
+     "Strings": 78,
+     "Perc": 52
+    }
+   }
+  }
+ ]
+}

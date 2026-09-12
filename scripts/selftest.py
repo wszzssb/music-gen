@@ -1034,7 +1034,9 @@ def t_audio_semantics():
             continue
         data = song_engine.load(os.path.join(d, 'song.json'))
         ev, nbars = build(data)
-        bar = 4 * 60.0 / data['bpm']
+        # 一小节几个四分音符**由拍号定**（4/4 → 4；3/4 → 3；6/8 → 3）。
+        # 写死 4 的话，3/4 的曲子谱面会被算长 1/3 → 渲染时长"对不上"，全是误报。
+        bar = song_engine.bar_beats(data) * 60.0 / data['bpm']
         y, sr = sf.read(wav, dtype='float64', always_2d=True)
         dur = len(y) / sr
         expect = nbars * bar
@@ -1042,12 +1044,14 @@ def t_audio_semantics():
             '%s 时长 %.1fs 与谱面 %.1fs 不符（多出的是混响尾，正常 ≤8s）' % (name, dur, expect)
         mono = y.mean(axis=1)
         bar0 = 0
+        B = song_engine.bar_beats(data)
         for sec in data['sections']:
             n = sec['bars']
             t0, t1 = bar0 * bar, (bar0 + n) * bar
             seg = mono[int(t0 * sr):int(min(t1, dur) * sr)]
             notes = sum(len(v) for tr, v in ev.items()
-                        for (t, _dd, _m, _v) in v if bar0 * 4 <= t < (bar0 + n) * 4)
+                        for (t, _dd, _m, _v) in v
+                        if bar0 * B <= t < (bar0 + n) * B)
             if notes >= 5 and len(seg) > sr // 2:
                 rms = 20 * np.log10(max(1e-9, np.sqrt((seg ** 2).mean())))
                 assert rms > -45, '%s/%s 有 %d 个音符却是静音(%.1fdB)' % (
