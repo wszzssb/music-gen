@@ -803,6 +803,13 @@ def main():
                                     lambda ch, i, B=4.0: [(0.5, 0.28, m, 60)
                                                           for m in ch[1][:3]])))
 
+    # 换气判据算错（把"缝隙"忽略、全曲当成一段）→ 判据自证必须报警
+    results.append(case('换气判据算错（无视缝隙）',
+                        'melody_breathing',
+                        lambda: Mut(st, '_breath_runs',
+                                    lambda iv, gap=0.5: [(min(s for s, _e in iv),
+                                                          max(e for _s, e in iv))])))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

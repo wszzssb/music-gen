@@ -629,40 +629,77 @@ def t_outputs_exist():
         print('        （%d 首还没跑过 make_song，已跳过）' % len(unrendered))
 
 
+def _breath_runs(iv, gap=0.5):
+    """把音符区间合并成"不间断段"：相邻两段缝隙 < `gap` 拍就视为连着。
+
+    抽成独立函数是为了**能被自证与被注入**（提示类检查没有断言，一旦这里算错没人知道）。
+    """
+    iv = sorted(iv)
+    runs, cur = [], list(iv[0])
+    for (s, e) in iv[1:]:
+        if s - cur[1] < gap:
+            cur[1] = max(cur[1], e)
+        else:
+            runs.append(tuple(cur))
+            cur = [s, e]
+    runs.append(tuple(cur))
+    return runs
+
+
 @check
 def t_melody_breathing():
-    """旋律**呼吸度**提示：过满的曲子听起来累（每拍都有新音、无长音、无静音）。
+    """旋律**换气**提示：**连续太长**才需要停顿，短句写满是正常的（用户校准后的口径）。
 
-    为什么单列一条：实测一首 90 小节、每小节填 4 个音的曲子，时值被自动推成整齐的
-    1 拍 —— 全曲最长音只有 2 拍、音符覆盖率 91%，用户听完反馈"旋律中间一直没有停顿，
-    听起来好累"。这条**只提示不判错**（库里早于本约定写的曲子，重写要动旋律），
-    打印清单供人工处置。新歌请遵守：每 4 小节的句尾留长音（>=3 拍）或留 2 拍静音。
+    起因（实测）：一首 90 小节、每小节填 4 个音的曲子，时值被自动推成整齐的 1 拍 ——
+    全曲最长音只有 2 拍、覆盖率 91%，用户听完反馈"旋律中间一直没有停顿，听起来好累"。
+    **用户随后又校准了口径**："不一定每一段都要停顿，而是**太长的话**要停顿换气" ——
+    所以这条改成量"**最长不间断段**"（把相邻音之间 < 0.5 拍的缝隙视为连着），
+    超过 `BREATH_SEC` 秒还没换气就提示；短句写满不提示。
+
+    只提示不判错（库里早于本约定写的曲子，重写要动旋律），打印清单供人工处置。
     """
+    BREATH_SEC = 20.0            # 超过这么多秒没停顿 → 提示（按**秒**，不按小节）
+    BREATH_GAP = 0.5             # 缝隙 ≥ 0.5 拍才算"换气"（真停顿，不是连奏的呼吸）
+    # **判据自证**：提示类检查没有断言，判据坏了没人知道（实测过同类：检查本身写错、
+    # 空转假绿）。这里先证明"缝隙怎么算"是对的，再拿它去量曲子。
+    assert _breath_runs([(0.0, 1.0), (1.2, 2.0)], BREATH_GAP) == [(0.0, 2.0)], \
+        '缝隙 0.2 拍应视为连着（连奏不断句）'
+    assert _breath_runs([(0.0, 1.0), (1.5, 2.0)], BREATH_GAP) == [(0.0, 1.0), (1.5, 2.0)], \
+        '缝隙 0.5 拍应视为换气（断开）'
+    assert _breath_runs([(0.0, 2.0), (1.0, 3.0)], BREATH_GAP) == [(0.0, 3.0)], \
+        '重叠的音应合并成一个不间断段'
     thin, checked = [], 0
     for d in song_dirs():
         j2 = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
-        tot = lng = dur = 0.0
-        n = 0
-        bb = song_engine.bar_beats(j2)          # 一小节几个四分音符（拍号；3/4 → 3）
+        bb = song_engine.bar_beats(j2)
+        spb = 60.0 / float(j2.get('bpm') or 120.0)     # 一拍几秒
+        pos, iv, n, lng = 0.0, [], 0, 0.0
         for sec in j2['sections']:
             bars = sec['bars']
-            tot += bars * bb
-            arr = [x for x in (j2['melody'].get(sec['melody']) or [])
-                   if 0 <= x[0] < bars]
-            n += len(arr)
-            for x in arr:
+            for x in (j2['melody'].get(sec['melody']) or []):
+                if not (0 <= x[0] < bars):
+                    continue
+                s = pos + x[0] * bb + x[1]
+                iv.append((s, s + x[2]))
+                n += 1
                 lng = max(lng, x[2])
-                dur += x[2]
-        if tot <= 0:
+            pos += bars * bb
+        if pos <= 0 or not iv:
             continue
         checked += 1
-        if n / tot * 4 > 3.5 and lng <= 2.0 and (1 - dur / tot) < 0.08:
-            thin.append('%s(%.1f音/小节,最长%.0f拍,静音%.0f%%)'
-                        % (os.path.basename(d), n / tot * bb, lng, (1 - dur / tot) * 100))
+        iv.sort()
+        runs = _breath_runs(iv, BREATH_GAP)
+        lb = max((e - s) for (s, e) in runs)           # 最长不间断段（拍）
+        if lb * spb > BREATH_SEC:
+            thin.append('%s(%.0f秒/%.1f小节没换气,占空比%.0f%%,最长音%.0f拍)'
+                        % (os.path.basename(d), lb * spb, lb / bb,
+                           100 * sum(e - s for s, e in iv) / pos, lng))
     assert checked > 0, '没有可检查的曲目（songs/ 路径或 glob 坏了）'
     if thin:
-        print('        （旋律过满提示：%s —— 每拍都有新音且无长音/静音，听感会累）'
-              % '; '.join(thin))
+        head = '; '.join(thin[:6])
+        more = '' if len(thin) <= 6 else ' … 共 %d 首' % len(thin)
+        print('        （换气提示：%s%s —— 连续太久没停顿，听感会累；'
+              '短句写满是正常的，只在长句里留停顿/长音即可）' % (head, more, ))
 
 
 
