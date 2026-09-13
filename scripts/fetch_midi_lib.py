@@ -71,9 +71,17 @@ def _get(url, binary=False, timeout=30):
 
 
 def _safe(name):
-    """清成 Windows 合法文件名"""
-    n = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', name).strip(' .')
-    return (n[:80] or 'unnamed') + ('' if n.lower().endswith('.mid') else '.mid')
+    """清成 Windows 合法文件名。
+
+    ⚠ 顺序很重要：**先补 .mid 后缀，再截断**。反过来的话，名字一超 80 字符，
+    .mid 就被截掉了、末尾再补一次 → 变成 ...blogspot.com.mid 里的 .mid 丢失后
+    补成 ...blogspot.c.mid/...com.mid，既让 .gitignore 的 *.mid 规则漏网
+    （实测有 2 个文件混进了 git），也让 midi_probe 扫不到。"""
+    n = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', name).strip(' .') or 'unnamed'
+    if not n.lower().endswith(('.mid', '.midi')):
+        n += '.mid'
+    base, ext = os.path.splitext(n)
+    return base[:80] + ext
 
 
 def bitmidi(q, limit):
