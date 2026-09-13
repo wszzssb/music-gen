@@ -255,11 +255,22 @@ def guitar_arpeggio(ch, i, arp, B=4.0):
     `B` = 一小节的四分音符数（默认 4 = 老行为，逐字节不变）。3/4 → 一小节 5 个八分位。
     """
     bass, tones = ch
-    beats = [k * 0.5 for k in range(max(1, int(round(B * 2)) - 1))]
+    n = max(1, int(round(B * 2)) - 1)
+    # **按小节轮换音型**（2026-09-13，用户："d d d d ddd"）：原先每小节都是
+    # "每 0.5 拍一个 + 音序循环 + 力度只有 80/68" —— 784 个音全曲八分平铺、56 小节
+    # 一模一样，是那句话的主体。四种落点轮换，但**第 1 拍永远是根音**（和声靠它，
+    # 这条纪律不动）。力度再加 4 小节包络。
+    P4 = [
+        [k * 0.5 for k in range(n)],                                  # 铺底（原行为）
+        [k * 0.5 for k in range(n) if k % 4 != 3] + [n * 0.5 - 0.25],  # 抽一格 + 切分
+        sorted(set([k * 0.5 for k in range(n)] + [0.25, 2.75])),       # 加十六分
+        [k * 0.5 for k in range(n) if k % 2 == 0],                     # 留白（只留正拍）
+    ]
+    env = (1.0, 0.88, 0.96, 0.84)[i % 4]
     out = []
-    for k, b in enumerate(beats):
+    for k, b in enumerate(P4[i % 4]):
         m = tone(tones, arp[k % len(arp)])
-        out.append((b, 0.45, m, 80 if k % 2 else 68))
+        out.append((b, 0.45, m, max(40, int((80 if k % 2 else 68) * env))))
     return out
 
 
@@ -273,10 +284,12 @@ def piano_part(ch, i, B=4.0):
     if int(round(B)) % 2:
         return [(float(b), 0.42, m, 66 if b == 1 else 58)
                 for b in range(1, int(round(B))) for m in tones[:3]]
+    # **反拍和弦的位置按小节轮换**（原来每小节都固定在 0.5 / B-1.5 两处 → 也机械）
+    ALT = ((0.5, B - 1.5), (0.5, B - 0.5), (1.0, B - 1.5), (0.5, B - 1.0))
     out = []
-    for b in (0.5, B - 1.5):
+    for b in ALT[i % 4]:
         for m in tones[:3]:
-            out.append((b, 0.28, m, 60))
+            out.append((b, 0.28, m, 58 + (6 if i % 2 else 0)))
     out.append((0.0, 1.5, tone(tones, 3), 54))
     if i % 4 == 3:
         out.append((B - 0.5, 0.4, tone(tones, 2) + 12, 62))
