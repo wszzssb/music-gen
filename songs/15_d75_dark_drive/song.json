@@ -291,17 +291,6 @@
  "patterns": {
   "bass_style": "pump16",
   "perc_style": "pump",
-  "perc_layers": {
-   "kick": [
-    [41, 54, 0.7],
-    [43, 60, 0.7]
-   ],
-   "kick_pos": "offbeat",
-   "air": [
-    [46, 38, 0.45],
-    [44, 34, 0.45]
-   ]
-  },
   "sub_gain": 0.5,
   "staccato": 1.6,
   "kick_vel": [42, 98],

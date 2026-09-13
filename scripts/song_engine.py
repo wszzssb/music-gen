@@ -36,6 +36,15 @@ DEFAULT_MIX = {
 # 每套的音量配比都是**实际渲染调过之后的经验值**（尤其 gorgeous 那套：低中频要收，否则糊）。
 # 通道一律用下面这张**固定表**，预设只改音色不改通道 —— 否则会有两轨抢同一通道、
 # program change 互相覆盖（踩过：4 套预设都撞了通道）。
+# **音区分工**（只改 MIDI 音高、不动和声：整轨同移不改变和弦内的音程关系）。
+# 实测 32 号 9 条轨挤在 55~72 这 17 个半音里 —— Hook 61.5 / Piano 58.9 / Pad 55.7
+# 三轨撞在中央区，而 **Melody 71.5 夹在 Arp 72.2 与 Strings 69.4 中间**（旋律被埋住，
+# 听感"杂乱、分不出主次"的主因）。按轨加固定偏移把音区拉开：
+#   Pad -5 → Hook -5 → Piano +4 → Strings -3 → Arp +3 → **Melody +7 独占最高**
+#   （Bass / Glock / Perc 不动）
+TR_SHIFT = {'Pad': -5, 'Hook': -5, 'Piano': +4, 'Strings': -3, 'Arp': +3,
+            'Melody': +7}
+
 CH = {'Melody': 0, 'Hook': 1, 'Piano': 2, 'Arp': 3, 'Pad': 4, 'Strings': 5,
       'Bass': 6, 'Glock': 7, 'Perc': 9}
 
@@ -445,18 +454,14 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0):
         #   例曲 drums 占用率 69/57/33/21/15/12/55/84、动态 29~49dB
         #   （我们要的是"密集 + 均匀 + 被压过"，所以：**每个十六分都有东西**、
         #     力度收在 62~104 的窄带里、正拍与反拍差距压小）
-        for k in range(S):                                # 十六分踩镲：全程铺满
+        for k in range(S):                                # 十六分踩镲：全程铺满（骨架，保留）
             out.append((k * 0.25, 0.25, 42, 84 if k % 4 == 0 else (74 if k % 2 == 0 else 68)))
-        for k in range(NB * 2):                           # 八分 ride：长延音铺 2.5–10kHz
-            out.append((k * 0.5, 0.7, 51, 72 if k % 2 == 0 else 64))
-        for k in range(NB * 2):                           # 常驻十六分沙锤（补最上端）
-            out.append((k * 0.5 + 0.25, 0.2, 82, 60))
-        for b in range(NB):                               # 反拍铃鼓
+        # ⚠ 2026-09-13 精简：原先这里还叠了 **八分 ride（8/小节）+ 常驻十六分沙锤（8/小节）
+        #   + 幽灵小鼓（4/小节）**，三层全在 2.5–10kHz 同一个区、又与踩镲同拍 →
+        #   实测打击轨 **70~90 音/小节**，比其余所有轨加起来还多，听感"杂乱"。
+        #   高频连续性靠十六分踩镲已经足够（它本来就是每 0.25 拍一个）。
+        for b in range(NB):                               # 反拍铃鼓（保留：给反拍一点质感）
             out.append((b + 0.5, 0.25, 54, 66))
-        if level >= 2:
-            for b in range(NB):                           # 十六分幽灵小鼓（密度感）
-                out.append((b + 0.25, 0.1, 40, 52))
-                out.append((b + 0.75, 0.1, 40, 46))
         for b in range(1, NB, 2):
             out.append((float(b), 0.14, 38, 100))         # 军鼓 2、4
         # `kick_vel`（opt-in，默认 [94, 98] = 老行为）分开给"正拍"和"a 位"的力度：
@@ -625,7 +630,12 @@ def build_events(d):
                     bucket['Hook'].append((t0 + b, dd * sc, m, v))
             if arr.get('ep'):                      # 电钢琴反拍切分（Hook 轨）
                 for (b, dd, m, v) in ep_part(ch, i, B):
-                    bucket['Hook'].append((t0 + b, dd * sc, m, v))
+                    # **+12**：它与吉他分解共用 Hook 轨、落点都压在 0.5 拍、音高取自
+                    # 同一个和弦音池 → 实测撞出 96 处"同轨同音高同时发声"
+                    # （FluidSynth 会留悬空 voice）。移高八度即解。
+                    mm = m + 12
+                    if mm <= 127:
+                        bucket['Hook'].append((t0 + b, dd * sc, mm, v))
             if arr.get('piano'):
                 # 钢琴轨缺失时依次退到 Hook / Arp，避免落到音色不对的轨道
                 tr = next((k for k in ('Piano', 'Hook', 'Arp') if k in bucket), None)
@@ -703,11 +713,15 @@ def build_events(d):
                         t = (bar0 + b) * B + beat
                         bucket[ht].append((t, dur * 0.9, hm, 50))
         for k in bucket:
+            _sh = TR_SHIFT.get(k, 0)      # 音区分工（见 TR_SHIFT 定义处）
             for (t, dd, m, v) in bucket[k]:
                 # 走到这里的音高都已在合法范围内（数据越界在 load() 就报错了，
                 # 派生声部越界在上游被丢弃）；这里只处理时间/时值/力度
                 assert 0 <= m <= 127, '%s 出现了越界音高 %s（派生声部漏了过滤）' % (k, m)
-                ev[k].append((max(0.0, t), max(0.05, dd), int(m),
+                m2 = m + _sh
+                if not (0 <= m2 <= 127):  # 越界就整轨不移（宁可不移，也别夹断音程）
+                    m2 = m
+                ev[k].append((max(0.0, t), max(0.05, dd), int(m2),
                               max(1, min(127, int(round(v * vs))))))
         bar0 += nbars
     for k in ev:
