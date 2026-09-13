@@ -2,8 +2,8 @@
  {
   "file": "mid-bright/am88_veil.mid",
   "style": "mid-bright",
-  "md5": "92c7f9381093e6818871589bca4c9141",
-  "bytes": 23687,
+  "md5": "3398e3d252321ff57ade10517b9fe611",
+  "bytes": 24190,
   "bpm": 87.9,
   "timesig": [
    4,
@@ -11,16 +11,16 @@
   ],
   "bars": 56.02,
   "seconds": 153.0,
-  "note_count": 2670,
+  "note_count": 2730,
   "tracks": [
    {
     "index": 0,
     "name": "Melody",
     "channel": 0,
     "program": 0,
-    "notes": 212,
+    "notes": 260,
     "lo": 60,
-    "hi": 87
+    "hi": 85
    },
    {
     "index": 1,
@@ -63,7 +63,7 @@
     "name": "Strings",
     "channel": 5,
     "program": 48,
-    "notes": 168,
+    "notes": 174,
     "lo": 60,
     "hi": 77
    },
@@ -81,9 +81,9 @@
     "name": "Glock",
     "channel": 7,
     "program": 9,
-    "notes": 58,
+    "notes": 64,
     "lo": 82,
-    "hi": 99
+    "hi": 94
    },
    {
     "index": 8,
@@ -99,8 +99,8 @@
  {
   "file": "mid-bright/c90_shore.mid",
   "style": "mid-bright",
-  "md5": "1978a0294fcc9c72429adaee50830222",
-  "bytes": 24241,
+  "md5": "c24419272bc1466d0d125a6a7beeaf94",
+  "bytes": 25272,
   "bpm": 90.0,
   "timesig": [
    4,
@@ -108,16 +108,16 @@
   ],
   "bars": 56.02,
   "seconds": 149.4,
-  "note_count": 2722,
+  "note_count": 2844,
   "tracks": [
    {
     "index": 0,
     "name": "Melody",
     "channel": 0,
     "program": 0,
-    "notes": 108,
+    "notes": 208,
     "lo": 57,
-    "hi": 84
+    "hi": 87
    },
    {
     "index": 1,
@@ -160,7 +160,7 @@
     "name": "Strings",
     "channel": 5,
     "program": 48,
-    "notes": 168,
+    "notes": 169,
     "lo": 60,
     "hi": 77
    },
@@ -178,9 +178,9 @@
     "name": "Glock",
     "channel": 7,
     "program": 9,
-    "notes": 46,
+    "notes": 67,
     "lo": 79,
-    "hi": 96
+    "hi": 99
    },
    {
     "index": 8,
@@ -196,8 +196,8 @@
  {
   "file": "mid-bright/dm95_ember.mid",
   "style": "mid-bright",
-  "md5": "c5ed79d7916d7df017d9b70bc4e78eb7",
-  "bytes": 24617,
+  "md5": "78a93bd76f72e74f435f066a5e9ecfea",
+  "bytes": 25280,
   "bpm": 95.1,
   "timesig": [
    4,
@@ -205,16 +205,16 @@
   ],
   "bars": 56.02,
   "seconds": 141.4,
-  "note_count": 2765,
+  "note_count": 2841,
   "tracks": [
    {
     "index": 0,
     "name": "Melody",
     "channel": 0,
     "program": 0,
-    "notes": 150,
+    "notes": 220,
     "lo": 57,
-    "hi": 86
+    "hi": 87
    },
    {
     "index": 1,
@@ -257,7 +257,7 @@
     "name": "Strings",
     "channel": 5,
     "program": 48,
-    "notes": 170,
+    "notes": 168,
     "lo": 62,
     "hi": 77
    },
@@ -275,7 +275,7 @@
     "name": "Glock",
     "channel": 7,
     "program": 9,
-    "notes": 45,
+    "notes": 53,
     "lo": 81,
     "hi": 98
    },

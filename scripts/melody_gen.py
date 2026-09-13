@@ -246,6 +246,7 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None):
     dur_cap = 2.0 if not dens else max(0.75, min(2.0, 4.0 / max(0.5, dens)))
     out = []
     prev = None
+    same_run = 0                       # 连续同音计数（上限 2，见下面 ⑤b）
     total = sec['bars'] * SPB
 
     def chord_tones(bar):
@@ -386,6 +387,29 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None):
                 cs = [tt for tt in range(lo, hi + 1) if tt % 12 in tset]
                 if cs:
                     p = min(cs, key=lambda tt: (abs(tt - p), tt < p))
+
+            # ⑧ **同一音高最多连续 2 次** —— 必须放在**所有修正之后**：⑥（调内 ±1）与
+            # ⑦（强拍吸附到最近弦内音）都会把音拉回 prev，放在前面根本挡不住
+            # （实测放前面时 33 号仍有 6 个连续同音）。画像的 `iv=0` 占 30~46% 是 F0
+            # 在稳定音上连续出帧造成的放大，照抄就是"d d d d ddd"。
+            if prev is not None and p == prev:
+                same_run += 1
+            else:
+                same_run = 0
+            if prev is not None and same_run >= 2:
+                if strong:                       # 强拍：仍要落弦内音，只在弦内音里换
+                    pool = [tt for tt in range(lo, hi + 1)
+                            if tt % 12 in tset and tt != prev]
+                    if pool:
+                        p = min(pool, key=lambda tt: abs(tt - prev))
+                if p == prev:                    # 弱拍（或弦内音只有这一个）→ 用非零级进
+                    nz = [(k, v) for k, v in P['near'] if k != 0] or [(-1, 1), (1, 1)]
+                    step = _pick(nz, rng)
+                    p = prev + step
+                    if p < lo or p > hi:
+                        p = prev - step
+                    p = int(max(lo, min(hi, p)))
+                same_run = 0
 
             out.append([bar, round(on - bar * SPB, 2), round(dur, 2), int(p)])
             prev = int(p)
@@ -622,10 +646,17 @@ def main():
     # 上限 2.6 防过密。
     bars_tot = sum(s['bars'] for s in d['sections'])
     old_n = len(_abs_notes(d, d['melody']))
-    if old_n > 20 and bars_tot:
+    mgmeta = d.get('melody_gen') or {}
+    if old_n > 20 and bars_tot and not mgmeta:
+        # 手写旋律：沿用它的密度（尊重原设计）
         dens = old_n / bars_tot
     else:
-        dens = max(1.2, min(2.6, prof.get('notes_per_bar') or 2.0))
+        # 新曲，**或这条旋律本来就是生成器写的**（`melody_gen` 元数据在）：
+        # 后者不能用"原旋律密度" —— 那等于把上一版的密度锁定下来，越重跑越偏
+        # （实测：32 号第二版沿用第一版的 1.34 音/小节，56 小节只剩 75 个音）。
+        # 也不能照抄画像值：画像的 `notes_per_bar` 来自混音 F0 跟踪、系统性偏低
+        # （BGM16 画像 0.90 音/小节）。→ 画像值 × 1.3，下限 2.0。
+        dens = max(2.0, min(3.2, (prof.get('notes_per_bar') or 2.0) * 1.3))
     if '--dens' in sys.argv:       # 显式覆盖（改过旋律的曲子想按画像密度重写时用）
         dens = float(sys.argv[sys.argv.index('--dens') + 1])
     base_scale = infer_scale(d, tonic)
