@@ -854,6 +854,13 @@ def main():
     results.append(case('旋律形态阈值被改坏（上限 0）',
                         'melody_health',
                         lambda: Mut(_mh, 'MAX_RUN', 0)))
+    # "小步打转"（|iv|≤1 占 50%）—— 用户嘴里"d d d d ddd"的真身
+    _stag = dict(name='注入的小步打转曲', notes=20, dens=2.0, same=30.0, maxrun=3, chop=0.0,
+                 grids=6, onbeat=50.0, fit=100.0, bpm=100.0, gen=None, bars=10,
+                 small=50.0, uniq=5, span=4)
+    results.append(case('注入"小步打转"(|iv|≤1 占 50%)的曲目',
+                        'melody_health',
+                        lambda: Mut(_mh, 'collect', lambda *a, **k: [dict(_stag)])))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):

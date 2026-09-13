@@ -141,14 +141,18 @@ def persona(prof, rng, jitter=0.15):
     # ③ 音程方言：同音重复 / 级进 / 跳进，各自的比例与方向都听画像的
     ivh = {int(k): v for k, v in (prof.get('interval_hist') or {}).items() if v > 0}
     near = [(k, v) for k, v in ivh.items() if abs(k) <= 2]
-    # **同音重复（iv=0）要设上限**：F0 跟踪在每个稳定音上连续出帧，量化后全变成"同音重复"，
-    # 画像里的 0 因此被系统性放大 —— 照抄会写出 64% 同音重复的旋律（实测 23 号），
-    # 听感等于原地踏步。上限 30%（BGM33 画像本身约 35%，是真实区间）。
+    # **同音重复（iv=0）上限 12%**：F0 跟踪在每个稳定音上连续出帧，量化后全变成"同音重复"，
+    # 画像里的 0 因此被**系统性放大**（实测 fine_BGM11 34%、BGM33 36%、bgm41 46%）。
+    # 早先只压到 30% —— 仍然远高于真实旋律（手写曲实测 1~9%），听感就是"d d d d ddd"。
     tot_n = sum(v for _k, v in near)
     zero_n = sum(v for k, v in near if k == 0)
-    if tot_n and zero_n > 0.30 * tot_n:
-        sc0 = 0.30 * tot_n / zero_n
+    if tot_n and zero_n > 0.08 * tot_n:
+        sc0 = 0.08 * tot_n / zero_n
         near = [(k, v * sc0 if k == 0 else v) for k, v in near]
+    # **±1（半音）权重减半**：画像里 ±1 高是 F0 频率抖动的产物；真实旋律的级进以
+    # 全音（±2）为主。不减这一刀，整条旋律就在小二度里蹭（实测 |iv|≤1 曾达 44%，
+    # 而手写曲只有 6~15%）。
+    near = [(k, v * 0.25 if abs(k) == 1 else v) for k, v in near]
     # 跳进档要**双过滤**：① 只留 3~7 半音 —— 画像里 ±8 以上的多是 F0 八度误判
     # （实测 hitorigohan2 画像含 ±11/±12，照抄会生成 20 处 >7 半音的大跳，而旧版只有 6 处，
     # 旋律立刻失去歌唱性）② 再取累计 85% 的高频档滤长尾。
@@ -156,7 +160,9 @@ def persona(prof, rng, jitter=0.15):
     leap = _top_hist(dict(leap), 0.85) if leap else []
     P['near'] = near or [(-2, 1), (-1, 2), (0, 2), (1, 2), (2, 1)]
     P['leap'] = leap or [(-4, 1), (-3, 1), (3, 1), (4, 1)]
-    P['step_w'] = min(0.92, max(0.25, prof.get('stepwise_pct', 55) / 100.0
+    # 级进率：画像的 `stepwise_pct` 也是 F0 的产物（实测 45~89%，而手写曲的实际旋律只有
+    # |iv|≤1 占 6~15%）→ **上限压到 0.62**，否则整条旋律在小二度/大二度里原地打转。
+    P['step_w'] = min(0.52, max(0.25, prof.get('stepwise_pct', 55) / 100.0
                                + rng.uniform(-jitter, jitter)))
 
     # ④ 句长方言（小节）—— 句末休止由此而来（旧版从不休止，句长承接度只有 2%）
@@ -168,7 +174,9 @@ def persona(prof, rng, jitter=0.15):
         'syncop': rng.uniform(0.80, 1.30),   # >1 更爱反拍与切分
         'leap': rng.uniform(0.70, 1.40),     # 跳进率缩放（除到级进概率上）
         'phrase': rng.uniform(0.70, 1.40),   # 乐句长度缩放
-        'arch': rng.uniform(1.5, 6.5),       # 每句拱形幅度（半音）
+        'arch': rng.uniform(3.0, 9.0),       # 每句拱形幅度（半音）——
+        # 早先 1.5~6.5 太保守：实测 16 号 252 个音只用了 6 个不同音高、音域仅 9 半音，
+        # 整条旋律挤在一个小盒子里（听感也是"d d d d"）。句子要真的走出去再回来。
     }
     return P
 
@@ -351,7 +359,11 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None):
             elif strong:
                 cand = [tt for tt in range(prev - 3, prev + 4)   # 窗口 ±3：别为凑弦内音跳四五度
                         if tt % 12 in tset and lo <= tt <= hi]
-                p = rng.choice(cand) if cand else prev
+                # ⚠ **别吸回同一个音**：强拍占全部音的 1/4~1/2，每次都选"离 prev 最近的和弦音"
+                # 会反复吸回 prev —— 实测这条贡献了大部分同音重复（同音 28% 里抽样只占 12%，
+                # 剩下全是这里来的），听感就是每个小节强拍都"d"一下。
+                alt = [tt for tt in cand if tt != prev]
+                p = rng.choice(alt) if alt else (rng.choice(cand) if cand else prev)
             else:
                 stepw = max(0.20, min(0.95, P['step_w'] / pers['leap']))
                 if rng.random() < stepw:
@@ -368,12 +380,15 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None):
             p = int(max(lo, min(hi, p)))
             # ⑥ 调内 + 半音回避（纪律，保留）
             if mode_scale is not None and p % 12 not in pcs:
-                p += 1 if rng.random() < 0.5 else -1
-                if p % 12 not in pcs:
-                    p -= 2 if p > 0 else -1
+                # **优先走全音（±2）**：用 ±1 微调会让整条旋律在小二度里蹭 ——
+                # 实测 |iv|<=1 占比里，±1 的大头正是这里和下面的半音回避。
+                for _st in (2, -2, 1, -1):
+                    if (p + _st) % 12 in pcs and lo <= p + _st <= hi:
+                        p += _st
+                        break
             if clash(tset, p):
                 fixed = None
-                for cand2 in (p - 1, p + 1, p - 2, p + 2):
+                for cand2 in (p - 2, p + 2, p - 1, p + 1):   # 先全音后半音
                     if lo <= cand2 <= hi and not clash(tset, cand2) and \
                             (mode_scale is None or cand2 % 12 in pcs):
                         fixed = cand2
@@ -398,7 +413,7 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None):
                 same_run += 1
             else:
                 same_run = 0
-            if prev is not None and same_run >= 2:
+            if prev is not None and p == prev and (same_run >= 2 or rng.random() < 0.65):
                 if strong:                       # 强拍：仍要落弦内音，只在弦内音里换
                     pool = [tt for tt in range(lo, hi + 1)
                             if tt % 12 in tset and tt != prev]

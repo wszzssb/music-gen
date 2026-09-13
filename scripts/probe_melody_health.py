@@ -36,6 +36,7 @@ ROOT = os.path.dirname(HERE)
 SONGS = os.path.join(ROOT, 'songs')
 
 MAX_RUN = 4          # 最长连续同音上限（4 连在慢歌里不算罕见；≥5 才是"念经"）
+SMALL_IV_MAX = 35.0  # |iv|≤1（同音/半音级进）占比上限 —— "小步打转"的判据
 MIN_DENS = 1.2       # 每小节最少音符数
 MAX_CHOP = 8.0       # 碎音（≤0.25 拍）比例上限
 
@@ -67,11 +68,16 @@ def probe(path):
         mx = max(mx, run)
     chop = sum(1 for x in notes if round(x[1] * 4) <= 1)
     onb = sum(v for k, v in ons.items() if k % 4 == 0)
+    pitches = [x[2] for x in notes]
+    ivs = [pitches[i + 1] - pitches[i] for i in range(len(pitches) - 1)]
+    small = 100.0 * sum(1 for x in ivs if abs(x) <= 1) / max(1, len(ivs))
     return {
         'name': os.path.basename(os.path.dirname(path)), 'notes': n, 'bars': bars,
         'bpm': d.get('bpm') or 0, 'dens': n / bars if bars else 0,
         'same': 100 * same / n, 'maxrun': mx, 'chop': 100 * chop / n,
         'grids': len(ons), 'onbeat': 100 * onb / n,
+        'small': small, 'uniq': len(set(pitches)),
+        'span': (max(pitches) - min(pitches)) if pitches else 0,
         'fit': (100 * fit_s / tot_s) if tot_s else -1,
         'gen': (d.get('melody_gen') or {}).get('profile'),
     }
@@ -99,6 +105,10 @@ def issues(r, strict=False):
         out.append('同音串%d' % r['maxrun'])
     if r['dens'] < MIN_DENS:
         out.append('密度%.2f' % r['dens'])
+    # **小步打转**：|iv|≤1 占比。这是"d d d d ddd"的真身 —— 早先只量相邻同音，
+    # 结果用户报的问题一条都抓不到（生成器产物曾达 39~44%，手写曲只有 6~15%）。
+    if r.get('small', 0) > SMALL_IV_MAX:
+        out.append('小步%.0f%%' % r['small'])
     lim = MAX_CHOP if (strict or (r['bpm'] or 0) < 140) else 20.0
     sh = _prof_short(r.get('gen'))
     if sh is not None and not strict:
@@ -132,17 +142,18 @@ def main():
         print('没有可体检的曲目')
         return 1
     print('体检 %d 首\n' % len(rows))
-    print('%-22s %5s %7s %6s %6s %6s %6s %6s %7s %s'
-          % ('曲目', '音数', '音/小节', '同音%', '最长串', '碎音%', '落点格', '正拍%', '强拍', '画像'))
+    print('%-22s %5s %7s %6s %6s %6s %6s %7s %7s %s'
+          % ('曲目', '音数', '音/小节', '同音%', '最长串', '小步%', '碎音%', '落点格',
+             '正拍%', '强拍'))
     bad = []
     for r in sorted(rows, key=lambda x: (-x['maxrun'], x['dens'])):
         iss = issues(r)
         if iss:
             bad.append((r['name'], iss))
-        print('%-22s %5d %7.2f %5.0f%% %6d %5.0f%% %6d %5.0f%% %6s  %s%s'
-              % (r['name'], r['notes'], r['dens'], r['same'], r['maxrun'], r['chop'],
-                 r['grids'], r['onbeat'],
-                 ('%.0f%%' % r['fit']) if r['fit'] >= 0 else '无', r['gen'] or '-',
+        print('%-22s %5d %7.2f %5.0f%% %6d %5.0f%% %5.0f%% %6d %6.0f%% %6s%s'
+              % (r['name'], r['notes'], r['dens'], r['same'], r['maxrun'], r['small'],
+                 r['chop'], r['grids'], r['onbeat'],
+                 ('%.0f%%' % r['fit']) if r['fit'] >= 0 else '无',
                  '  ← ' + '、'.join(iss) if iss else ''))
     print('\n有问题 %d / %d 首' % (len(bad), len(rows)))
     if '--strict' in sys.argv and bad:
