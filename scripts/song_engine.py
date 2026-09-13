@@ -256,19 +256,17 @@ def guitar_arpeggio(ch, i, arp, B=4.0):
     """
     bass, tones = ch
     n = max(1, int(round(B * 2)) - 1)
-    # **按小节轮换音型**（2026-09-13，用户："d d d d ddd"）：原先每小节都是
-    # "每 0.5 拍一个 + 音序循环 + 力度只有 80/68" —— 784 个音全曲八分平铺、56 小节
-    # 一模一样，是那句话的主体。四种落点轮换，但**第 1 拍永远是根音**（和声靠它，
-    # 这条纪律不动）。力度再加 4 小节包络。
-    P4 = [
-        [k * 0.5 for k in range(n)],                                  # 铺底（原行为）
-        [k * 0.5 for k in range(n) if k % 4 != 3] + [n * 0.5 - 0.25],  # 抽一格 + 切分
-        sorted(set([k * 0.5 for k in range(n)] + [0.25, 2.75])),       # 加十六分
-        [k * 0.5 for k in range(n) if k % 2 == 0],                     # 留白（只留正拍）
-    ]
-    env = (1.0, 0.88, 0.96, 0.84)[i % 4]
+    # **基本律动保持八分铺底**（律动必须可预期），只在每 4 小节的最后一小节把末格
+    # 往前挪一点做轻切分；力度走一条平缓的 4 小节包络。
+    # ⚠ 2026-09-13 教训：先试过"四种落点型逐小节轮换"（铺底/抽格/加十六分/留白），
+    #   结果四条音型**同时**变密变疏 → 整首歌 4 小节一波动，用户听感"凌乱"。
+    #   音型要么稳定、要么各轨错开相位；同相位的大幅轮换 = 乱。
+    beats = [k * 0.5 for k in range(n)]
+    if i % 4 == 3 and n >= 4:
+        beats = beats[:-1] + [n * 0.5 - 0.75]
+    env = (1.0, 0.96, 0.92, 0.96)[i % 4]
     out = []
-    for k, b in enumerate(P4[i % 4]):
+    for k, b in enumerate(beats):
         m = tone(tones, arp[k % len(arp)])
         out.append((b, 0.45, m, max(40, int((80 if k % 2 else 68) * env))))
     return out
@@ -285,7 +283,8 @@ def piano_part(ch, i, B=4.0):
         return [(float(b), 0.42, m, 66 if b == 1 else 58)
                 for b in range(1, int(round(B))) for m in tones[:3]]
     # **反拍和弦的位置按小节轮换**（原来每小节都固定在 0.5 / B-1.5 两处 → 也机械）
-    ALT = ((0.5, B - 1.5), (0.5, B - 0.5), (1.0, B - 1.5), (0.5, B - 1.0))
+    # 前 3 小节保持固定，第 4 小节把第二个反拍往后挪半拍（轻变化，不换律动）
+    ALT = ((0.5, B - 1.5),) * 3 + ((0.5, B - 1.0),)
     out = []
     for b in ALT[i % 4]:
         for m in tones[:3]:
@@ -539,14 +538,11 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0):
         #   而且**所有用 light 的曲子都是同一条**（用户："怎么都是这个"）。
         #   现在按小节轮换四种落点：铺底 / 抽格+切分 / 加十六分 / 留白。
         #   每小节仍保 ≥7 个沙锤 → 5–18kHz 连续性不塌（那一档只有沙锤一个高频来源）。
-        _PAT = (
-            (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5),
-            (0.0, 0.5, 0.75, 1.5, 2.0, 2.5, 3.0, 3.5),
-            (0.0, 0.5, 1.0, 1.75, 2.0, 2.5, 3.0, 3.25, 3.5),
-            (0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5),
-        )
         _ENV = (1.0, 0.85, 0.95, 0.82)                    # 每 4 小节的力度起伏
-        for bi, off in enumerate(_PAT[i % 4]):
+        _beats = [k * 0.5 for k in range(NB * 2)]
+        if i % 4 == 3 and len(_beats) >= 4:                 # 每 4 小节末尾轻切分
+            _beats = _beats[:-1] + [NB * 2 * 0.5 - 0.75]
+        for bi, off in enumerate(_beats):
             if off < B:
                 base = 46 if bi % 2 else 38
                 out.append((off, 0.2, 82, max(24, int(base * _ENV[i % 4]))))
@@ -651,14 +647,11 @@ def build_events(d):
                 # 全曲八分平铺，和 Hook、沙锤同频叠加，是"d d d d ddd"的又一层。
                 seq = [tone(ch[1], 0), tone(ch[1], 2), tone(ch[1], 4), tone(ch[1], 2)]
                 _n = max(1, int(round(B * 2)))
-                _pat = (
-                    [k * 0.5 for k in range(_n)],
-                    [k * 0.5 for k in range(_n) if k % 4 != 3] + [_n * 0.5 - 0.25],
-                    sorted(set([k * 0.5 for k in range(_n)] + [0.25, 2.75])),
-                    [k * 0.5 for k in range(_n) if k % 2 == 0],
-                )
-                _env = (1.0, 0.9, 0.96, 0.86)[i % 4]
-                for k, b in enumerate(_pat[i % 4]):
+                _b = [k * 0.5 for k in range(_n)]          # 稳定八分铺底（同 Hook 的口径）
+                if i % 4 == 3 and _n >= 4:
+                    _b = _b[:-1] + [_n * 0.5 - 0.75]
+                _env = (1.0, 0.96, 0.92, 0.96)[i % 4]
+                for k, b in enumerate(_b):
                     bucket['Arp'].append((t0 + b, 0.28 * sc, seq[k % 4] + 12,
                                           max(20, int((42 + (8 if k % 2 == 0 else 0)) * _env))))
             # 持续微光层（opt-in）：整小节长音的高八度和弦音，走 Arp 轨（音色可覆盖成
