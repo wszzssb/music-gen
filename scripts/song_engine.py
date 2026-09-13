@@ -520,8 +520,23 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0):
         if level >= 3:
             out.append((B - 0.25, 0.3, 81, 62))
     else:                                                 # light
-        for k in range(NB * 2):
-            out.append((k * 0.5, 0.2, 82, 46 if k % 2 else 38))
+        # 沙锤：**4 小节一个循环的落点型**。
+        # ⚠ 原先这里是 `for k in range(NB*2): (k*0.5, 0.2, 82, 46 if k%2 else 38)` ——
+        #   每 0.5 拍一个、力度只有两档、全曲一动不动。听感就是用户说的"d d d d ddd"，
+        #   而且**所有用 light 的曲子都是同一条**（用户："怎么都是这个"）。
+        #   现在按小节轮换四种落点：铺底 / 抽格+切分 / 加十六分 / 留白。
+        #   每小节仍保 ≥7 个沙锤 → 5–18kHz 连续性不塌（那一档只有沙锤一个高频来源）。
+        _PAT = (
+            (0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5),
+            (0.0, 0.5, 0.75, 1.5, 2.0, 2.5, 3.0, 3.5),
+            (0.0, 0.5, 1.0, 1.75, 2.0, 2.5, 3.0, 3.25, 3.5),
+            (0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5),
+        )
+        _ENV = (1.0, 0.85, 0.95, 0.82)                    # 每 4 小节的力度起伏
+        for bi, off in enumerate(_PAT[i % 4]):
+            if off < B:
+                base = 46 if bi % 2 else 38
+                out.append((off, 0.2, 82, max(24, int(base * _ENV[i % 4]))))
         if level >= 2:
             out.append((0.0, 0.1, 36, 68))
             out.append((B / 2.0, 0.1, 36, 60))

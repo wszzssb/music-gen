@@ -275,8 +275,15 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None):
         rest = rng.choice([0.5, 1.0, 1.0, 1.5]) if plen >= 3.0 else 0.25
         end = t + plen - rest
         # ② 拱形：这一句要走到哪（幅度每首不同）
-        start_ref = prev if prev is not None else rng.choice(
-            [lo + 4, (lo + hi) // 2, hi - 4])
+        # **新句起点别总继承上一句的末音** —— 那样每句都会收敛回同一小段音区：
+        # 实测 32 号 16 小节 31 个音全挤在 F5–D6 九个半音里、隔一两小节就回到 A5，
+        # 听感正是用户说的"d d d d ddd"。给 35% 的句子换个音区起头。
+        if prev is None:
+            start_ref = rng.choice([lo + 4, (lo + hi) // 2, hi - 4])
+        elif rng.random() < 0.35:
+            start_ref = int(max(lo, min(hi, prev + rng.choice([-7, -5, -3, 3, 5, 7]))))
+        else:
+            start_ref = prev
         aim = start_ref + rng.choice([-1, 1]) * pers['arch']
 
         # ①b 落点：句内按**目标密度**分段，每段从画像的方言格里抽一个落点。
@@ -376,7 +383,9 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None):
                 # ⑤ 拱形：向本句的目标轨迹漂移（旧版是纯随机游走 → 没有句形）
                 prog = (on - t) / max(1e-6, end - t)
                 tgt = start_ref + (aim - start_ref) * prog
-                p = int(round(p * 0.72 + tgt * 0.28))
+                # 向本句目标轨迹漂移。原先只拉 28% —— 实测效果是根本没走出去：
+                # 32 号 31 个音的音域利用率只有一半（画像 17 个半音，实际只用 9 个）。
+                p = int(round(p * 0.55 + tgt * 0.45))
             p = int(max(lo, min(hi, p)))
             # ⑥ 调内 + 半音回避（纪律，保留）
             if mode_scale is not None and p % 12 not in pcs:
