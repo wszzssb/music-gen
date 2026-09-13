@@ -50,3 +50,6 @@ Thumbs.db
 desktop.ini
 .DS_Store
 !songs/31_f123_night_drift/*.ogg
+refs/midi2/**/*.mid
+refs/midi2/**/*.midi
+refs/midi2/_broken/

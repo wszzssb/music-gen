@@ -2653,6 +2653,7 @@ MELODY_WIN = 8          # 旋律窗口：连续 8 个音（≈2–3 小节）
 MELODY_SIM_MAX = 0.05   # 允许的"跨曲共享窗口"比例上限
 MELODY_LANG_TWIN_MAX = 2   # 允许的"孪生对"数（语言重合 ≥85% = 同一种说话方式）
 MELODY_ACCEPT_MIN = 0.55   # 生成旋律与画像的逐维承接度下限（落点/时值）
+MIDI_LIB_DIRS = ('refs/midi', 'refs/midi2')   # 模板库（音符层参考素材）目录
 
 
 def _melody_windows(notes, w=MELODY_WIN):
@@ -2793,6 +2794,62 @@ def t_melody_matches_profile():
     assert not bad, ('生成旋律离画像太远（承接度下限 %.0f%%）：%s —— 先查 melody_gen 的'
                      '出口裁剪/落点过滤（坑 114/115），别去调画像'
                      % (MELODY_ACCEPT_MIN * 100, '；'.join(bad)))
+
+
+@check
+def t_midi_lib_index_sync():
+    """**模板库的索引必须与目录里的文件对得上**（`refs/midi`（1 号）、`refs/midi2`（2 号））。
+
+    防的是"库越用越乱"：手工删/加了 .mid 而索引没更新、抓来的重复文件混进来、
+    索引里的 bpm/小节 是坏的 —— 这些都会让"从库里挑参考曲"这一步**静默选到不存在或
+    不可用的文件**。三条：① 索引里的文件都真实存在 ② 目录里的文件都在索引里
+    ③ 特征字段齐全且数值合理。**不联网**（只查本地库）。
+    """
+    libs = [os.path.join(ROOT, *p.split('/')) for p in MIDI_LIB_DIRS]
+    have = [p for p in libs if os.path.isfile(os.path.join(p, '_index.json'))]
+    assert have, '没有找到任何模板库（%s），这条检查会空转' % ', '.join(MIDI_LIB_DIRS)
+    tot = 0
+    for root in have:
+        rows = json.load(open(os.path.join(root, '_index.json'), encoding='utf-8-sig'))
+        assert rows, '%s 的索引是空的' % root
+        on_disk = set()
+        for dp, dn, fns in os.walk(root):
+            dn[:] = [x for x in dn if not x.startswith('_')]   # _broken 等内部目录不算库内容
+            for f in fns:
+                if f.lower().endswith(('.mid', '.midi')):
+                    on_disk.add(os.path.relpath(os.path.join(dp, f), root).replace('\\', '/'))
+        idx_paths, idx_base = set(), set()
+        for r in rows:
+            f = r.get('file')
+            assert f, '%s 的索引项缺 file 字段' % root
+            idx_paths.add(f)
+            idx_base.add(os.path.basename(f))
+        # ① 索引 → 磁盘（1 号库的 file 只有文件名，按 basename 兜一层）
+        missing = [f for f in idx_paths
+                   if f not in on_disk and os.path.basename(f) not in {os.path.basename(x) for x in on_disk}]
+        assert not missing, ('索引里有 %d 个文件在磁盘上不存在：%s —— 删文件后要重跑 '
+                             'fetch_midi_lib.py 重建索引' % (len(missing), ', '.join(sorted(missing)[:4])))
+        # ② 磁盘 → 索引
+        unindexed = sorted(p for p in on_disk if os.path.basename(p) not in idx_base)
+        assert not unindexed, ('磁盘上有 %d 个 .mid 不在索引里：%s —— 重跑 fetch_midi_lib.py'
+                               % (len(unindexed), ', '.join(unindexed[:4])))
+        # ③ 特征合理
+        bad = []
+        for r in rows:
+            bpm = r.get('bpm') or 0
+            if not (0 < bpm <= 400):
+                bad.append('%s bpm=%s' % (r['file'], bpm))
+            if not (r.get('bars') or 0) > 0:
+                bad.append('%s bars=%s' % (r['file'], r.get('bars')))
+            for t in (r.get('tracks') or []):
+                lo, hi = t.get('lo'), t.get('hi')
+                if lo is not None and hi is not None and not (0 <= lo <= hi <= 127):
+                    bad.append('%s 音域 %s-%s' % (r['file'], lo, hi))
+        assert not bad, '索引里的特征不合理（%d 条）：%s' % (len(bad), '；'.join(bad[:4]))
+        tot += len(rows)
+        print('        %-28s %4d 首（索引与磁盘一致）'
+              % (os.path.relpath(root, ROOT), len(rows)))
+    assert tot >= 10, '模板库总共只有 %d 首，太少了' % tot
 
 
 def main():

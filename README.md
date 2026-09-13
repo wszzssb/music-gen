@@ -176,10 +176,9 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
     实测差距常在 5–20dB（慢速参考曲如 64BPM 的 BGM01/BGM10 更明显；"无打击乐段落"实测
     18.8→15.0dB）—— 拿它当门就是用测不准的尺子判分。现在判据是 **`tune_error`**（`autotune`
     真正优化的**分组**误差之和）"确实变小了，或本来就 ≤3.0"，对齐 dB 只打印并标注"仅供参考"（坑 105）。
-11. **旋律"同质化"（已治本，2026-09-13）**：根因不是"画像太少"而是**生成器把画像差异吃掉了**
-    —— 换画像只值 42%（句长承接度仅 **2%**：旧版从不产生休止）。已改成真读画像的**分布** +
-    每首一份画像 + 个性参数 + 候选去重，重写 10 首：**孪生对 5→0、落点维度平均 58%→41%**。
-    守卫 `melody_distinct` + `melody_lang_diverse`，体检 `probe_melody_lang.py`；见坑 109–113。
+11. **旋律"同质化"（已治本）**：根因不是"画像少"而是**生成器把画像差异吃掉了**（换画像只值 42%）。
+    已改成真读画像**分布** + 每首一份画像 + 个性参数 + 候选去重：**孪生对 5→0**。
+    守卫 `melody_distinct` / `melody_lang_diverse` / `melody_matches_profile`；见坑 109–116。
 | `render_midi.py` | **MIDI → 真音源 → WAV → OGG 渲染管线**（搁架/搁低/高通→软限幅→响度归一→中侧加宽→q8 编码） |
 | `to_ogg.py` | WAV→OGG（ffmpeg libvorbis q=8；libsndfile 会崩，见坑 5） |
 | `analyze_chords.py` | **扒谱**：节拍跟踪 → 逐小节 chroma → 和弦模板匹配 → 罗马数字（`--bpm N` 可强制速度） |
@@ -191,6 +190,7 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `arrange_probe.py` | 编配诊断：逐段音高分布、音符密度、亮度指数 |
 | `noise_probe.py` | 杂音体检：6-16k 尾巴电平 + 谱平坦度（噪声高、纯音≈0）+ 爆音检测 |
 | `midi_probe.py` | MIDI 解析：轨名/音色/速度/音域/音符数/小节数 |
+| `fetch_midi_lib.py` | **抓 MIDI 建模板库**（BitMidi/VGMusic/Mutopia）→ 风格目录 + `_index.json`（2 号库 ≈200 首） |
 | `play_midi.py` | 不用 DAW 试听 MIDI（Windows 自带 GS Wavetable，`--wait` 等放完，`--stop` 停） |
 | `setup_soundfont.py` | 下载并安装 FluidSynth + GeneralUser GS 到 `vendor\` |
 | `probe_mirrors.py` / `check_soundfont.py` | GitHub 镜像 / 音源可下载性探测 |

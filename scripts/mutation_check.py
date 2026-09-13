@@ -838,6 +838,11 @@ def main():
                         'melody_matches_profile',
                         lambda: Mut(st, 'MELODY_ACCEPT_MIN', 1.5)))
 
+    # 模板库目录被清空 → "索引与磁盘一致"这条检查必须报空转，而不是静默通过
+    results.append(case('模板库目录被清空（检查会空转）',
+                        'midi_lib_index_sync',
+                        lambda: Mut(st, 'MIDI_LIB_DIRS', ())))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')
