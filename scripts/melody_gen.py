@@ -275,7 +275,9 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None):
         #     密度服从曲目（`dens`，默认沿用原旋律），落点形状服从画像 ——
         #     旧版让"抽到的时值"决定推进速度，慢曲画像的长音会把句腹掏空（1 音/小节）。
         nb = plen / SPB
-        n_t = max(2, int(round(nb * (dens or 2.0))))
+        # ⚠ 下限必须是 **1**，不能是 2：短句（plen 最小 2 拍 = 0.5 小节）塞 2 个音 = 4 音/小节，
+        # 实测把 23 号的密度顶到 3.43（画像只有 0.82 音/小节）→ 时值承接度掉到 26%。
+        n_t = max(1, int(round(nb * (dens or 2.0))))
         seg = (end - t) / n_t
         ons = []
         for k in range(n_t):

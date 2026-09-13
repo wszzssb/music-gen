@@ -843,6 +843,18 @@ def main():
                         'midi_lib_index_sync',
                         lambda: Mut(st, 'MIDI_LIB_DIRS', ())))
 
+    # 旋律形态守卫：① 真注入一首"连续 6 个同音 + 密度 1.0"的病态曲目 → 必须被抓
+    # ② 阈值被放到天上（守卫变瞎）
+    import probe_melody_health as _mh
+    _sick = dict(name='注入的病态曲', notes=10, dens=1.0, same=60.0, maxrun=6, chop=0.0,
+                 grids=3, onbeat=90.0, fit=100.0, bpm=100.0, gen=None, bars=10)
+    results.append(case('注入"连续 6 个同音 + 密度 1.0"的曲目',
+                        'melody_health',
+                        lambda: Mut(_mh, 'collect', lambda *a, **k: [dict(_sick)])))
+    results.append(case('旋律形态阈值被改坏（上限 0）',
+                        'melody_health',
+                        lambda: Mut(_mh, 'MAX_RUN', 0)))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

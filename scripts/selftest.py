@@ -2860,6 +2860,36 @@ def t_midi_lib_index_sync():
     assert tot >= 10, '模板库总共只有 %d 首，太少了' % tot
 
 
+@check
+def t_melody_health():
+    """**旋律形态守卫** —— 补上"频段/响度/结构类守卫看不见"的那一层。
+
+    起因：这一轮用户连报三次听感问题（"镫镫地卡着不规律"、"d d d d ddd"），而当时
+    84 项自检**全绿**。查出来的是：最长连续同音 6 个、密度低到 1.0 音/小节、
+    长音被截成 0.25 拍 —— 全是旋律**形态**的事，跟频谱无关。
+    判据（含"碎音对照画像"的口径）统一收在 `probe_melody_health.py`，工具与守卫共用一套。
+    """
+    import probe_melody_health as MH
+    rows = MH.collect()
+    assert rows, '没有可体检的曲目，这条检查会空转'
+    # 判据自证：连续 6 个同音的旋律必须被判为问题；干净的必须不被判
+    def fake(**kw):
+        base = dict(name='x', notes=10, dens=2.0, same=10.0, maxrun=2, chop=0.0,
+                    grids=6, onbeat=50.0, fit=100.0, bpm=100.0, gen=None, bars=8)
+        base.update(kw)
+        return base
+    assert MH.issues(fake(maxrun=6)), '连续 6 个同音必须判为问题'
+    assert MH.issues(fake(dens=1.0)), '密度 1.0 音/小节必须判为问题'
+    assert not MH.issues(fake()), '干净的旋律不该被判为问题'
+    bad = ['%s: %s' % (r['name'], '、'.join(MH.issues(r)))
+           for r in rows if MH.issues(r)]
+    print('        最长同音串 %d（上限 %d）· 密度下限 %.1f · %d/%d 首有形态问题'
+          % (max(r['maxrun'] for r in rows), MH.MAX_RUN, MH.MIN_DENS, len(bad), len(rows)))
+    assert not bad, ('旋律形态问题（用户口径："一串同音"/"音太少"/"卡卡的"）：%s —— '
+                     '跑 probe_melody_health.py 看细节，重跑 melody_gen 修'
+                     % '；'.join(bad[:6]))
+
+
 def main():
     print('自检 %d 项 %s' % (len(CHECKS), '(--fast，跳过渲染)' if FAST else ''))
     for fn in CHECKS:
