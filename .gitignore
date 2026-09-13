@@ -53,3 +53,4 @@ desktop.ini
 refs/midi2/**/*.mid
 refs/midi2/**/*.midi
 refs/midi2/_broken/
+!refs/midi/mid-*/*.mid

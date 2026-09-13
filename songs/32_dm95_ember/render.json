@@ -1,0 +1,12 @@
+{
+ "composer": "compose.py",
+ "mid": "dm95_ember.mid",
+ "out": "dm95_ember_sf",
+ "ref": "t1_BGM34",
+ "rms": -12.3,
+ "width": 1.37,
+ "shelf": 3.0,
+ "hp": 38,
+ "low": 0.0,
+ "drive": 1.5
+}

@@ -1,0 +1,12 @@
+{
+ "composer": "compose.py",
+ "mid": "am88_veil.mid",
+ "out": "am88_veil_sf",
+ "ref": "t1_bgm41",
+ "rms": -15.0,
+ "width": 1.53,
+ "shelf": 4.0,
+ "hp": 38,
+ "low": 0.0,
+ "drive": 1.5
+}

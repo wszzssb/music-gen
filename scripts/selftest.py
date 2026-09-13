@@ -2653,6 +2653,7 @@ MELODY_WIN = 8          # 旋律窗口：连续 8 个音（≈2–3 小节）
 MELODY_SIM_MAX = 0.05   # 允许的"跨曲共享窗口"比例上限
 MELODY_LANG_TWIN_MAX = 2   # 允许的"孪生对"数（语言重合 ≥85% = 同一种说话方式）
 MELODY_ACCEPT_MIN = 0.55   # 生成旋律与画像的逐维承接度下限（落点/时值）
+MELODY_ACCEPT_SPARSE = 0.40   # 画像本身很稀疏（<80 个旋律音）时的下限：直方图是稀疏采样
 MIDI_LIB_DIRS = ('refs/midi', 'refs/midi2')   # 模板库（音符层参考素材）目录
 
 
@@ -2771,13 +2772,17 @@ def t_melody_matches_profile():
             continue
         notes, is44 = PL.notes_of(p)
         f = PL.feats(notes, is44)
-        pf = PL.prof_feats(json.load(open(pp, encoding='utf-8')))
+        prof = json.load(open(pp, encoding='utf-8'))
+        pf = PL.prof_feats(prof)
         if not f or not pf:
             continue
         dims = {k: PL.sim({k: f[k]}, {k: pf[k]})
                 for k in ('onset', 'dur') if k in f and k in pf}
+        # 画像自己的样本量决定判据松紧：<80 个旋律音的画像（实测 BGM16 只有约 50 个）
+        # 本身就是稀疏采样，落点直方图不可靠 → 用 MELODY_ACCEPT_SPARSE。
+        pnotes = prof.get('notes') or sum((prof.get('dur16_hist') or {}).values())
         if dims:
-            rows.append((os.path.basename(d), pname, dims))
+            rows.append((os.path.basename(d), pname, dims, pnotes))
     assert rows, '没有带 melody_gen 元数据的曲子（%d），这条检查会空转' % len(rows)
     # 判据自证：同一分布自比 = 100%；全碎音的旋律，时值维必须明显掉下来
     long_n = [(i * 2.0, 2.0, 60) for i in range(16)]
@@ -2785,15 +2790,18 @@ def t_melody_matches_profile():
     fl, fc = PL.feats(long_n), PL.feats(chop_n)
     assert PL.sim({'dur': fl['dur']}, {'dur': fl['dur']}) > 0.999, '同一分布自比必须 100%'
     assert PL.sim({'dur': fl['dur']}, {'dur': fc['dur']}) < 0.5, '全碎音不该判成与长音分布相似'
-    for n, pn, dims in rows:
-        print('        %-22s 画像 %-18s 落点 %3.0f%%  时值 %3.0f%%'
-              % (n, pn, dims.get('onset', 0) * 100, dims.get('dur', 0) * 100))
-    bad = ['%s（画像 %s）落点 %.0f%%/时值 %.0f%%'
-           % (n, pn, dims.get('onset', 0) * 100, dims.get('dur', 0) * 100)
-           for n, pn, dims in rows if min(dims.values()) < MELODY_ACCEPT_MIN]
-    assert not bad, ('生成旋律离画像太远（承接度下限 %.0f%%）：%s —— 先查 melody_gen 的'
-                     '出口裁剪/落点过滤（坑 114/115），别去调画像'
-                     % (MELODY_ACCEPT_MIN * 100, '；'.join(bad)))
+    for n, pn, dims, pnotes in rows:
+        print('        %-22s 画像 %-18s 落点 %3.0f%%  时值 %3.0f%%   (画像音数 %d%s)'
+              % (n, pn, dims.get('onset', 0) * 100, dims.get('dur', 0) * 100, pnotes,
+                 '，稀疏档' if pnotes < 80 else ''))
+    bad = []
+    for n, pn, dims, pnotes in rows:
+        thr = MELODY_ACCEPT_MIN if pnotes >= 80 else MELODY_ACCEPT_SPARSE
+        if min(dims.values()) < thr:
+            bad.append('%s（画像 %s）落点 %.0f%%/时值 %.0f%%（下限 %.0f%%）'
+                       % (n, pn, dims.get('onset', 0) * 100, dims.get('dur', 0) * 100, thr * 100))
+    assert not bad, ('生成旋律离画像太远：%s —— 先查 melody_gen 的出口裁剪/落点过滤'
+                     '（坑 114/115），别去调画像' % '；'.join(bad))
 
 
 @check
