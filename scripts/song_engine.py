@@ -646,10 +646,21 @@ def build_events(d):
                 for (b, dd, m, v) in glock_part(ch, i, B):
                     bucket['Glock'].append((t0 + b, dd, m, v))
             if arr.get('arp'):
-                for k in range(max(1, int(round(B * 2)))):
-                    seq = [tone(ch[1], 0), tone(ch[1], 2), tone(ch[1], 4), tone(ch[1], 2)]
-                    bucket['Arp'].append((t0 + k * 0.5, 0.28 * sc, seq[k % 4] + 12,
-                                          42 + (8 if k % 2 == 0 else 0)))
+                # **按小节轮换落点**（与 guitar_arpeggio(Hook) / perc_part 同一套）：
+                # 原先是"每 0.5 拍一个 + seq[0,2,4,2] 循环 + 力度只有 42/50" —— 384 个音
+                # 全曲八分平铺，和 Hook、沙锤同频叠加，是"d d d d ddd"的又一层。
+                seq = [tone(ch[1], 0), tone(ch[1], 2), tone(ch[1], 4), tone(ch[1], 2)]
+                _n = max(1, int(round(B * 2)))
+                _pat = (
+                    [k * 0.5 for k in range(_n)],
+                    [k * 0.5 for k in range(_n) if k % 4 != 3] + [_n * 0.5 - 0.25],
+                    sorted(set([k * 0.5 for k in range(_n)] + [0.25, 2.75])),
+                    [k * 0.5 for k in range(_n) if k % 2 == 0],
+                )
+                _env = (1.0, 0.9, 0.96, 0.86)[i % 4]
+                for k, b in enumerate(_pat[i % 4]):
+                    bucket['Arp'].append((t0 + b, 0.28 * sc, seq[k % 4] + 12,
+                                          max(20, int((42 + (8 if k % 2 == 0 else 0)) * _env))))
             # 持续微光层（opt-in）：整小节长音的高八度和弦音，走 Arp 轨（音色可覆盖成
             # 颤音琴/竖琴这类**有延音的亮音色**）。用途：例曲 2.5–10kHz 的占用率是 87~90%
             # （连续），而我们只有短促打击点 → 高频出现空洞，听感"薄、空、不像成品"。
