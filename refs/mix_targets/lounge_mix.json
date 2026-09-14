@@ -1,0 +1,150 @@
+{
+ "name": "lounge_mix",
+ "file": "aggregate(6 refs)",
+ "aggregate": true,
+ "theme": "lounge",
+ "bpm": 133.9,
+ "rms_db": -16.9,
+ "width": 0.66,
+ "centroid": 2472,
+ "duration": 148.0,
+ "character": "instrumental",
+ "bands": {
+  "10000-18000": -25.9,
+  "1250-2500": -7.0,
+  "160-315": -2.9,
+  "20-40": -14.3,
+  "2500-5000": -13.6,
+  "315-630": -3.9,
+  "40-80": 0.0,
+  "5000-10000": -19.2,
+  "630-1250": -3.8,
+  "80-160": -2.2
+ },
+ "structure": [
+  -17.0,
+  -17.0,
+  -17.0,
+  -17.0,
+  -17.0,
+  -17.0,
+  -17.0,
+  -16.0
+ ],
+ "rhythm_low": "★★◇·★◇··★★··★★◇·",
+ "rhythm_high": "◇·★◇·◇★◇★·★◇·★★★",
+ "quiet_chroma": {
+  "A": 1.0,
+  "D": 0.83,
+  "G": 0.55,
+  "A#": 0.27,
+  "D#": 0.26,
+  "C": 0.23
+ },
+ "periodicity": 0.123,
+ "members": [
+  {
+   "ref": "bgm01c",
+   "score": 0.874,
+   "bpm": 128.0,
+   "centroid": 3284,
+   "rms_db": -14.3,
+   "width": 0.316,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "bgm01c.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM06",
+   "score": 0.845,
+   "bpm": 133.9,
+   "centroid": 1533,
+   "rms_db": -16.9,
+   "width": 0.261,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM06.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM15c",
+   "score": 0.84,
+   "bpm": 132.4,
+   "centroid": 3338,
+   "rms_db": -19.3,
+   "width": 0.66,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM15c.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM18",
+   "score": 0.726,
+   "bpm": 134.7,
+   "centroid": 2043,
+   "rms_db": -22.2,
+   "width": 0.818,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM18.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM16b",
+   "score": 0.692,
+   "bpm": 139.8,
+   "centroid": 2472,
+   "rms_db": -17.9,
+   "width": 0.77,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM16b.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM04",
+   "score": 0.657,
+   "bpm": 114.1,
+   "centroid": 2281,
+   "rms_db": -13.5,
+   "width": 0.233,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM04.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  }
+ ],
+ "source_note": "多份真实录音画像的**逐维度中位数**（成员见 members，各自带 source）—— 单份画像的个性（偏亮/偏厚）不整体带进成品"
+}

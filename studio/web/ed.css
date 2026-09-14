@@ -1,0 +1,96 @@
+/* ed.css —— MIDI Studio 编辑器（紧凑、暗色、像 DAW 而不是仪表盘） */
+* { box-sizing: border-box; }
+:root {
+  --bg: #0f1115; --panel: #171a20; --panel2: #1b1f26; --line: #262b33;
+  --fg: #d7dae0; --dim: #8b93a1; --acc: #4c9aff; --ok: #4dd4ac; --bad: #ff6b6b;
+}
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 12.5px/1.45 system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
+  display: flex; flex-direction: column; gap: 6px; padding: 6px;
+}
+header#bar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+}
+.brand { font-weight: 600; margin-right: 4px; }
+.spacer { flex: 1; }
+.sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
+.dim { color: var(--dim); }
+.ok { color: var(--ok); } .bad { color: var(--bad); }
+.link { color: var(--acc); text-decoration: none; }
+.link:hover { text-decoration: underline; }
+
+/* 只读 / 编辑 两种状态要一眼能看出来：只读时按钮描橙边、光标变默认 */
+button.lock { border-color: #b8860b; color: #ffd479; }
+button.lock:hover { background: #2a2410; }
+body:not(.editing) #roll { cursor: default; }
+body.editing #roll { cursor: crosshair; }
+
+button {
+  background: var(--panel2); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 4px 9px; cursor: pointer; font: inherit;
+}
+button:hover { background: #232833; }
+button:disabled { opacity: .45; cursor: default; }
+button.on { background: var(--acc); border-color: var(--acc); color: #0b1220; font-weight: 600; }
+button.primary { background: #23405f; border-color: #2f5c88; }
+button.mini { padding: 2px 6px; font-size: 11.5px; }
+select, input[type=number], input[type=text] {
+  background: var(--panel2); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 5px; padding: 3px 5px; font: inherit;
+}
+input[type=range] { vertical-align: middle; }
+label.dim, label.chk { color: var(--dim); display: inline-flex; align-items: center; gap: 4px; }
+label.chk input { margin: 0; }
+
+/* 进度条：拖动定位（原来的"进度"只有卷帘里一根播放头，没声音时完全看不出来在不在走） */
+.seekWrap { display: inline-flex; align-items: center; gap: 6px; }
+#seek { width: 200px; accent-color: var(--acc); }
+#seekInfo { min-width: 52px; font-variant-numeric: tabular-nums; }
+
+section.panel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px;
+}
+section.panel h2 {
+  margin: 0 0 5px; font-size: 12px; font-weight: 600; color: #aab2c0;
+  display: flex; align-items: baseline; gap: 6px;
+}
+#tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+#grid { display: grid; grid-template-columns: 240px 1fr 250px; gap: 6px; flex: 1; min-height: 0; }
+#center { display: flex; flex-direction: column; min-width: 0; }
+#roll { display: block; border-radius: 6px; }
+#velWrap { margin-top: 4px; }
+#velLane { display: block; border-radius: 6px; }
+
+#tracks .tr {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 6px; align-items: center;
+  padding: 4px 6px; border-left: 3px solid #555; border-radius: 5px;
+  background: var(--panel2); margin-bottom: 3px; cursor: pointer;
+}
+#tracks .tr:hover { background: #232833; }
+#tracks .tr.on { outline: 1px solid var(--acc); }
+#tracks .tr.hid { opacity: .45; }
+#tracks .tr .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#tracks .tr .btns { grid-column: 1 / -1; display: flex; gap: 3px; }
+#tracks .tr .btns button { padding: 0 5px; font-size: 10.5px; line-height: 16px; }
+
+#side .row { margin: 3px 0; }
+#side input[type=number] { width: 78px; }
+#noteProps .row { display: flex; align-items: center; gap: 6px; }
+
+/* 和弦列表：高置信绿、低置信灰（点了就设成循环区间，方便反复听这一小节） */
+#chordList { max-height: 190px; overflow: auto; line-height: 1.9; }
+#chordList .chord {
+  display: inline-block; padding: 0 5px; margin: 0 3px 3px 0; border-radius: 4px;
+  background: var(--panel2); border: 1px solid var(--line); cursor: pointer;
+  color: var(--dim); font-size: 11.5px;
+}
+#chordList .chord:hover { border-color: var(--acc); }
+#chordList .chord.sure { color: var(--fg); }
+#chordList .chord b { color: #9ad0ff; }
+
+#logWrap { max-height: 108px; overflow: auto; }
+#log { margin: 0; font: 11.5px/1.4 ui-monospace, Consolas, monospace; color: #9aa3b2; white-space: pre-wrap; }

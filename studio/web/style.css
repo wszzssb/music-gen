@@ -35,6 +35,10 @@ input[type=range]{width:88px;vertical-align:middle}
 .chip{border:1px solid var(--line);border-radius:12px;padding:1px 8px;cursor:pointer;background:#232838;font-size:11px}
 .chip.on{background:#1d4f6b;border-color:#2b7fa8}
 #roll{width:100%;height:360px;background:#0f1117;border:1px solid var(--line);border-radius:8px;cursor:crosshair}
+/* 播放头叠加层：脱离卷帘画布。画在画布上会**留残影** —— 拖进度条时旧线全留下＝满屏红色竖条 */
+#rollWrap{position:relative;line-height:0}
+#rollPh{position:absolute;top:1px;bottom:1px;left:0;width:2px;background:#ff6b6b;opacity:0;
+  pointer-events:none;will-change:transform}
 .bars{margin:2px 0}
 .bar{display:flex;align-items:center;gap:4px;margin:2px 0}
 .bar .k{color:var(--dim);width:44px}

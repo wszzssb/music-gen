@@ -1,0 +1,1258 @@
+{
+ "theme": "waltz",
+ "label": "三拍圆舞",
+ "desc": "三拍圆舞（主题模板包：10 首同主题模板聚合）",
+ "styles": [
+  "classical",
+  "baroque",
+  "romantic",
+  "folk",
+  "public_domain"
+ ],
+ "engine_style": "gorgeous",
+ "meter": [
+  3,
+  4
+ ],
+ "min_templates": 8,
+ "template_count": 10,
+ "bpm": {
+  "median": 72.0,
+  "p25": 60.0,
+  "p75": 100.0
+ },
+ "key": {
+  "tonic": "C",
+  "pc": 0,
+  "mode": "major",
+  "confidence": 0.173,
+  "scale_degree_weight": [
+   1754835.8,
+   96812.16,
+   714027.24,
+   404993.96,
+   400382.2,
+   1057317.68,
+   75280.16,
+   1313809.28,
+   270724.76,
+   432637.52,
+   328287.6,
+   230625.24
+  ]
+ },
+ "templates": [
+  {
+   "file": "baroque/handel-ombra-mai-fu.mid",
+   "style": "baroque",
+   "md5": "7587828e6389b5ce047b65c0ba2d294f",
+   "bpm": 55.0,
+   "timesig": [
+    3,
+    4
+   ],
+   "bars": 53,
+   "seconds": 170.7,
+   "source": "https://bitmidi.com/uploads/35097.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+   "style": "baroque",
+   "md5": "bbf3e1275d9d4dc25ff7213f4416d589",
+   "bpm": 70.0,
+   "timesig": [
+    3,
+    4
+   ],
+   "bars": 320,
+   "seconds": 821.1,
+   "source": "https://bitmidi.com/uploads/27584.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "classical/Bach-Brandenburg-Menuetto.mid",
+   "style": "classical",
+   "md5": "f2d072768986b1af726a80adccd69ebb",
+   "bpm": 60.0,
+   "timesig": [
+    3,
+    4
+   ],
+   "bars": 188,
+   "seconds": 563.4,
+   "source": "https://bitmidi.com/uploads/14986.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "classical/Minuet-in-Mozart.mid",
+   "style": "classical",
+   "md5": "3d741b76ab0db16592c9f9e95b7ea4f0",
+   "bpm": 100.0,
+   "timesig": [
+    3,
+    4
+   ],
+   "bars": 64,
+   "seconds": 115.1,
+   "source": "https://bitmidi.com/uploads/35181.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "folk/American-Folk-(Variation-1).mid",
+   "style": "folk",
+   "md5": "129a9d7ac6cbfa17f25525c9d80379a5",
+   "bpm": 72.0,
+   "timesig": [
+    3,
+    4
+   ],
+   "bars": 41,
+   "seconds": 101.7,
+   "source": "https://bitmidi.com/uploads/6052.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "folk/caledonia-celtic-thunder-kar_gc9.mid",
+   "style": "folk",
+   "md5": "f18aad9c6c4d40012f1a9e88def30e30",
+   "bpm": 100.0,
+   "timesig": [
+    3,
+    4
+   ],
+   "bars": 147,
+   "seconds": 264.6,
+   "source": "https://bitmidi.com/uploads/54409.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "public_domain/LVB_Sonate_02no1_2.mid",
+   "style": "public_domain",
+   "md5": "7fb51564efcbe486501434a7eb38cf3e",
+   "bpm": 46.0,
+   "timesig": [
+    3,
+    4
+   ],
+   "bars": 61,
+   "seconds": 238.0,
+   "source": "https://www.mutopiaproject.org/ftp/BeethovenLv/O2/LVB_Sonate_02no1_2/LVB_Sonate_02no1_2.mid",
+   "kind": "mutopiaproject"
+  },
+  {
+   "file": "public_domain/LVB_Sonate_02no1_3.mid",
+   "style": "public_domain",
+   "md5": "6ac8a9487e0b78156d0a7662a6def13d",
+   "bpm": 168.0,
+   "timesig": [
+    3,
+    4
+   ],
+   "bars": 73,
+   "seconds": 78.2,
+   "source": "https://www.mutopiaproject.org/ftp/BeethovenLv/O2/LVB_Sonate_02no1_3/LVB_Sonate_02no1_3.mid",
+   "kind": "mutopiaproject"
+  },
+  {
+   "file": "romantic/chubert-Liszt Serenade.mid",
+   "style": "romantic",
+   "md5": "06337980e776d0c6498c4e3548f489ce",
+   "bpm": 60.0,
+   "timesig": [
+    3,
+    4
+   ],
+   "bars": 84,
+   "seconds": 249.9,
+   "source": "https://bitmidi.com/uploads/28798.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid",
+   "style": "romantic",
+   "md5": "ebc848e7a782160f1a191adda7a1a5d1",
+   "bpm": 140.0,
+   "timesig": [
+    3,
+    4
+   ],
+   "bars": 491,
+   "seconds": 630.1,
+   "source": "https://bitmidi.com/uploads/31292.mid",
+   "kind": "bitmidi"
+  }
+ ],
+ "source_kinds": {
+  "bitmidi": 8,
+  "mutopiaproject": 2
+ },
+ "harmony": {
+  "primary": [
+   "G7",
+   "Cdim",
+   "Cdim",
+   "Fm"
+  ],
+  "primary_source": "window4",
+  "progressions": [
+   {
+    "degrees": [
+     7,
+     0,
+     0,
+     5
+    ],
+    "romans": [
+     "V7",
+     "idim",
+     "idim",
+     "IV"
+    ],
+    "count": 7,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "classical/Minuet-in-Mozart.mid",
+     "romantic/chubert-Liszt Serenade.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "G7",
+     "Cdim",
+     "Cdim",
+     "Fm"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     2,
+     0,
+     0
+    ],
+    "romans": [
+     "V7",
+     "ii7",
+     "Imaj7",
+     "Imaj7"
+    ],
+    "count": 7,
+    "templates": [
+     "classical/Bach-Brandenburg-Menuetto.mid",
+     "public_domain/LVB_Sonate_02no1_3.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "G7",
+     "Dm7",
+     "Cmaj7",
+     "Cmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0,
+     0,
+     8
+    ],
+    "romans": [
+     "Vsus4",
+     "i",
+     "i",
+     "bVI6"
+    ],
+    "count": 5,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid",
+     "romantic/chubert-Liszt Serenade.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Gsus4",
+     "Cm",
+     "Cm",
+     "G#6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     0,
+     7,
+     7
+    ],
+    "romans": [
+     "IV7",
+     "I6",
+     "v6",
+     "v7"
+    ],
+    "count": 7,
+    "templates": [
+     "classical/Minuet-in-Mozart.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "F7",
+     "C6",
+     "Gm6",
+     "Gm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     5,
+     0,
+     7
+    ],
+    "romans": [
+     "IV6",
+     "IV7",
+     "I6",
+     "v6"
+    ],
+    "count": 5,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "F6",
+     "F7",
+     "C6",
+     "Gm6"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_4": [
+   {
+    "degrees": [
+     7,
+     0,
+     0,
+     5
+    ],
+    "romans": [
+     "V7",
+     "idim",
+     "idim",
+     "IV"
+    ],
+    "count": 7,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "classical/Minuet-in-Mozart.mid",
+     "romantic/chubert-Liszt Serenade.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "G7",
+     "Cdim",
+     "Cdim",
+     "Fm"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     2,
+     0,
+     0
+    ],
+    "romans": [
+     "V7",
+     "ii7",
+     "Imaj7",
+     "Imaj7"
+    ],
+    "count": 7,
+    "templates": [
+     "classical/Bach-Brandenburg-Menuetto.mid",
+     "public_domain/LVB_Sonate_02no1_3.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "G7",
+     "Dm7",
+     "Cmaj7",
+     "Cmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0,
+     0,
+     8
+    ],
+    "romans": [
+     "Vsus4",
+     "i",
+     "i",
+     "bVI6"
+    ],
+    "count": 5,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid",
+     "romantic/chubert-Liszt Serenade.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Gsus4",
+     "Cm",
+     "Cm",
+     "G#6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     0,
+     7,
+     7
+    ],
+    "romans": [
+     "IV7",
+     "I6",
+     "v6",
+     "v7"
+    ],
+    "count": 7,
+    "templates": [
+     "classical/Minuet-in-Mozart.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "F7",
+     "C6",
+     "Gm6",
+     "Gm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     5,
+     0,
+     7
+    ],
+    "romans": [
+     "IV6",
+     "IV7",
+     "I6",
+     "v6"
+    ],
+    "count": 5,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "F6",
+     "F7",
+     "C6",
+     "Gm6"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_2": [
+   {
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "V7",
+     "i"
+    ],
+    "count": 69,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "baroque/handel-ombra-mai-fu.mid",
+     "classical/Bach-Brandenburg-Menuetto.mid",
+     "classical/Minuet-in-Mozart.mid",
+     "folk/caledonia-celtic-thunder-kar_gc9.mid",
+     "public_domain/LVB_Sonate_02no1_2.mid",
+     "public_domain/LVB_Sonate_02no1_3.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid",
+     "romantic/chubert-Liszt Serenade.mid"
+    ],
+    "template_share": 0.9,
+    "symbols": [
+     "G7",
+     "Cm"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     7
+    ],
+    "romans": [
+     "i",
+     "Vsus4"
+    ],
+    "count": 66,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "baroque/handel-ombra-mai-fu.mid",
+     "classical/Bach-Brandenburg-Menuetto.mid",
+     "classical/Minuet-in-Mozart.mid",
+     "folk/caledonia-celtic-thunder-kar_gc9.mid",
+     "public_domain/LVB_Sonate_02no1_2.mid",
+     "public_domain/LVB_Sonate_02no1_3.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid",
+     "romantic/chubert-Liszt Serenade.mid"
+    ],
+    "template_share": 0.9,
+    "symbols": [
+     "Cm",
+     "Gsus4"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     0
+    ],
+    "romans": [
+     "IV7",
+     "i"
+    ],
+    "count": 39,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "classical/Minuet-in-Mozart.mid",
+     "folk/American-Folk-(Variation-1).mid",
+     "folk/caledonia-celtic-thunder-kar_gc9.mid",
+     "public_domain/LVB_Sonate_02no1_2.mid",
+     "public_domain/LVB_Sonate_02no1_3.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid",
+     "romantic/chubert-Liszt Serenade.mid"
+    ],
+    "template_share": 0.8,
+    "symbols": [
+     "F7",
+     "Cm"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6"
+    ],
+    "count": 33,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "baroque/handel-ombra-mai-fu.mid",
+     "classical/Bach-Brandenburg-Menuetto.mid",
+     "classical/Minuet-in-Mozart.mid",
+     "folk/American-Folk-(Variation-1).mid",
+     "folk/caledonia-celtic-thunder-kar_gc9.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid",
+     "romantic/chubert-Liszt Serenade.mid"
+    ],
+    "template_share": 0.8,
+    "symbols": [
+     "Cmaj7",
+     "F6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     11,
+     0
+    ],
+    "romans": [
+     "viidim",
+     "Isus4"
+    ],
+    "count": 22,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "baroque/handel-ombra-mai-fu.mid",
+     "classical/Bach-Brandenburg-Menuetto.mid",
+     "public_domain/LVB_Sonate_02no1_2.mid",
+     "public_domain/LVB_Sonate_02no1_3.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid"
+    ],
+    "template_share": 0.6,
+    "symbols": [
+     "Bdim",
+     "Csus4"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     10
+    ],
+    "romans": [
+     "iv",
+     "bvii6"
+    ],
+    "count": 22,
+    "templates": [
+     "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+     "classical/Minuet-in-Mozart.mid",
+     "folk/American-Folk-(Variation-1).mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid"
+    ],
+    "template_share": 0.4,
+    "symbols": [
+     "Fm",
+     "A#m6"
+    ],
+    "usable": true
+   }
+  ],
+  "pool_progression": [
+   "Cm",
+   "Am",
+   "Asus4"
+  ],
+  "pool_progression_romans": [
+   "I",
+   "vi",
+   "VIsus4"
+  ],
+  "chord_pool": [
+   {
+    "degree": 0,
+    "roman": "I",
+    "suffix": "m",
+    "count": 386,
+    "templates": 10
+   },
+   {
+    "degree": 7,
+    "roman": "V",
+    "suffix": "7",
+    "count": 220,
+    "templates": 10
+   },
+   {
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "m",
+    "count": 193,
+    "templates": 10
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "6",
+    "count": 109,
+    "templates": 5
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m",
+    "count": 89,
+    "templates": 8
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m7",
+    "count": 77,
+    "templates": 7
+   },
+   {
+    "degree": 6,
+    "roman": "bV",
+    "suffix": "m7",
+    "count": 73,
+    "templates": 6
+   },
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "6",
+    "count": 65,
+    "templates": 5
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
+    "suffix": "6",
+    "count": 57,
+    "templates": 7
+   },
+   {
+    "degree": 4,
+    "roman": "III",
+    "suffix": "m7",
+    "count": 55,
+    "templates": 7
+   },
+   {
+    "degree": 11,
+    "roman": "VII",
+    "suffix": "dim",
+    "count": 48,
+    "templates": 6
+   },
+   {
+    "degree": 1,
+    "roman": "bII",
+    "suffix": "",
+    "count": 42,
+    "templates": 5
+   }
+  ],
+  "chord_per_bar": 0.94
+ },
+ "rhythm": {
+  "low16": "★···★···★···",
+  "high16": "★·★·★·★·★·★·",
+  "low_slot_share": [
+   0.9,
+   0.2,
+   0.3,
+   0.0,
+   1.0,
+   0.1,
+   0.3,
+   0.1,
+   0.7,
+   0.1,
+   0.4,
+   0.0
+  ],
+  "high_slot_share": [
+   0.9,
+   0.4,
+   0.8,
+   0.5,
+   1.0,
+   0.4,
+   0.7,
+   0.2,
+   0.9,
+   0.5,
+   0.8,
+   0.5
+  ],
+  "low_density": 7.04,
+  "high_density": 14.22,
+  "bass_density": 0.0,
+  "perc_density": 0.81,
+  "slots": 12,
+  "bass_style": "waltz",
+  "perc_style": "waltz"
+ },
+ "arrangement": {
+  "roles": {
+   "brass": 0.3,
+   "guitar": 0.1,
+   "organ": 0.2,
+   "pad": 0.1,
+   "piano": 0.7,
+   "pipe": 0.2,
+   "reed": 0.2,
+   "strings": 0.6
+  },
+  "role_range": {
+   "brass": [
+    48,
+    72
+   ],
+   "guitar": [
+    53,
+    74
+   ],
+   "organ": [
+    58,
+    84
+   ],
+   "pad": [
+    57,
+    70
+   ],
+   "piano": [
+    36,
+    79
+   ],
+   "pipe": [
+    62,
+    105
+   ],
+   "reed": [
+    36,
+    89
+   ],
+   "strings": [
+    36,
+    84
+   ]
+  },
+  "arr_share": {
+   "bass": 0.0,
+   "piano": 0.7,
+   "uku": 0.1,
+   "strings": 0.3,
+   "pad": 0.1,
+   "glock": 0.0,
+   "ep": 0.2,
+   "perc": 0.0
+  },
+  "arr_on": [
+   "piano"
+  ],
+  "arr_off": [
+   "glock",
+   "perc"
+  ],
+  "arr_maybe": [
+   "ep",
+   "pad",
+   "strings",
+   "uku"
+  ],
+  "track_count": 7.1,
+  "style_mix": {
+   "baroque": 2,
+   "classical": 2,
+   "folk": 2,
+   "public_domain": 2,
+   "romantic": 2
+  }
+ },
+ "form": {
+  "section_bars": 8,
+  "total_bars": 64,
+  "plan": [
+   {
+    "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A2",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A3",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
+    "bars": 8,
+    "prog": 0
+   }
+  ]
+ },
+ "melody": {
+  "notes": 5106,
+  "range": [
+   64,
+   86
+  ],
+  "mean_pitch": 73.32,
+  "notes_per_bar": 4.62,
+  "stepwise_pct": 73.83,
+  "onbeat_pct": 52.36,
+  "diatonic_pct": 85.56,
+  "interval_hist": {
+   "-24": 3,
+   "-21": 2,
+   "-19": 2,
+   "-17": 4,
+   "-15": 9,
+   "-14": 2,
+   "-13": 6,
+   "-12": 44,
+   "-11": 7,
+   "-10": 26,
+   "-9": 24,
+   "-8": 31,
+   "-7": 130,
+   "-6": 42,
+   "-5": 278,
+   "-4": 182,
+   "-3": 416,
+   "-2": 2193,
+   "-1": 1235,
+   "0": 1236,
+   "1": 1316,
+   "2": 1404,
+   "3": 369,
+   "4": 253,
+   "5": 322,
+   "6": 27,
+   "7": 120,
+   "8": 76,
+   "9": 96,
+   "10": 48,
+   "11": 12,
+   "12": 61,
+   "14": 2,
+   "15": 7,
+   "16": 4,
+   "17": 4,
+   "19": 3,
+   "20": 0,
+   "21": 3,
+   "24": 1,
+   "27": 2
+  },
+  "dur16_hist": {
+   "0": 1113,
+   "1": 1991,
+   "2": 3618,
+   "3": 290,
+   "4": 1608,
+   "5": 238,
+   "6": 509,
+   "7": 58,
+   "8": 227,
+   "10": 1,
+   "11": 21,
+   "12": 198,
+   "14": 15,
+   "16": 113
+  },
+  "onset16_hist": {
+   "0": 1279,
+   "1": 128,
+   "2": 734,
+   "3": 266,
+   "4": 1384,
+   "5": 193,
+   "6": 783,
+   "7": 272,
+   "8": 1317,
+   "9": 206,
+   "10": 712,
+   "11": 218,
+   "12": 1257,
+   "13": 231,
+   "14": 759,
+   "15": 260
+  },
+  "phrases": 116,
+  "phrase_bars": [
+   5.0,
+   1.25,
+   4.25,
+   15.25,
+   10.62,
+   54.06,
+   22.5,
+   15.12,
+   5.75,
+   2.75,
+   8.25,
+   15.5,
+   43.62,
+   0.31,
+   0.31,
+   0.31,
+   0.31,
+   2.5,
+   13.81,
+   9.0,
+   4.5,
+   31.5,
+   35.97,
+   35.97,
+   26.75,
+   5.75,
+   14.97,
+   1.6,
+   13.01,
+   1.0,
+   1.25,
+   6.0,
+   6.44,
+   2.75,
+   4.12,
+   1.38,
+   2.5,
+   1.31,
+   4.5,
+   1.38,
+   4.69,
+   2.75,
+   4.12,
+   1.38,
+   2.5,
+   6.12,
+   6.44,
+   2.75,
+   4.12,
+   1.38,
+   2.5,
+   2.5,
+   2.5,
+   2.5,
+   44.88,
+   0.38,
+   0.75,
+   2.75,
+   4.75,
+   1.25
+  ],
+  "bars": 110.5,
+  "templates": 10
+ },
+ "notes": [
+  "共 10 首模板，来源：bitmidi×8, mutopiaproject×2",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/waltz_tracks.json"
+ ],
+ "tool": "theme_pack.py",
+ "mix_target": {
+  "ref": "waltz_mix",
+  "score": 0.915,
+  "why": "BPM 67.6（差 4.4，0.85）· 打击感 0.39 vs 目标 0.40（0.98）· 调式 major（1.00）",
+  "aggregate": true,
+  "members": [
+   {
+    "ref": "amakute",
+    "score": 0.915,
+    "bpm": 67.6,
+    "centroid": 3624,
+    "rms_db": -21.7,
+    "width": 0.53,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "あまくてとろける.flac",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM33",
+    "score": 0.83,
+    "bpm": 75.0,
+    "centroid": 3665,
+    "rms_db": -15.9,
+    "width": 0.404,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM33.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM16",
+    "score": 0.721,
+    "bpm": 75.0,
+    "centroid": 2826,
+    "rms_db": -17.4,
+    "width": 0.678,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM16.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM15d",
+    "score": 0.71,
+    "bpm": 79.2,
+    "centroid": 3548,
+    "rms_db": -20.4,
+    "width": 0.627,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM15d.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM12",
+    "score": 0.695,
+    "bpm": 78.0,
+    "centroid": 557,
+    "rms_db": -16.8,
+    "width": 0.544,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM12.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM01",
+    "score": 0.684,
+    "bpm": 64.0,
+    "centroid": 2810,
+    "rms_db": -17.1,
+    "width": 0.478,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM01.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   }
+  ],
+  "agg_profile": "waltz_mix",
+  "weights": {
+   "bpm": 0.55,
+   "perc": 0.3,
+   "mode": 0.15
+  },
+  "perc_style_target": 0.4,
+  "energy_curve_db": [
+   -0.8,
+   -0.8,
+   -0.8,
+   1.2,
+   1.2
+  ],
+  "structure_db": [
+   -18.0,
+   -18.0,
+   -18.0,
+   -16.0,
+   -16.0
+  ],
+  "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
+  "candidates": [
+   {
+    "ref": "amakute",
+    "score": 0.915,
+    "bpm": 67.6,
+    "rms_db": -21.7,
+    "width": 0.53,
+    "centroid": 3624,
+    "perc": 0.392,
+    "mode": "major",
+    "structure": [
+     -22,
+     -21,
+     -22,
+     -22,
+     -21,
+     -21,
+     -21,
+     -22
+    ],
+    "parts": {
+     "bpm": 0.853,
+     "perc": 0.984,
+     "mode": 1.0
+    },
+    "why": "BPM 67.6（差 4.4，0.85）· 打击感 0.39 vs 目标 0.40（0.98）· 调式 major（1.00）"
+   },
+   {
+    "ref": "BGM33",
+    "score": 0.83,
+    "bpm": 75.0,
+    "rms_db": -15.9,
+    "width": 0.404,
+    "centroid": 3665,
+    "perc": 0.591,
+    "mode": "major",
+    "structure": [
+     -15,
+     -16,
+     -15,
+     -15,
+     -16,
+     -16,
+     -16,
+     -19,
+     -15,
+     -17
+    ],
+    "parts": {
+     "bpm": 0.9,
+     "perc": 0.618,
+     "mode": 1.0
+    },
+    "why": "BPM 75.0（差 3.0，0.90）· 打击感 0.59 vs 目标 0.40（0.62）· 调式 major（1.00）"
+   },
+   {
+    "ref": "BGM16",
+    "score": 0.721,
+    "bpm": 75.0,
+    "rms_db": -17.4,
+    "width": 0.678,
+    "centroid": 2826,
+    "perc": 0.523,
+    "mode": "minor",
+    "structure": [
+     -18,
+     -18,
+     -18,
+     -18,
+     -18,
+     -17,
+     -17,
+     -17,
+     -17,
+     -16,
+     -17
+    ],
+    "parts": {
+     "bpm": 0.9,
+     "perc": 0.754,
+     "mode": 0.0
+    },
+    "why": "BPM 75.0（差 3.0，0.90）· 打击感 0.52 vs 目标 0.40（0.75）· 调式 minor≠主题（0.00）"
+   }
+  ],
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+ },
+ "skipped": []
+}

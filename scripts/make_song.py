@@ -223,6 +223,7 @@ def autotune(cfg, ref, mid_path, out_base, max_iter=6, data=None):
     baseline = cfg.get('last_bands') or {}     # 上一次运行的实测频段（跨次比较用）
     regress_warned = False
     for it in range(max_iter):
+        render_midi.LAST.clear()      # **只信本次渲染自报的状态**：打桩/异常时不许吃上一次的旧值
         render_midi.render(mid_path, out_base,
                            rms_db=cfg['rms'], width=cfg['width'],
                            shelf_db=cfg['shelf'], hp_hz=cfg['hp'],
@@ -230,6 +231,16 @@ def autotune(cfg, ref, mid_path, out_base, max_iter=6, data=None):
                            mid_db=cfg.get('mid_db', 0.0), verbose=False,
                            ogg=False,                  # 中间轮次不编码 OGG（马上会被覆盖）
                            reverb=cfg.get('reverb'))   # 混响可选覆盖（opt-in，默认不变）
+        # **响度到顶要当场认下来**：峰值上限（0.97）挡住响度目标时，重设多少次同一个
+        # rms 都不会变（实测：6 轮里 5 轮都在"调 响度差 +1.3"，白烧 ~150 秒渲染）。
+        # 判据来自 render_midi.LAST（渲染器自报的"峰值受限 + 差多少"），不是猜的。
+        _last = render_midi.LAST or {}
+        if (_last.get('peak_limited') and 'rms' not in frozen
+                and abs(_last.get('shortfall_db') or 0.0) > metrics.TOL):
+            frozen.add('rms')
+            print('  ! 响度到顶：峰值上限 0.97 挡住了响度目标（实得 %+.1fdB）→ 冻结 rms，'
+                  '不再每轮重设（剩下的差距靠编配或降宽度）'
+                  % (_last.get('shortfall_db') or 0.0))
         mine = measure(out_base + '.wav', ref, true_bpm)
         # **跨次回归检测**（实测踩过）：改了 song.json（试编配/音色）之后，若某频段比
         # **上次运行**更差，多半不是"改得不够"，而是被自动调参反制了 —— 例如把 Strings
@@ -247,11 +258,15 @@ def autotune(cfg, ref, mid_path, out_base, max_iter=6, data=None):
         last = mine
         gaps = target_gaps(mine, ref)
         # 震荡保护：上一轮调过的参数，若目标误差反而变大 → 回退+冻结
+        # **没进展也冻结**：误差几乎不动（<0.1dB）说明这个方向已经到底（或到顶），
+        # 再调就是每轮白烧一次渲染（实测 rms 曾这样烧掉 5 轮）
         for k, (old_v, old_gap) in list(prev.items()):
             if k in frozen:
                 continue
             if abs(gaps[k]) > abs(old_gap) + 0.3:
                 cfg[k] = old_v
+                frozen.add(k)
+            elif abs(gaps[k]) > abs(old_gap) - 0.1:
                 frozen.add(k)
         prev = {}
         delta, notes = tune_step(mine, ref, cfg)
@@ -288,11 +303,11 @@ def autotune(cfg, ref, mid_path, out_base, max_iter=6, data=None):
         if not applied:
             break
         for k, v in applied.items():
+            prev[k] = (cfg.get(k, 0.0), gaps[k])      # 记录"改动前"的值与误差（含 rms）
             if k == 'rms':
                 cfg['rms'] = v
             else:
                 lo, hi = LIMITS[k]
-                prev[k] = (cfg.get(k, 0.0), gaps[k])
                 cfg[k] = round(max(lo, min(hi, cfg.get(k, 0.0) + v)), 2)
 
     # 收尾：用成品反推，把宽度**精确**校到参考曲（不受前面 EQ 变化影响）；
@@ -388,9 +403,17 @@ def main():
             data = song_engine.load(song_json)      # 供"按当前状态给建议"用
         except Exception:
             data = None
+    # **口径标记**：`norm` 记录这份 render.json 是哪个响度口径下调出来的。
+    # 旧配置（无标记 = 双声道 RMS 时代）重渲染会**变响**（更贴近参考，最多 ~2.1dB），
+    # 让自动调参重新收敛即可；但 `--no-tune` 的 A/B 探针会被这 +2dB 误导，所以先提示。
+    if cfg.get('norm') != render_midi.NORM:
+        print('  ! render.json 的响度口径 = %s（当前 %s）：重渲染会变响（更贴近参考，'
+              '最多 ~2.1dB）—— 别用 --no-tune 做 A/B，让它跑自动调参重新收敛。'
+              % (cfg.get('norm') or '未标记（旧：双声道 RMS）', render_midi.NORM))
     if '--no-render' not in sys.argv and '--no-tune' not in sys.argv:
         print('[2/3] 渲染 + 自动调参（最多 6 轮，内部闭环）')
         cfg = autotune(cfg, ref, mid, out, data=data)
+        cfg['norm'] = render_midi.NORM          # 记下"这份参数是哪个口径调出来的"
         with open(cfg_path, 'w', encoding='utf-8') as f:
             json.dump(cfg, f, ensure_ascii=False, indent=1)
         print('  已把调好的参数写回 render.json')

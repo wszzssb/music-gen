@@ -246,8 +246,12 @@ def main():
     import re
     flags = set(re.findall(r'(--[a-z][a-z0-9-]+)', txt))
     src = {}
-    for f in glob.glob(os.path.join(HERE, '*.py')):
-        src[os.path.basename(f)] = open(f, encoding='utf-8').read()
+    # 开关也可能定义在 `studio/`（面板自己的 CLI）：那里也是本工具链的一部分，
+    # 文档里写了它就该查得到（实测漏扫时 `--keep-tmp-audio` 被误报"缺失"）。
+    for f in (glob.glob(os.path.join(HERE, '*.py'))
+              + glob.glob(os.path.join(ROOT, 'studio', '*.py'))
+              + glob.glob(os.path.join(ROOT, 'studio', 'tools', '*.py'))):
+        src[os.path.relpath(f, ROOT)] = open(f, encoding='utf-8').read()
     allsrc = '\n'.join(src.values())
     missing = sorted(f for f in flags
                      if ("'%s'" % f) not in allsrc and ('"%s"' % f) not in allsrc)

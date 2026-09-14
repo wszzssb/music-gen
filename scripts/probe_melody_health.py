@@ -90,8 +90,9 @@ def _prof_short(gen):
     在慢歌里是"长音被截断"的伪影。没有画像的曲子才退回按速度分档。"""
     if not gen:
         return None
-    p = os.path.join(ROOT, 'refs', 'melody', gen + '_melody.json')
-    if not os.path.isfile(p):
+    import melody_profile as MP
+    p = MP.find_profile(gen)
+    if not p:
         return None
     h = json.load(open(p, encoding='utf-8')).get('dur16_hist') or {}
     tot = sum(h.values())

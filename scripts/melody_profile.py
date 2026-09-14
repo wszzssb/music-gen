@@ -193,6 +193,22 @@ def stats(notes, bpm, tonic_pc, scale):
     }
 
 
+def find_profile(name, root=None):
+    """画像名 → 画像文件路径（**唯一解析口径**：`refs/melody/` → `refs/themes/`）。
+
+    为什么要有这个函数：主题模板包也会产出旋律画像（`refs/themes/<主题>_melody.json`，
+    来自 MIDI 模板、比扒谱更准），但过去三处工具各自按 `refs/melody/` 硬拼路径 ——
+    于是主题生成的曲子会被**静默跳过**（"碎音对照画像"没对照、"旋律像不像画像"没检查）。
+    一处漏 + 一处漏 = 守卫看起来全绿，其实什么都没查。
+    """
+    root = root or ROOT
+    for sub in (os.path.join(root, 'refs', 'melody'), os.path.join(root, 'refs', 'themes')):
+        p = os.path.join(sub, name + '_melody.json')
+        if os.path.isfile(p):
+            return p
+    return None
+
+
 def profile_ref(path, name, tonic='G', minor=True):
     m, sr, _x = metrics.load(path)
     bpm = metrics.detect_bpm(m, sr)[0]

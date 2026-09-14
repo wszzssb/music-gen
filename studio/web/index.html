@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title>BGM Studio — 按音轨制作 / 可视化编曲 / 合并导出</title>
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css?v=14">
 </head>
 <body>
 <header id="bar">
   <span class="brand">🎛 BGM Studio</span>
+  <a id="lnkEditor" href="/editor" title="MIDI 编辑器：导入任意 .mid → 钢琴卷帘/量化/移调/力度 → 导出" style="color:#4c9aff;text-decoration:none">🎹 MIDI 编辑器</a>
   <select id="songSel" title="选择曲目"></select>
   <span id="songInfo" class="dim"></span>
   <span class="spacer"></span>
@@ -53,7 +54,10 @@
     <div id="secEdit"></div>
     <h2>钢琴卷帘 <span class="dim" id="rollHint">（拖拽=移动，空白处拖=新建，右键=删除；只对 Melody 可编辑）</span></h2>
     <canvas id="wave" height="56" title="拖动波形定位；Shift+拖 = 设循环区间"></canvas>
-    <canvas id="roll" width="1200" height="360"></canvas>
+    <!-- ⚠ 播放头必须是**独立叠加层**：它原来由 drawPlayhead() 每帧画在卷帘画布上而**从不擦除**
+         （只在当前位置补一条 2px 红线）→ 播放时残留叠成红带，**拖进度条时位置跳跃 → 旧的线全留下
+         = 满屏红色竖条**（用户报"拖动进度条之后还有显示bug"）。现在它是 DOM 元素，只移动不改画布。 -->
+    <div id="rollWrap"><canvas id="roll" width="1200" height="360"></canvas><i id="rollPh"></i></div>
   </section>
 
   <!-- 右：指标 -->
@@ -110,8 +114,93 @@
   <pre id="log"></pre>
 </footer>
 
-<audio id="player" preload="auto"></audio>
-<script src="/engine.js"></script>
-<script src="/app.js"></script>
+<!-- ⚠ 这里原来有个 <audio id="player">：主界面从没用过它（`pollJob` 只给它设 src、
+     从不 play()，且用户点过 ⏹ 后它是 null，`S.player.src=` 会抛异常）。
+     试听/播放统一走 WebAudio 引擎（`engine.js`），所以删掉了。 -->
+<script src="/engine.js?v=14"></script>
+<script src="/app.js?v=14"></script>
+<script>
+/* 启动自检：把"跑的是哪一版 + 有没有早期报错"直接写进日志区。
+ * 为什么要它（实测踩过）：用户报"卷帘是空的"，我改了代码让他刷新，结果他跑的还是旧 JS，
+ * 来回两轮都在猜。现在页面自己报版本与错误，省掉这一轮。
+ * __BOOT_ERR_LIST 收集所有未捕获错误（含资源加载失败）。 */
+window.__BOOT_ERR_LIST = [];
+window.addEventListener('error', function (e) {
+  var t = e && e.target;
+  var where = (t && (t.src || t.href)) || (e && e.filename) || '';
+  window.__BOOT_ERR_LIST.push(((e && e.message) || '资源加载失败') +
+    (where ? ' @ ' + String(where).split('/').pop() : ''));
+}, true);
+window.addEventListener('DOMContentLoaded', function () {
+  var el = document.getElementById('log');
+  if (!el) return;
+  var ver = (document.querySelector('script[src*="app.js"]') || {}).src || '?';
+  var nl = String.fromCharCode(10);
+  el.textContent = '[启动] 页面版本 ' + ver.split('/').pop() + nl + el.textContent;
+  setTimeout(function () {
+    var box = document.getElementById('roll');
+    var nt = document.querySelectorAll('#trackList .tr, #trackList > div').length;
+    var nsec = document.querySelectorAll('#secStrip > *').length;
+    /* 像素级自检 + 主动二分：
+     *   · 手工 fillRect 之后仍为 0 → canvas 不可绘制（尺寸/CSS/上下文）
+     *   · 手工能画、renderRoll 之后仍为 0 → renderRoll 没被执行或提前 return
+     *   · renderRoll 之后有像素   → 首次渲染流程（renderAll）漏调了它 */
+    var ink = 0, ink2 = 0, err = '';
+    function count() {
+      ink = 0; ink2 = 0;
+      try {
+        var c2 = box.getContext('2d');
+        var d = c2.getImageData(0, 0, Math.min(box.width, 1200), Math.min(box.height, 486)).data;
+        for (var i = 0; i < d.length; i += 4) {
+          if (d[i + 3] === 0) continue;
+          var dr = Math.abs(d[i] - 15), dg = Math.abs(d[i + 1] - 17), db = Math.abs(d[i + 2] - 23);
+          if (dr + dg + db > 24) ink++;
+          if (dr + dg + db > 120) ink2++;
+        }
+      } catch (e) { err = '（像素读取失败: ' + e.message + '）'; }
+    }
+    count();
+    var first = ink + '/' + ink2;
+    /* 真值走 app.js 显式挂的 window.__studioProbe（app.js 虽是普通脚本、`const S/ENG` 也能
+       从这里读到，但显式接口更稳：将来改成 type="module" 时自检不会静默失效） */
+    var phEl = document.getElementById('rollPh');
+    var pr = (typeof window.__studioProbe === 'function') ? window.__studioProbe() : null;
+    var w0 = box.width, h0 = box.height;
+    /* 关键二分：**重置尺寸后立刻整幅填充**。
+     *   画得上 → 之前是"canvas 尺寸被改小/为 0，之后再没重画"（自维持就是解）
+     *   也画不上 → 绘制本身被阻断（上下文/CSS），换离屏 canvas 方案 */
+    var probe = '';
+    try {
+      var dpr = window.devicePixelRatio || 1;
+      box.width = Math.round(Math.max(320, box.clientWidth) * dpr);
+      box.height = Math.round(360 * dpr);
+      var c3 = box.getContext('2d');
+      c3.fillStyle = '#ff00ff';
+      c3.fillRect(0, 0, box.width, box.height);
+      count();
+      probe = '尺寸 ' + w0 + '×' + h0 + ' → 重置为 ' + box.width + '×' + box.height +
+              ' 后整幅填色 ' + ink;
+    } catch (e) { probe += ' · 主动绘制失败: ' + (e && e.message); }
+    try {
+      if (typeof window.renderRoll === 'function') {
+        box.getContext('2d').clearRect(0, 0, box.width, box.height);
+        window.renderRoll(); count(); probe += ' · renderRoll 后 ' + ink;
+      } else { probe += ' · window.renderRoll 不存在'; }
+    } catch (e) { probe += ' · renderRoll 抛错: ' + (e && e.message); }
+    el.textContent = '[自检] 卷帘 ' + (box ? box.width + '×' + box.height : '?') +
+      '（clientWidth ' + (box ? box.clientWidth : '?') + '）' +
+      /* 音轨卡是"数据有 N 轨 / DOM 有 M 张卡"两个数一起看：
+         M=0 而 N>0 就是取数错（曾经因为读 song.programs 而 song.json 没这字段 → 空面板） */
+      ' · 音轨卡 ' + nt + (pr ? '/' + pr.tracks + ' 轨' : '') +
+      ' · 播放头层 ' + (phEl ? (pr && pr.rollG ? '有' : '有(无几何)') : '缺') +
+      ' · 段落条 ' + nsec +
+      ' · 初始像素 ' + first + err +
+      ' · 重画诊断 ' + (window.__rollWhy || '无（正常）') +
+      ' · ' + probe +
+      ' · 早期错误 ' + (window.__BOOT_ERR_LIST.length ? window.__BOOT_ERR_LIST.join(' | ') : '无') +
+      nl + el.textContent;
+  }, 1500);
+});
+</script>
 </body>
 </html>

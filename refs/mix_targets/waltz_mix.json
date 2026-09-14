@@ -1,0 +1,147 @@
+{
+ "name": "waltz_mix",
+ "file": "aggregate(6 refs)",
+ "aggregate": true,
+ "theme": "waltz",
+ "bpm": 75.0,
+ "rms_db": -17.1,
+ "width": 0.544,
+ "centroid": 3548,
+ "duration": 238.9,
+ "character": "instrumental",
+ "bands": {
+  "10000-18000": -21.5,
+  "1250-2500": -9.3,
+  "160-315": -3.2,
+  "20-40": -17.4,
+  "2500-5000": -12.8,
+  "315-630": -4.3,
+  "40-80": -3.5,
+  "5000-10000": -15.3,
+  "630-1250": -6.6,
+  "80-160": -1.7
+ },
+ "structure": [
+  -18.0,
+  -18.0,
+  -18.0,
+  -16.0,
+  -16.0
+ ],
+ "rhythm_low": "·★····★······★··",
+ "rhythm_high": "★★··◇★·◇◇··★★★··",
+ "quiet_chroma": {
+  "F": 1.0,
+  "C": 0.75,
+  "A#": 0.57,
+  "C#": 0.25,
+  "F#": 0.25,
+  "A": 0.22
+ },
+ "periodicity": 0.363,
+ "members": [
+  {
+   "ref": "amakute",
+   "score": 0.915,
+   "bpm": 67.6,
+   "centroid": 3624,
+   "rms_db": -21.7,
+   "width": 0.53,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "あまくてとろける.flac",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM33",
+   "score": 0.83,
+   "bpm": 75.0,
+   "centroid": 3665,
+   "rms_db": -15.9,
+   "width": 0.404,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM33.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM16",
+   "score": 0.721,
+   "bpm": 75.0,
+   "centroid": 2826,
+   "rms_db": -17.4,
+   "width": 0.678,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM16.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM15d",
+   "score": 0.71,
+   "bpm": 79.2,
+   "centroid": 3548,
+   "rms_db": -20.4,
+   "width": 0.627,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM15d.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM12",
+   "score": 0.695,
+   "bpm": 78.0,
+   "centroid": 557,
+   "rms_db": -16.8,
+   "width": 0.544,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM12.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM01",
+   "score": 0.684,
+   "bpm": 64.0,
+   "centroid": 2810,
+   "rms_db": -17.1,
+   "width": 0.478,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM01.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  }
+ ],
+ "source_note": "多份真实录音画像的**逐维度中位数**（成员见 members，各自带 source）—— 单份画像的个性（偏亮/偏厚）不整体带进成品"
+}

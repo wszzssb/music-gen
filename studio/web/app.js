@@ -15,7 +15,7 @@ const FLAGS_ALL = ['uku','ep','piano','pad','strings','bass','arp','glock','gloc
 const S = {songs:[],sid:null,song:null,render:{},events:null,metrics:null,
   track:'Melody',sec:0,dirty:false,job:null,drag:null,hover:null,audioKind:'mix',
   mode:'master',stems:{},stemLoaded:false,metricWin:'',undo:[],redo:[],sel:null,
-  jobKind:null,searchRows:[],previewOn:false,
+  jobKind:null,searchRows:[],previewOn:false,soloTrack:null,
   zoom:1,viewStart:0,selNote:null};
 
 const $ = (id)=>document.getElementById(id);
@@ -39,10 +39,27 @@ async function loadSongs(){
   if(S.sid) await loadSong();
 }
 async function loadSong(){
-  const d = await api('/api/song?id='+encodeURIComponent(S.sid));
-  if(!d.ok) return alert('读不到：'+d.error);
+  let d;
+  try {
+    d = await api('/api/song?id='+encodeURIComponent(S.sid));
+  } catch (e) {
+    S.loadErr = '请求失败（' + (e && e.message ? e.message : e) + '）';
+    log('!! 读曲目失败：' + S.loadErr);
+    renderRoll();                       // 让卷帘把失败原因画出来（而不是空着）
+    return;
+  }
+  if(!d.ok){
+    S.loadErr = d.error || '未知错误';
+    log('!! 读不到曲目：' + S.loadErr);
+    renderRoll();
+    return;
+  }
+  S.loadErr = null;
   S.song=d.song; S.render=d.render||{}; S.events=d.events;
   S.dirty=false; S.sec=0;
+  /* 换曲目 / 重新载入 → 之前"试听某一轨 / 某一段"的临时音源作废，按钮文字回默认 */
+  S.soloTrack=null; S.previewOn=false;
+  if($('btnPreview')) $('btnPreview').textContent='⚡ 试听本段';
   if(S.events && S.events.tracks && !S.events.tracks[S.track])
     S.track = Object.keys(S.events.tracks)[0];
   const info = [S.song.bpm+'BPM', (S.events?S.events.bars:'?')+'小节',
@@ -52,7 +69,23 @@ async function loadSong(){
   await prepAudio();
   loadMetrics();
 }
-function renderAll(){renderTracks();renderStrip();renderSecEdit();renderRoll();renderStrips();drawWave();renderSearchSec();}
+/* 每个绘制环节**各自兜异常**：原来 renderAll 是一条直线，任何一环抛错 → 后面的全不画
+ * （用户报"卷帘是空的"就是 `renderRoll()` 在没数据时抛 TypeError 把整块吃掉）。
+ * 现在：单环失败不影响其它，失败原因收集到 `S.drawErrs` 并在卷帘上显示出来 —— 
+ * 宁可画一句"哪里错了"，也不要画一片空白。 */
+function renderAll(){
+  S.drawErrs = [];
+  for (const fn of [renderTracks, renderStrip, renderSecEdit, renderRoll,
+                    renderStrips, drawWave, renderSearchSec]) {
+    try { fn(); } catch (e) {
+      S.drawErrs.push(((fn.name||'?')+': '+(e&&e.message?e.message:e)).slice(0,160));
+    }
+  }
+  if (S.drawErrs.length) {
+    log('!! 绘制报错（不影响其它区块）：' + S.drawErrs.join(' | '));
+    setStatus('有 ' + S.drawErrs.length + ' 个绘制环节报错，见日志');
+  }
+}
 
 /* ---------------- 候选搜索 ---------------- */
 const SPEED={fast:{bars:4,budget:24,time:60},normal:{bars:8,budget:48,time:120},deep:{bars:16,budget:96,time:300}};
@@ -74,11 +107,7 @@ function renderSearchSec(){
     +'（实测约 0.4s/次 → 预计 '+Math.ceil(sp.budget*0.4/Math.max(1,parseInt($('searchWorkers').value||'4',10)))+' 秒）';
 }
 async function previewSection(){
-  if(S.previewOn){                      // 再点一次 → 回到整曲
-    S.previewOn=false; $('btnPreview').textContent='⚡ 试听本段';
-    await prepAudio(); log('已回到整曲播放');
-    return;
-  }
+  if(S.previewOn){ await backToFullSong('已回到整曲播放'); return; }   // 再点一次 → 回整曲
   if(S.dirty) await saveSong(true);
   const bars=SPEED[$('searchSpeed').value].bars;          // 与搜索用同一个"切片长度"档位
   const d=await api('/api/job?id='+encodeURIComponent(S.sid)+'&kind=preview',
@@ -98,6 +127,35 @@ async function playPreview(){
     S.previewOn=true; $('btnPreview').textContent='↩ 回整曲'; rAF();
     log('循环试听第 '+S.sec+' 段（切片 '+dur.toFixed(1)+'s）—— 改完再点一次按钮即可重听');
   }catch(e){ log('试听失败：'+e.message); }
+}
+/* 🎧 试听**某一轨**：把这一轨的临时渲染接进 ENG 的**完整播放通道**
+ * （进度条 / 波形 / 播放头 / ⏹ 停止都能用），而不是塞进一个没有控件的 <audio>。
+ *
+ * ⚠ 原来这一步根本不存在：`pollJob()` 完成后对**所有**任务一律
+ *   `S.player.src = '…kind=mix…'`（整曲）且**从不 play()** —— 服务端明明已经把
+ *   `solo_<轨>_<时间>.ogg` 渲染好了（`jobs_dir` 就是 `TMP_AUDIO`，`/api/audio?kind=solo`
+ *   也早就就绪），前端却既不取也不播 → 用户点"🎧 试听"**什么都不会响**。
+ * 现在：试听 = 临时替换主音源；点 ▶ 播放或"↩ 回整曲"会换回整曲（避免"以为在听整曲"）。 */
+async function playSolo(tr){
+  const url='/api/audio?id='+encodeURIComponent(S.sid)+'&kind=solo&track='+encodeURIComponent(tr)
+            +'&t='+Date.now();
+  try{
+    ENG.stop();
+    const ok=await ENG.loadMaster(url);
+    if(!ok){ log('试听 '+tr+' 失败：拿不到该轨音频（服务端 /api/audio?kind=solo）'); return; }
+    S.soloTrack=tr; S.previewOn=true;
+    $('btnPreview').textContent='↩ 回整曲';
+    drawWave(); rAF();
+    await ENG.play('master');
+    log('🎧 试听 '+tr+'（只有这一轨，'+(ENG.state().dur||0).toFixed(1)+'s）——'
+        +'点"↩ 回整曲"或按 ▶ 回到整曲');
+  }catch(e){ log('试听 '+tr+' 失败：'+(e&&e.message?e.message:e)); }
+}
+/* 回到整曲音源（试听某轨 / 试听某段 之后共用） */
+async function backToFullSong(why){
+  S.soloTrack=null; S.previewOn=false; $('btnPreview').textContent='⚡ 试听本段';
+  await prepAudio(); drawWave();
+  if(why) log(why);
 }
 
 async function startSearch(){
@@ -171,22 +229,76 @@ function renderSearchLog(txt){
 }
 
 /* ---------------- 音轨（按音轨制作） ---------------- */
+/* 音轨清单 / 音色 / 混音的**统一取数**（面板、混音台、段落 CC7、快捷键全用这里）。
+ *
+ * ⚠ 原来一律读 `S.song.programs` / `S.song.mix`，但 **song.json 里可以根本没有这两个字段**：
+ *   引擎侧的真值是 `DEFAULT + 风格预设(style) + song.json 覆盖`（song_engine.py 345-351），
+ *   未覆盖的曲目（如 42_gtr_tender）`song.programs === null` → `Object.keys(null||{})` = []
+ *   → **一个音轨卡都不渲染**，左侧面板只剩下面的"产物/大小"表（用户报"只有产物和大小"）。
+ *   实测：`/api/song` 返回的 song 键里没有 programs/mix，而 events.programs/mix 有全部 9 轨。
+ *
+ * 取数顺序：song.json 显式覆盖 > events 实测值 > 默认值。
+ * **不**把 events 的值预写进 S.song —— 只在用户真改某一轨时才写该轨，
+ * 免得"什么都没改却把 9 轨全写进 song.json"，把交付物的 diff 撑大。 */
+function trackRows(){
+  const ev=S.events||{}, et=ev.tracks||{}, ep=ev.programs||{}, em=ev.mix||{};
+  const sp=(S.song&&S.song.programs)||{}, sm=(S.song&&S.song.mix)||{};
+  const names=[];
+  for(const k of Object.keys(et)) names.push(k);
+  for(const k of Object.keys(ep)) if(names.indexOf(k)<0) names.push(k);
+  for(const k of Object.keys(sp)) if(names.indexOf(k)<0) names.push(k);
+  return names.map(t=>{
+    const e1=ep[t]||[], e2=em[t]||[];
+    const s1=sp[t]||[], s2=sm[t]||[];
+    return {name:t, notes:(et[t]&&et[t].n)||0, hasTrack:!!et[t],
+      prog:(t in sp)?(s1[0]===undefined?null:s1[0]):(t in ep?(e1[0]===undefined?null:e1[0]):null),
+      chan:(t in sp&&s1[1]!==undefined)?s1[1]:(e1[1]===undefined?0:e1[1]),
+      pan:(t in sm&&s2[0]!==undefined)?s2[0]:(e2[0]===undefined?64:e2[0]),
+      vol:(t in sm&&s2[1]!==undefined)?s2[1]:(e2[1]===undefined?80:e2[1])};
+  });
+}
+/* 写回 song.json 时**按需建字段**（song.json 允许没有 programs/mix）。
+ * ⚠ 必须"改哪个建哪个"：原来这个函数**无条件**把 `programs`/`mix` 都建成 `{}`，
+ *   于是"只拖了一下音量"也会往交付物里塞一个空的 `"programs": {}`（实测污染了
+ *   42_gtr_tender/song.json）—— 写空对象没有任何语义，纯粹是噪音。 */
+function songProgramsSlot(){
+  if(!S.song) return null;
+  if(!S.song.programs || typeof S.song.programs!=='object') S.song.programs={};
+  return S.song.programs;
+}
+function songMixSlot(){
+  if(!S.song) return null;
+  if(!S.song.mix || typeof S.song.mix!=='object') S.song.mix={};
+  return S.song.mix;
+}
+/* 从"当前显示值"补一个完整的 [prog, chan] / [pan, vol] 再改一维 —— 只改一维时另一维必须沿用
+ * 真实通道号（写错通道会撞车，check_song 的 channels_and_programs 会拦）。 */
+function setTrackProg(t, prog){
+  const p=songProgramsSlot(); if(!p) return;
+  const r=trackRows().find(x=>x.name===t)||{chan:0};
+  p[t]=[prog, (p[t]&&p[t][1]!==undefined)?p[t][1]:r.chan];
+}
+function setTrackMix(t, i, v){
+  const m=songMixSlot(); if(!m) return;
+  const r=trackRows().find(x=>x.name===t)||{pan:64, vol:80};
+  const cur=m[t]||[r.pan, r.vol];
+  m[t] = i===0 ? [v, cur[1]] : [cur[0], v];
+}
 function renderTracks(){
   const ev = S.events; const box=$('trackList'); box.innerHTML='';
   if(!ev) return;
-  const tracks = Object.keys(S.song.programs||{});
-  for(const t of tracks){
-    const notes = ev.tracks[t] ? ev.tracks[t].n : 0;
-    const prog = (S.song.programs[t]||[null,0])[0];
-    const mix = S.song.mix[t]||[64,80];
+  for(const row of trackRows()){
+    const t=row.name, notes=row.notes, prog=row.prog, mix=[row.pan,row.vol];
     const el=document.createElement('div'); el.className='track'+(t===S.track?' sel':'');
+    el.dataset.track=t;          // 供外部脚本/验收定位这一轨（卡片文本是"Melody338 音"，粘在一起不好解析）
     el.onclick=(e)=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;
       S.track=t; renderAll(); };
     el.innerHTML = `<div class="tname"><span class="swatch" style="background:${COLOR[t]||'#888'}"></span>
-      ${t}<span class="n">${notes} 音</span></div>
+      ${t}<span class="n">${notes} 音${row.hasTrack?'':'（无音符）'}</span></div>
       <div class="row"><label>音色</label>
         <input type="number" min="0" max="127" value="${prog===null?'':prog}" style="width:56px"
-          data-k="prog"><span class="dim">${GM[prog]||(prog===null?'鼓组':'GM'+prog)}</span></div>
+          data-k="prog"><span class="dim">${prog===null?'鼓组':(GM[prog]||('GM'+prog))}${
+          (S.song.programs&&(t in S.song.programs))?'':' · 预设'}</span></div>
       <div class="row"><label>音量</label><input type="range" min="0" max="127" value="${mix[1]}"
         data-k="vol"><span class="dim">${mix[1]}</span></div>
       <div class="row"><label>声像</label><input type="range" min="0" max="127" value="${mix[0]}"
@@ -196,9 +308,12 @@ function renderTracks(){
       inp.onfocus = ()=>pushUndo();
       inp.oninput = ()=>{
         const k=inp.dataset.k, v=parseInt(inp.value||'0',10);
-        if(k==='prog'){ S.song.programs[t]=[isNaN(v)?null:v, (S.song.programs[t]||[0,0])[1]]; }
-        else if(k==='vol'){ S.song.mix[t]=[(S.song.mix[t]||[64,80])[0], v]; }
-        else { S.song.mix[t]=[v,(S.song.mix[t]||[64,80])[1]]; }
+        // ⚠ 只改被编辑的那一维，另一维沿用**真实值**（通道 / 另一维混音）：
+        //   原来读 S.song.programs[t] 兜底 → null 时通道退化成 0 → 会撞车；
+        //   现在走 setTrackProg/setTrackMix 统一从 trackRows() 取真实值。
+        if(k==='prog'){ setTrackProg(t, isNaN(v)?null:v); }
+        else if(k==='vol'){ setTrackMix(t, 1, isNaN(v)?0:v); }
+        else { setTrackMix(t, 0, isNaN(v)?0:v); }
         S.dirty=true; renderTracks();
       };
     });
@@ -236,10 +351,10 @@ function renderSecEdit(){
     h += `<span class="chip${on?' on':''}" data-f="${f}">${f}${f==='perc'&&on?':'+sec.arr.perc:''}</span>`;
   }
   h += `</div><div class="chips dim">每轨在此段的 CC7：</div><div class="grid">`;
-  for(const t of Object.keys(S.song.programs||{})){
-    const v = ((sec.arr.mix||{})[t]);
+  for(const row of trackRows()){
+    const t=row.name, v=((sec.arr.mix||{})[t]);
     h += `<div class="cell"><div class="dim">${t}</div>
-      <input type="range" min="0" max="127" value="${v===undefined?(S.song.mix[t]||[64,80])[1]:v}"
+      <input type="range" min="0" max="127" value="${v===undefined?row.vol:v}"
         data-mix="${t}"><span class="dim">${v===undefined?'(全局)':v}</span></div>`;
   }
   box.innerHTML=h;
@@ -305,7 +420,18 @@ function rollView(){                                  // 缩放/滚动窗口（�
   return {st, span, tb, z};
 }
 function rollGeom(){
-  const c=$('roll'); const W=c.width=c.clientWidth*devicePixelRatio; const H=c.height=360*devicePixelRatio;
+  const c=$('roll');
+  /* ⚠ 尺寸必须**兜底**：`clientWidth` 在布局未完成/被隐藏时可能是 0，
+   *   此时 `c.width = c.clientWidth * dpr = 0` → 画得再对也**看不见**（用户报"卷帘是空的"，
+   *   而左侧音轨卡与波形都正常，就是这个：canvas 尺寸被置 0 了）。
+   *   另外**只在尺寸真的变了才重设**（每帧改写 canvas 尺寸会清空画布 + 掉帧）。 */
+  const cssW = Math.max(320, c.clientWidth || (c.parentElement && c.parentElement.clientWidth) || 1200);
+  const cssH = 360;
+  const dpr = devicePixelRatio || 1;
+  const wantW = Math.round(cssW * dpr), wantH = Math.round(cssH * dpr);
+  if (c.width !== wantW) { c.width = wantW; c.style.width = cssW + 'px'; }
+  if (c.height !== wantH) { c.height = wantH; c.style.height = cssH + 'px'; }
+  const W = c.width, H = c.height;
   const notes=allNotes();
   let lo=48,hi=88;
   if(notes.length){lo=Math.min(...notes.map(n=>n.pitch))-2;hi=Math.max(...notes.map(n=>n.pitch))+2;}
@@ -315,9 +441,60 @@ function rollGeom(){
     px:(x)=>v.st+x/vW(x)*v.span, ppy:(y)=>hi-(y/(H/(hi-lo+1)))-1};
   function vW(){return c.width;}
 }
+/* ⚠ 画完**自检**：canvas 上到底有没有东西，肉眼和日志都靠不住（用户报"卷帘是空的"
+ *   而所有数据/音轨卡都正常）。这里画完直接数一次非背景像素；若是空的就
+ *   **按当前布局重置尺寸再重画一次**（最多 3 轮）—— 尺寸为 0/被改小是这类症状的常见根因，
+ *   重画之后仍为空则把原因记进 `S.rollEmptyWhy`，由页面自检显示出来。 */
+function rollPainted(c, W, H) {
+  try {
+    const d = c.getContext('2d').getImageData(0, 0, Math.min(W, 600), Math.min(H, 300)).data;
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] === 0) continue;
+      if (Math.abs(d[i] - 15) + Math.abs(d[i + 1] - 17) + Math.abs(d[i + 2] - 23) > 24) n++;
+    }
+    return n;
+  } catch (e) { S.rollEmptyWhy = '像素读取失败: ' + e.message; return -1; }
+}
 function renderRoll(){
-  const g=rollGeom(), {ctx,W,H,v}=g;
+  let tries = 0;
+  for (;;) {
+    const g = rollGeom();
+    paintRoll(g);
+    if (rollPainted(g.c, g.W, g.H) !== 0 || tries >= 3) break;
+    // 画了但画布是空的 → 强制按布局重置尺寸再试（尺寸为 0/被改小是常见根因）
+    const dpr = devicePixelRatio || 1;
+    const cssW = Math.max(320, g.c.clientWidth ||
+                          (g.c.parentElement && g.c.parentElement.clientWidth) || 1200);
+    S.rollEmptyWhy = '画布尺寸 ' + g.c.width + '×' + g.c.height + '（clientWidth ' +
+                     g.c.clientWidth + '）绘制后为空，已第 ' + (tries + 1) + ' 次重置重画';
+    g.c.width = Math.round(cssW * dpr);
+    g.c.height = Math.round(360 * dpr);
+    g.c.style.width = cssW + 'px';
+    g.c.style.height = '360px';
+    tries++;
+  }
+  if (tries === 0) { S.rollEmptyWhy = null; window.__rollWhy = null; }
+  else { window.__rollWhy = S.rollEmptyWhy; }   // 暴露给页面自检（S 是模块作用域，外部读不到）
+}
+function paintRoll(g){
+  const {ctx,W,H,v}=g;
   ctx.clearRect(0,0,W,H); ctx.fillStyle='#0f1117'; ctx.fillRect(0,0,W,H);
+  /* ⚠ 曲目还没加载进来时必须**自己说清楚**（用户报"卷帘是空的"）：
+   *   原来这里直接 `S.song.sections` → 未加载时抛 TypeError → 整个重绘中断 →
+   *   画布保持空白、也没有任何提示，看起来就是"功能坏了"。
+   *   所以：没数据就画一句人话（并说明怎么修），而不是让异常把画面吃掉。 */
+  if(!S.song){
+    S.rollG=null;                                   // 没数据 → 播放头也不该停在旧位置
+    ctx.fillStyle='#8b90a4'; ctx.font=(13*(devicePixelRatio||1))+'px sans-serif';
+    ctx.fillText(S.loadErr?('曲目加载失败：'+S.loadErr):'还没加载曲目 —— 左上角选一首（或按 ↻ 刷新）',
+                 14, 26);
+    if(S.loadErr){
+      ctx.fillStyle='#ffb454';
+      ctx.fillText('若服务刚重启：刷新页面（Ctrl+F5）后重试', 14, 48);
+    }
+    return;
+  }
   // ① 和弦内音导引带（按小节的和弦）
   const rowH=H/(g.hi-g.lo+1);
   for(let b=Math.floor(v.st/4)*4; b<v.st+v.span+4; b+=4){
@@ -366,13 +543,44 @@ function renderRoll(){
     }
     ctx.globalAlpha=1;
   }
-  drawPlayhead();
+  // 左上角自证一行：**音符数与范围**（用户报"卷帘是空的"时，一眼就能分清是
+  // "没数据"还是"画不出来" —— 有这行数字就不用再来回猜）
+  try {
+    // ⚠ 用 `allNotes()` 现取，别引用 `notes`：`renderRoll` 里音符是直接
+    //   `for(const n of allNotes())` 遍历的，**没有** `notes` 变量 ——
+    //   写成 `notes.length` 会抛 ReferenceError，被这里的 try 吞掉，
+    //   结果就是"加了自证行却什么也没显示"（实测踩过）。
+    const ns = allNotes();
+    const tot = ns.length, ed = ns.filter(n=>n.editable).length;
+    ctx.globalAlpha=1;
+    ctx.fillStyle='rgba(15,17,23,.72)';
+    ctx.fillRect(0,0,240,18);
+    ctx.fillStyle = tot ? '#7f8a9a' : '#ffb454';
+    ctx.font=(11*(devicePixelRatio||1))+'px sans-serif';
+    ctx.fillText((S.sid||S.cur||'')+' · 音符 '+tot+'（可编辑 '+ed+'）', 6, 13);
+    // 有绘制错误就在卷帘上写出来（否则用户只能看到"空的"）
+    if (S.drawErrs && S.drawErrs.length) {
+      ctx.fillStyle='#ff6b6b';
+      ctx.fillText('绘制错误：' + S.drawErrs[0], 6, 30);
+    }
+  } catch(e) { /* 自证信息不该影响主绘制 */ }
+  S.rollG=g;                       // 播放头用**同一次绘制**的几何（保证与音符严格对齐）
+  drawPlayhead(g);
 }
-function drawPlayhead(){
-  if(!S.events) return;
-  const g=rollGeom(), spb=60/(S.song.bpm||120);
-  const x=g.x(ENG.position()/spb);
-  if(x>=0&&x<=g.W){ g.ctx.fillStyle='#ff6b6b'; g.ctx.fillRect(x-1,0,2,g.H); }
+/* 播放头：**独立 DOM 叠加层**（#rollPh），不再画在卷帘画布上。
+ * 原实现每帧往画布上补一条 2px 红线而**从不擦除上一帧的** —— 播放时残影叠成红带，
+ * 拖进度条时位置大跨度跳跃、旧线全部留下，看起来就是"满屏红色竖条"（用户报的
+ * "拖动进度条之后还有显示bug"）。现在只改 transform：不重绘画布、不触发排版、
+ * 也不可能有残影（canvas 上零个播放头像素）。 */
+function drawPlayhead(g0){
+  const ph=$('rollPh'); if(!ph) return;
+  const g=g0||S.rollG;
+  if(!g||!S.events||!S.song){ ph.style.opacity='0'; return; }
+  const dpr=devicePixelRatio||1;
+  const x=g.x(ENG.position()/(60/(S.song.bpm||120)));
+  if(!(x>=0&&x<=g.W)){ ph.style.opacity='0'; return; }   // 视野外 → 隐藏（NaN 也走这里）
+  ph.style.opacity='1';
+  ph.style.transform='translateX('+(x/dpr).toFixed(1)+'px)';
 }
 function rollHit(mx,my){
   const g=rollGeom(), beat=g.v.st+mx/g.W*g.v.span, pitch=Math.round(g.ppy(my));
@@ -502,10 +710,21 @@ async function pollJob(){
   if(S.jobKind==='search') renderSearchLog(d.log||'');
   $('jobInfo').textContent='· '+d.job.kind+' '+d.job.state+(d.job.rc!==null?(' rc='+d.job.rc):'');
   if(d.job.state==='running'){ setTimeout(pollJob,800); }
-  else{ const wasKind=S.jobKind; S.job=null; S.jobKind=null;
+  else{ const wasKind=S.jobKind; const kind=(d.job&&d.job.kind)||wasKind||'';
+    S.job=null; S.jobKind=null;
     if(wasKind==='preview' && d.job.state==='done'){ await playPreview(); return; }
     if(d.job.state==='done'){
-      S.player.src='/api/audio?id='+encodeURIComponent(S.sid)+'&kind=mix&t='+Date.now();
+      if(d.job.rc!==null && d.job.rc!==0){ log('任务失败（rc='+d.job.rc+'）：'+(d.log||'').split('\n').slice(-3).join(' / ')); }
+      /* **按任务类型分派**：`solo:` 的产物必须**真的播出来**。
+       * 原来这里不分类型，一律 `S.player.src='…kind=mix…'` 且从不 play() ——
+       * 对 solo 试听来说等于"渲染完了没人听"（用户报"试听按钮没有用"）；
+       * 而整曲音源本来就会由下面的 `loadSong() → prepAudio()` 重新载入，那行是死代码
+       * （顺带还有个雷：用户先点过 ⏹ 之后 `S.player` 是 null，`S.player.src=` 会抛 TypeError）。 */
+      if(kind.indexOf('solo:')===0){
+        await loadSong();                       // 先回整曲（清掉上一次试听的状态）
+        await playSolo(kind.slice(5));
+        return;
+      }
       await loadSong(); loadMetrics();
     }
   }
@@ -542,17 +761,18 @@ function bind(){
   $('btnChords').onclick=openChordEditor;
   $('btnNew').onclick=async()=>{
     const id=prompt('新曲目名（字母/数字/下划线，例：24_my_song）'); if(!id) return;
-    const style=prompt('风格 acoustic/daily/gorgeous/dance/ballad','daily'); if(!style) return;
-    const from=prompt('模板曲目（照抄它的结构/编制）','05_d135_cheerful'); if(!from) return;
+    const theme=prompt('主题模板包（daily/seaside/night/tender/battle/gorgeous… 见 --list-themes）','daily');
+    if(!theme) return;
+    const ref=prompt('频谱对齐画像名（与模板依据无关，可留空用默认）','')||'';
     const d=await api('/api/new?id='+encodeURIComponent(id),
       {method:'POST',headers:{'content-type':'application/json'},
-       body:JSON.stringify({id,style,from})});
+       body:JSON.stringify({id,theme,ref})});
     if(!d.ok){ alert('新建失败：'+d.error+'\n'+(d.log||'')); return; }
     S.sid=id; await loadSongs();
   };
   $('btnRefresh').onclick=()=>{loadSong();};
   $('btnPlay').onclick=togglePlay;
-  $('btnStop').onclick=()=>{ ENG.stop(); S.player=null; drawWave(); };
+  $('btnStop').onclick=()=>{ ENG.stop(); drawWave(); };
   $('loopChk').onchange=applyLoop; $('loopA').onchange=applyLoop; $('loopB').onchange=applyLoop;
   document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
   $('btnLoadStems').onclick=loadStems; $('btnApplyMix').onclick=applyMixToSong;
@@ -569,19 +789,44 @@ function bind(){
   c.oncontextmenu=rollContext; c.onmouseleave=rollUp; c.onwheel=rollWheel;
   window.addEventListener('resize',()=>renderRoll());
 }
-function togglePlay(){
+async function togglePlay(){
   const s=ENG.state();
   if(s.playing){ ENG.pause(); drawWave(); return; }
+  /* 试听某一轨/某段是**临时替换主音源**：这时按 ▶ 必须换回整曲 ——
+   * 否则用户会以为在听整曲，其实只有一轨（或只有那一段循环）。 */
+  if(S.soloTrack || S.previewOn){
+    const why=S.soloTrack?('已回到整曲（'+S.soloTrack+' 试听结束）'):'已回到整曲（分段试听结束）';
+    await backToFullSong(why);
+  }
   ENG.play(S.mode).then(ok=>{ if(!ok) log('这一模式还没有音源：'+S.mode+'（分轨要先"载入分轨"）'); });
   rAF();
 }
 function rAF(){
+  let tick = 0;
   const step=()=>{
     const st=ENG.state();
-    drawPlayhead(); drawWave(true); drawMeters();
+    /* **卷帘自维持**：谁把 canvas 尺寸改回去（浏览器 reflow / dpr 变化 / 别的绘制路径），
+     * 这里下一帧就发现并重画 —— 用户报"卷帘是空的"而手工 fillRect 也画不上去，
+     * 就是"画完被清空"这一类；靠"只在数据变更时绘制"防不住。
+     * 只在尺寸真的变了才重画（不是每帧全量重绘）。 */
+    const c=$('roll');
+    if(c){
+      const dpr=devicePixelRatio||1;
+      const cssW=Math.max(320, c.clientWidth || (c.parentElement&&c.parentElement.clientWidth) || 1200);
+      const wantW=Math.round(cssW*dpr), wantH=Math.round(360*dpr);
+      if(c.width!==wantW || c.height!==wantH){
+        c.width=wantW; c.height=wantH; c.style.width=cssW+'px'; c.style.height='360px';
+        try{ renderRoll(); }catch(e){ /* 由 renderAll 的兜底统一报 */ }
+      }
+    }
+    drawPlayhead();
+    /* 波形/电平表降频到 ~12fps：这个循环现在常驻（播放与否都跑），
+     * 而 `drawWave` 每次都重设 canvas 尺寸并重画 1200 根柱子 —— 60fps 白烧 CPU。 */
+    tick++;
+    if(st.playing || (tick % 5) === 0) { drawWave(true); drawMeters(); }
     const d=st.dur||0, p=ENG.position();
-    $('posInfo').textContent=p.toFixed(1)+' / '+d.toFixed(1)+'s';
-    if(st.playing) requestAnimationFrame(step);
+    $('posInfo').textContent=num(p).toFixed(1)+' / '+num(d).toFixed(1)+'s';
+    requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
@@ -591,9 +836,15 @@ async function prepAudio(){
     await ENG.loadRef('/api/ref-audio?id='+encodeURIComponent(S.sid)+'&t='+Date.now());
   }catch(e){ log('音源加载失败：'+e.message); }
   const st=ENG.state();
-  if(! $('loopB').value) { $('loopB').value=(st.dur||0).toFixed(1); }
+  /* ⚠ 这里必须用 `Number.isFinite` 兜底：`st.dur` 可能是 NaN（解码失败/替身环境），
+   *   而 `NaN || 0` 仍然是 NaN → `.toFixed()` 抛异常 → **`loadSong()` 在这里断掉**，
+   *   后面的 `renderAll()` 虽然是先调用的，但切歌流程整体失败（用户侧表现为"卷帘不更新"）。
+   *   数字格式化一律走 `num()`，任何环节的脏数据都不许中断渲染。 */
+  if(! $('loopB').value) { $('loopB').value = num(st.dur).toFixed(1); }
   drawWave();
 }
+/* 任何"可能不是有限数"的值 → 安全数字（NaN/undefined/null/Infinity 一律 0） */
+const num = (x, dflt) => (Number.isFinite(Number(x)) ? Number(x) : (dflt === undefined ? 0 : dflt));
 function setMode(m){
   S.mode=m;
   document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
@@ -654,13 +905,13 @@ async function loadStems(){
 }
 function renderStrips(){
   const box=$('strips'); box.innerHTML='';
-  const tracks=Object.keys(S.song.programs||{});
-  for(const t of tracks){
+  for(const row of trackRows()){
+    const t=row.name;
     const m=ENG.mix[t]||{gain:1,pan:0,mute:false,solo:false};
     const has=!!S.stems[t];
     const el=document.createElement('div'); el.className='strip'+(has?'':' off');
     el.innerHTML=`<div class="nm"><span class="swatch" style="background:${COLOR[t]||'#888'}"></span>${t}
-        <span class="dim" style="margin-left:auto">${GM[(S.song.programs[t]||[null])[0]]||''}</span></div>
+        <span class="dim" style="margin-left:auto">${row.prog===null?'鼓组':(GM[row.prog]||('GM'+row.prog))}</span></div>
       <div class="meter"><i data-m="${t}"></i></div>
       <div class="rowc"><label>vol</label><input type="range" min="0" max="200" value="${Math.round((m.gain??1)*100)}" data-g="${t}"></div>
       <div class="rowc"><label>pan</label><input type="range" min="-100" max="100" value="${Math.round((m.pan??0)*100)}" data-p="${t}"></div>
@@ -688,12 +939,16 @@ function drawMeters(){
 }
 async function applyMixToSong(){
   let n=0;
+  const rows=trackRows();
   for(const t of Object.keys(ENG.mix)){
-    if(!(t in (S.song.mix||{}))) continue;
-    const m=ENG.mix[t]; const old=S.song.mix[t]||[64,80];
+    /* ⚠ 原先这里 `if(!(t in (S.song.mix||{}))) continue;` —— song.json 没有 mix 字段时
+     *   **每一轨都被跳过**，于是"混音台调完 → 应用到曲目"静默什么也没做（用户看不到任何反馈）。
+     *   现在以 trackRows()（= events 实测值）为准，任何面板上存在的轨都可写回。 */
+    const row=rows.find(x=>x.name===t); if(!row) continue;
+    const m=ENG.mix[t]; const old=[row.pan,row.vol];
     const vol=Math.max(0,Math.min(127,Math.round((m.gain??1)*100)));
     const pan=Math.max(0,Math.min(127,Math.round(((m.pan??0)+1)/2*127)));
-    if(vol!==old[1]||pan!==old[0]){ S.song.mix[t]=[pan,vol]; n++; }
+    if(vol!==old[1]||pan!==old[0]){ setTrackMix(t,0,pan); setTrackMix(t,1,vol); n++; }
   }
   S.dirty=true; renderTracks();
   log('已写回 song.json 的 mix：'+n+' 轨有改动（记得💾保存 / 🔊以当前混音渲染）');
@@ -709,7 +964,7 @@ function onKey(e){
   else if(e.key==='Delete'&&S.selNote){ delSelNote(); }
   else if(e.key==='['&&S.selNote){ S.selNote.vel=Math.max(1,(S.selNote.vel||80)-8); syncVel(S.selNote); renderRoll(); }
   else if(e.key===']'&&S.selNote){ S.selNote.vel=Math.min(127,(S.selNote.vel||80)+8); syncVel(S.selNote); renderRoll(); }
-  else if(e.key>='1'&&e.key<='9'){ const t=Object.keys(S.song.programs||{})[+e.key-1]; if(t){S.track=t;renderAll();} }
+  else if(e.key>='1'&&e.key<='9'){ const r=trackRows()[+e.key-1]; if(r){S.track=r.name;renderAll();} }
 }
 function pushUndo(){ S.undo.push(JSON.stringify(S.song)); if(S.undo.length>60) S.undo.shift(); S.redo=[]; }
 function undo(){ if(!S.undo.length) return log('没有可撤销的步骤');
@@ -810,3 +1065,23 @@ function openChordEditor(){
 }
 
 bind(); loadSongs();
+
+/* 给 index.html 的启动自检 / tools/browser_check.js 用的显式接口。
+ * 说明（之前这里写过一句不准确的话）：app.js 是**普通脚本**，顶层 `const ENG/S` 进的是
+ * **全局词法环境**，页面上其它 <script> 与 CDP 的 Runtime.evaluate 都读得到 ——
+ * 不需要 `window.ENG` 这种写法（用了反而读不到）。这里挂 window 只是**写明契约**：
+ * 将来若把 app.js 改成 type="module"，自检与验收脚本不会静默失效。 */
+window.renderRoll = renderRoll;
+window.__studioProbe = () => {
+  let rows=[], st={};
+  try { rows = trackRows(); } catch (e) { rows = []; }
+  try { st = (typeof ENG !== 'undefined' && ENG.state) ? ENG.state() : {}; } catch (e) { st = {}; }
+  return {tracks: rows.length, events: !!S.events, song: !!S.song,
+          rollG: !!S.rollG, ph: !!$('rollPh'), track: S.track,
+          notes: (S.events && S.events.tracks && S.events.tracks[S.track]) ?
+                 (S.events.tracks[S.track].n || 0) : 0,
+          /* 播放/定位真值：验收脚本要判断"seek 到底有没有生效"（headless 里 dur 可能是 0） */
+          dur: st.dur || 0, pos: (typeof ENG !== 'undefined' && ENG.position) ? ENG.position() : null,
+          mode: st.mode || S.mode, playing: !!st.playing,
+          ctxState: (ENG && ENG.ctx && ENG.ctx.state) || null};
+};

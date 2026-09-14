@@ -50,5 +50,14 @@
   "2500-5000",
   "5000-10000",
   "10000-18000"
- ]
+ ],
+ "source": {
+  "kind": "project_audio",
+  "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+  "file": "BGM01.ogg",
+  "origin_path": null,
+  "url": null,
+  "url_alt": [],
+  "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+ }
 }

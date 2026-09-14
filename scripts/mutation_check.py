@@ -13,6 +13,7 @@ import json
 import os
 import sys
 import tempfile
+import atexit
 from contextlib import redirect_stdout
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -31,6 +32,21 @@ import token_audit             # noqa: E402
 import json_io                 # noqa: E402
 
 TMP = tempfile.mkdtemp(prefix='mutation_')
+
+
+def _cleanup_tmp():
+    """退出时删掉临时目录（**它以前从不清理**，实测累积 600+ 个 / 上百 MB；
+    `DSH_KEEP_TMP=1` 时保留，便于回看注入用例的中间产物）"""
+    if os.environ.get('DSH_KEEP_TMP'):
+        print('  (DSH_KEEP_TMP=1：保留临时目录 %s)' % TMP)
+        return
+    import shutil
+    shutil.rmtree(TMP, ignore_errors=True)
+
+
+atexit.register(_cleanup_tmp)
+
+
 GOOD_SONG = {'name': 'mut', 'bpm': 120, 'style': 'daily',
              'chords': {'D': [38, [57, 62, 66, 69, 74]]},
              'melody': {'m': [[0, 0, 1, 74]]},
@@ -45,6 +61,62 @@ def temp_song_dir(mutate=None):
         mutate(data)
     json.dump(data, open(os.path.join(d, 'song.json'), 'w', encoding='utf-8'))
     return d
+
+
+_AUDIO_FIX = []
+
+
+def audio_fixture():
+    """**给音频类检查造一份真夹具**：一首 16 小节的小曲 + 真渲染出的 `_sf.wav` + render.json。
+
+    为什么必须有它：仓库现在**只留 MIDI**（用户要求，见 .gitignore），所以 `songs/` 里没有
+    任何音频 —— `audio_health` / `audio_semantics` / `alignment_vs_refs` 会**空转**
+    （它们只遍历存在的音频，一个都没有就整条跳过）。空转的检查在变异测试里表现为"漏了"，
+    而实际上故障注入根本没碰到东西。夹具让这三条检查**真有东西可查**，
+    于是"注入故障 → 必须被抓"才有意义（这类"空集合假通过"坑 117 系列已踩过多次）。
+
+    **长度必须够**：短夹具（1 小节 = 2s）配 `audio_semantics` 的"+8s 混响尾"宽松窗口，
+    "时长只有一半"根本落不进窗口（实测漏了）；16 小节 = 32s，砍半 16s 必然越界。
+    """
+    import song_engine
+    import render_midi
+    if _AUDIO_FIX:
+        return _AUDIO_FIX[0]
+    d = tempfile.mkdtemp(dir=TMP)
+    data = {'name': 'mutfix', 'bpm': 120, 'style': 'daily',
+            'chords': {'C': [36, [55, 60, 64, 67, 72]]},
+            'melody': {'m': [[b, 0, 2.0, 72] for b in range(16)]},
+            'sections': [{'name': 'A', 'bars': 16, 'chords': ['C'] * 16, 'melody': 'm',
+                          'arr': {'uku': True, 'piano': True, 'bass': True,
+                                  'pad': True, 'glock': True, 'perc': 1}}]}
+    json.dump(data, open(os.path.join(d, 'song.json'), 'w', encoding='utf-8'))
+    mid = os.path.join(d, 'mutfix.mid')
+    with redirect_stdout(io.StringIO()):
+        song_engine.compose(os.path.join(d, 'song.json'), mid)
+        render_midi.render(mid, os.path.join(d, 'mutfix_sf'), rms_db=-16.9, width=1.5,
+                           shelf_db=3.0, hp_hz=38.0, low_db=0.0, drive=1.6,
+                           mid_db=0.0, verbose=False, ogg=False)
+    json.dump({'composer': 'compose.py', 'mid': 'mutfix.mid', 'out': 'mutfix_sf',
+               'ref': 'BGM16c'},
+              open(os.path.join(d, 'render.json'), 'w', encoding='utf-8'))
+    _AUDIO_FIX.append(d)
+    return d
+
+
+def with_fixture(mutate):
+    """把 `song_dirs()` 指向音频夹具，再叠上故障注入（两层上下文一起进）"""
+    class _Both:
+        def __enter__(self):
+            self.m = mutate()
+            self.fx = Mut(st, 'song_dirs', lambda **k: [audio_fixture()])
+            self.fx.__enter__()
+            self.m.__enter__()
+            return self
+
+        def __exit__(self, *a):
+            self.m.__exit__(*a)
+            return self.fx.__exit__(*a)
+    return _Both
 
 
 def run_check(name):
@@ -296,20 +368,22 @@ def main():
     results.append(case('宽度测量偏 0.5', 'metrics_instrument_accuracy',
                         lambda: Mut(st.metrics, 'width', lambda x: real_width(x) + 0.5)))
 
-    # 21~23. 音频故障：这两条检查**自己直接读音频**（sf.read），不走 metrics.load
+    # 21~23. 音频故障：这两条检查**自己直接读音频**（sf.read），不走 metrics.load。
+    # **必须自带夹具**：仓库只留 MIDI → songs/ 里没有音频，不注入夹具的话这三条
+    # 会空转（变异测试里表现为"漏了"，其实是没东西可查）。
     real_sf_read = st.sf.read
     results.append(case('成品音频削波', 'audio_health',
-                        lambda: Mut(st.sf, 'read',
-                                    lambda f, **k: (lambda t: (t[0] * 4.0, t[1]))(
-                                        real_sf_read(f, **k)))))
+                        with_fixture(lambda: Mut(st.sf, 'read',
+                                                 lambda f, **k: (lambda t: (t[0] * 4.0, t[1]))(
+                                                     real_sf_read(f, **k))))))
     results.append(case('成品时长只有一半', 'audio_semantics',
-                        lambda: Mut(st.sf, 'read',
-                                    lambda f, **k: (lambda t: (t[0][:len(t[0]) // 2], t[1]))(
-                                        real_sf_read(f, **k)))))
+                        with_fixture(lambda: Mut(st.sf, 'read',
+                                                 lambda f, **k: (lambda t: (t[0][:len(t[0]) // 2], t[1]))(
+                                                     real_sf_read(f, **k))))))
     results.append(case('有声段落被静音', 'audio_semantics',
-                        lambda: Mut(st.sf, 'read',
-                                    lambda f, **k: (lambda t: (t[0] * 1e-6, t[1]))(
-                                        real_sf_read(f, **k)))))
+                        with_fixture(lambda: Mut(st.sf, 'read',
+                                                 lambda f, **k: (lambda t: (t[0] * 1e-6, t[1]))(
+                                                     real_sf_read(f, **k))))))
 
     # 24. 人声/器乐判定永远返回 instrumental（静默改对标靶子）
     results.append(case('人声判定永远 instrumental', 'vocal_classifier_sanity',
@@ -367,6 +441,9 @@ def main():
         `alignment_vs_refs` 改版后**默认只提示**（创作不该被参考画像绑架）；
         只有曲目声明 strict_align 才把 8dB 当门 —— 所以注入故障时必须同时声明，
         这个用例才测得到"这条检查仍咬得住真的漂了"。跑完原样恢复。
+
+        ⚠ 需要**有音频的曲目**：仓库只留 MIDI 时它一个都找不到 → 整条空转（曾表现为"漏了"），
+        所以外部套 `with_fixture` 给一份真渲染的夹具。
         """
 
         def __enter__(self):
@@ -390,7 +467,7 @@ def main():
             st.scorecard.load_ref = self._ref
 
     results.append(case('画像整体偏移 20dB（声明 strict_align 后必须被抓）',
-                        'alignment_vs_refs', lambda: _StrictAndShift()))
+                        'alignment_vs_refs', with_fixture(_StrictAndShift)))
 
     # 31. 豁免理由留空也算数（等于检查可被一句空话绕过）
     results.append(case('空白理由被当成有效豁免', 'alignment_vs_refs',
@@ -811,6 +888,21 @@ def main():
                                     lambda iv, gap=0.5: [(min(s for s, _e in iv),
                                                           max(e for _s, e in iv))])))
 
+    # 临时目录卫生：把总量预算压到 0 → 必须按"有工具在漏文件"断言失败
+    # （实测那 7.5GB 的 selftest_* 就是这么漏出来的：TMP 是模块级创建、import 即生成；
+    #   >24 小时的残留走**自愈**清理，所以这里测的是预算那条判据）
+    results.append(case('临时目录总量预算被改坏（0MB=一有就报）',
+                        'tmp_hygiene',
+                        lambda: Mut(st, 'TMP_MAX_MB', 0.0)))
+
+    # 面板音频缓存清理失效（变成空操作）→ "过期项必删"必须断言失败
+    # （它以前从不清理：实测涨到 0.93GB / 12 个 job 目录）
+    # ⚠ 必须拿**检查项用的同一个模块对象**（`st.load_studio_server()` 会缓存到 sys.modules）
+    _srv = st.load_studio_server()
+    results.append(case('面板缓存清理变成空操作',
+                        'studio_cache_prune',
+                        lambda: Mut(_srv, 'prune_tmp_audio', lambda **k: (0, 0.0))))
+
     # 换气阈值被抬到天上（等于"永远不需要换气"）→ 修复工具不会出手，检查必须抓到
     results.append(case('换气阈值被关掉（工具不再出手）',
                         'breath_fix_works',
@@ -861,6 +953,224 @@ def main():
     results.append(case('注入"小步打转"(|iv|≤1 占 50%)的曲目',
                         'melody_health',
                         lambda: Mut(_mh, 'collect', lambda *a, **k: [dict(_stag)])))
+
+    # 主题模板包（用户口径：一次生成依据"很多同主题模板"，来源只许 refs/midi2 或权威网络数据）
+    import theme_pack as _tp
+    # ① 白名单被放宽成"随便什么站点都算权威" → 来源校验必须失效被抓
+    results.append(case('主题包来源白名单被改坏（人人都是权威）',
+                        'theme_pack_valid',
+                        lambda: Mut(_tp, 'AUTHORITATIVE_HOSTS', ('example.com',))))
+    # ② 模板库索引读不到（模板不在库里）→ "模板必须来自 refs/midi2"必须断言失败
+    results.append(case('模板库索引被清空（模板不在库里）',
+                        'theme_pack_valid',
+                        lambda: Mut(_tp, 'lib_index', lambda *a, **k: [])))
+    # ③ 主题表被清空 → 包里的主题认不出来，必须被抓
+    results.append(case('主题表被清空（包里的主题认不出）',
+                        'theme_pack_valid',
+                        lambda: Mut(_tp, 'THEMES', {})))
+    # ④ 主题包路径被指向不存在 → "声明了主题却找不到包"必须被抓
+    #   （路径要在 ROOT 下：放 TMP 会跨盘 relpath 抛 ValueError，那样算"抓到"是假阳性）
+    results.append(case('主题包路径被改坏（声明了却找不到）',
+                        'theme_basis_whitelist',
+                        lambda: Mut(_tp, 'pack_path',
+                                    lambda theme, root=None: os.path.join(
+                                        ROOT, 'refs', 'themes', 'nope_%s.json' % theme))))
+    # ⑤ 歌曲里的主题名认不出来（改过 THEMES 表 / 手写主题名）→ 逐首核对必须断言失败
+    results.append(case('歌曲声明的主题不在主题表里',
+                        'theme_basis_whitelist',
+                        lambda: Mut(_tp, 'THEMES', {})))
+
+    # ⑥ 主题包的**混音目标**被改成不存在的画像 → 守卫必须抓
+    #    （不然生成时 render.json 会指向空画像；用临时改写包文件的方式注入真实数据故障）
+    class _BadMixTarget:
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'refs', 'themes', 'daily.json')
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            j['mix_target'] = {'ref': 'no_such_portrait', 'score': 0.1}
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                json.dump(j, f, ensure_ascii=False, indent=1)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(self.txt)
+
+    results.append(case('主题包混音目标指向不存在的画像',
+                        'theme_pack_valid', _BadMixTarget))
+
+    # ⑦ 主题包把**基础声部 bass** 按"角色缺失"关掉（低音区明明有内容）→ 守卫必须抓
+    #    （实测教训：钢琴曲没有独立贝斯轨，照"缺失即关"处理 → 成品 40–80Hz 掉到 −33dB）
+    class _KillBass:
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'refs', 'themes', 'classic.json')
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            j['arrangement']['arr_off'] = sorted(set(
+                (j['arrangement'].get('arr_off') or []) + ['bass']))
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                json.dump(j, f, ensure_ascii=False, indent=1)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(self.txt)
+
+    results.append(case('主题包把基础声部 bass 关掉（低音区有内容）',
+                        'theme_pack_valid', _KillBass))
+
+    # 旋律结构层（动机/期待/终止式）：
+    # ① 大跳阈值抬到 99 → 没有任何音程算大跳 → 期待规则无从检验（样本量为 0 必须被拦）
+    # ② 大跳阈值压到 0 → 每个音程都算大跳 → 反向率掉到 ~50%（随机方向），必须断言失败
+    import melody_gen as _mg
+    results.append(case('旋律：大跳阈值抬到 99（期待规则空转）',
+                        'melody_motif_rules',
+                        lambda: Mut(_mg, 'LEAP_IV', 99)))
+    results.append(case('旋律：大跳阈值压到 0（人人都是大跳）',
+                        'melody_motif_rules',
+                        lambda: Mut(_mg, 'LEAP_IV', 0)))
+
+    # 旋律**形态层**（铺满小节 / 不许每小节复刻）—— 三条注入，各自对应一条新判据：
+    # ③ 关掉**变体层**（`VARIANTS_ON=False` → 每小节复刻同一 figure）→
+    #    `rhythm_repeat` 必须回升到上限之上（否则"呆板"这条判据是装饰性的）
+    # ④ 关掉**"落点铺满小节"的整套机制**（覆盖下限 + 打分里的末落点偏好）→
+    #    落点退回"只说前半句" → `last8`/`maxgap_med` 必须破门
+    #    ⚠ 只把 `CELL_LAST_MIN` 设 0 **抓不到**：`_cell_fit` 里"末落点越靠后越好"
+    #      那一档仍会把落点挑到小节末（实测漏了一次）—— 注入必须打在真机制上。
+    # ⑤ 关掉**句内拱形**（权重 0）→ 高点位置随机 → `peak_pos` 必须破门
+    class _NoFill:
+        def __enter__(self):
+            self.a, self.b = _mg.CELL_LAST_MIN, _mg.CELL_TAIL_W
+            _mg.CELL_LAST_MIN, _mg.CELL_TAIL_W = 0, 0.0
+
+        def __exit__(self, *a):
+            _mg.CELL_LAST_MIN, _mg.CELL_TAIL_W = self.a, self.b
+    results.append(case('旋律：关掉动机变体层（每小节复刻）',
+                        'melody_motif_rules',
+                        lambda: Mut(_mg, 'VARIANTS_ON', False)))
+    results.append(case('旋律：关掉落点铺满机制（只说前半句）',
+                        'melody_form_rules', _NoFill))
+    results.append(case('旋律：关掉落点间隔上限（说一句停一下）',
+                        'melody_form_rules',
+                        lambda: Mut(_mg, 'CELL_GAP_MAX', 99)))
+    results.append(case('旋律：关掉句内拱形（高点乱落）',
+                        'melody_form_rules',
+                        lambda: Mut(_mg, 'ARCH_W', 0.0)))
+    # ⑥ 音域：把画像 range 两头收窄 8 个半音（旧版收窄 2/1 的放大版）→ 音域判据必须抓到
+    results.append(case('旋律：音域收窄（用不足画像音域）',
+                        'melody_form_rules',
+                        lambda: Mut(_mg, 'SPAN_TRIM', 8)))
+
+    # 和声收束（主题路径）与力度曲线（opt-in）：
+    # ⑦ 关掉 `cadence_pair` → 段末回到"进行原样循环"，永远停在属和弦 → 收束判据必须抓到
+    # ⑧ 关掉力度包络函数（恒等）→ 旋律力度掉回硬编码 2 档 → opt-in 判据必须抓到
+    import new_song as _ns
+    import song_engine as _se
+    results.append(case('和声：关掉段末 V→I 收束',
+                        'theme_cadence',
+                        lambda: Mut(_ns, 'cadence_pair', lambda pack, progs: None)))
+    results.append(case('力度：关掉乐句力度包络',
+                        'melody_dyn_optin',
+                        lambda: Mut(_se, 'mel_dyn_env', lambda *a: 1.0)))
+    # ⑨ 把音区分工换回**非八度移调**（旧表）→ 伴奏整轨被移到和弦外 →
+    #    和弦贴合 + 音区分离两条必须同时抓到（这是"旋律和伴奏配合不好"的根因）
+    results.append(case('配合：音区分工换回非八度移调（伴奏跑调）',
+                        'accompaniment_harmony',
+                        lambda: Mut(_se, 'TR_SHIFT',
+                                    {'Pad': -5, 'Hook': -5, 'Piano': 4,
+                                     'Strings': -3, 'Arp': 3, 'Melody': 7})))
+    # ⑩ 关掉"给旋律留空间"这一层（`patterns.space` 恒 False）→ 伴奏密度与"旋律起音处的
+    #    伴奏音数"必须弹回去 → `melody_space` 的对照判据抓到
+    results.append(case('留空间：关掉 patterns.space',
+                        'melody_space',
+                        lambda: Mut(_se, 'space_on', lambda pat: False)))
+    # ⑪ 段落的编配层次换回"第几段"的机械轮换（`level = i % 3`）→ 与能量曲线的
+    #    单调性/排序相关必须被抓（这一层是"副歌厚、主歌薄"的唯一依据）
+    results.append(case('编配：换回机械轮换 level=i%3',
+                        'theme_arrangement_dynamic',
+                        lambda: Mut(_ns, 'arr_level', lambda eused, i, role=None: i % 3)))
+    # ⑫ 让旋律**整个跟着低音走八度**（最极端的平行八度）→ 声部进行守卫必须抓到
+    _real_be = _se.build_events
+
+    def _be_octave(d):
+        ev, n = _real_be(d)
+        if ev.get('Bass') and ev.get('Melody'):
+            ev['Melody'] = [(t, dd, m + 12, v) for (t, dd, m, v) in ev['Bass']]
+        return ev, n
+    results.append(case('声部进行：旋律跟着低音走八度',
+                        'melody_voice_leading',
+                        lambda: Mut(_se, 'build_events', _be_octave)))
+    # ⑬ 把某个主题的**聚合混音画像**砍成单份（"多方参考"退化成"单一参考"）→ 守卫必须抓到
+    class _SingleRef:
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'refs', 'mix_targets', 'cheerful_mix.json')
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            j['members'] = j['members'][:1]
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                json.dump(j, f, ensure_ascii=False, indent=1)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(self.txt)
+    results.append(case('混音：聚合目标被砍成单份参考',
+                        'mix_target_aggregate', _SingleRef))
+    # ⑭ 抹掉成员的来源（不可溯源）→ 守卫必须抓到
+    class _NoSource:
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'refs', 'mix_targets', 'cheerful_mix.json')
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            for m in j.get('members') or []:
+                m.pop('source', None)
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                json.dump(j, f, ensure_ascii=False, indent=1)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(self.txt)
+    results.append(case('混音：聚合成员抹掉来源（不可溯源）',
+                        'mix_target_aggregate', _NoSource))
+    # ⑮ 段落旋律命名换回"每段一个新名字"（旧行为）→ 同名段落不再共用旋律 →
+    #    `theme_melody_reuse` 的自证分支必须抓到（复用彻底消失）
+    results.append(case('曲式：段落旋律换回"每段一支"',
+                        'theme_melody_reuse',
+                        lambda: Mut(_ns, 'role_melody_name',
+                                    lambda name, i: 'm%d' % (i + 1))))
+    # ⑯ 段落编制换回"原样返回"（= 旧行为：能量曲线微调音量，段落间同一套乐器）→
+    #    `arr_role_variety` 的端到端判据（段间 Jaccard）与自证分支必须抓到
+    results.append(case('编配：段落编制不随角色变（旧行为）',
+                        'arr_role_variety',
+                        lambda: Mut(_se, 'arr_by_role',
+                                    lambda base, roles, energy=None, tier=1:
+                                    [dict(b or {}) for b in base])))
+    # ⑰ 吉他换回"每小节同一个音型"（关掉相位轮换）→ 同和弦的小节逐音复读 →
+    #    `guitar_variation` 必须抓到（用户听感"每首曲子的刚弦吉他都是这个节奏音调"）
+    results.append(case('吉他：关掉音型轮换（逐小节复读）',
+                        'guitar_variation',
+                        lambda: Mut(_se, 'guitar_rot',
+                                    lambda arp, sec_i=0, bar_i=0, vary=False:
+                                    list(arp or [0]))))
+    # ⑱ 吉他音型换回硬编码的单一值（跨主题没区别）→ 组合数判据必须抓到
+    results.append(case('吉他：所有主题共用同一组音型',
+                        'guitar_variation',
+                        lambda: Mut(_ns, 'theme_guitar_arp',
+                                    lambda pack: [0, 2, 3, 4, 3, 2, 4])))
+    # ⑲ 和弦识别丢掉低音信息（转位失效）→ `midi_chords_detect` 的转位判据必须抓到。
+    #    ⚠ 变异函数必须**捕获原始函数对象**（`lambda: _mc.match(...)` 会被后来的替换套娃，
+    #       实测直接 RecursionError —— 那是"变异写错"而不是"检查抓到"）。
+    import midi_chords as _mc
+    _orig_match = _mc.match                  # 先抓住**原始**函数（闭包引用，不受替换影响）
+    results.append(case('和弦：识别时丢掉低音（转位失效）',
+                        'midi_chords_detect',
+                        lambda: Mut(_mc, 'match',
+                                    lambda pcs, bass_pc=None: _orig_match(pcs, None))))
+    # ⑳ 和弦识别把"窗后的音"也借进来（相邻小节互相污染）→ 时间轴/合并判据必须抓到
+    _old_slice = _mc._slice_notes
+
+    def _slice_tail(model, t0, t1, track_idx=None, **kw):
+        return _old_slice(model, t0, t1 * 2.0, track_idx, **kw)
+    results.append(case('和弦：取样借用了下一小节的音',
+                        'midi_chords_detect',
+                        lambda: Mut(_mc, '_slice_notes', _slice_tail)))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):

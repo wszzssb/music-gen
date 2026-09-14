@@ -1,0 +1,243 @@
+{
+ "name": "gtr_tender",
+ "bpm": 120,
+ "meter": [4, 4],
+ "desc": "温柔抒情（依据主题模板包 tender：10 首同主题模板）",
+ "style": "ballad",
+ "patterns": {
+  "bass_style": "simple",
+  "perc_style": "light",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 1, 3, 2],
+  "guitar_beats": [0, 0.5, 1, 1.5, 1.75, 2, 2.5, 3, 3.5, 3.75],
+  "guitar_vary": true,
+  "space": true
+ },
+ "chords": {
+  "D7": [38, [62, 66, 69, 72]],
+  "Gsus4": [31, [55, 60, 62]],
+  "Cm7": [36, [60, 63, 67, 70]],
+  "Cm": [36, [60, 63, 67]],
+  "Gm7": [31, [55, 58, 62, 65]],
+  "C6": [36, [60, 64, 67, 69]],
+  "F6": [29, [65, 69, 72, 74]],
+  "Am7": [33, [57, 60, 64, 67]],
+  "Em7": [28, [64, 67, 71, 74]],
+  "Dm6": [38, [62, 65, 69, 71]]
+ },
+ "melody": {
+  "A": [
+   [0, 1, 0.75, 72], [0, 2, 0.5, 74], [0, 3, 1, 69],
+   [1, 1.5, 0.5, 72], [1, 2.75, 0.5, 74], [1, 3.5, 1, 67],
+   [2, 1, 0.75, 70], [2, 2.25, 0.5, 75], [2, 3, 1, 70],
+   [3, 0, 2.25, 72],
+   [4, 1.25, 0.5, 74], [4, 2, 0.25, 81], [4, 3.25, 0.75, 74],
+   [5, 1.5, 0.5, 75], [5, 2.75, 0.5, 79], [5, 3.5, 1, 74],
+   [6, 1.25, 0.5, 75], [6, 2.5, 0.25, 79], [6, 3.25, 0.75, 74],
+   [7, 0, 2.25, 72],
+   [0, 3, 1, 83],
+   [6, 3, 1, 85]
+  ],
+  "B": [
+   [0, 0, 1.5, 62], [0, 1.5, 1.5, 65],
+   [1, 1.25, 0.5, 67], [1, 2.25, 0.5, 69], [1, 2.75, 1.25, 67],
+   [2, 1.5, 0.5, 68], [2, 2, 0.5, 67], [2, 2.5, 0.25, 65], [2, 3, 1, 67],
+   [3, 0, 1.5, 65],
+   [4, 1.5, 0.5, 63], [4, 2.5, 0.25, 62], [4, 3, 1, 65],
+   [5, 1.25, 0.5, 60], [5, 2, 0.75, 60], [5, 2.75, 1.25, 61],
+   [6, 1.5, 0.5, 60], [6, 2, 0.5, 62], [6, 2.5, 0.25, 60], [6, 3, 1, 62],
+   [7, 0, 1.5, 60]
+  ],
+  "C": [
+   [0, 1, 0.5, 86], [0, 2, 0.5, 91], [0, 3, 1, 89],
+   [1, 0.75, 1.5, 89],
+   [2, 0.75, 0.75, 91], [2, 2, 1.5, 91],
+   [3, 1.5, 0.5, 89], [3, 2.5, 0.5, 91], [3, 3.5, 0.5, 89],
+   [4, 0.75, 0.5, 91], [4, 2, 0.5, 93], [4, 2.75, 1.25, 91],
+   [5, 0.75, 1.5, 89],
+   [6, 0.75, 0.5, 86], [6, 2, 0.5, 91], [6, 2.75, 1.25, 86],
+   [7, 0.75, 1.5, 84]
+  ]
+ },
+ "sections": [
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["D7", "Gsus4", "Cm7", "Cm", "D7", "Gsus4", "Gsus4", "Cm7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false
+   }
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["D7", "Gsus4", "Cm7", "Cm", "D7", "Gsus4", "Gsus4", "Cm7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false
+   }
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["Gm7", "C6", "C6", "F6", "Gm7", "C6", "Gsus4", "Cm7"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": true,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false
+   }
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["D7", "Gsus4", "Cm7", "Cm", "D7", "Gsus4", "Gsus4", "Cm7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false
+   }
+  },
+  {
+   "name": "C",
+   "bars": 8,
+   "chords": ["Am7", "F6", "Em7", "Dm6", "Am7", "F6", "Gsus4", "Cm7"],
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": true,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false
+   }
+  },
+  {
+   "name": "A4",
+   "bars": 8,
+   "chords": ["D7", "Gsus4", "Cm7", "Cm", "D7", "Gsus4", "Gsus4", "Cm7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false
+   }
+  },
+  {
+   "name": "B2",
+   "bars": 8,
+   "chords": ["Gm7", "C6", "C6", "F6", "Gm7", "C6", "Gsus4", "Cm7"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": true,
+    "glock_all": false,
+    "shimmer": true
+   }
+  },
+  {
+   "name": "A5",
+   "bars": 8,
+   "chords": ["D7", "Gsus4", "Cm7", "Cm", "D7", "Gsus4", "Gsus4", "Cm7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false
+   }
+  }
+ ],
+ "theme": {
+  "name": "tender",
+  "label": "温柔抒情",
+  "pack": "refs/themes/tender.json",
+  "template_count": 10,
+  "styles": ["ballad", "romantic", "pop"],
+  "source_kinds": {
+   "bitmidi": 10
+  },
+  "primary_source": "window4",
+  "mix_target": "tender_mix",
+  "energy_curve_db": [],
+  "energy_gain": 1,
+  "templates": ["ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "ballad/Animal Crossing - KK Ballad Aircheck.mid", "ballad/BALLAD-2.MID", "ballad/A-Very-Special-Love-Song.mid", "pop/IGGY POP.Louie Louie.mid", "pop/Disco Citizens - Footprint.mid", "pop/Disco-Fans.mid", "romantic/Liszt Bach Prelude Transcription.mid", "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid", "romantic/brahms.mid"],
+  "melody_profile": "refs/themes/tender_melody.json",
+  "seed": 5,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "tender",
+  "seed": 5,
+  "dens": 2.6,
+  "candidates": 4,
+  "mode": "motif",
+  "variants": true
+ }
+}

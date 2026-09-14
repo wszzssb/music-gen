@@ -21,6 +21,140 @@ def note_name(n):
     return '%s%d' % (NAMES[n % 12], n // 12 - 1)
 
 
+def _read_vlq(body, i):
+    """变长数量：返回 (值, 新下标)。损坏数据（跑到轨尾）返回 (None, i)。"""
+    d = 0
+    while i < len(body):
+        b = body[i]
+        i += 1
+        d = (d << 7) | (b & 0x7F)
+        if not b & 0x80:
+            return d, i
+    return None, i
+
+
+def parse_full(path):
+    """**事件级**解析 SMF（给编辑器用：要能原样导出，所以力度/拍号/速度/CC 一个都不能丢）。
+
+    与 `parse()` 的分工：`parse()` 是**统计口径**（theme_pack 拿它算画像、`note(v)` 一律返回 0），
+    本函数是**编辑口径** —— 保留每条事件的原始载荷，`import→export` 往返后能被外部 DAW 正常读取。
+
+    → {format, division, bpm, timesig, end_tick, tempo_map, tracks:[
+         {index, name, channel, program, notes:[(start_tick, dur_tick, note, vel)],
+          ccs:[(tick, cc, val)], program_changes:[(tick, prog)],
+          pitch_bends:[(tick, value)], markers:[(tick, text)]}]}
+    只做**记录**，不做任何"修正/量化/补齐"—— 修正是编辑器的活。
+    """
+    data = open(path, 'rb').read()
+    if data[:4] != b'MThd':
+        raise SystemExit('不是标准 MIDI 文件（缺 MThd）：%s' % path)
+    fmt, ntrk, div = struct.unpack('>HHH', data[8:14])
+    pos = 14
+    res = {'format': fmt, 'division': div or 480, 'bpm': None, 'timesig': None,
+           'end_tick': 0, 'tempo_map': [], 'tracks': []}
+    for t in range(ntrk):
+        if data[pos:pos + 4] != b'MTrk':
+            raise SystemExit('第 %d 轨缺 MTrk 头（文件被截断或不是 SMF）' % t)
+        ln = struct.unpack('>I', data[pos + 4:pos + 8])[0]
+        body = data[pos + 8:pos + 8 + ln]
+        pos += 8 + ln
+        i, tick = 0, 0
+        last_st = None
+        name = ''
+        program = None
+        channel = 0
+        notes, ccs, progs, bends, markers = [], [], [], [], []
+        active = {}                      # (通道, 音高) → [start_tick...]（重叠音按先入先出配对）
+        while i < len(body):
+            d, i = _read_vlq(body, i)
+            if d is None:
+                break
+            tick += d
+            if i >= len(body):
+                break
+            st = body[i]
+            if st < 0x80 and last_st is not None:
+                st = last_st              # running status
+            else:
+                i += 1
+                last_st = st
+            if st == 0xFF:
+                meta = body[i]
+                i += 1
+                l, i = _read_vlq(body, i)
+                if l is None:
+                    break
+                payload = body[i:i + l]
+                i += l
+                if meta == 0x51 and l == 3:
+                    res['tempo_map'].append((tick, int.from_bytes(payload, 'big')))
+                elif meta == 0x58 and l >= 2:
+                    ts = (payload[0], 2 ** payload[1])
+                    if res['timesig'] is None:
+                        res['timesig'] = ts
+                    res.setdefault('timesig_map', []).append((tick, list(ts)))
+                elif meta == 0x03:
+                    name = payload.decode('utf-8', 'replace')
+                elif meta in (0x06, 0x01):   # marker / text
+                    markers.append((tick, payload.decode('utf-8', 'replace')))
+                elif meta == 0x2F:
+                    break
+            elif st in (0xF0, 0xF7):
+                l, i = _read_vlq(body, i)
+                if l is None:
+                    break
+                i += l
+            else:
+                hi, ch = st & 0xF0, st & 0x0F
+                channel = ch
+                if hi in (0x80, 0x90, 0xA0, 0xB0, 0xE0):
+                    if i + 1 >= len(body):
+                        break
+                    p1, p2 = body[i], body[i + 1]
+                    i += 2
+                    if hi == 0x90 and p2 > 0:
+                        active.setdefault((ch, p1), []).append((tick, p2))
+                    elif hi == 0x80 or (hi == 0x90 and p2 == 0):
+                        q = active.get((ch, p1))
+                        if q:
+                            s, vel = q.pop(0)
+                            # ⚠ 力度取**按键事件**的 vel。松键事件（0x80）的第二个字节通常是 0，
+                            # 而 running status 下 0x90+vel0 也算松键 —— 拿松键的 vel 当力度
+                            # 会把整首曲子压成"力度 0~96"（实测外部 MIDI 全被写成 96）。
+                            notes.append([s, tick - s, p1, vel])
+                    elif hi == 0xB0:
+                        ccs.append((tick, p1, p2))
+                    elif hi == 0xE0:
+                        bends.append((tick, ((p2 << 7) | p1) - 8192))
+                elif hi == 0xC0:
+                    if i >= len(body):
+                        break
+                    program = body[i]
+                    progs.append((tick, program))
+                    i += 1
+                elif hi == 0xD0:
+                    i += 1
+        # 没松键的音：按轨尾收（否则导入后丢音）
+        tail = max([tick] + [n[0] + n[1] for n in notes] + [ccs[-1][0] if ccs else 0])
+        for (_ch, p), q in sorted(active.items()):
+            for (s, vel) in q:
+                notes.append([s, max(1, tail - s), p, vel])
+        notes.sort()
+        if notes:
+            res['end_tick'] = max(res['end_tick'], max(n[0] + n[1] for n in notes))
+        res['tracks'].append({'index': t, 'name': name, 'channel': channel,
+                              'program': program, 'notes': notes, 'ccs': ccs,
+                              'program_changes': progs, 'pitch_bends': bends,
+                              'markers': markers})
+    if res['tempo_map']:
+        res['bpm'] = 60000000.0 / res['tempo_map'][0][1]
+    else:
+        res['bpm'] = 120.0               # SMF 规范：缺省 120
+    if res['timesig'] is None:
+        res['timesig'] = (4, 4)
+    return res
+
+
 def parse(path, quiet=False):
     """解析 SMF。返回结构化结果（轨/音符/元事件），quiet=True 时不打印。
     结构: {format, division, bpm, timesig, tracks:[{name, channel, program,

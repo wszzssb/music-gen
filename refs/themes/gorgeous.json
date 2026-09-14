@@ -1,0 +1,1288 @@
+{
+ "theme": "gorgeous",
+ "label": "华丽",
+ "desc": "华丽（主题模板包：10 首同主题模板聚合）",
+ "styles": [
+  "film",
+  "romantic",
+  "baroque"
+ ],
+ "engine_style": "gorgeous",
+ "meter": [
+  4,
+  4
+ ],
+ "min_templates": 8,
+ "template_count": 10,
+ "bpm": {
+  "median": 108.0,
+  "p25": 63.0,
+  "p75": 120.0
+ },
+ "key": {
+  "tonic": "C",
+  "pc": 0,
+  "mode": "major",
+  "confidence": 0.272,
+  "scale_degree_weight": [
+   1377961.6,
+   75846.08,
+   619975.32,
+   274251.48,
+   548813.84,
+   554832.44,
+   89499.68,
+   985057.84,
+   328568.32,
+   502547.0,
+   263985.6,
+   340678.52
+  ]
+ },
+ "templates": [
+  {
+   "file": "baroque/Handel in the Strand.mid",
+   "style": "baroque",
+   "md5": "b4eb331347d812965499a89e6b2b6459",
+   "bpm": 70.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 78,
+   "seconds": 265.7,
+   "source": "https://bitmidi.com/uploads/28665.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "baroque/Variations and Fugue on theme by Handel op24.mid",
+   "style": "baroque",
+   "md5": "99ac41c0bb0cbaecb53d93fe3ef51e0d",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 555,
+   "seconds": 1109.7,
+   "source": "https://bitmidi.com/uploads/28190.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "film/batman-movie-theme_en.mid",
+   "style": "film",
+   "md5": "f159a1a9aa8fc7902de11a8141d37d8e",
+   "bpm": 59.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 111,
+   "seconds": 449.6,
+   "source": "https://bitmidi.com/uploads/51521.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
+   "style": "film",
+   "md5": "519333a9fec699d130245766895583b4",
+   "bpm": 63.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 46,
+   "seconds": 172.8,
+   "source": "https://bitmidi.com/uploads/63322.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
+   "style": "film",
+   "md5": "cd6b3ea3b0b66819d076d07e15002c80",
+   "bpm": 108.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 70,
+   "seconds": 155.4,
+   "source": "https://bitmidi.com/uploads/73553.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "film/doctorwho-movie.mid",
+   "style": "film",
+   "md5": "e90e5eb5233be75e0a9c91418cec38fe",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 41,
+   "seconds": 80.9,
+   "source": "https://bitmidi.com/uploads/40396.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "romantic/Liszt Bach Prelude Transcription.mid",
+   "style": "romantic",
+   "md5": "119e3cb5e06e8ee1cbf161677ebcb71a",
+   "bpm": 59.75,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 171,
+   "seconds": 683.3,
+   "source": "https://bitmidi.com/uploads/30179.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid",
+   "style": "romantic",
+   "md5": "5d18ec8a6c852344d8802912506a5cab",
+   "bpm": 70.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 126,
+   "seconds": 431.2,
+   "source": "https://bitmidi.com/uploads/31293.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid",
+   "style": "romantic",
+   "md5": "c6ba342215b5ce56493860f31377cd28",
+   "bpm": 110.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 172,
+   "seconds": 375.1,
+   "source": "https://bitmidi.com/uploads/31291.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "romantic/brahms.mid",
+   "style": "romantic",
+   "md5": "bf0b59511cf001e0027d2ecc1d5f4eee",
+   "bpm": 160.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 17,
+   "seconds": 24.2,
+   "source": "https://bitmidi.com/uploads/19565.mid",
+   "kind": "bitmidi"
+  }
+ ],
+ "source_kinds": {
+  "bitmidi": 10
+ },
+ "harmony": {
+  "primary": [
+   "Dm7",
+   "G7",
+   "C6",
+   "C6"
+  ],
+  "primary_source": "window4",
+  "progressions": [
+   {
+    "degrees": [
+     2,
+     7,
+     0,
+     0
+    ],
+    "romans": [
+     "ii7",
+     "V7",
+     "I6",
+     "I6"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Dm7",
+     "G7",
+     "C6",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     7,
+     0,
+     5
+    ],
+    "romans": [
+     "V6",
+     "V6",
+     "I",
+     "IVmaj7"
+    ],
+    "count": 7,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "film/Metal Gear Solid - Enclosure (Soundtrack).mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "G6",
+     "G6",
+     "C6",
+     "Fmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     7,
+     7,
+     4
+    ],
+    "romans": [
+     "I6",
+     "V7",
+     "V6",
+     "iii7"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "C6",
+     "G7",
+     "G6",
+     "Em7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0,
+     5,
+     5
+    ],
+    "romans": [
+     "V6",
+     "I",
+     "IVmaj7",
+     "IVmaj7"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "film/Metal Gear Solid - Enclosure (Soundtrack).mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "G6",
+     "C6",
+     "Fmaj7",
+     "Fmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     4,
+     0,
+     7
+    ],
+    "romans": [
+     "V6",
+     "iii7",
+     "I6",
+     "V7"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "G6",
+     "Em7",
+     "C6",
+     "G7"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_4": [
+   {
+    "degrees": [
+     2,
+     7,
+     0,
+     0
+    ],
+    "romans": [
+     "ii7",
+     "V7",
+     "I6",
+     "I6"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Dm7",
+     "G7",
+     "C6",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     7,
+     0,
+     5
+    ],
+    "romans": [
+     "V6",
+     "V6",
+     "I",
+     "IVmaj7"
+    ],
+    "count": 7,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "film/Metal Gear Solid - Enclosure (Soundtrack).mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "G6",
+     "G6",
+     "C6",
+     "Fmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     7,
+     7,
+     4
+    ],
+    "romans": [
+     "I6",
+     "V7",
+     "V6",
+     "iii7"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "C6",
+     "G7",
+     "G6",
+     "Em7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0,
+     5,
+     5
+    ],
+    "romans": [
+     "V6",
+     "I",
+     "IVmaj7",
+     "IVmaj7"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "film/Metal Gear Solid - Enclosure (Soundtrack).mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "G6",
+     "C6",
+     "Fmaj7",
+     "Fmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     4,
+     0,
+     7
+    ],
+    "romans": [
+     "V6",
+     "iii7",
+     "I6",
+     "V7"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "G6",
+     "Em7",
+     "C6",
+     "G7"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_2": [
+   {
+    "degrees": [
+     0,
+     7
+    ],
+    "romans": [
+     "I6",
+     "V6"
+    ],
+    "count": 68,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
+     "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
+     "film/batman-movie-theme_en.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid"
+    ],
+    "template_share": 0.8,
+    "symbols": [
+     "C6",
+     "G6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     0
+    ],
+    "romans": [
+     "II7",
+     "I6"
+    ],
+    "count": 25,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
+     "film/batman-movie-theme_en.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid"
+    ],
+    "template_share": 0.7,
+    "symbols": [
+     "D7",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "V6",
+     "I6"
+    ],
+    "count": 66,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
+     "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
+     "film/batman-movie-theme_en.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
+    ],
+    "template_share": 0.6,
+    "symbols": [
+     "G6",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     4
+    ],
+    "romans": [
+     "V6",
+     "iii7"
+    ],
+    "count": 26,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "film/batman-movie-theme_en.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid"
+    ],
+    "template_share": 0.6,
+    "symbols": [
+     "G6",
+     "Em7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5
+    ],
+    "romans": [
+     "I",
+     "IV6"
+    ],
+    "count": 24,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
+     "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
+     "film/batman-movie-theme_en.mid",
+     "film/doctorwho-movie.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid"
+    ],
+    "template_share": 0.6,
+    "symbols": [
+     "C6",
+     "F6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     5
+    ],
+    "romans": [
+     "V7",
+     "iv6"
+    ],
+    "count": 22,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
+    ],
+    "template_share": 0.4,
+    "symbols": [
+     "G7",
+     "Fm6"
+    ],
+    "usable": true
+   }
+  ],
+  "pool_progression": [
+   "C6",
+   "C7",
+   "Cm6",
+   "D#m7b5"
+  ],
+  "pool_progression_romans": [
+   "I",
+   "I7",
+   "i",
+   "biiim7b5"
+  ],
+  "chord_pool": [
+   {
+    "degree": 0,
+    "roman": "I",
+    "suffix": "6",
+    "count": 383,
+    "templates": 10
+   },
+   {
+    "degree": 7,
+    "roman": "V",
+    "suffix": "7",
+    "count": 305,
+    "templates": 8
+   },
+   {
+    "degree": 4,
+    "roman": "III",
+    "suffix": "m7",
+    "count": 127,
+    "templates": 8
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m7",
+    "count": 98,
+    "templates": 8
+   },
+   {
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "6",
+    "count": 95,
+    "templates": 9
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "6",
+    "count": 86,
+    "templates": 6
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m7",
+    "count": 83,
+    "templates": 8
+   },
+   {
+    "degree": 11,
+    "roman": "VII",
+    "suffix": "m7",
+    "count": 66,
+    "templates": 9
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
+    "suffix": "7",
+    "count": 41,
+    "templates": 5
+   },
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "maj7",
+    "count": 37,
+    "templates": 6
+   },
+   {
+    "degree": 1,
+    "roman": "bII",
+    "suffix": "m7b5",
+    "count": 13,
+    "templates": 5
+   },
+   {
+    "degree": 6,
+    "roman": "bV",
+    "suffix": "m7b5",
+    "count": 13,
+    "templates": 4
+   }
+  ],
+  "chord_per_bar": 0.91
+ },
+ "rhythm": {
+  "low16": "★·★·★·★·★·★·★·★·",
+  "high16": "★★★★★★★★★★★★★★★★",
+  "low_slot_share": [
+   0.9,
+   0.2,
+   0.8,
+   0.3,
+   0.7,
+   0.3,
+   0.8,
+   0.5,
+   0.9,
+   0.2,
+   0.8,
+   0.3,
+   0.9,
+   0.3,
+   0.7,
+   0.4
+  ],
+  "high_slot_share": [
+   1.0,
+   0.6,
+   0.8,
+   0.6,
+   0.9,
+   0.6,
+   0.8,
+   0.7,
+   1.0,
+   0.6,
+   0.8,
+   0.6,
+   0.8,
+   0.6,
+   0.8,
+   0.6
+  ],
+  "low_density": 18.09,
+  "high_density": 28.11,
+  "bass_density": 1.91,
+  "perc_density": 2.96,
+  "slots": 16,
+  "bass_style": "simple",
+  "perc_style": "orchestral"
+ },
+ "arrangement": {
+  "roles": {
+   "bass": 0.2,
+   "brass": 0.5,
+   "fx": 0.1,
+   "glock": 0.2,
+   "organ": 0.1,
+   "pad": 0.1,
+   "piano": 0.6,
+   "pipe": 0.5,
+   "reed": 0.5,
+   "strings": 0.6
+  },
+  "role_range": {
+   "bass": [
+    30,
+    45
+   ],
+   "brass": [
+    34,
+    82
+   ],
+   "fx": [
+    59,
+    71
+   ],
+   "glock": [
+    58,
+    108
+   ],
+   "organ": [
+    43,
+    89
+   ],
+   "pad": [
+    59,
+    60
+   ],
+   "piano": [
+    38,
+    88
+   ],
+   "pipe": [
+    64,
+    102
+   ],
+   "reed": [
+    34,
+    86
+   ],
+   "strings": [
+    38,
+    100
+   ]
+  },
+  "arr_share": {
+   "bass": 0.2,
+   "piano": 0.6,
+   "uku": 0.0,
+   "strings": 0.5,
+   "pad": 0.1,
+   "glock": 0.2,
+   "ep": 0.5,
+   "perc": 0.0
+  },
+  "arr_on": [
+   "ep",
+   "piano",
+   "strings"
+  ],
+  "arr_off": [
+   "perc",
+   "uku"
+  ],
+  "arr_maybe": [
+   "bass",
+   "glock",
+   "pad"
+  ],
+  "track_count": 12.0,
+  "style_mix": {
+   "baroque": 2,
+   "film": 4,
+   "romantic": 4
+  }
+ },
+ "form": {
+  "section_bars": 8,
+  "total_bars": 64,
+  "plan": [
+   {
+    "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A2",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A3",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
+    "bars": 8,
+    "prog": 0
+   }
+  ]
+ },
+ "melody": {
+  "notes": 4335,
+  "range": [
+   64,
+   98
+  ],
+  "mean_pitch": 83.23,
+  "notes_per_bar": 3.16,
+  "stepwise_pct": 62.45,
+  "onbeat_pct": 46.85,
+  "diatonic_pct": 85.16,
+  "interval_hist": {
+   "-57": 1,
+   "-48": 4,
+   "-45": 1,
+   "-41": 3,
+   "-36": 19,
+   "-34": 3,
+   "-33": 6,
+   "-32": 1,
+   "-31": 3,
+   "-30": 4,
+   "-29": 1,
+   "-27": 3,
+   "-25": 3,
+   "-24": 100,
+   "-23": 8,
+   "-22": 4,
+   "-21": 4,
+   "-20": 6,
+   "-19": 10,
+   "-18": 8,
+   "-17": 17,
+   "-16": 6,
+   "-15": 6,
+   "-14": 33,
+   "-13": 2,
+   "-12": 169,
+   "-11": 3,
+   "-10": 77,
+   "-9": 52,
+   "-8": 20,
+   "-7": 188,
+   "-6": 26,
+   "-5": 240,
+   "-4": 293,
+   "-3": 360,
+   "-2": 1480,
+   "-1": 1857,
+   "0": 619,
+   "1": 788,
+   "2": 1502,
+   "3": 422,
+   "4": 313,
+   "5": 624,
+   "6": 29,
+   "7": 147,
+   "8": 70,
+   "9": 87,
+   "10": 11,
+   "11": 14,
+   "12": 76,
+   "13": 36,
+   "14": 21,
+   "15": 27,
+   "16": 13,
+   "17": 18,
+   "18": 5,
+   "19": 16,
+   "20": 24,
+   "21": 27,
+   "22": 10,
+   "23": 22,
+   "24": 11,
+   "29": 24,
+   "30": 1,
+   "31": 1,
+   "33": 3,
+   "34": 3,
+   "35": 3,
+   "36": 1,
+   "38": 3,
+   "43": 3,
+   "48": 1
+  },
+  "dur16_hist": {
+   "0": 479,
+   "1": 4854,
+   "2": 2222,
+   "3": 126,
+   "4": 673,
+   "5": 65,
+   "6": 216,
+   "7": 28,
+   "8": 1006,
+   "9": 4,
+   "10": 10,
+   "11": 16,
+   "12": 36,
+   "13": 2,
+   "14": 7,
+   "15": 17,
+   "16": 240
+  },
+  "onset16_hist": {
+   "0": 1463,
+   "1": 337,
+   "2": 568,
+   "3": 344,
+   "4": 800,
+   "5": 369,
+   "6": 637,
+   "7": 453,
+   "8": 1571,
+   "9": 317,
+   "10": 623,
+   "11": 342,
+   "12": 850,
+   "13": 343,
+   "14": 661,
+   "15": 323
+  },
+  "phrases": 119,
+  "phrase_bars": [
+   43.25,
+   30.75,
+   2.0,
+   9.03,
+   3.34,
+   1.97,
+   1.75,
+   1.75,
+   1.75,
+   1.75,
+   1.81,
+   0.35,
+   0.35,
+   0.35,
+   0.35,
+   0.35,
+   0.35,
+   0.35,
+   0.35,
+   1.12,
+   1.12,
+   1.12,
+   1.12,
+   1.0,
+   3.0,
+   2.12,
+   0.5,
+   0.17,
+   0.5,
+   0.25,
+   0.5,
+   0.17,
+   0.5,
+   0.25,
+   0.5,
+   0.5,
+   1.25,
+   0.5,
+   0.5,
+   1.0,
+   15.88,
+   0.21,
+   0.21,
+   11.96,
+   0.21,
+   0.94,
+   1.5,
+   1.5,
+   0.12,
+   0.56,
+   2.94,
+   5.81,
+   1.5,
+   1.25,
+   2.5,
+   3.0,
+   3.0,
+   4.0,
+   1.5,
+   0.5
+  ],
+  "bars": 137.3,
+  "templates": 10
+ },
+ "notes": [
+  "共 10 首模板，来源：bitmidi×10",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/gorgeous_tracks.json"
+ ],
+ "tool": "theme_pack.py",
+ "mix_target": {
+  "ref": "gorgeous_mix",
+  "score": 0.813,
+  "why": "BPM 114.1（差 6.1，0.80）· 打击感 0.33 vs 目标 0.45（0.75）· 调式 major（1.00）",
+  "aggregate": true,
+  "members": [
+   {
+    "ref": "BGM04",
+    "score": 0.813,
+    "bpm": 114.1,
+    "centroid": 2281,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM04.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM09",
+    "score": 0.81,
+    "bpm": 106.0,
+    "centroid": 2421,
+    "rms_db": -16.2,
+    "width": 0.523,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM09.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM13",
+    "score": 0.777,
+    "bpm": 109.2,
+    "centroid": 3068,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM13.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM20",
+    "score": 0.746,
+    "bpm": 101.5,
+    "centroid": 2232,
+    "rms_db": -16.9,
+    "width": 0.338,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM20.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "bgm01c",
+    "score": 0.626,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "bgm01c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "t1_BGM34",
+    "score": 0.597,
+    "bpm": 95.1,
+    "centroid": 3812,
+    "rms_db": -12.3,
+    "width": 0.384,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "D:\\game\\end\\仰望夜空星辰 FINE DAYS\\Bgm\\BGM34.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   }
+  ],
+  "agg_profile": "gorgeous_mix",
+  "weights": {
+   "bpm": 0.55,
+   "perc": 0.3,
+   "mode": 0.15
+  },
+  "perc_style_target": 0.45,
+  "energy_curve_db": [
+   -2.4,
+   0.6,
+   0.6,
+   0.6,
+   0.6
+  ],
+  "structure_db": [
+   -17.0,
+   -14.0,
+   -14.0,
+   -14.0,
+   -14.0
+  ],
+  "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
+  "candidates": [
+   {
+    "ref": "BGM04",
+    "score": 0.813,
+    "bpm": 114.1,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "centroid": 2281,
+    "perc": 0.325,
+    "mode": "major",
+    "structure": [
+     -14,
+     -14,
+     -14,
+     -13,
+     -14,
+     -13,
+     -13,
+     -13
+    ],
+    "parts": {
+     "bpm": 0.797,
+     "perc": 0.75,
+     "mode": 1.0
+    },
+    "why": "BPM 114.1（差 6.1，0.80）· 打击感 0.33 vs 目标 0.45（0.75）· 调式 major（1.00）"
+   },
+   {
+    "ref": "BGM09",
+    "score": 0.81,
+    "bpm": 106.0,
+    "rms_db": -16.2,
+    "width": 0.523,
+    "centroid": 2421,
+    "perc": 0.445,
+    "mode": "minor",
+    "structure": [
+     -17,
+     -16,
+     -16,
+     -16,
+     -16,
+     -16,
+     -18
+    ],
+    "parts": {
+     "bpm": 0.933,
+     "perc": 0.99,
+     "mode": 0.0
+    },
+    "why": "BPM 106.0（差 2.0，0.93）· 打击感 0.45 vs 目标 0.45（0.99）· 调式 minor≠主题（0.00）"
+   },
+   {
+    "ref": "BGM13",
+    "score": 0.777,
+    "bpm": 109.2,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "centroid": 3068,
+    "perc": 0.365,
+    "mode": "minor",
+    "structure": [
+     -20,
+     -20,
+     -19,
+     -20,
+     -22
+    ],
+    "parts": {
+     "bpm": 0.96,
+     "perc": 0.83,
+     "mode": 0.0
+    },
+    "why": "BPM 109.2（差 1.2，0.96）· 打击感 0.36 vs 目标 0.45（0.83）· 调式 minor≠主题（0.00）"
+   }
+  ],
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+ },
+ "skipped": []
+}

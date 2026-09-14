@@ -25,19 +25,44 @@ const ENG = (() => {
   };
   async function decode(url) {
     if (urlCache.has(url)) return urlCache.get(url);
-    const r = await fetch(url);
-    const ab = await r.arrayBuffer();
-    const b = await ctx().decodeAudioData(ab);
-    urlCache.set(url, b);
-    return b;
+    /* ⚠ 解码失败**不许把异常往上冒**：主界面 `loadSong()` 会一路 await 到它，
+     *   一抛异常整条初始化就断在中间（用户侧日志出现 "Unable to decode audio data"，
+     *   同时音轨卡与卷帘都是空的）—— 单个音频坏了不该拖垮整个页面。
+     *   这里吞掉并 warn，返回 null，调用方按"没有这份音频"处理。 */
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const ab = await r.arrayBuffer();
+      const b = await ctx().decodeAudioData(ab);
+      urlCache.set(url, b);
+      return b;
+    } catch (e) {
+      try { console.warn('[engine] 音频解码失败: ' + url, e); } catch (_) {}
+      return null;
+    }
   }
-  async function loadMaster(url) { st.loading.master = true; buf.master = await decode(url); st.dur = buf.master.duration; st.loading.master = false; peakCache = null; }
-  async function loadRef(url) { st.loading.ref = true; buf.ref = await decode(url); st.loading.ref = false; }
+  async function loadMaster(url) {
+    st.loading.master = true;
+    try {
+      const b = await decode(url);
+      if (b) { buf.master = b; st.dur = b.duration; peakCache = null; }
+      /* 返回"到底载进来了没有"：调用方要能据此报错/回退（试听某一轨时音频可能没渲染过）。
+       * ⚠ 这个返回值是**必须**的：原来它返回 undefined，调用方写 `if(!ok)` 就会永远早退
+       *   （实测：solo 试听"点了没反应"的另一半原因）。老调用方忽略返回值，不受影响。 */
+      return !!b;
+    } finally { st.loading.master = false; }
+  }
+  async function loadRef(url) {
+    st.loading.ref = true;
+    try { const b = await decode(url); if (b) buf.ref = b; }
+    finally { st.loading.ref = false; }
+  }
   async function loadStems(map) {
     st.loading.stems = true;
     for (const k of Object.keys(map)) {
       if (!buf.stems[k] || buf.stems[k].__url !== map[k]) {
-        const b = await decode(map[k]); b.__url = map[k]; buf.stems[k] = b;
+        const b = await decode(map[k]);
+        if (b) { b.__url = map[k]; buf.stems[k] = b; }
       }
       if (!mix[k]) mix[k] = { gain: 1, pan: 0, mute: false, solo: false };
     }

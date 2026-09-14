@@ -1,9 +1,7 @@
 # song.json 格式与风格预设（写歌时才需要读）
 
-> 这份从 README 拆出来：**只有"写/改歌"这一步才用得上**，所以别让它占常驻预算。
-> 校验一律用 `scripts\check_song.py`（渲染前把契约错误拦下）。
-> **写新歌可以先写更短的 spec**（和弦走向+旋律骨架，时值/排列自动推）：
-> `scripts\build_song.py`，见 `CHEATSHEET.md`。
+> 从 README 拆出来（只有"写/改歌"才用得上）。校验一律 `scripts\check_song.py`；
+> 想写更短的 spec（和弦走向+旋律骨架）用 `scripts\build_song.py`，见 `CHEATSHEET.md`。
 
 ## `song.json` 结构（新歌要写的全部内容）
 
@@ -18,12 +16,18 @@
                       "perc":1,"bass":true,"pad":true,"vel":0.96,
                       "mix":{"Strings":80}}}],        // 可选：段落级 CC7（**单整数**）
  "patterns":{"bass_style":"offbeat","perc_style":"light","arpeggio":[0,2,3,4,3,2,4],
-             "sub_gain":1.5,"sub_dur":0.55},
+             "sub_gain":1.5,"sub_dur":0.55,"melody_dyn":true},
  "programs":{"Melody":[0,0], ...}, "mix":{"Melody":[76,104], ...}   // GM 音色 + CC10 声像/CC7 音量
 }
 ```
 
 ## 各参数速查
+
+**`theme` / `basis`（模板依据，`new_song.py --theme` 自动写）**：`theme.name` = 主题模板包名，
+连同 `pack`/`templates`/`melody_profile`/`mix_target`（混音目标 = 对齐到哪份真实音频画像，
+**不是模板依据**）/`energy_curve_db`（段间能量曲线，落在各段 `arr.mix` 上）。
+**模板只能是 `refs/midi2/` 或网络权威数据**，且 ≥8 首同主题；
+老 `--from` 会写 `basis.kind=copied_song`（不合规，`check_song` 拦）。
 
 **`meter`**：拍号，缺省 `[4,4]`。`[3,4]`（一小节 3 个四分）/ `[6,8]`（6 个八分＝3 个四分）。
   引擎内部的"拍"**一律是四分音符**（`bpm` 也是四分音符速度），拍号只改三件事：
@@ -45,6 +49,7 @@
 `patterns.voicing_shift`：和弦声部整体移调（+12 可让偏厚的中低频变清亮，**全局参数、不能按段**）
 `patterns.sub_gain` / `sub_dur`：sub 层强度与长度（**必须短**，长音会把低频节奏糊成块）
 **`patterns.staccato`**：伴奏音长缩放（默认 1.0）；调小 = 在鼓点之间腾出空间
+**`patterns.melody_dyn`**（opt-in，默认关）：旋律的**乐句级力度曲线**（句 2/3 处高点、句末收）
 **`sections[i].arr.harmony`**：副旋律/加厚层 —— 给旋律配和弦内的低三度，走 Strings（无则 Hook/Piano）
 **`sections[i].arr.mix`**：段落级 CC7 自动化，如 `{"Strings":80,"Perc":46}`
   —— **做"起伏"最直接的手段**，也是"段间对比"（像不像的关键）的实现方式
@@ -63,32 +68,30 @@
 `song.json` 里显式写的 `programs/mix/patterns` 覆盖预设。
 `python scripts\new_song.py --list-styles`；新歌加 `--style gorgeous` 即可套用。
 
-## ## 5. 参考曲画像（仿写依据）
+## 5. 参考曲画像（仿写依据）
 
 ### BGM16c.ogg（抒情向）
 
 - **F 大调，150 BPM，4/4，104s（≈65 小节）**，几乎没有打击乐（高频起音仅 0.3 个/秒）
 - 主 vamp：`Gm7 → A7 → Bbm7 → C7 → F7` = **ii7–III7–iv7–V7–I7**，低音半音上行 G–A–B♭–C
 - 签名手法：**借用 iv7（小四级）、各级属七、三全音代理**（bar 50 `F#7 → F7`）、intro 用 sus4 长音铺底
-- 音色画像：40–160Hz 最强；5–10k ≈ −12.6dB、10–18k ≈ −19.6dB；频谱质心 2366–3466Hz；立体声宽度 0.49–0.53
+- 音色画像：40–160Hz 最强；5–10k ≈ −12.6dB、10–18k ≈ −19.6dB；质心 2366–3466Hz；宽度 0.49–0.53
 
 ### bgm01c.ogg（舞曲向，drive_pop.py 的蓝本）
 
-- **128 BPM，4/4，小节 1.875s，155s**；C/D 为中心的小调（安静段音级 A D G A# D# → 开放五度 D-A + Bb/Eb 色彩）
+- **128 BPM，4/4，155s**；C/D 为中心的小调（安静段音级 A D G A# D# → 开放五度 D-A + Bb/Eb 色彩）
 - **节奏型（16 分格）**：低频 `★★◇·★★··★★◇·★★◇·` = 每拍正拍+十六分**双踩底鼓** + 贝斯十六分驱动
   高频 `◇·★◇·◇★◇◇·★◇·◇★◇` = **反拍踩镲**（★只在每拍后半拍）
 - 结构：前 8 小节安静（−20dB）→ 之后全程满编（−14dB）
 - 音色画像：40-80Hz 最强；质心 **3683Hz**；10-18k ≈ −21.8dB；宽度 0.316；RMS **−14.3dBFS**
 
-**对齐检查命令**（两个文件同口径跑一遍即可比）：
+**对齐检查**（同口径跑一遍即比：分段看 `section_probe.py`、倍频程看 `analyze_ref2.py`）：
 ```powershell
-& $py section_probe.py <我的文件> 1.6
-& $py section_probe.py "D:\refs\BGM16c.ogg" 1.6
-& $py analyze_ref2.py <我的文件>            # 倍频程平衡，最关键
-& $py probe_style.py <文件> --bpm 128        # 16 分节奏型对比
+& $py section_probe.py <我的文件> 1.6;   & $py analyze_ref2.py <我的文件>
+& $py probe_style.py <文件> --bpm 128    # 16 分节奏型对比
 ```
 
-## ## 6. 渲染管线的参数（`render_midi.py`）
+## 6. 渲染管线的参数（`render_midi.py`）
 
 `FluidSynth(-ni -g1.0 -r44100, reverb room-size .78 / width 1.0 / level .8, chorus on)`
 → 高频搁架 → 低频搁架 → 3 阶高通 → `tanh` 软限幅 → 响度归一 → 中侧加宽 → 峰值上限 0.97 → ffmpeg q=8

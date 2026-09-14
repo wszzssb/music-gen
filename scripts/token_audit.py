@@ -31,6 +31,7 @@ DOCS = {
     'SKILL.md（音乐任务加载）': os.path.join(HOME, '.dsh', 'skills', 'bgm-studio', 'SKILL.md'),
     'README.md（工具链总索引）': os.path.join(ROOT, 'README.md'),
     'docs/SONG-FORMAT.md（写歌时才读）': os.path.join(ROOT, 'docs', 'SONG-FORMAT.md'),
+    'docs/THEME-PACK.md（主题模板包/混音目标）': os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
     'docs/CONVENTION.md（新增内容往哪放）': os.path.join(ROOT, 'docs', 'CONVENTION.md'),
     'CHEATSHEET.md（命令速查，按需查）': os.path.join(ROOT, 'CHEATSHEET.md'),
     'PITFALLS.md（出症状才按编号查）': os.path.join(ROOT, 'PITFALLS.md'),
@@ -41,14 +42,31 @@ DOCS = {
 # 注意分两类：AGENTS/SKILL 是**每个音乐任务都要加载**的，README 在常规路径上会被读
 # —— 这三个卡紧；PITFALLS / CHEATSHEET 只在"出症状按编号查 / 找命令"时才打开
 #（没人整篇读），所以给宽松的膨胀警报而不是紧箍咒。
+# 2026-09-14 上调（用户明确授权"文档预算实在不够可以加"）。**理由逐条写在行尾** ——
+# 不是为了消警告抬数字：能拆的都先拆了（PITFALLS 81–88 归档、主题口径拆成独立文档）。
 LIMITS = {
     'AGENTS.md（每个对话常驻）': 900,
-    'SKILL.md（音乐任务加载）': 1700,
-    'README.md（工具链总索引）': 6440,          # 瘦身后：只留索引/工具/验证状态
-    'docs/SONG-FORMAT.md（写歌时才读）': 2000,
+    # +100：主题模板包 = 新歌的**唯一合规路径**，"写歌四步"整段改写 + 路由表加一行
+    'SKILL.md（音乐任务加载）': 1800,
+    # +160：工具清单加 theme_pack / new_song（含混音目标）+ 主题包文档指针
+    'README.md（工具链总索引）': 6600,
+    # +100：`theme` / `basis` / `mix_target` 三个字段的口径
+    'docs/SONG-FORMAT.md（写歌时才读）': 2100,
+    # **新增一类**：主题→模板→包→混音目标→段间曲线的完整口径（判据表/守卫表/A-B 实测/边界）。
+    # 拆出来的目的正是让 SKILL 与 README 只留指针（它们才是常驻成本）。
+    # 2026-09-14 四次上调到 3800：① 建立时 2600 ② 加"段间曲线 + A/B"到 3000
+    # ③ 加"CC7 实测曲线表 + 6 主题标定表"到 3600 ④ 本轮把标定扩到 14 主题 + 多 seed 决策
+    #   A/B（含一次被数据推翻的尝试）—— 这些表是这条口径唯一的证据，删了只剩主张
+    'docs/THEME-PACK.md（主题模板包/混音目标）': 3800,
     'docs/CONVENTION.md（新增内容往哪放）': 1300,   # 参考类，非热点路径
-    'CHEATSHEET.md（命令速查，按需查）': 1600,
-    'PITFALLS.md（出症状才按编号查）': 8000,
+    # +100：主题包四条命令 + 混音目标说明（README 只留指针，示例集中在这里）
+    'CHEATSHEET.md（命令速查，按需查）': 1700,
+    # 台账按轮次增长（现 101–128 条）。**优先拆归档**（已拆过 81–88、89–92、93–100、101–104、
+    # 114–120）；2026-09-14 上调到 9000（121 生成期干跑 / 122 旋律密度 / 123 CC7 口径 /
+    # 124 基础声部 / 125 临时目录泄漏），再上调到 9600。**127（旋律形态）与 128（旋律与伴奏
+    # 的配合：TR_SHIFT 非八度移调把伴奏移到和弦外）都是按上一行那句注释拆掉旧条目才加进来的**
+    # —— 下一次增长照样先拆（候选 121–126），不许再抬。
+    'PITFALLS.md（出症状才按编号查）': 9600,
     'studio/README.md（可视化面板）': 2200,   # 只在使用面板时读；CLI 路径不需要
 }
 # 宿主级文档：由用户目录（技能/全局约定）提供，**不属于本仓库**。

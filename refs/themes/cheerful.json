@@ -1,0 +1,1071 @@
+{
+ "theme": "cheerful",
+ "label": "欢快",
+ "desc": "欢快（主题模板包：10 首同主题模板聚合）",
+ "styles": [
+  "pop",
+  "latin",
+  "rock"
+ ],
+ "engine_style": "daily",
+ "meter": [
+  4,
+  4
+ ],
+ "min_templates": 8,
+ "template_count": 10,
+ "bpm": {
+  "median": 132.0,
+  "p25": 120.0,
+  "p75": 140.0
+ },
+ "key": {
+  "tonic": "C",
+  "pc": 0,
+  "mode": "major",
+  "confidence": 0.248,
+  "scale_degree_weight": [
+   3196337.99,
+   142966.32,
+   957004.72,
+   310848.96,
+   1376405.67,
+   1600093.77,
+   239281.6,
+   1528672.16,
+   234976.7,
+   1225102.61,
+   506400.57,
+   1040938.65
+  ]
+ },
+ "templates": [
+  {
+   "file": "latin/Blue-Tango.mid",
+   "style": "latin",
+   "md5": "69aabbbe40eeae7d4d341ab23a3751eb",
+   "bpm": 118.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 73,
+   "seconds": 146.5,
+   "source": "https://bitmidi.com/uploads/18473.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "latin/L.CARLTON.Rio Samba.mid",
+   "style": "latin",
+   "md5": "719c7528a4637bd423b11e478109cf01",
+   "bpm": 129.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 196,
+   "seconds": 363.9,
+   "source": "https://bitmidi.com/uploads/66951.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
+   "style": "latin",
+   "md5": "0e6463180abb444f893fde766f806161",
+   "bpm": 140.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 125,
+   "seconds": 212.8,
+   "source": "https://bitmidi.com/uploads/92044.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "latin/Azure-Bossa-Nova.mid",
+   "style": "latin",
+   "md5": "05116014cac999ae3e7c0af1d89b9881",
+   "bpm": 145.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 342,
+   "seconds": 564.7,
+   "source": "https://bitmidi.com/uploads/8804.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/IGGY POP.Louie Louie.mid",
+   "style": "pop",
+   "md5": "261cbf31ee92b73e4c11d37ff837511c",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 112,
+   "seconds": 222.2,
+   "source": "https://bitmidi.com/uploads/60059.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/Disco Citizens - Footprint.mid",
+   "style": "pop",
+   "md5": "a15e4ec30d5281e6e10107525742861a",
+   "bpm": 132.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 16,
+   "seconds": 29.1,
+   "source": "https://bitmidi.com/uploads/39730.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/Disco-Fans.mid",
+   "style": "pop",
+   "md5": "476a8297bae896474f960a5b445fafb0",
+   "bpm": 158.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 127,
+   "seconds": 191.4,
+   "source": "https://bitmidi.com/uploads/39732.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "rock/50's-Rock.mid",
+   "style": "rock",
+   "md5": "6ad0ec042448356902d2068811c5a248",
+   "bpm": 87.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 35,
+   "seconds": 94.4,
+   "source": "https://bitmidi.com/uploads/1541.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid",
+   "style": "rock",
+   "md5": "4f33e52a8367a2dd82630f6662e9929f",
+   "bpm": 130.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 8,
+   "seconds": 14.8,
+   "source": "https://bitmidi.com/uploads/55047.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "rock/A-Hard-Day's-Night-4.mid",
+   "style": "rock",
+   "md5": "eeda3395937b5c00773626910f3e807a",
+   "bpm": 139.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 85,
+   "seconds": 146.7,
+   "source": "https://bitmidi.com/uploads/3107.mid",
+   "kind": "bitmidi"
+  }
+ ],
+ "source_kinds": {
+  "bitmidi": 10
+ },
+ "harmony": {
+  "primary": [
+   "Am6",
+   "B7",
+   "Gmaj7",
+   "B7"
+  ],
+  "primary_source": "window4",
+  "progressions": [
+   {
+    "degrees": [
+     9,
+     11,
+     7,
+     11
+    ],
+    "romans": [
+     "vi6",
+     "VII7",
+     "Vmaj7",
+     "VII7"
+    ],
+    "count": 3,
+    "templates": [
+     "latin/Azure-Bossa-Nova.mid",
+     "rock/A-Hard-Day's-Night-4.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Am6",
+     "B7",
+     "Gmaj7",
+     "B7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     1,
+     0,
+     11
+    ],
+    "romans": [
+     "II7",
+     "biim7b5",
+     "Imaj7",
+     "VII6"
+    ],
+    "count": 6,
+    "templates": [
+     "latin/L.CARLTON.Rio Samba.mid"
+    ],
+    "template_share": 0.1,
+    "symbols": [
+     "D7",
+     "C#m7b5",
+     "Cmaj7",
+     "B6"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_4": [
+   {
+    "degrees": [
+     9,
+     11,
+     7,
+     11
+    ],
+    "romans": [
+     "vi6",
+     "VII7",
+     "Vmaj7",
+     "VII7"
+    ],
+    "count": 3,
+    "templates": [
+     "latin/Azure-Bossa-Nova.mid",
+     "rock/A-Hard-Day's-Night-4.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Am6",
+     "B7",
+     "Gmaj7",
+     "B7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     1,
+     0,
+     11
+    ],
+    "romans": [
+     "II7",
+     "biim7b5",
+     "Imaj7",
+     "VII6"
+    ],
+    "count": 6,
+    "templates": [
+     "latin/L.CARLTON.Rio Samba.mid"
+    ],
+    "template_share": 0.1,
+    "symbols": [
+     "D7",
+     "C#m7b5",
+     "Cmaj7",
+     "B6"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_2": [
+   {
+    "degrees": [
+     4,
+     0
+    ],
+    "romans": [
+     "III7",
+     "I"
+    ],
+    "count": 36,
+    "templates": [
+     "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
+     "pop/IGGY POP.Louie Louie.mid",
+     "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "E7",
+     "C7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     11,
+     9
+    ],
+    "romans": [
+     "VII7",
+     "VI7"
+    ],
+    "count": 29,
+    "templates": [
+     "latin/Azure-Bossa-Nova.mid",
+     "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
+     "rock/A-Hard-Day's-Night-4.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "B7",
+     "A7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     11,
+     7
+    ],
+    "romans": [
+     "viidim",
+     "V7"
+    ],
+    "count": 24,
+    "templates": [
+     "latin/Azure-Bossa-Nova.mid",
+     "latin/Blue-Tango.mid",
+     "rock/A-Hard-Day's-Night-4.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Bdim",
+     "G7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     9,
+     11
+    ],
+    "romans": [
+     "VImaj7",
+     "viim7b5"
+    ],
+    "count": 23,
+    "templates": [
+     "latin/Azure-Bossa-Nova.mid",
+     "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
+     "rock/A-Hard-Day's-Night-4.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Amaj7",
+     "Bm7b5"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5
+    ],
+    "romans": [
+     "I",
+     "iv6"
+    ],
+    "count": 16,
+    "templates": [
+     "latin/Blue-Tango.mid",
+     "pop/Disco Citizens - Footprint.mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "C7",
+     "Fm6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     4
+    ],
+    "romans": [
+     "I",
+     "III7"
+    ],
+    "count": 38,
+    "templates": [
+     "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "C7",
+     "E7"
+    ],
+    "usable": true
+   }
+  ],
+  "pool_progression": [
+   "Cmaj7",
+   "C7",
+   "Cm7b5",
+   "C6"
+  ],
+  "pool_progression_romans": [
+   "Imaj7",
+   "I7",
+   "im7b5",
+   "I6"
+  ],
+  "chord_pool": [
+   {
+    "degree": 0,
+    "roman": "I",
+    "suffix": "7",
+    "count": 277,
+    "templates": 9
+   },
+   {
+    "degree": 11,
+    "roman": "VII",
+    "suffix": "7",
+    "count": 264,
+    "templates": 5
+   },
+   {
+    "degree": 7,
+    "roman": "V",
+    "suffix": "7",
+    "count": 141,
+    "templates": 6
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "7",
+    "count": 98,
+    "templates": 4
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
+    "suffix": "7",
+    "count": 60,
+    "templates": 3
+   },
+   {
+    "degree": 4,
+    "roman": "III",
+    "suffix": "7",
+    "count": 55,
+    "templates": 5
+   },
+   {
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "m6",
+    "count": 47,
+    "templates": 6
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "7",
+    "count": 38,
+    "templates": 5
+   },
+   {
+    "degree": 6,
+    "roman": "bV",
+    "suffix": "maj7",
+    "count": 36,
+    "templates": 3
+   },
+   {
+    "degree": 1,
+    "roman": "bII",
+    "suffix": "",
+    "count": 22,
+    "templates": 2
+   },
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "7",
+    "count": 11,
+    "templates": 3
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "m7b5",
+    "count": 3,
+    "templates": 2
+   }
+  ],
+  "chord_per_bar": 0.89
+ },
+ "rhythm": {
+  "low16": "★·★·★·★·★·★·★·★·",
+  "high16": "★·★·★·★·★·★·★·★·",
+  "low_slot_share": [
+   0.9,
+   0.2,
+   0.6,
+   0.3,
+   0.8,
+   0.3,
+   0.8,
+   0.5,
+   0.9,
+   0.3,
+   0.7,
+   0.3,
+   0.9,
+   0.2,
+   0.7,
+   0.5
+  ],
+  "high_slot_share": [
+   1.0,
+   0.4,
+   0.8,
+   0.4,
+   0.9,
+   0.2,
+   0.9,
+   0.3,
+   1.0,
+   0.4,
+   0.8,
+   0.4,
+   0.9,
+   0.2,
+   0.9,
+   0.3
+  ],
+  "low_density": 22.77,
+  "high_density": 28.35,
+  "bass_density": 3.96,
+  "perc_density": 18.99,
+  "slots": 16,
+  "bass_style": "sixteenth",
+  "perc_style": "dance"
+ },
+ "arrangement": {
+  "roles": {
+   "bass": 0.7,
+   "brass": 0.1,
+   "fx": 0.1,
+   "guitar": 0.5,
+   "lead": 0.2,
+   "organ": 0.4,
+   "perc": 0.2,
+   "piano": 0.9,
+   "pipe": 0.1,
+   "strings": 0.2
+  },
+  "role_range": {
+   "bass": [
+    29,
+    48
+   ],
+   "brass": [
+    62,
+    89
+   ],
+   "fx": [
+    56,
+    56
+   ],
+   "guitar": [
+    46,
+    78
+   ],
+   "lead": [
+    60,
+    74
+   ],
+   "organ": [
+    62,
+    94
+   ],
+   "perc": [
+    57,
+    93
+   ],
+   "piano": [
+    46,
+    81
+   ],
+   "pipe": [
+    67,
+    88
+   ],
+   "strings": [
+    67,
+    88
+   ]
+  },
+  "arr_share": {
+   "bass": 0.7,
+   "piano": 0.9,
+   "uku": 0.5,
+   "strings": 0.1,
+   "pad": 0.0,
+   "glock": 0.0,
+   "ep": 0.1,
+   "perc": 0.2
+  },
+  "arr_on": [
+   "bass",
+   "piano",
+   "uku"
+  ],
+  "arr_off": [
+   "glock",
+   "pad"
+  ],
+  "arr_maybe": [
+   "ep",
+   "perc",
+   "strings"
+  ],
+  "track_count": 7.7,
+  "style_mix": {
+   "latin": 4,
+   "pop": 3,
+   "rock": 3
+  }
+ },
+ "form": {
+  "section_bars": 8,
+  "total_bars": 64,
+  "plan": [
+   {
+    "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A2",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A3",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
+    "bars": 8,
+    "prog": 0
+   }
+  ]
+ },
+ "melody": {
+  "notes": 2808,
+  "range": [
+   64,
+   81
+  ],
+  "mean_pitch": 76.17,
+  "notes_per_bar": 3.23,
+  "stepwise_pct": 61.05,
+  "onbeat_pct": 44.32,
+  "diatonic_pct": 89.56,
+  "interval_hist": {
+   "-12": 179,
+   "-10": 21,
+   "-9": 21,
+   "-8": 99,
+   "-7": 91,
+   "-6": 4,
+   "-5": 585,
+   "-4": 464,
+   "-3": 581,
+   "-2": 1413,
+   "-1": 625,
+   "0": 2294,
+   "1": 492,
+   "2": 1280,
+   "3": 667,
+   "4": 266,
+   "5": 332,
+   "6": 70,
+   "7": 56,
+   "8": 17,
+   "9": 71,
+   "10": 152,
+   "11": 5,
+   "12": 171,
+   "13": 1,
+   "14": 39,
+   "19": 1,
+   "26": 4
+  },
+  "dur16_hist": {
+   "0": 579,
+   "1": 2323,
+   "2": 4329,
+   "3": 1254,
+   "4": 549,
+   "5": 60,
+   "6": 195,
+   "7": 94,
+   "8": 227,
+   "9": 16,
+   "10": 16,
+   "11": 88,
+   "12": 48,
+   "13": 1,
+   "14": 88,
+   "15": 1,
+   "16": 134
+  },
+  "onset16_hist": {
+   "0": 1476,
+   "1": 131,
+   "2": 809,
+   "3": 442,
+   "4": 1088,
+   "5": 206,
+   "6": 1147,
+   "7": 268,
+   "8": 1079,
+   "9": 122,
+   "10": 402,
+   "11": 503,
+   "12": 791,
+   "13": 274,
+   "14": 985,
+   "15": 278
+  },
+  "phrases": 211,
+  "phrase_bars": [
+   1.5,
+   1.75,
+   3.62,
+   1.75,
+   1.75,
+   3.25,
+   1.75,
+   7.75,
+   1.25,
+   3.38,
+   2.08,
+   4.08,
+   7.88,
+   2.45,
+   1.01,
+   2.66,
+   1.45,
+   2.57,
+   1.26,
+   1.84,
+   0.51,
+   0.44,
+   1.67,
+   2.37,
+   2.15,
+   0.72,
+   0.46,
+   0.46,
+   1.56,
+   1.39,
+   4.6,
+   5.73,
+   2.51,
+   6.43,
+   4.78,
+   4.06,
+   4.75,
+   3.51,
+   4.12,
+   0.87,
+   0.26,
+   1.1,
+   3.31,
+   0.52,
+   2.07,
+   5.24,
+   0.08,
+   0.9,
+   1.3,
+   4.87,
+   2.74,
+   3.58,
+   2.49,
+   1.61,
+   2.37,
+   1.11,
+   0.51,
+   4.85,
+   2.75,
+   1.66
+  ],
+  "bars": 87.0,
+  "templates": 10
+ },
+ "notes": [
+  "共 10 首模板，来源：bitmidi×10",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/cheerful_tracks.json"
+ ],
+ "tool": "theme_pack.py",
+ "mix_target": {
+  "ref": "cheerful_mix",
+  "score": 0.906,
+  "why": "BPM 132.4（差 0.4，0.99）· 打击感 0.60 vs 目标 0.75（0.71）· 调式 major（1.00）",
+  "aggregate": true,
+  "members": [
+   {
+    "ref": "BGM15c",
+    "score": 0.906,
+    "bpm": 132.4,
+    "centroid": 3338,
+    "rms_db": -19.3,
+    "width": 0.66,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM15c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "bgm01c",
+    "score": 0.739,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "bgm01c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM06",
+    "score": 0.665,
+    "bpm": 133.9,
+    "centroid": 1533,
+    "rms_db": -16.9,
+    "width": 0.261,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM06.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM16c",
+    "score": 0.614,
+    "bpm": 150.0,
+    "centroid": 3250,
+    "rms_db": -16.9,
+    "width": 0.51,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM16c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM16c_v2",
+    "score": 0.614,
+    "bpm": 150.0,
+    "centroid": 3250,
+    "rms_db": -16.9,
+    "width": 0.51,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM16c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "bgm16c_new",
+    "score": 0.614,
+    "bpm": 150.0,
+    "centroid": 3250,
+    "rms_db": -16.9,
+    "width": 0.51,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM16c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   }
+  ],
+  "agg_profile": "cheerful_mix",
+  "weights": {
+   "bpm": 0.55,
+   "perc": 0.3,
+   "mode": 0.15
+  },
+  "perc_style_target": 0.75,
+  "energy_curve_db": [
+   -1.12,
+   -0.12,
+   -0.12,
+   0.88,
+   0.88,
+   0.88,
+   0.88,
+   -2.12
+  ],
+  "structure_db": [
+   -18.0,
+   -17.0,
+   -17.0,
+   -16.0,
+   -16.0,
+   -16.0,
+   -16.0,
+   -19.0
+  ],
+  "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
+  "candidates": [
+   {
+    "ref": "BGM15c",
+    "score": 0.906,
+    "bpm": 132.4,
+    "rms_db": -19.3,
+    "width": 0.66,
+    "centroid": 3338,
+    "perc": 0.605,
+    "mode": "major",
+    "structure": [
+     -22,
+     -19,
+     -17,
+     -20,
+     -23,
+     -18,
+     -19,
+     -19
+    ],
+    "parts": {
+     "bpm": 0.987,
+     "perc": 0.71,
+     "mode": 1.0
+    },
+    "why": "BPM 132.4（差 0.4，0.99）· 打击感 0.60 vs 目标 0.75（0.71）· 调式 major（1.00）"
+   },
+   {
+    "ref": "bgm01c",
+    "score": 0.739,
+    "bpm": 128.0,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "centroid": 3284,
+    "perc": 0.437,
+    "mode": "major",
+    "structure": [
+     -17,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -15,
+     -14
+    ],
+    "parts": {
+     "bpm": 0.867,
+     "perc": 0.374,
+     "mode": 1.0
+    },
+    "why": "BPM 128.0（差 4.0，0.87）· 打击感 0.44 vs 目标 0.75（0.37）· 调式 major（1.00）"
+   },
+   {
+    "ref": "BGM06",
+    "score": 0.665,
+    "bpm": 133.9,
+    "rms_db": -16.9,
+    "width": 0.261,
+    "centroid": 1533,
+    "perc": 0.15,
+    "mode": "major",
+    "structure": [
+     -16,
+     -17,
+     -17,
+     -17,
+     -17,
+     -17,
+     -17,
+     -16,
+     -16
+    ],
+    "parts": {
+     "bpm": 0.937,
+     "perc": 0.0,
+     "mode": 1.0
+    },
+    "why": "BPM 133.9（差 1.9，0.94）· 打击感 0.15 vs 目标 0.75（0.00）· 调式 major（1.00）"
+   }
+  ],
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+ },
+ "skipped": []
+}

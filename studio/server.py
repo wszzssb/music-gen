@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""server.py —— BGM Studio 本地服务：静态页面 + JSON API（驱动 music-gen 工具链）。
+r"""server.py —— BGM Studio 本地服务：静态页面 + JSON API（驱动 music-gen 工具链）。
 
 只依赖 Python 标准库（http.server）+ music-gen 的 .venv；**零构建、零额外依赖**。
 音频/分析/渲染全部交给工具链自己的脚本，本文件不实现任何 DSP：
@@ -19,16 +19,29 @@ API（前缀 /api）:
   GET  /api/audio?id=<曲>&kind=mix|solo|stem&track=<轨>&t=<ts>   音频（支持 Range 拖动播放）
   GET  /api/metrics?id=<曲>            指标（bridge metrics：绝对/相对倍频程 + 占用率）
   GET  /api/files?id=<曲>              产物清单
+
+  —— MIDI 编辑器（对标 miditoolbox：导入任意 .mid → 编辑 → 导出 .mid）——
+  GET  /api/ed/list                    编辑会话列表（每个会话是 %TEMP%\bgm-studio-edits\<id>\）
+  GET  /api/ed/model?id=<会话>         取会话模型（音符/CC/轨）
+  POST /api/ed/import                  导入 MIDI（body={name, data_b64} 或 {path}）→ 新会话
+  POST /api/ed/op?id=<会话>            执行编辑操作（body={op, params, model?}）
+  POST /api/ed/save?id=<会话>          保存模型
+  POST /api/ed/export?id=<会话>        导出 .mid（body={fmt:0|1, title}）→ 文件
+  GET  /api/ed/download?id=<会话>&fmt= 下载导出的 .mid
 """
 import argparse
+import base64
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.parse
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -36,13 +49,101 @@ WEB = os.path.join(HERE, 'web')
 BRIDGE = os.path.join(HERE, 'bridge.py')
 # 路径**相对化**：面板就在工具链目录下（studio/），root 默认取父目录；可用 --root / env 覆盖
 ROOT = os.environ.get('BGM_STUDIO_ROOT') or os.path.abspath(os.path.join(HERE, '..'))
+# 编辑器的解析/操作/读写都在 scripts/ 里（`midi_file` / `midi_ops` / `midi_probe`），
+# 服务器进程要能 import 它们 —— 加一次 sys.path（与 `run_py` 子进程的口径一致）。
+_SCRIPTS = os.path.join(ROOT, 'scripts')
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
 PY = None                     # 由 main() 设定：music-gen 的 .venv python
 EXPORT_DIR = os.path.join(ROOT, 'export')       # 交付物也留在同一个文件夹里
 TMP_AUDIO = os.path.join(os.environ.get('TEMP', HERE), 'bgm-studio-audio')
 STEM_CACHE = None            # main() 里设为 %TEMP%\bgm-studio-audio\stems
 JOBS = {}
 JOB_SEQ = [0]
+RENDER_TASKS = {}              # 编辑器真音源渲染任务（id → {done, r|err}）
 LOCK = threading.Lock()
+
+# 面板的音频缓存预算（`prune_tmp_audio` 用）：试听/搜索/配平/分轨每次都往里丢文件，
+# **以前从不清理** —— 实测 `%TEMP%\bgm-studio-audio` 涨到 0.93GB（含 12 个 search_* job 目录）。
+# 超出预算就按"最旧优先"删；超过 `KEEP_D` 天的也直接删（都是中间产物，删了下次重生成）。
+KEEP_MB = 512
+KEEP_D = 7
+
+
+def prune_tmp_audio(root=None, keep_mb=None, keep_days=None, verbose=True):
+    """把面板缓存压回预算内（**启动时调用**；返回 (删除条目数, 释放 MB)）。
+
+    判据（两道，谁先命中谁生效）：① 单项**最新写入**超过 `keep_days` 天 → 删；
+    ② 仍超 `keep_mb` 预算 → 从最旧的开始删到预算内。
+    安全边界：只动 `TMP_AUDIO` 下的**直接子项**（job 目录 / 散落文件），不递归进别人的目录；
+    `stems/`、`preview/`、`mixfit/` 这些容器目录本身不删（只删它们里面的 job 子项）。
+    """
+    import shutil
+    root = root or TMP_AUDIO
+    keep_mb = KEEP_MB if keep_mb is None else keep_mb
+    keep_days = KEEP_D if keep_days is None else keep_days
+    if not os.path.isdir(root):
+        return 0, 0.0
+    keep_top = {'stems', 'preview', 'mixfit'}
+    items = []                     # (最新写入, 大小, 路径)
+    for p in (os.path.join(root, 'stems'), os.path.join(root, 'preview'),
+              os.path.join(root, 'mixfit')):
+        if os.path.isdir(p):
+            for q in os.listdir(p):
+                items.append(os.path.join(p, q))
+    items += [os.path.join(root, q) for q in os.listdir(root)
+              if q not in keep_top and not q.startswith('.')]
+
+    def info(path):
+        sz, mx = 0, 0.0
+        if os.path.isdir(path):
+            for dp, _dn, fns in os.walk(path):
+                for f in fns:
+                    fp = os.path.join(dp, f)
+                    try:
+                        sz += os.path.getsize(fp)
+                        mx = max(mx, os.path.getmtime(fp))
+                    except OSError:
+                        pass
+        else:
+            try:
+                sz, mx = os.path.getsize(path), os.path.getmtime(path)
+            except OSError:
+                pass
+        return sz, mx
+
+    def rm(path):
+        try:
+            if os.path.isdir(path):
+                shutil.rmtree(path, ignore_errors=True)
+            else:
+                os.remove(path)
+            return True
+        except OSError:
+            return False
+    rows = [{'path': p, 'size': info(p)[0], 'mtime': info(p)[1]} for p in items]
+    total = sum(r['size'] for r in rows) / 1e6
+    cutoff = time.time() - keep_days * 86400
+    removed, freed = 0, 0.0
+    old = sorted(rows, key=lambda r: r['mtime'])
+    for r in old:                                  # ① 过期（按最新写入算）
+        if r['mtime'] and r['mtime'] < cutoff and rm(r['path']):
+            r['gone'] = True
+            removed += 1
+            freed += r['size'] / 1e6
+            total -= r['size'] / 1e6
+    for r in old:                                  # ② 仍超预算 → 最旧的先删
+        if total <= keep_mb:
+            break
+        if r.get('gone') or not rm(r['path']):
+            continue
+        removed += 1
+        freed += r['size'] / 1e6
+        total -= r['size'] / 1e6
+    if removed and verbose:
+        print('[studio] 音频缓存清理：删 %d 项 / %.0fMB（剩余 %.0fMB，预算 %dMB / %d 天）'
+              % (removed, freed, max(0.0, total), keep_mb, keep_days))
+    return removed, round(freed, 1)
 
 
 # ------------------------------------------------------------------ 小工具
@@ -136,9 +237,261 @@ def songs_list():
     return out
 
 
+# ---------------------------------------------------------------------------
+# MIDI 编辑器（对标 miditoolbox）：会话 = 一份可编辑的 MIDI 模型
+#
+# 为什么是"会话"而不是直接改 songs/<曲>/：导入的**外部 .mid 不属于曲库**（没有 song.json
+# 契约、也不是我们的引擎产物），编辑它不该污染 songs/。所以会话存在临时目录
+# （`%TEMP%\bgm-studio-edits\<id>\`），导出时再落成 .mid；想接引擎（渲染/指标）时
+# 另有"送入曲库"的路（后续接）。
+EDITS_DIR = os.path.join(os.environ.get('TEMP', HERE), 'bgm-studio-edits')
+
+
+def edit_dir(eid, create=False):
+    """会话目录（**id 白名单校验**：只允许 [A-Za-z0-9_-]，防路径穿越）"""
+    if not re.match(r'^[A-Za-z0-9_\-]{1,64}$', eid or ''):
+        raise ValueError('非法会话 id')
+    d = os.path.join(EDITS_DIR, eid)
+    if create:
+        os.makedirs(d, exist_ok=True)
+    return d
+
+
+def edit_list():
+    out = []
+    if os.path.isdir(EDITS_DIR):
+        for name in sorted(os.listdir(EDITS_DIR)):
+            p = os.path.join(EDITS_DIR, name, 'model.json')
+            if not os.path.isfile(p):
+                continue
+            try:
+                m = read_json(p) or {}
+            except Exception:
+                continue
+            st = m.get('_stats') or {}
+            out.append({'id': name, 'title': m.get('title') or name,
+                        'tracks': len(m.get('tracks') or []), 'notes': st.get('notes', 0),
+                        'bpm': m.get('bpm'), 'timesig': m.get('timesig'),
+                        'format': m.get('format'), 'end_beat': m.get('end_beat'),
+                        'source': m.get('source'), 'dirty': m.get('_dirty', False),
+                        'mtime': os.path.getmtime(p)})
+    return out
+
+
+def edit_load(eid):
+    p = os.path.join(edit_dir(eid), 'model.json')
+    if not os.path.isfile(p):
+        raise FileNotFoundError('没有这个编辑会话：%s' % eid)
+    return read_json(p)
+
+
+def edit_save(eid, model, dirty=True):
+    """落盘会话（带统计，UI 不用自己算）"""
+    import midi_ops as _mo
+    model = dict(model or {})
+    model['_stats'] = _mo.stats(model)
+    model['_dirty'] = bool(dirty)
+    model['_saved_at'] = time.time()
+    d = edit_dir(eid, create=True)
+    with open(os.path.join(d, 'model.json'), 'w', encoding='utf-8', newline='') as f:
+        json.dump(model, f, ensure_ascii=False)
+    return model
+
+
+def edit_import_bytes(name, data):
+    """上传的 .mid 字节 → 新会话（返回会话 id 与摘要）"""
+    import midi_file as _mf
+    eid = uuid.uuid4().hex[:12]
+    d = edit_dir(eid, create=True)
+    src = os.path.join(d, 'source.mid')
+    with open(src, 'wb') as f:
+        f.write(data)
+    model = _mf.import_midi(src, title=os.path.splitext(os.path.basename(name or 'imported'))[0])
+    edit_save(eid, model, dirty=False)
+    return eid, model
+
+
+def edit_render_task(jid):
+    """查渲染任务状态（前端轮询）"""
+    with LOCK:
+        t = RENDER_TASKS.get(jid)
+    if not t:
+        raise FileNotFoundError('没有这个渲染任务：%s' % jid)
+    return t
+
+
+def edit_render_start(eid, model=None, force=False):
+    """**后台**渲染真音源音频（用户口径"比不上主界面"）。
+
+    为什么必须异步：整曲渲染实测要几十秒（123 秒的歌约 1 分钟，含 FluidSynth + OGG 编码），
+    同步做会把面板卡住、还会让前端的请求超时。所以：先返回一个 `task` id，
+    前端轮询 `/api/ed/render-status`；期间继续用合成音播放，渲染好了再切过去。
+    命中缓存则直接返回结果（改音符才会换指纹 → 重渲）。
+    """
+    import hashlib
+    m = model if model is not None else edit_load(eid)
+    tr = m.get('tracks') or []
+    fp = hashlib.md5(('%d|%.3f|%.3f|%d|%d' % (
+        sum(len(t.get('notes') or []) for t in tr),
+        max([n[0] + n[1] for t in tr for n in (t.get('notes') or [])] or [0.0]),
+        float(m.get('bpm') or 120), len(tr),
+        sum(len(t.get('ccs') or []) for t in tr))).encode()).hexdigest()[:12]
+    d = edit_dir(eid, create=True)
+    ogg = os.path.join(d, 'render_%s.ogg' % fp)
+    meta = os.path.join(d, 'render_%s.json' % fp)
+    url = '/api/ed/audio?eid=%s&v=%s' % (urllib.parse.quote(eid), fp)
+    if os.path.isfile(ogg) and not force:
+        info = read_json(meta) or {}
+        return {'r': {'cached': True, 'url': url, 'bytes': os.path.getsize(ogg),
+                      'seconds': info.get('seconds'), 'fp': fp}}
+    jid = uuid.uuid4().hex[:10]
+
+    def _work():
+        try:
+            r = edit_render_audio(eid, model=m)
+            with LOCK:
+                RENDER_TASKS[jid] = {'done': True, 'at': time.time(), 'r': r}
+        except Exception as e:                                  # noqa: BLE001
+            with LOCK:
+                RENDER_TASKS[jid] = {'done': True, 'at': time.time(),
+                                     'err': '%s: %s' % (type(e).__name__, e)}
+    th = threading.Thread(target=_work, daemon=True)
+    with LOCK:
+        RENDER_TASKS[jid] = {'done': False, 'at': time.time()}
+    th.start()
+    return {'r': None, 'task': jid}
+
+
+def edit_render_task(jid):
+    """查渲染任务状态（前端轮询）"""
+    with LOCK:
+        t = RENDER_TASKS.get(jid)
+    if not t:
+        raise FileNotFoundError('没有这个渲染任务：%s' % jid)
+    return t
+
+
+def edit_render_audio(eid, model=None, force=False):
+    """编辑会话 → **真实音源渲染的音频**（与引擎面板同一条 `render_midi.py` 管线）。
+
+    为什么要有（用户口径："还是比不上主界面"）：引擎面板放的是 GeneralUser GS 渲染出来的
+    真音频，编辑器原来只有 WebAudio 合成音 —— 合成得再复杂也比不过采样音源。
+    这里把编辑器的当前模型导出成 MIDI、走同一条渲染链路，前端直接 `<audio>` 播放它。
+    缓存键 = 模型的"音符指纹"（音数/末拍/轨数/BPM/CC 数），**改了音符才会重渲**。
+    """
+    import hashlib
+    import midi_file as _mf
+    m = model if model is not None else edit_load(eid)
+    tr = m.get('tracks') or []
+    fp = hashlib.md5(('%d|%.3f|%.3f|%d|%d' % (
+        sum(len(t.get('notes') or []) for t in tr),
+        max([n[0] + n[1] for t in tr for n in (t.get('notes') or [])] or [0.0]),
+        float(m.get('bpm') or 120), len(tr),
+        sum(len(t.get('ccs') or []) for t in tr))).encode()).hexdigest()[:12]
+    d = edit_dir(eid, create=True)
+    ogg = os.path.join(d, 'render_%s.ogg' % fp)
+    meta = os.path.join(d, 'render_%s.json' % fp)
+    url = '/api/ed/audio?eid=%s&v=%s' % (urllib.parse.quote(eid), fp)
+    if os.path.isfile(ogg) and not force:
+        info = read_json(meta) or {}
+        return {'cached': True, 'url': url, 'bytes': os.path.getsize(ogg),
+                'seconds': info.get('seconds'), 'fp': fp}
+    mid = os.path.join(d, 'render_%s.mid' % fp)
+    _mf.export_midi(m, mid, fmt=1)
+    # ⚠ 渲染必须在**短路径 + 唯一名**下做：
+    #   ① `render_midi.py` 会在输出基名旁写 `<base>.raw.wav` 中间文件，长路径（面板会话目录
+    #      带 eid 与指纹）会超限 → FluidSynth 写不出来 → `os.remove(raw)` 抛 FileNotFoundError；
+    #   ② **名字必须唯一**：两个渲染任务用同一个短名时会互相删对方的 raw.wav
+    #      （实测"手工渲染成功、走面板必失败"，就是并发/重名导致的）。
+    short = os.path.join(tempfile.gettempdir(),
+                         'edr_%s_%s' % (fp, uuid.uuid4().hex[:6]))
+    rc, out = run_py(['scripts/render_midi.py', mid, short], timeout=900)
+    if rc != 0 or not os.path.isfile(short + '.ogg'):
+        errp = os.path.join(d, 'render_err.txt')
+        with open(errp, 'w', encoding='utf-8', newline='') as f:
+            f.write('rc=%s\nmid=%s\nshort=%s\n\n%s' % (rc, mid, short, out or '(无输出)'))
+        raise RuntimeError('渲染失败（rc=%s）· 详细日志：%s\n%s'
+                           % (rc, errp, (out or '')[-1200:]))
+    try:
+        os.replace(short + '.ogg', ogg)
+    except OSError:
+        shutil.copyfile(short + '.ogg', ogg)
+    for ext in ('.ogg', '.wav', '.raw.wav'):
+        try:
+            os.remove(short + ext)
+        except OSError:
+            pass
+    secs = None
+    try:
+        import soundfile as _sf
+        secs = round(_sf.info(ogg).duration, 2)
+    except Exception:
+        pass
+    with open(meta, 'w', encoding='utf-8', newline='') as f:
+        json.dump({'fp': fp, 'seconds': secs, 'bytes': os.path.getsize(ogg),
+                   'at': time.time()}, f, ensure_ascii=False)
+    return {'cached': False, 'url': url, 'bytes': os.path.getsize(ogg),
+            'seconds': secs, 'fp': fp, 'log': (out or '')[-800:]}
+
+
+def edit_import_path(path):
+    """从服务器本机路径导入（**只能在 ROOT 之内**：面板不该读任意文件）"""
+    p = os.path.abspath(path)
+    root = os.path.abspath(ROOT)
+    if not p.startswith(root):
+        raise ValueError('只允许导入工具链目录内的文件')
+    if not os.path.isfile(p):
+        raise FileNotFoundError(path)
+    with open(p, 'rb') as f:
+        return edit_import_bytes(os.path.basename(p), f.read())
+
+
+def edit_apply_op(eid, op, params, model=None):
+    """执行一个编辑操作（`scripts/midi_ops.py` 是唯一口径，UI 与自检共用）"""
+    import midi_ops as _mo
+    m = model if model is not None else edit_load(eid)
+    fn = _mo.resolve_op(op)                 # 支持短名别名（velocity/ramp/snap…）
+    report = fn(m, **(params or {}))
+    edit_save(eid, m)
+    return {'report': report, 'stats': _mo.stats(m)}
+
+
+def edit_chords(model, step=None, create=False, merge=True):
+    """和弦检测（`scripts/midi_chords.py` 是唯一口径）；`create=True` 顺带写一条和弦轨"""
+    import midi_chords as _mc
+    segs = _mc.scan(model, step=step, merge=merge)
+    out = [{'from': a, 'to': b, 'chord': nm, 'score': round(s, 3),
+            'hit': (d or {}).get('hit'), 'extra': (d or {}).get('extra'),
+            'miss': (d or {}).get('miss'), 'notes': (d or {}).get('notes')}
+           for (a, b, nm, s, d) in segs]
+    r = None
+    if create:
+        r = _mc.chords_track(model, segs)
+    return {'segments': out, 'track': r, 'bar': _mc.beat_bar(model)}
+
+
+def _editor_summary(model):
+    """模型摘要（导入后给 UI 一屏信息：轨名/音数/音域/速度）"""
+    import midi_probe as _mp
+    import midi_ops as _mo
+    st = _mo.stats(model)
+    tr = []
+    for t in model.get('tracks') or []:
+        ns = t.get('notes') or []
+        ps = [n[2] for n in ns]
+        tr.append({'index': t.get('index'), 'name': t.get('name'),
+                   'channel': t.get('channel'), 'program': t.get('program'),
+                   'drum': t.get('drum'), 'notes': len(ns),
+                   'range': [_mp.note_name(min(ps)), _mp.note_name(max(ps))] if ps else None,
+                   'vel': [min([n[3] for n in ns] or [0]), max([n[3] for n in ns] or [0])]})
+    return {'title': model.get('title'), 'format': model.get('format'),
+            'division': model.get('division'), 'bpm': model.get('bpm'),
+            'timesig': model.get('timesig'), 'stats': st, 'tracks': tr}
+
+
 def start_job(sid, kind, opts=None):
-    opts = opts or {}
     """起后台任务；返回 jobId。kind: compose / render / render-tune / solo:<轨> / export[:stems]"""
+    opts = opts or {}
     song = os.path.join(song_dir(sid), 'song.json')
     jobs_dir = TMP_AUDIO
     os.makedirs(jobs_dir, exist_ok=True)
@@ -245,7 +598,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header('content-type', 'application/json; charset=utf-8')
         self.send_header('content-length', str(len(body)))
-        self.send_header('cache-control', 'no-store')
+        self.send_header('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
+        self.send_header('pragma', 'no-cache')
+        self.send_header('expires', '0')
         self.end_headers()
         self.wfile.write(body)
 
@@ -297,7 +652,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('content-type', ctype)
         self.send_header('accept-ranges', 'bytes')
         self.send_header('content-length', str(end - start + 1))
-        self.send_header('cache-control', 'no-store')
+        self.send_header('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
+        self.send_header('pragma', 'no-cache')
+        self.send_header('expires', '0')
         if download:
             self.send_header('content-disposition',
                              'attachment; filename="%s"' % os.path.basename(path))
@@ -322,6 +679,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if u.path == '/' or u.path == '/index.html':
                 return self._file(os.path.join(WEB, 'index.html'))
+            if u.path == '/editor' or u.path == '/ed.html':
+                return self._file(os.path.join(WEB, 'ed.html'))
             if re.match(r'^/[A-Za-z0-9_.\-]+\.(js|css|png|svg|ico|woff2?)$', u.path):
                 p = os.path.abspath(os.path.join(WEB, u.path.lstrip('/')))
                 if not p.startswith(os.path.abspath(WEB)):
@@ -417,6 +776,35 @@ class Handler(BaseHTTPRequestHandler):
                 if not p.startswith(os.path.abspath(song_dir(sid))):
                     return self._err('路径越界', 400)
                 return self._file(p, download=True)
+            # ---------------- MIDI 编辑器 ----------------
+            if u.path == '/api/ed/list':
+                return self._json({'ok': True, 'dir': EDITS_DIR, 'edits': edit_list()})
+            if u.path == '/api/ed/model':
+                eid = (q.get('eid') or [''])[0]
+                return self._json({'ok': True, 'eid': eid, 'model': edit_load(eid)})
+            if u.path == '/api/ed/render-status':
+                t = edit_render_task((q.get('t') or [''])[0])
+                if not t.get('done'):
+                    return self._json({'ok': True, 'done': False,
+                                       'waited': round(time.time() - t.get('at', time.time()), 1)})
+                if t.get('err'):
+                    return self._json({'ok': False, 'done': True, 'error': t['err']})
+                return self._json(dict({'ok': True, 'done': True}, **t['r']))
+            if u.path == '/api/ed/audio':
+                eid = (q.get('eid') or [''])[0]
+                v = re.sub(r'\W+', '', (q.get('v') or [''])[0])
+                p = os.path.join(edit_dir(eid), 'render_%s.ogg' % v)
+                if not (v and os.path.isfile(p)):
+                    return self._err('这段音频还没渲染（先点「🎧 渲染音频」）', 404)
+                return self._file(p)
+            if u.path == '/api/ed/download':
+                eid = (q.get('eid') or [''])[0]
+                d = edit_dir(eid)
+                want = 'export_fmt0.mid' if (q.get('fmt') or ['1'])[0] == '0' else 'export.mid'
+                p = os.path.join(d, want)
+                if not os.path.isfile(p):
+                    return self._err('还没导出过（先点导出）', 404)
+                return self._file(p, download=True)
             return self._err('未知路由: %s' % u.path, 404)
         except FileNotFoundError as e:
             return self._err(e, 404)
@@ -448,13 +836,21 @@ class Handler(BaseHTTPRequestHandler):
                 nid = (body.get('id') or '').strip()
                 if not re.match(r'^[0-9A-Za-z_][0-9A-Za-z_-]{0,40}$', nid):
                     return self._err('曲目名只能用字母/数字/下划线（例：24_my_song）')
-                tpl = body.get('from') or '05_d135_cheerful'
                 ref = body.get('ref') or first_ref()
-                style = body.get('style') or 'daily'
-                rc, out = run_py(['scripts/new_song.py', nid, '--from', tpl,
-                                  '--ref', ref, '--style', style], timeout=300)
+                # **模板依据走主题模板包**（用户口径：一次生成依据同主题 ≥8 首白名单模板）。
+                # 老 `--from <现成曲目>` 仍可用，但它会被 check_song 判为"依据不合规"。
+                theme = (body.get('theme') or '').strip()
+                src = (body.get('from') or '').strip()
+                if theme:
+                    args = ['scripts/new_song.py', nid, '--theme', theme]
+                else:
+                    src = src or '05_d135_cheerful'
+                    args = ['scripts/new_song.py', nid, '--from', src,
+                            '--style', (body.get('style') or 'daily')]
+                args += ['--ref', ref]
+                rc, out = run_py(args, timeout=300)
                 return self._json({'ok': rc == 0, 'rc': rc, 'log': out[-3000:],
-                                   'id': nid, 'from': tpl, 'ref': ref, 'style': style})
+                                   'id': nid, 'theme': theme, 'from': src, 'ref': ref})
             if u.path == '/api/stop':
                 return self._stop_job((q.get('id') or [''])[0])
             if u.path == '/api/check':
@@ -480,6 +876,74 @@ class Handler(BaseHTTPRequestHandler):
                             os.path.join(d, 'song.json')])
                 jid = start_job(sid, kind, opts)
                 return self._json({'ok': True, 'job': jid})
+            # ---------------- MIDI 编辑器 ----------------
+            if u.path == '/api/ed/import':
+                body = self._body()
+                if body.get('path'):
+                    eid, model = edit_import_path(body['path'])
+                else:
+                    raw = base64.b64decode(body.get('data_b64') or '')
+                    if not raw:
+                        return self._err('没有收到文件内容（data_b64 为空）')
+                    if raw[:4] != b'MThd':
+                        return self._err('这不是标准 MIDI 文件（缺 MThd 头）')
+                    eid, model = edit_import_bytes(body.get('name') or 'imported.mid', raw)
+                return self._json({'ok': True, 'eid': eid,
+                                   'summary': _editor_summary(model),
+                                   'model': model})
+            if u.path == '/api/ed/op':
+                body = self._body()
+                eid = (q.get('eid') or [''])[0]
+                op = body.get('op') or ''
+                r = edit_apply_op(eid, op, body.get('params') or {}, model=body.get('model'))
+                return self._json(dict({'ok': True, 'op': op}, **r))
+            if u.path == '/api/ed/chords':
+                body = self._body()
+                eid = (q.get('eid') or [''])[0]
+                model = body.get('model') or edit_load(eid)
+                step = body.get('step')
+                creating = bool(body.get('create_track'))
+                segs = edit_chords(model, step=step, create=creating,
+                                   merge=body.get('merge', True))
+                if creating:
+                    edit_save(eid, model)          # 和弦轨是新轨 → 立刻落盘
+                return self._json({'ok': True, 'chords': segs,
+                                   'model': model if creating else None})
+            if u.path == '/api/ed/render-audio':
+                body = self._body()
+                eid = (q.get('eid') or [''])[0]
+                r = edit_render_start(eid, model=body.get('model'),
+                                      force=bool(body.get('force')))
+                if r.get('r'):
+                    return self._json(dict({'ok': True}, **r['r']))
+                return self._json({'ok': True, 'task': r['task'], 'pending': True})
+            if u.path == '/api/ed/save':
+                body = self._body()
+                eid = (q.get('eid') or [''])[0]
+                model = body.get('model')
+                if not model:
+                    return self._err('body 里没有 model')
+                m = edit_save(eid, model)
+                return self._json({'ok': True, 'stats': m['_stats']})
+            if u.path == '/api/ed/export':
+                import midi_file as _mf
+                body = self._body()
+                eid = (q.get('eid') or [''])[0]
+                model = body.get('model') or edit_load(eid)
+                fmt = int(body.get('fmt') or 1)
+                d = edit_dir(eid, create=True)
+                name = 'export.mid' if fmt != 0 else 'export_fmt0.mid'
+                out = os.path.join(d, name)
+                real = _mf.export_midi(model, out, fmt=fmt)
+                edit_save(eid, model)
+                rt = _mf.roundtrip_report(out, os.path.join(d, 'rt_check.mid'))
+                return self._json({'ok': True, 'file': out, 'fmt': real,
+                                   'bytes': os.path.getsize(out),
+                                   'url': '/api/ed/download?eid=%s&fmt=%d'
+                                          % (urllib.parse.quote(eid), real),
+                                   'roundtrip': {'ok': rt['ok'], 'exact': rt['exact'],
+                                                 'net': rt['net'], 'bad': rt['bad'],
+                                                 'notes': rt['notes']}})
             return self._err('未知路由: %s' % u.path, 404)
         except FileNotFoundError as e:
             return self._err(e, 404)
@@ -494,6 +958,8 @@ def main():
     ap.add_argument('--root', default=ROOT, help='music-gen 目录')
     ap.add_argument('--export-dir', default=EXPORT_DIR)
     ap.add_argument('--open', action='store_true', help='启动后打开浏览器')
+    ap.add_argument('--keep-tmp-audio', action='store_true',
+                    help='不清理音频缓存（默认启动时按预算清，见 prune_tmp_audio）')
     a = ap.parse_args()
     ROOT, EXPORT_DIR = os.path.abspath(a.root), os.path.abspath(a.export_dir)
     os.makedirs(EXPORT_DIR, exist_ok=True)
@@ -501,6 +967,10 @@ def main():
     global STEM_CACHE
     STEM_CACHE = os.path.join(TMP_AUDIO, 'stems')
     os.makedirs(STEM_CACHE, exist_ok=True)
+    # **启动时把音频缓存压回预算**：试听/搜索/配平/分轨每次都往里丢文件，以前从不清理
+    # （实测涨到 0.93GB / 12 个 job 目录）。`--keep-tmp-audio` 可跳过（排查缓存相关问题时用）。
+    if not a.keep_tmp_audio:
+        prune_tmp_audio()
     PY = py_exe()
     srv = ThreadingHTTPServer(('127.0.0.1', a.port), Handler)
     url = 'http://127.0.0.1:%d/' % a.port

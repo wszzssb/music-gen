@@ -1,0 +1,1296 @@
+{
+ "theme": "folk_tale",
+ "label": "民谣叙事",
+ "desc": "民谣叙事（主题模板包：10 首同主题模板聚合）",
+ "styles": [
+  "folk",
+  "blues",
+  "ballad"
+ ],
+ "engine_style": "ballad",
+ "meter": [
+  4,
+  4
+ ],
+ "min_templates": 8,
+ "template_count": 10,
+ "bpm": {
+  "median": 122.95,
+  "p25": 87.0,
+  "p75": 161.0
+ },
+ "key": {
+  "tonic": "C",
+  "pc": 0,
+  "mode": "major",
+  "confidence": 0.325,
+  "scale_degree_weight": [
+   2174719.84,
+   16506.2,
+   896616.28,
+   185510.76,
+   994561.84,
+   736220.04,
+   49412.28,
+   1422178.12,
+   150035.16,
+   805304.44,
+   364001.04,
+   485528.48
+  ]
+ },
+ "templates": [
+  {
+   "file": "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+   "style": "ballad",
+   "md5": "96ebe7106597cd36421d1c9f89b097c7",
+   "bpm": 48.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 128,
+   "seconds": 638.2,
+   "source": "https://bitmidi.com/uploads/5932.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "ballad/A-Love-Song.mid",
+   "style": "ballad",
+   "md5": "cfe1f7e0814b86080e15bc8d3a40664d",
+   "bpm": 87.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 71,
+   "seconds": 193.5,
+   "source": "https://bitmidi.com/uploads/3122.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "ballad/A-Very-Special-Love-Song.mid",
+   "style": "ballad",
+   "md5": "e863a3bcb92851c8cf23607cb6b596ab",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 112,
+   "seconds": 223.1,
+   "source": "https://bitmidi.com/uploads/3173.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "blues/After-Dinner-Blues.mid",
+   "style": "blues",
+   "md5": "693c5a976445c5800aa4818ef09ce817",
+   "bpm": 60.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 79,
+   "seconds": 315.4,
+   "source": "https://bitmidi.com/uploads/4196.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "blues/Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid",
+   "style": "blues",
+   "md5": "c0f3af2bbd83627e3e43a06af661528d",
+   "bpm": 122.95,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 62,
+   "seconds": 120.3,
+   "source": "https://bitmidi.com/uploads/18592.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "blues/A.JACKSON.Mercury blues K.mid",
+   "style": "blues",
+   "md5": "2ac87f99ea5dce284f879b34bee6513e",
+   "bpm": 174.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 155,
+   "seconds": 213.6,
+   "source": "https://bitmidi.com/uploads/3236.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "blues/Boogie-Woogie-Demo.mid",
+   "style": "blues",
+   "md5": "b8a04e33784194ba58a6cd2a14f66509",
+   "bpm": 180.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 52,
+   "seconds": 68.8,
+   "source": "https://bitmidi.com/uploads/19184.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
+   "style": "folk",
+   "md5": "1ceaa75f2ae81462948f215ebb8be0b6",
+   "bpm": 103.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 94,
+   "seconds": 216.7,
+   "source": "https://bitmidi.com/uploads/59404.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "folk/A.JACKSON.Gone country.mid",
+   "style": "folk",
+   "md5": "70a5389348d5d2bcad714245bd02c5e1",
+   "bpm": 125.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 126,
+   "seconds": 240.9,
+   "source": "https://bitmidi.com/uploads/3229.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "folk/Acid-Folk.mid",
+   "style": "folk",
+   "md5": "123e9efce8a0a062f8a88c6eff240f2d",
+   "bpm": 161.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 214,
+   "seconds": 318.3,
+   "source": "https://bitmidi.com/uploads/3715.mid",
+   "kind": "bitmidi"
+  }
+ ],
+ "source_kinds": {
+  "bitmidi": 10
+ },
+ "harmony": {
+  "primary": [
+   "Cmaj7",
+   "Fm6",
+   "Am7",
+   "Am7"
+  ],
+  "primary_source": "window4",
+  "progressions": [
+   {
+    "degrees": [
+     0,
+     5,
+     9,
+     9
+    ],
+    "romans": [
+     "Imaj7",
+     "iv6",
+     "vi7",
+     "vi7"
+    ],
+    "count": 6,
+    "templates": [
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Cmaj7",
+     "Fm6",
+     "Am7",
+     "Am7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     10,
+     10,
+     2
+    ],
+    "romans": [
+     "I6",
+     "bVIImaj7",
+     "bVIImaj7",
+     "ii7"
+    ],
+    "count": 5,
+    "templates": [
+     "blues/A.JACKSON.Mercury blues K.mid",
+     "folk/Acid-Folk.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "C6",
+     "A#maj7",
+     "A#maj7",
+     "Dm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5,
+     9,
+     2
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6",
+     "vi6",
+     "ii6"
+    ],
+    "count": 4,
+    "templates": [
+     "blues/After-Dinner-Blues.mid",
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Cmaj7",
+     "F6",
+     "Am6",
+     "Dm6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     9,
+     9,
+     0
+    ],
+    "romans": [
+     "iv6",
+     "vi7",
+     "vi7",
+     "Imaj7"
+    ],
+    "count": 4,
+    "templates": [
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Fm6",
+     "Am7",
+     "Am7",
+     "Cmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     5,
+     2,
+     0
+    ],
+    "romans": [
+     "IV7",
+     "IV7",
+     "ii7",
+     "i6"
+    ],
+    "count": 9,
+    "templates": [
+     "blues/A.JACKSON.Mercury blues K.mid"
+    ],
+    "template_share": 0.1,
+    "symbols": [
+     "F7",
+     "F7",
+     "Dm7",
+     "Cm6"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_4": [
+   {
+    "degrees": [
+     0,
+     5,
+     9,
+     9
+    ],
+    "romans": [
+     "Imaj7",
+     "iv6",
+     "vi7",
+     "vi7"
+    ],
+    "count": 6,
+    "templates": [
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Cmaj7",
+     "Fm6",
+     "Am7",
+     "Am7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     10,
+     10,
+     2
+    ],
+    "romans": [
+     "I6",
+     "bVIImaj7",
+     "bVIImaj7",
+     "ii7"
+    ],
+    "count": 5,
+    "templates": [
+     "blues/A.JACKSON.Mercury blues K.mid",
+     "folk/Acid-Folk.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "C6",
+     "A#maj7",
+     "A#maj7",
+     "Dm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5,
+     9,
+     2
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6",
+     "vi6",
+     "ii6"
+    ],
+    "count": 4,
+    "templates": [
+     "blues/After-Dinner-Blues.mid",
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Cmaj7",
+     "F6",
+     "Am6",
+     "Dm6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     9,
+     9,
+     0
+    ],
+    "romans": [
+     "iv6",
+     "vi7",
+     "vi7",
+     "Imaj7"
+    ],
+    "count": 4,
+    "templates": [
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Fm6",
+     "Am7",
+     "Am7",
+     "Cmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     5,
+     2,
+     0
+    ],
+    "romans": [
+     "IV7",
+     "IV7",
+     "ii7",
+     "i6"
+    ],
+    "count": 9,
+    "templates": [
+     "blues/A.JACKSON.Mercury blues K.mid"
+    ],
+    "template_share": 0.1,
+    "symbols": [
+     "F7",
+     "F7",
+     "Dm7",
+     "Cm6"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_2": [
+   {
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "V7",
+     "Imaj7"
+    ],
+    "count": 22,
+    "templates": [
+     "ballad/A-Love-Song.mid",
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "blues/After-Dinner-Blues.mid",
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
+    ],
+    "template_share": 0.6,
+    "symbols": [
+     "G7",
+     "Cmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6"
+    ],
+    "count": 63,
+    "templates": [
+     "ballad/A-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "blues/A.JACKSON.Mercury blues K.mid",
+     "blues/After-Dinner-Blues.mid",
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.5,
+    "symbols": [
+     "Cmaj7",
+     "F6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     0
+    ],
+    "romans": [
+     "IV6",
+     "Imaj7"
+    ],
+    "count": 47,
+    "templates": [
+     "ballad/A-Love-Song.mid",
+     "ballad/A-Very-Special-Love-Song.mid",
+     "blues/A.JACKSON.Mercury blues K.mid",
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Acid-Folk.mid"
+    ],
+    "template_share": 0.5,
+    "symbols": [
+     "F6",
+     "Cmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     0
+    ],
+    "romans": [
+     "ii7",
+     "i6"
+    ],
+    "count": 26,
+    "templates": [
+     "ballad/A-Love-Song.mid",
+     "blues/A.JACKSON.Mercury blues K.mid",
+     "blues/After-Dinner-Blues.mid",
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.4,
+    "symbols": [
+     "Dm7",
+     "Cm6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     9
+    ],
+    "romans": [
+     "IVmaj7",
+     "vi7"
+    ],
+    "count": 24,
+    "templates": [
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "blues/After-Dinner-Blues.mid",
+     "blues/Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid",
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.4,
+    "symbols": [
+     "Fmaj7",
+     "Am7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     9,
+     5
+    ],
+    "romans": [
+     "vi7",
+     "IV6"
+    ],
+    "count": 20,
+    "templates": [
+     "ballad/A-Love-Song.mid",
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "blues/Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid"
+    ],
+    "template_share": 0.4,
+    "symbols": [
+     "Am7",
+     "F6"
+    ],
+    "usable": true
+   }
+  ],
+  "pool_progression": [
+   "Cmaj7",
+   "Cmaj7"
+  ],
+  "pool_progression_romans": [
+   "Imaj7",
+   "I"
+  ],
+  "chord_pool": [
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "6",
+    "count": 215,
+    "templates": 3
+   },
+   {
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "7",
+    "count": 206,
+    "templates": 8
+   },
+   {
+    "degree": 0,
+    "roman": "I",
+    "suffix": "maj7",
+    "count": 198,
+    "templates": 10
+   },
+   {
+    "degree": 7,
+    "roman": "V",
+    "suffix": "sus4",
+    "count": 123,
+    "templates": 8
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m7",
+    "count": 73,
+    "templates": 7
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m7",
+    "count": 72,
+    "templates": 8
+   },
+   {
+    "degree": 11,
+    "roman": "VII",
+    "suffix": "m7",
+    "count": 55,
+    "templates": 5
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "6",
+    "count": 51,
+    "templates": 5
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
+    "suffix": "7",
+    "count": 35,
+    "templates": 6
+   },
+   {
+    "degree": 4,
+    "roman": "III",
+    "suffix": "m7",
+    "count": 20,
+    "templates": 4
+   },
+   {
+    "degree": 6,
+    "roman": "bV",
+    "suffix": "m7b5",
+    "count": 8,
+    "templates": 2
+   },
+   {
+    "degree": 1,
+    "roman": "bII",
+    "suffix": "6",
+    "count": 2,
+    "templates": 1
+   }
+  ],
+  "chord_per_bar": 0.97
+ },
+ "rhythm": {
+  "low16": "★·★·★·★·★·★·★·★·",
+  "high16": "★·★★★·★·★·★·★·★·",
+  "low_slot_share": [
+   0.9,
+   0.2,
+   0.7,
+   0.3,
+   0.9,
+   0.2,
+   0.8,
+   0.2,
+   0.9,
+   0.2,
+   0.8,
+   0.3,
+   0.9,
+   0.2,
+   0.7,
+   0.3
+  ],
+  "high_slot_share": [
+   0.8,
+   0.3,
+   0.7,
+   0.6,
+   0.9,
+   0.1,
+   0.8,
+   0.3,
+   0.8,
+   0.1,
+   0.8,
+   0.4,
+   0.9,
+   0.2,
+   0.7,
+   0.4
+  ],
+  "low_density": 20.09,
+  "high_density": 13.77,
+  "bass_density": 0.9,
+  "perc_density": 7.38,
+  "slots": 16,
+  "bass_style": "simple",
+  "perc_style": "light"
+ },
+ "arrangement": {
+  "roles": {
+   "bass": 0.3,
+   "glock": 0.1,
+   "guitar": 0.5,
+   "lead": 0.1,
+   "organ": 0.1,
+   "pad": 0.1,
+   "piano": 0.6,
+   "pipe": 0.2,
+   "strings": 0.1
+  },
+  "role_range": {
+   "bass": [
+    29,
+    51
+   ],
+   "glock": [
+    31,
+    127
+   ],
+   "guitar": [
+    52,
+    81
+   ],
+   "lead": [
+    31,
+    65
+   ],
+   "organ": [
+    55,
+    88
+   ],
+   "pad": [
+    53,
+    76
+   ],
+   "piano": [
+    26,
+    93
+   ],
+   "pipe": [
+    52,
+    91
+   ],
+   "strings": [
+    44,
+    95
+   ]
+  },
+  "arr_share": {
+   "bass": 0.3,
+   "piano": 0.6,
+   "uku": 0.5,
+   "strings": 0.0,
+   "pad": 0.1,
+   "glock": 0.1,
+   "ep": 0.2,
+   "perc": 0.0
+  },
+  "arr_on": [
+   "piano",
+   "uku"
+  ],
+  "arr_off": [
+   "perc",
+   "strings"
+  ],
+  "arr_maybe": [
+   "bass",
+   "ep",
+   "glock",
+   "pad"
+  ],
+  "track_count": 4.4,
+  "style_mix": {
+   "ballad": 3,
+   "blues": 4,
+   "folk": 3
+  }
+ },
+ "form": {
+  "section_bars": 8,
+  "total_bars": 64,
+  "plan": [
+   {
+    "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A2",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A3",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
+    "bars": 8,
+    "prog": 0
+   }
+  ]
+ },
+ "melody": {
+  "notes": 4933,
+  "range": [
+   52,
+   83
+  ],
+  "mean_pitch": 70.1,
+  "notes_per_bar": 4.83,
+  "stepwise_pct": 48.51,
+  "onbeat_pct": 36.97,
+  "diatonic_pct": 90.24,
+  "interval_hist": {
+   "-70": 1,
+   "-54": 1,
+   "-49": 1,
+   "-48": 1,
+   "-47": 4,
+   "-46": 1,
+   "-45": 8,
+   "-44": 4,
+   "-43": 10,
+   "-42": 3,
+   "-41": 7,
+   "-40": 2,
+   "-39": 4,
+   "-38": 6,
+   "-37": 1,
+   "-36": 16,
+   "-35": 6,
+   "-34": 8,
+   "-33": 17,
+   "-32": 12,
+   "-31": 21,
+   "-30": 13,
+   "-29": 21,
+   "-28": 32,
+   "-27": 9,
+   "-26": 27,
+   "-25": 9,
+   "-24": 77,
+   "-23": 10,
+   "-22": 27,
+   "-21": 36,
+   "-20": 20,
+   "-19": 59,
+   "-18": 11,
+   "-17": 42,
+   "-16": 38,
+   "-15": 29,
+   "-14": 64,
+   "-13": 21,
+   "-12": 214,
+   "-11": 17,
+   "-10": 55,
+   "-9": 106,
+   "-8": 103,
+   "-7": 245,
+   "-6": 55,
+   "-5": 316,
+   "-4": 174,
+   "-3": 613,
+   "-2": 1030,
+   "-1": 360,
+   "0": 2285,
+   "1": 462,
+   "2": 714,
+   "3": 557,
+   "4": 191,
+   "5": 392,
+   "6": 20,
+   "7": 195,
+   "8": 177,
+   "9": 61,
+   "10": 102,
+   "11": 25,
+   "12": 143,
+   "13": 53,
+   "14": 28,
+   "15": 23,
+   "16": 47,
+   "17": 46,
+   "18": 12,
+   "19": 43,
+   "20": 38,
+   "21": 42,
+   "22": 21,
+   "23": 15,
+   "24": 49,
+   "25": 18,
+   "26": 18,
+   "27": 20,
+   "28": 41,
+   "29": 28,
+   "30": 6,
+   "31": 56,
+   "32": 13,
+   "33": 15,
+   "34": 10,
+   "35": 7,
+   "36": 15,
+   "37": 4,
+   "38": 4,
+   "39": 4,
+   "40": 7,
+   "41": 3,
+   "42": 4,
+   "43": 7,
+   "44": 4,
+   "45": 2,
+   "46": 1,
+   "47": 1,
+   "48": 2,
+   "49": 2,
+   "50": 3,
+   "69": 1
+  },
+  "dur16_hist": {
+   "0": 2230,
+   "1": 3452,
+   "2": 2435,
+   "3": 720,
+   "4": 135,
+   "5": 172,
+   "6": 50,
+   "7": 8,
+   "8": 304,
+   "9": 6,
+   "10": 1,
+   "11": 8,
+   "12": 10,
+   "13": 4,
+   "14": 12,
+   "15": 100,
+   "16": 353
+  },
+  "onset16_hist": {
+   "0": 1380,
+   "1": 385,
+   "2": 701,
+   "3": 473,
+   "4": 763,
+   "5": 336,
+   "6": 684,
+   "7": 398,
+   "8": 796,
+   "9": 741,
+   "10": 795,
+   "11": 406,
+   "12": 759,
+   "13": 284,
+   "14": 747,
+   "15": 351
+  },
+  "phrases": 79,
+  "phrase_bars": [
+   7.57,
+   8.62,
+   9.08,
+   7.85,
+   8.45,
+   7.1,
+   1.7,
+   8.45,
+   7.1,
+   2.2,
+   1.58,
+   1.58,
+   1.58,
+   1.58,
+   1.58,
+   1.58,
+   4.01,
+   2.02,
+   0.09,
+   0.55,
+   0.13,
+   61.51,
+   1.16,
+   7.46,
+   36.04,
+   1.73,
+   76.68,
+   0.07,
+   1.48,
+   1.25,
+   4.03,
+   1.94,
+   3.45,
+   1.24,
+   1.0,
+   0.08,
+   0.06,
+   0.06,
+   0.06,
+   0.19,
+   0.06,
+   0.06,
+   0.06,
+   0.06,
+   0.06,
+   1.44,
+   0.06,
+   0.02,
+   0.02,
+   0.19,
+   0.06,
+   0.06,
+   0.02,
+   0.02,
+   48.96,
+   3.98,
+   4.0,
+   5.98,
+   0.6,
+   4.0
+  ],
+  "bars": 102.0,
+  "templates": 10
+ },
+ "notes": [
+  "共 10 首模板，来源：bitmidi×10",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/folk_tale_tracks.json"
+ ],
+ "tool": "theme_pack.py",
+ "mix_target": {
+  "ref": "folk_tale_mix",
+  "score": 0.855,
+  "why": "BPM 128.0（差 5.0，0.83）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）",
+  "aggregate": true,
+  "members": [
+   {
+    "ref": "bgm01c",
+    "score": 0.855,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "bgm01c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM04",
+    "score": 0.823,
+    "bpm": 114.1,
+    "centroid": 2281,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM04.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "fine_BGM09",
+    "score": 0.791,
+    "bpm": 123.0,
+    "centroid": 3695,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "D:\\game\\end\\仰望夜空星辰 FINE DAYS\\Bgm\\BGM09.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM06",
+    "score": 0.679,
+    "bpm": 133.9,
+    "centroid": 1533,
+    "rms_db": -16.9,
+    "width": 0.261,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM06.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM15c",
+    "score": 0.674,
+    "bpm": 132.4,
+    "centroid": 3338,
+    "rms_db": -19.3,
+    "width": 0.66,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM15c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM13",
+    "score": 0.589,
+    "bpm": 109.2,
+    "centroid": 3068,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM13.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   }
+  ],
+  "agg_profile": "folk_tale_mix",
+  "weights": {
+   "bpm": 0.55,
+   "perc": 0.3,
+   "mode": 0.15
+  },
+  "perc_style_target": 0.35,
+  "energy_curve_db": [],
+  "structure_db": [
+   -17.0,
+   -17.0,
+   -17.0,
+   -17.0,
+   -16.0
+  ],
+  "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
+  "candidates": [
+   {
+    "ref": "bgm01c",
+    "score": 0.855,
+    "bpm": 128.0,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "centroid": 3284,
+    "perc": 0.437,
+    "mode": "major",
+    "structure": [
+     -17,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -15,
+     -14
+    ],
+    "parts": {
+     "bpm": 0.832,
+     "perc": 0.826,
+     "mode": 1.0
+    },
+    "why": "BPM 128.0（差 5.0，0.83）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）"
+   },
+   {
+    "ref": "BGM04",
+    "score": 0.823,
+    "bpm": 114.1,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "centroid": 2281,
+    "perc": 0.325,
+    "mode": "major",
+    "structure": [
+     -14,
+     -14,
+     -14,
+     -13,
+     -14,
+     -13,
+     -13,
+     -13
+    ],
+    "parts": {
+     "bpm": 0.705,
+     "perc": 0.95,
+     "mode": 1.0
+    },
+    "why": "BPM 114.1（差 8.9，0.70）· 打击感 0.33 vs 目标 0.35（0.95）· 调式 major（1.00）"
+   },
+   {
+    "ref": "fine_BGM09",
+    "score": 0.791,
+    "bpm": 123.0,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "centroid": 3695,
+    "perc": 0.446,
+    "mode": "minor",
+    "structure": [
+     -18,
+     -18,
+     -17,
+     -17,
+     -16,
+     -16,
+     -16
+    ],
+    "parts": {
+     "bpm": 0.998,
+     "perc": 0.808,
+     "mode": 0.0
+    },
+    "why": "BPM 123.0（差 0.0，1.00）· 打击感 0.45 vs 目标 0.35（0.81）· 调式 minor≠主题（0.00）"
+   }
+  ],
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+ },
+ "skipped": []
+}

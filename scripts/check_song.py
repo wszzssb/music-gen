@@ -319,6 +319,11 @@ DATA_CHECKS = ('song_json_buildable', 'style_unknown', 'bad_arr_key_warns',
                'melody_within_sections', 'style_desc_matches_programs',
                'unused_chords_warn', 'malformed_inputs', 'long_song_compose',
                'melody_chord_fit', 'section_mix_automation', 'song_json_canonical',
+               # 模板依据（用户口径）：新歌必须依据"很多同主题白名单模板"——
+               # 依据不合规的曲子不该开始渲染（改模板依据要重出整首，不是调参能救的）。
+               # 注：`theme_pack_valid`（整包体检）不在数据契约里 —— 它是仓库级判据，
+               # 与"这一首能不能渲染"无关（完整自检/非 --fast 的 check_song 照样会报它）。
+               'theme_basis_whitelist',
                'strict_downbeats')
 
 

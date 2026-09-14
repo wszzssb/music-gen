@@ -36,14 +36,28 @@ DEFAULT_MIX = {
 # 每套的音量配比都是**实际渲染调过之后的经验值**（尤其 gorgeous 那套：低中频要收，否则糊）。
 # 通道一律用下面这张**固定表**，预设只改音色不改通道 —— 否则会有两轨抢同一通道、
 # program change 互相覆盖（踩过：4 套预设都撞了通道）。
-# **音区分工**（只改 MIDI 音高、不动和声：整轨同移不改变和弦内的音程关系）。
-# 实测 32 号 9 条轨挤在 55~72 这 17 个半音里 —— Hook 61.5 / Piano 58.9 / Pad 55.7
-# 三轨撞在中央区，而 **Melody 71.5 夹在 Arp 72.2 与 Strings 69.4 中间**（旋律被埋住，
-# 听感"杂乱、分不出主次"的主因）。按轨加固定偏移把音区拉开：
-#   Pad -5 → Hook -5 → Piano +4 → Strings -3 → Arp +3 → **Melody +7 独占最高**
-#   （Bass / Glock / Perc 不动）
-TR_SHIFT = {'Pad': -5, 'Hook': -5, 'Piano': +4, 'Strings': -3, 'Arp': +3,
-            'Melody': +7}
+# **音区分工**：只允许**纯八度**（12 的倍数）。
+# ⚠ 2026-09-14 修**真 bug**：原来这里是 `Pad −5 → Hook −5 → Piano +4 → Strings −3 →
+# Arp +3 → Melody +7`，注释写着"只改 MIDI 音高、不动和声：整轨同移不改变和弦内的音程关系"
+# —— **那句话是错的推理**：轨内音程关系确实不变，但**与和弦的关系全变了**。实测
+# （音的 pc 是否落在当小节和弦音集里）：Bass 98.6%（无移调）·
+# **Hook 15.1% · Arp 31.6% · Piano 37.5% · Strings 43.2%**
+# 也就是说**伴奏有 60~85% 的音是和弦外音** —— 用户听完 38 号说的"主旋律和伴奏没有很好
+# 配合"就是这个：旋律（有强拍贴和弦纪律）踩在 A 和弦上，伴奏却在弹移调后的另一组音。
+# 探针量到的后果：旋律与同拍伴奏的**半音冲突 45%**（真实模板 6%）。
+# 现在：**伴奏整体降八度让位、旋律升八度独占最高**（各轨仍分居不同八度，分工不丢）。
+# 个别曲子的旋律本来就高（实测 17/28 号升八度后到 104/105，超出 Melody 上界 103）——
+# 那些曲子由下面的**边界保护**自动退回不移调（整轨统一，不许轨内八度跳变）。
+TR_SHIFT = {'Pad': -12, 'Hook': -12, 'Piano': -12, 'Strings': -12, 'Arp': -12,
+            'Melody': 12}
+
+# 各轨**乐器合理音域**（按库里成品实测包络，上下各外扩 7 半音；Bass 下界不放）。
+# 放在**引擎**里而不是自检里：`TR_SHIFT` 的自适应八度要用它做**边界保护** ——
+# 两边各写一份必然漂移（`track_ranges_musical` 会与引擎的判断打架）。
+TR_RANGE = {
+    'Arp': (44, 111), 'Bass': (16, 71), 'Glock': (63, 115), 'Hook': (32, 91),
+    'Melody': (43, 103), 'Pad': (29, 83), 'Piano': (29, 97), 'Strings': (41, 99),
+}
 
 CH = {'Melody': 0, 'Hook': 1, 'Piano': 2, 'Arp': 3, 'Pad': 4, 'Strings': 5,
       'Bass': 6, 'Glock': 7, 'Perc': 9}
@@ -113,6 +127,133 @@ STYLES = {
 }
 ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             'perc', 'harmony', 'shimmer', 'mix')
+
+# ---------------------------------------------------------------------------
+# 段落角色 → 编制（opt-in，`patterns.arr_by_role`）
+#
+# 为什么（用户反馈"怎么感觉你写的好多部分都是一样的" → 量出来的真值）：
+#   本库 231 个段落里 bass 在场 100% / piano 98% / perc 97%（"万年在场"），段落间
+#   乐器组合 Jaccard 中位 **0.86**，36~39 号全是 0.86。对照 13 首真实商业 BGM 的
+#   分段画像（`refs/sections/*.json`）：高频 5–10k 段间起伏中位 **7.3dB**、10–18k 8.9dB、
+#   低频 6.9dB；我们只有 4.5 / 5.0 / 1.5dB，最近 5 首（35~39）更是 0.4~2.3dB —— 整曲
+#   一套乐器全在场，听感自然"哪里都一样"。
+#
+# 做法：**按曲式角色定编制**（不是按能量微调音量），角色名来自模板分析的 `form.plan`
+#   A/A2/A3… 主歌 · B/B2… 副歌 · C… 桥段/间奏 · *(bridge) 桥段 · Intro/Outro 引子/尾声
+# 三层：
+#   BASE   每段都在（bass 是低频唯一来源、piano 是主奏音色 —— 抽掉整段会空，见坑 81 系）
+#   COLOR  主歌不开、副歌全开（"亮色只在副歌出现"是真实编配的通用做法）
+#   LIFT   中频加厚层，只在副歌/桥段
+# 副歌按出现次序轮换亮色家族（第 1 次钟琴、第 2 次电钢琴、第 3 次等）→ 副歌之间也不同。
+ROLE_BASE = ('bass', 'piano')
+ROLE_COLOR = ('glock', 'uku', 'arp', 'ep')
+ROLE_LIFT = ('strings', 'pad', 'shimmer')
+# 编制档（**按频段差异设计**，不只是"多一件少一件"）：
+#   0 极简：钢琴 + 贝斯 + 垫子        —— 只有低频/中频，5–18k 几乎为空
+#   1 主歌：+ 吉他分解                —— 预置律动，中高频有拨弦
+#   2 副歌：+ 钟琴/琶音/打击 + 弦乐    —— 高频亮色 + 中频厚度
+#   3 变奏：+ 电钢（替钟琴）+ 打击     —— "亮但不一样"（电钢的亮在 1–5k，钟琴在 8k+）
+#   4 大副歌：全开                     —— 最满
+ARR_PACKS = (
+    {'uku': False, 'arp': False, 'glock': False, 'ep': False, 'perc': 0,
+     'pad': True, 'strings': False, 'shimmer': False},
+    {'uku': True, 'arp': False, 'glock': False, 'ep': False, 'perc': 1,
+     'pad': True, 'strings': False, 'shimmer': False},
+    {'uku': True, 'arp': True, 'glock': True, 'ep': False, 'perc': 2,
+     'pad': True, 'strings': True, 'shimmer': False},
+    {'uku': True, 'arp': True, 'glock': False, 'ep': True, 'perc': 2,
+     'pad': True, 'strings': False, 'shimmer': True},
+    {'uku': True, 'arp': True, 'glock': True, 'ep': True, 'perc': 3,
+     'pad': True, 'strings': True, 'shimmer': True},
+)
+
+
+def arr_pack_idx(role, nth=0, tier=1):
+    """段落角色 + 第几次出现 → 编制档下标（见 `ARR_PACKS`）
+
+    主歌恒定档 1（同一角色应当可预期）；副歌按出现次序 2 → 3 → 4 → 4（升级但不重复）；
+    桥段固定档 3（换音色，做"这里不一样"）；引子/尾声档 0（只有钢琴+贝斯+垫子）。
+    """
+    if tier <= 0:
+        return 1
+    r = str(role)
+    if r in ('intro', 'outro'):
+        return 0
+    if r == 'bridge':
+        return 3
+    if r == 'A':
+        return 1
+    return min(2 + nth, len(ARR_PACKS) - 1)
+
+
+def role_of_section(name):
+    """段落名 → 角色：'A2'→'A'、'B'→'B'、'b_bridge'→'bridge'、
+    'Final (A minor)'→'A'（括号里是调式说明，不是段名）、'intro2'→'intro'。"""
+    s = str(name or '').strip().lower()
+    if 'intro' in s:
+        return 'intro'
+    if 'outro' in s or s.startswith('out'):
+        return 'outro'
+    if 'ridge' in s:
+        return 'bridge'
+    head = s.split('(')[0].split('_')[0].strip()
+    for c in head:                      # 只认 A–E（段落主名；F 起是调式词的"F minor"）
+        if 'a' <= c <= 'e':
+            return c.upper()
+    return 'A'
+
+
+def arr_by_role(base, roles, energy=None, tier=1):
+    """**按段落角色**改编制（opt-in；`patterns.arr_by_role` 或 `song.json.arr_by_role`）
+
+    参数：
+      base    list[dict] —— 每段的编制（`theme_arr` 的输出，含主题包 arr_on/off）
+      roles   list[str]  —— 每段的**角色**（`role_of_section` 的结果）
+      energy  list[float]|None —— 段间能量曲线（真值来自混音目标的 `structure`）；
+              有起伏（≥0.5dB）时**抬/压**而非推翻角色表：高能量段额外开亮色与中频层
+      tier    int        —— 主题包允许的编配厚度档（`arr_level` 的 0/1），
+              0 = 保守（只保留 BASE + 一种亮色），用在模板证据薄的主题上
+
+    返回**新的** list（不改入参）。性质（自检 `arr_role_variety` 断言这些）：
+      · BASE 每段都在（bass/piano 永不为假）
+      · perc 只在主歌/副歌/桥段/大副歌开 —— 引子与尾声**不开**（"从简进入、留白收尾"）
+      · 同角色的段落拿到**同一套**编制（曲式该有的可预期性）；副歌之间按次序升级
+      · 任意两段的编制不相等（除非两段同角色）—— 这是"段间 Jaccard ≤0.75"的来源
+      · **兜底**：若整首没有任何一段开 perc（全曲只有 intro/outro 类段落），
+        至少给最先出现的非 intro 段开上 —— 否则 5–18kHz 会塌（见坑 81 系）。
+    """
+    n = len(base)
+    out = [dict(b or {}) for b in base]
+    if n == 0:
+        return out
+    hi = None
+    if energy and len(energy) == n:
+        span = max(energy) - min(energy)
+        hi = (span >= 0.5)
+        mid = sum(energy) / float(len(energy))
+    seen = {'B': 0, 'bridge': 0}
+    for i in range(n):
+        role = roles[i] if i < len(roles) else 'A'
+        a = out[i]
+        a['glock_all'] = False               # 角色编制不继承段落级 glock_all（那会让亮色段过满）
+        nth = seen.get(role, 0)
+        pack = ARR_PACKS[arr_pack_idx(role, nth, tier)]
+        if role in ('B', 'bridge'):
+            seen[role] = nth + 1
+        for k in ROLE_COLOR + ROLE_LIFT:
+            a[k] = bool(pack.get(k))
+        for k in ROLE_BASE:                  # 基础层永在（bass 是低频唯一来源、piano 是主奏）
+            a[k] = True
+        a['perc'] = int(pack.get('perc') or 0)
+        if hi:                               # 能量曲线：只做**微调**，不推翻角色底色
+            if energy[i] > mid:
+                a['strings'] = True
+            elif energy[i] < mid - 0.5 and role not in ('intro', 'outro'):
+                a['glock'] = False
+    if not any(a.get('perc') for a in out):   # 兜底：别让全曲没有高频来源
+        cand = next((i for i, r in enumerate(roles) if r not in ('intro', 'outro')), 0)
+        out[cand]['perc'] = 2
+    return out
 
 
 def _norm_meter(v):
@@ -197,6 +338,8 @@ def load(path):
     d['patterns'].setdefault('bass_style', 'simple')
     d['patterns'].setdefault('perc_style', 'light')
     d['patterns'].setdefault('arpeggio', [0, 2, 3, 4, 3, 2, 4])
+    d['patterns'].setdefault('guitar_beats', None)   # opt-in：主题包给的真实高音区落点
+    d['patterns'].setdefault('guitar_vary', False)   # opt-in：吉他相位轮换 + 同和弦换把位
     d['patterns'].setdefault('voicing_shift', 0)
     progs = dict(DEFAULT_PROGRAMS)
     progs.update(preset.get('programs', {}))
@@ -258,50 +401,146 @@ def tone(tones, i):
 
 
 # ---------------------------------------------------------------- 编配生成
-def guitar_arpeggio(ch, i, arp, B=4.0):
+def guitar_beats(slot_share, B=4.0, dense=0.5):
+    """真实模板的高音区落点占用率 → 吉他/尤克里里的**落点**（拍位）
+
+    `slot_share` 是主题包里聚合出来的"每一格有多少比例的小节有音"（16 分格）。
+    取 ≥`dense` 的格 → 拍位；同时**补上八分铺底**（律动必须可预期，见 `guitar_arpeggio`），
+    再去掉和声含糊的风险：第 1 拍永远保留（根音落在强拍）。
+    """
+    n = max(1, int(round(B * 2)) - 1)
+    eighth = [k * 0.5 for k in range(n)]
+    if not slot_share:
+        return eighth
+    S = len(slot_share)
+    got = []
+    for j, v in enumerate(slot_share):
+        if v >= dense:
+            got.append(round(j * B / float(S), 3))
+    if not got:                              # 模板高音区太稀 → 退回八分铺底
+        return eighth
+    keep = [b for b in eighth if b in got]   # 八分位里模板也认的那些
+    extra = [b for b in got if b not in keep and b < B - 1e-6]
+    if len(keep) < 2:                        # 八分位几乎都不认 → 用模板格（仍保证有音）
+        return sorted(set([0.0] + extra))[:max(2, n)]
+    return sorted(set([0.0] + keep + extra))
+
+
+def guitar_rot(arp, sec_i=0, bar_i=0, vary=False):
+    """吉他音型的**相位**：给分解和弦换"换弦/换把位"的层次。
+
+    为什么（用户反馈"怎么每首曲子的刚弦吉他都是这个节奏音调"）：
+      · **跨曲**：音型曾经是引擎硬编码的 `[0,2,3,4,3,2,4]`，15 个主题包都没有这一项
+        → 每首歌的吉他都是同一组落点 + 同一组和弦音序（已由 `new_song.theme_guitar_arp`
+        与 `guitar_beats` 按主题的真实音域跨度/高音区占用率修掉）。
+      · **曲内**：`arp[k % len(arp)]` 对每个小节都一样 → **和弦相同的小节音高序列逐音相同**
+        （实测 84~94% 的小节重复）。真实吉他手会换弦、换把位。
+    这里给**相位**（整体轮转）：`[0,2,3,4,3,2,4]` → `[2,3,4,3,2,4,0]` → … 按段落 + 小节错开。
+    落点（律动）不变 —— 遵循"音型要么稳定、要么各轨错开相位"的原则。
+    音符层的另一层变化由 `guitar_arpeggio` 的**八度档**承担（同和弦换把位）。
+    `vary=False`（缺省）= 原样返回，老曲与夹具逐字节不变。
+    """
+    arp = list(arp or [0])
+    if not vary or not arp:
+        return arp
+    k = (int(sec_i) + int(bar_i)) % len(arp)
+    return arp[k:] + arp[:k]
+
+
+def guitar_arpeggio(ch, i, arp, B=4.0, beats=None, sec_i=0, prev_chords=(), vary=False):
     """吉他/尤克里里分解：第 1 拍必须是根音（否则和声含糊、扒谱都对不上）
 
     `B` = 一小节的四分音符数（默认 4 = 老行为，逐字节不变）。3/4 → 一小节 5 个八分位。
+    `beats`（opt-in，默认 None = 逐字节不变）：**落点**改由主题包的真实高音区占用率给出
+    （`guitar_beats`）—— 不传时是"八分铺底 + 每 4 小节末格轻切分"的老行为。
+    `sec_i` / `prev_chords` / `vary`（opt-in，`patterns.guitar_vary`）：段落序号、
+    本段已用过的和弦、以及总开关 —— 做相位轮换（`guitar_rot`）与**八度档递进**。
     """
     bass, tones = ch
     n = max(1, int(round(B * 2)) - 1)
-    # **基本律动保持八分铺底**（律动必须可预期），只在每 4 小节的最后一小节把末格
-    # 往前挪一点做轻切分；力度走一条平缓的 4 小节包络。
-    # ⚠ 2026-09-13 教训：先试过"四种落点型逐小节轮换"（铺底/抽格/加十六分/留白），
-    #   结果四条音型**同时**变密变疏 → 整首歌 4 小节一波动，用户听感"凌乱"。
-    #   音型要么稳定、要么各轨错开相位；同相位的大幅轮换 = 乱。
-    beats = [k * 0.5 for k in range(n)]
-    if i % 4 == 3 and n >= 4:
-        beats = beats[:-1] + [n * 0.5 - 0.75]
+    if beats:
+        bl = sorted(set([0.0] + [b for b in beats if 0 <= b < B]))
+    else:
+        # **基本律动保持八分铺底**（律动必须可预期），只在每 4 小节的最后一小节把末格
+        # 往前挪一点做轻切分；力度走一条平缓的 4 小节包络。
+        # ⚠ 2026-09-13 教训：先试过"四种落点型逐小节轮换"（铺底/抽格/加十六分/留白），
+        #   结果四条音型**同时**变密变疏 → 整首歌 4 小节一波动，用户听感"凌乱"。
+        #   音型要么稳定、要么各轨错开相位；同相位的大幅轮换 = 乱。
+        bl = [k * 0.5 for k in range(n)]
+        if i % 4 == 3 and n >= 4:
+            bl = bl[:-1] + [n * 0.5 - 0.75]
     env = (1.0, 0.96, 0.92, 0.96)[i % 4]
+    # **八度档**：同一个和弦在本段里第 k 次出现 → 整体上移 k 个八度（夹在吉他音域内）。
+    # 真实分解和弦就是这么做的（第二遍换高把位），它同时消掉"逐音重复"。
+    shift = 0
+    if vary and prev_chords:
+        k = sum(1 for c in prev_chords if c == bass)
+        shift = 12 * (k % 2) if k else 0
+    seq = guitar_rot(arp, sec_i, i, vary=vary)
     out = []
-    for k, b in enumerate(beats):
-        m = tone(tones, arp[k % len(arp)])
+    for k, b in enumerate(bl):
+        # 第 1 拍永远是**根音**（和声不含糊，不参与相位轮换）；其余按轮换后的音型取音。
+        if b <= 1e-6:
+            m = tone(tones, arp[0])
+        else:
+            m = tone(tones, seq[k % len(seq)])
+        m += shift
+        if m > 96:                            # 换把位不许冲出吉他音域
+            m -= 12
         out.append((b, 0.45, m, max(40, int((80 if k % 2 else 68) * env))))
     return out
 
 
-def piano_part(ch, i, B=4.0):
+def space_on(pat):
+    """`patterns.space`（**给旋律留空间**，opt-in）是否开启。
+
+    抽成独立函数是为了能被变异用例直接打到（同 `harmony_below`）—— 检查要能证明
+    "关掉这一层，伴奏密度就会回升、旋律独唱率就会掉回去"。
+    """
+    return bool((pat or {}).get('space'))
+
+
+def piano_part(ch, i, B=4.0, thin=False, dense=True):
     """钢琴：反拍和弦短音（含根音） + 高音持续音
 
     **奇数拍（3/4）走华尔兹写法**：和弦落在第 2、3 拍 = "oom-pah-pah" 的 pah（4/4 的反拍写法
     在三拍里会糊成一片，实测听感没有圆舞曲的推动感）。
+
+    ⚠ 2026-09-14 **`thin`（opt-in，`patterns.space`）= 给旋律留空间**：反拍和弦取 2 个音
+    而不是 3 个。依据：真实模板非鼓轨中位 **3.6 音/小节**，我们原来 45 音/小节（2.3 倍）
+    → 旋律"独唱率"只有 15%（真实 43%）。**无鼓段落（`dense=False`）不减** ——
+    减薄是为了给旋律**在鼓的挤压下**让位，没有鼓的段落本来就稀（少了 10 音/小节的打击），
+    再减就撑不住织体（实测 rehearsal 的"无打击乐段落"夹具调参误差卡在 3.5、EQ 补不回）。
     """
     _, tones = ch
     if int(round(B)) % 2:
         return [(float(b), 0.42, m, 66 if b == 1 else 58)
-                for b in range(1, int(round(B))) for m in tones[:3]]
+                for b in range(1, int(round(B))) for m in tones[:2 if (thin and dense) else 3]]
     # **反拍和弦的位置按小节轮换**（原来每小节都固定在 0.5 / B-1.5 两处 → 也机械）
     # 前 3 小节保持固定，第 4 小节把第二个反拍往后挪半拍（轻变化，不换律动）
     ALT = ((0.5, B - 1.5),) * 3 + ((0.5, B - 1.0),)
     out = []
     for b in ALT[i % 4]:
-        for m in tones[:3]:
+        for m in tones[:2 if (thin and dense) else 3]:
             out.append((b, 0.28, m, 58 + (6 if i % 2 else 0)))
     out.append((0.0, 1.5, tone(tones, 3), 54))
     if i % 4 == 3:
         out.append((B - 0.5, 0.4, tone(tones, 2) + 12, 62))
     return out
+
+
+def fifth_tone(bass, tones):
+    """根音上方的"五度音"：**取和弦里真实存在的那个**。
+
+    为什么不能硬写 `bass + 7`：m7b5 / dim 和弦的五度是**减五度**（C#m7b5 的 G# 不是和弦音）
+    —— 实测 776 个贝斯音里有 11 个（1.4%）落在和弦外，`accompaniment_harmony` 的
+    和弦贴合率因此不是 100%。次序：纯五度 → 减五度 → 增五度，都不在就退回 +7。
+    """
+    pcs = {t % 12 for t in tones}
+    for d in (7, 6, 8):
+        if (bass + d) % 12 in pcs:
+            return bass + d
+    return bass + 7
 
 
 def bass_part(ch, nxt, i, pat, B=4.0):
@@ -333,12 +572,20 @@ def bass_part(ch, nxt, i, pat, B=4.0):
             out.append((0.0, max(sub_dur, 0.8), bass - 12, int(70 * sub_gain)))
             out.append((B / 2.0, max(sub_dur, 0.8), bass - 12, int(64 * sub_gain)))
     elif style == 'sixteenth':
-        f5, up = bass + 7, bass + 12
-        # 每拍三条（正拍 + e + a）；四拍模板逐拍等价于原来的 12 个手写元组
-        tpl = [((0.0, 0.18, bass, 106), (0.25, 0.18, bass, 104), (0.5, 0.18, bass, 80)),
-               ((0.0, 0.18, bass, 100), (0.25, 0.18, bass, 100), (0.5, 0.18, up, 78)),
-               ((0.0, 0.18, bass, 106), (0.25, 0.18, bass, 104), (0.5, 0.18, bass, 80)),
-               ((0.0, 0.18, bass, 100), (0.25, 0.18, f5, 100), (0.5, 0.18, up, 82))]
+        f5, up = fifth_tone(bass, tones), bass + 12
+        # 每拍**三条**（正拍 + e + a）；⚠ `patterns.space`（opt-in）时减到**两条**
+        # （12 → 8 音/小节）：16 分三连的低频会把旋律的落点全糊住（坑 129：旋律独唱率
+        # 15% vs 真实 43%）。缺省（老曲/夹具）保持原样。
+        if space_on(pat):
+            tpl = [((0.0, 0.18, bass, 106), (0.5, 0.18, bass, 80)),
+                   ((0.0, 0.18, bass, 100), (0.5, 0.18, up, 78)),
+                   ((0.0, 0.18, bass, 106), (0.5, 0.18, bass, 80)),
+                   ((0.0, 0.18, bass, 100), (0.5, 0.18, f5, 100))]
+        else:
+            tpl = [((0.0, 0.18, bass, 106), (0.25, 0.18, bass, 104), (0.5, 0.18, bass, 80)),
+                   ((0.0, 0.18, bass, 100), (0.25, 0.18, bass, 100), (0.5, 0.18, up, 78)),
+                   ((0.0, 0.18, bass, 106), (0.25, 0.18, bass, 104), (0.5, 0.18, bass, 80)),
+                   ((0.0, 0.18, bass, 100), (0.25, 0.18, f5, 100), (0.5, 0.18, up, 82))]
         out = [(beat + p, dd, m, v) for beat in range(NB)
                for (p, dd, m, v) in tpl[beat % 4]]
     elif style == 'pump16':
@@ -347,7 +594,7 @@ def bass_part(ch, nxt, i, pat, B=4.0):
         # ⚠ 逐声部实测：例曲 bass 占用率 ~60%、**动态 48~52dB（有颗粒、有起伏）**。
         #   所以音长要**短**（0.28 拍 = 断开），力度要拉开（重音 108 / 弱音 66），
         #   绝不能是一整小节的长音（那会变成 98% 占用 / 13dB 动态的"嗡"）。
-        f5 = bass + 7
+        f5 = fifth_tone(bass, tones)
         # `bass_vel`（opt-in）：直接给 e/a 位置的力度。默认那套是**故意有起伏**的
         # （逐声部实测：例曲 bass 动态 48~52dB = 有颗粒）；但**整曲低频的 16 分律动型**
         # 要求每个 e/a 都是强格（`◇★◇★◇★◇★`）—— 两个指标会打架，
@@ -386,16 +633,20 @@ def bass_part(ch, nxt, i, pat, B=4.0):
     return out
 
 
-def ep_part(ch, i, B=4.0):
-    """电钢琴：反拍切分和弦（走 Hook 轨）。奇数拍同样改成华尔兹的 pah-pah（见 `piano_part`）"""
+def ep_part(ch, i, B=4.0, thin=False, dense=True):
+    """电钢琴：反拍切分和弦（走 Hook 轨）。奇数拍同样改成华尔兹的 pah-pah（见 `piano_part`）
+
+    ⚠ 2026-09-14 **`thin`（opt-in，`patterns.space`）**：每拍 3 个和弦音（12 音/小节）
+    → 2 个（8 音/小节）；无鼓段落保持 3 个（口径同 `piano_part`）。
+    """
     _, tones = ch
     if int(round(B)) % 2:
         return [(float(b), 0.36, m, 62 if b == 1 else 54)
-                for b in range(1, int(round(B))) for m in tones[1:4]]
+                for b in range(1, int(round(B))) for m in tones[1:3 if (thin and dense) else 4]]
     acc = B / 2.0 + 0.5                        # 4/4 → 2.5（原来的重音位）
     out = []
     for b in [k + 0.5 for k in range(max(1, int(round(B))))]:
-        for m in tones[1:4]:
+        for m in tones[1:3 if (thin and dense) else 4]:
             out.append((b, 0.22, m, 62 if b == acc else 54))
     if i % 4 == 3:
         out.append((B - 0.75, 0.2, tone(tones, 4), 66))
@@ -600,20 +851,26 @@ def build_events(d):
     # 断奏因子（opt-in，默认 1.0）：把伴奏音变短 = **在鼓点之间腾出空间**。
     # 参考曲的 20ms 短窗电平起伏 σ≈22dB（鼓点之间掉得下去），我们原来只有 ~10dB（一直在糊）
     sc = float(pat.get('staccato', 1.0))
+    # **`patterns.space`（opt-in）：给旋律留空间** —— 伴奏减薄（见 `piano_part` / Arp / bass）。
+    # 缺省关：老曲与 rehearsal 夹具的字节完全不变；主题路径的新歌默认开（`new_song`）。
+    _thin = space_on(pat)
     bar0 = 0
-    for sec in d['sections']:
+    for sec_i, sec in enumerate(d['sections']):
         nbars = sec['bars']
         arr = sec.get('arr', {})
         vs = arr.get('vel', 1.0)
         mel = list(mel_all.get(sec.get('melody', ''), []))
         mel += sec.get('melody_extra', [])
         bucket = {k: [] for k in d['programs']}
+        sec_chords = []              # 本段已出现过的和弦根音（吉他换把位档位，见 guitar_arpeggio）
         for i in range(nbars):
             cn = sec['chords'][i]
             if cn not in ch_all:
                 raise SystemExit('段落 %s 第 %d 小节引用了未定义的和弦 "%s"'
                                  % (sec.get('name', '?'), i + 1, cn))
             ch = voicing(ch_all[cn])
+            if ch[0] not in sec_chords:
+                sec_chords.append(ch[0])
             nxt = None
             if i + 1 < nbars:
                 nn = sec['chords'][i + 1]
@@ -626,10 +883,14 @@ def build_events(d):
                 for (b, dd, m, v) in bass_part(ch, nxt, i, pat, B):
                     bucket['Bass'].append((t0 + b, dd, m, v))
             if arr.get('uku'):
-                for (b, dd, m, v) in guitar_arpeggio(ch, i, pat['arpeggio'], B):
+                for (b, dd, m, v) in guitar_arpeggio(ch, i, pat['arpeggio'], B,
+                                                     beats=pat.get('guitar_beats'),
+                                                     sec_i=sec_i, prev_chords=sec_chords,
+                                                     vary=bool(pat.get('guitar_vary'))):
                     bucket['Hook'].append((t0 + b, dd * sc, m, v))
             if arr.get('ep'):                      # 电钢琴反拍切分（Hook 轨）
-                for (b, dd, m, v) in ep_part(ch, i, B):
+                for (b, dd, m, v) in ep_part(ch, i, B, thin=_thin,
+                                             dense=bool(arr.get('perc'))):
                     # **+12**：它与吉他分解共用 Hook 轨、落点都压在 0.5 拍、音高取自
                     # 同一个和弦音池 → 实测撞出 96 处"同轨同音高同时发声"
                     # （FluidSynth 会留悬空 voice）。移高八度即解。
@@ -640,7 +901,8 @@ def build_events(d):
                 # 钢琴轨缺失时依次退到 Hook / Arp，避免落到音色不对的轨道
                 tr = next((k for k in ('Piano', 'Hook', 'Arp') if k in bucket), None)
                 if tr:
-                    for (b, dd, m, v) in piano_part(ch, i, B):
+                    for (b, dd, m, v) in piano_part(ch, i, B, thin=_thin,
+                                                    dense=bool(arr.get('perc'))):
                         bucket[tr].append((t0 + b, dd * sc, m, v))
             if arr.get('pad'):
                 for (b, dd, m, v) in pad_part(ch, B):
@@ -656,14 +918,30 @@ def build_events(d):
                 # 原先是"每 0.5 拍一个 + seq[0,2,4,2] 循环 + 力度只有 42/50" —— 384 个音
                 # 全曲八分平铺，和 Hook、沙锤同频叠加，是"d d d d ddd"的又一层。
                 seq = [tone(ch[1], 0), tone(ch[1], 2), tone(ch[1], 4), tone(ch[1], 2)]
-                _n = max(1, int(round(B * 2)))
-                _b = [k * 0.5 for k in range(_n)]          # 稳定八分铺底（同 Hook 的口径）
-                if i % 4 == 3 and _n >= 4:
-                    _b = _b[:-1] + [_n * 0.5 - 0.75]
+                # ⚠ 2026-09-14 **按需减薄**（口径同 `piano_part`）：**有鼓的段落**每拍一个
+                # （4 音/小节，原为八分铺底 8 音/小节），无鼓段落保持八分 ——
+                # 减薄是为了在鼓的挤压下给旋律让位；无鼓段落本来就稀，减了高频撑不住
+                # （实测 rehearsal 的"无打击乐段落"边界夹具调参误差卡在 3.5、EQ 补不回）。
+                # ⚠ **时值同时加长**（0.28 → 0.9 拍）：琶音轨在 2.5–10kHz 做"空气层"，
+                # 靠"持续"而不是"靠音数"占高频 —— 与 `shimmer` 层同一课（高频要连续的墙，
+                # 不是点+空）。实测音数减半后高频占用率因此不降。
+                _dense = bool(arr.get('perc')) and _thin
+                _step = 1.0 if _dense else 0.5
+                _n2 = max(1, int(round(B / _step)))
+                _b = [k * _step for k in range(_n2)]
+                if i % 4 == 3 and _n2 >= 4:
+                    _b = _b[:-1] + [_n2 * _step - 0.75]
+                _dur = min(B - 0.1, 0.9) if _dense else 0.28
                 _env = (1.0, 0.96, 0.92, 0.96)[i % 4]
                 for k, b in enumerate(_b):
-                    bucket['Arp'].append((t0 + b, 0.28 * sc, seq[k % 4] + 12,
-                                          max(20, int((42 + (8 if k % 2 == 0 else 0)) * _env))))
+                    # **音数减半 → 时值加长**（0.28 → 0.9 拍）：琶音轨在 2.5–10kHz 做"空气层"，
+                    # 单纯砍音数会让高频能量掉下来（实测 rehearsal 的 daily 边界夹具调参误差
+                    # 卡在 3.5、EQ 补不回）。**靠"持续"而不是"靠音数"占住高频** ——
+                    # 也是 `shimmer` 层的同一课（高频要连续的墙，不是点+空）。
+                    bucket['Arp'].append((t0 + b, _dur * sc, seq[k % 4] + 12,
+                                          max(20, int(((_dense and 52 or 42) +
+                                                       (10 if _dense else 8)
+                                                       * (1 if k % 2 == 0 else 0)) * _env))))
             # 持续微光层（opt-in）：整小节长音的高八度和弦音，走 Arp 轨（音色可覆盖成
             # 颤音琴/竖琴这类**有延音的亮音色**）。用途：例曲 2.5–10kHz 的占用率是 87~90%
             # （连续），而我们只有短促打击点 → 高频出现空洞，听感"薄、空、不像成品"。
@@ -688,6 +966,10 @@ def build_events(d):
             # 渲染端的响度归一化吃掉（实测 60→127 只差 0.23dB）→ 想让旋律"浮在伴奏上"
             # 没有任何可用旋钮。实测 17 号（听感融合好）旋律比伴奏 +1.1dB，而 20/21 是 −0.3dB。
             mv = float(pat.get('mel_vel', 1.0))
+            # `patterns.melody_dyn`（opt-in，默认关）：**乐句级力度曲线** ——
+            # 起 → 推（高点在句 2/3 处）→ 句末收。缺省时这一行是恒等变换（老曲字节不变）。
+            if pat.get('melody_dyn'):
+                mv *= mel_dyn_env(b, beat, dur, pat['melody_dyn'])
             bucket['Melody'].append((t, dur * 0.96, m, max(1, min(127, int(round(96 * mv))))))
             if 0 <= m - 12 <= 127:
                 bucket['Melody'].append((t, dur * 0.9, m - 12,
@@ -712,8 +994,52 @@ def build_events(d):
                     if hm is not None:
                         t = (bar0 + b) * B + beat
                         bucket[ht].append((t, dur * 0.9, hm, 50))
+        if _thin:
+            # **让位**（`patterns.space` 的第二半）：**旋律起音的同一刻，伴奏最多 3 条轨发声**，
+            # 且每条轨在该刻最多留 1 个音 —— 旋律一开口，伴奏自动空出来。
+            # 这是编曲里 "creating space for a melody" 的**运行时版本**：
+            # 减薄（每轨少弹音）只是把"平均密度"降下来，而"旋律响的那一刻仍挤着 6 条轨"
+            # 这件事只能靠让位解决（实测减薄后"旋律起音处的伴奏音数"一点没降：6.5 → 6.5）。
+            # ⚠ 无鼓段落不让位（同减薄的口径：那里本来就稀）。
+            if arr.get('perc'):
+                _mel_t = {round((bar0 + b) * B + beat, 4) for (b, beat, _d, _m) in mel}
+                _prio = ('Bass', 'Piano', 'Hook', 'Strings', 'Pad', 'Arp')
+                _at = {}
+                for _k in _prio:
+                    for _e in bucket.get(_k, []):
+                        _at.setdefault(round(_e[0], 4), []).append(_k)
+                _drop = {}
+                for _t, _ks in _at.items():
+                    if _t not in _mel_t:
+                        continue
+                    for _k in _ks[3:]:             # 优先级低的轨：该刻整轨让位
+                        _drop.setdefault(_k, set()).add(_t)
+                _seen = set()
+                for _k in _prio:
+                    _keep = []
+                    for _e in bucket.get(_k, []):
+                        _t = round(_e[0], 4)
+                        if _t in _drop.get(_k, ()):
+                            continue
+                        if _t in _mel_t:           # 该刻该轨最多留 1 个音
+                            if (_k, _t) in _seen:
+                                continue
+                            _seen.add((_k, _t))
+                        _keep.append(_e)
+                    if _k in bucket:
+                        bucket[_k] = _keep
         for k in bucket:
-            _sh = TR_SHIFT.get(k, 0)      # 音区分工（见 TR_SHIFT 定义处）
+            _sh = TR_SHIFT.get(k, 0)      # 音区分工（**只允许纯八度**，见 TR_SHIFT 定义处）
+            # **边界保护**：整轨移调后若越出乐器合理音域，**这一轨就不移** ——
+            # 整轨统一，不许轨内八度跳变（那会变成"一个音突然跳八度"）。
+            # 实测有的曲子 Hook 基准只有 41~67，−12 掉到 29（吉他下界 32），
+            # 由 `track_ranges_musical` 守卫抓到；这里先按同一张表判。
+            if _sh:
+                _rg = TR_RANGE.get(k)
+                if _rg:
+                    _ps = [m for (_t, _d, m, _v) in bucket[k]]
+                    if _ps and not (_rg[0] <= min(_ps) + _sh and max(_ps) + _sh <= _rg[1]):
+                        _sh = 0
             for (t, dd, m, v) in bucket[k]:
                 # 走到这里的音高都已在合法范围内（数据越界在 load() 就报错了，
                 # 派生声部越界在上游被丢弃）；这里只处理时间/时值/力度
@@ -727,6 +1053,41 @@ def build_events(d):
     for k in ev:
         ev[k].sort()
     return ev, bar0
+
+
+def mel_dyn_env(bar, beat, dur, opt):
+    """**乐句级力度包络**（opt-in：`patterns.melody_dyn`）—— 起 → 推 → 落。
+
+    为什么要有（用户口径）：旋律力度原先**硬编码两档**（主层 96 / 低八度加厚层 62），
+    整条旋律一个力度 → 没有"唱"的表情。真实演奏里一个乐句是"渐强到高点、句末收下来"。
+
+    实现口径（与旋律的拱形同一形状，只是错开 1/3）：
+      · 句内位置 `prog ∈ [0,1)`，**高点在 2/3 处**（不是句末）—— 与 `melody_gen` 的
+        拱形目标一致；高点之后回落，句末音（时值 ≥1.0 拍）再收一档。
+      · 幅度默认 ±10%（0.93 → 1.06 → 0.88）：再大就不是"乐句表情"而是"忽大忽小"了。
+    `opt` 可以是 `True`（默认参数）或 dict（`phrase` 乐句小节数 / `hi` 高点 / `lo` 谷底 /
+    `tail` 句末收束系数）。
+
+    ⚠ **必须 opt-in**：缺省（`patterns.melody_dyn` 不存在）时这条函数根本不被调用 ——
+    否则老曲目的 MIDI 字节会变，全库都得重渲染（`piano_part`/`bass_part` 那些
+    `bass_vel`/`kick_vel` 是同一条纪律）。
+    """
+    o = opt if isinstance(opt, dict) else {}
+    phrase = max(1.0, float(o.get('phrase', 4)))
+    hi = float(o.get('hi', 1.06))
+    lo = float(o.get('lo', 0.94))
+    tail = float(o.get('tail', 0.94))
+    prog = min(1.0, max(0.0, ((bar % phrase) * 4.0 + beat) / (phrase * 4.0)))
+    # 两段折线：句首 `lo` → 句 2/3 处 `hi` → 句末 `lo`。**取对称的 lo/hi**，
+    # 于是整句的平均力度 = (lo+hi)/2 = **1.0** —— 只改句内形状，不改整体响度。
+    # （第一版把句首写成 `1.0-(hi-1.0)*2`，均值掉到 0.97，整条旋律被压低 3%。）
+    if prog < 2.0 / 3.0:
+        env = lo + (hi - lo) * (prog / (2.0 / 3.0))
+    else:
+        env = hi + (lo - hi) * ((prog - 2.0 / 3.0) / (1.0 / 3.0))
+    if dur >= 1.0:                       # 长音（多半是句末终止音）
+        env *= tail
+    return env
 
 
 def write_midi(d, ev, path):

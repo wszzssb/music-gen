@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>MIDI Studio — 导入 / 编辑 / 导出</title>
+<link rel="stylesheet" href="/ed.css?v=6">
+</head>
+<body>
+<header id="bar">
+  <span class="brand">🎹 MIDI Studio</span>
+  <button id="btnImport" title="导入 .mid / .midi / .kar（也可以用浏览器原生的文件选择，文件只在本地解析）">⬆ 导入 MIDI</button>
+  <input type="file" id="fileIn" accept=".mid,.midi,.kar" hidden>
+  <button id="btnExport" title="导出标准 MIDI（Type 1 多轨）">⬇ 导出 .mid</button>
+  <button id="btnExport0" title="导出 Type 0（单轨，所有轨合并）">⬇ Type 0</button>
+  <span class="sep"></span>
+  <button id="btnUndo" title="撤销（Ctrl+Z）">↶</button>
+  <button id="btnRedo" title="重做（Ctrl+Y）">↷</button>
+  <span class="sep"></span>
+  <button id="btnPlay" title="播放 / 暂停（空格）">▶ 播放</button>
+  <button id="btnStop" title="停止">⏹</button>
+  <button id="btnRender" title="用真实音源（GeneralUser GS，与引擎面板同一条渲染管线）把当前编辑结果渲染成音频；改了音符要重渲（几秒~几十秒）">🎧 渲染音频</button>
+  <span class="dim" id="audioInfo">🎹 合成音</span>
+  <label class="dim" title="合成音色：自动 = 按每个音的 GM 乐器选；也可强制成一种">
+    🎨 <select id="timbreSel">
+      <option value="auto" selected>自动</option>
+      <option value="piano">钢琴</option>
+      <option value="guitar">吉他</option>
+      <option value="strings">弦乐</option>
+      <option value="pad">铺垫</option>
+      <option value="pluck">拨弦</option>
+      <option value="clean">纯净</option>
+    </select></label>
+  <label class="chk"><input type="checkbox" id="loopChk" checked> 循环</label>
+  <span class="seekWrap" title="拖动 = 定位（也会同步卷帘与力度通道）">
+    <input type="range" id="seek" min="0" max="1000" value="0" step="1">
+    <span class="dim" id="seekInfo">0:00.0</span>
+  </span>
+  <span class="dim" id="posInfo">0.0 / 0.0 拍</span>
+  <span class="spacer"></span>
+  <button id="btnEdit" class="lock" title="锁定 / 解锁编辑：锁定时卷帘只读（防误改），点一下进入编辑">🔒 只读</button>
+  <span class="dim" id="status"></span>
+  <a class="link" href="/" title="回到引擎面板（作曲/渲染/混音/指标）">🎛 引擎面板</a>
+</header>
+
+<section id="tools" class="panel">
+  <label class="dim">网格
+    <select id="gridSel">
+      <option value="1/1">1/1</option>
+      <option value="1/2">1/2</option>
+      <option value="1/4">1/4</option>
+      <option value="1/8">1/8</option>
+      <option value="1/16" selected>1/16</option>
+      <option value="1/32">1/32</option>
+      <option value="1/8T">1/8 三连</option>
+      <option value="1/16T">1/16 三连</option>
+    </select></label>
+  <label class="chk"><input type="checkbox" id="snapChk" checked> 吸附到网格</label>
+  <button id="btnQuant" class="primary" title="把起点（可选时值）吸附到网格；强度 &lt;1 = 部分量化，保住演奏呼吸感">⚡ 量化</button>
+  <label class="dim">强度 <input type="range" id="qStr" min="0" max="1" step="0.05" value="1" style="width:78px"><span id="qStrVal">1.00</span></label>
+  <label class="dim">摇摆 <input type="range" id="qSwing" min="0" max="1" step="0.05" value="0" style="width:70px"><span id="qSwingVal">0.00</span></label>
+  <label class="chk"><input type="checkbox" id="qDurChk"> 同时量化时值</label>
+  <span class="sep"></span>
+  <label class="dim">移调 <input type="number" id="trSemis" value="0" step="1" style="width:56px"> 半音</label>
+  <button id="btnTranspose" title="选中的音（或整轨）按半音移调">应用</button>
+  <span class="sep"></span>
+  <label class="dim">力度</label>
+  <select id="velMode">
+    <option value="scale">× 缩放</option>
+    <option value="offset">+ 偏移</option>
+    <option value="set">= 设为</option>
+    <option value="limit">夹取到区间</option>
+    <option value="humanize">人性化抖动</option>
+  </select>
+  <input type="number" id="velVal" value="1.0" step="0.05" style="width:62px">
+  <button id="btnVel" title="对选中的音（或整轨）应用力度操作">应用</button>
+  <button id="btnRamp" title="按时间顺序做力度渐变（渐强/渐弱）">📈 渐变</button>
+  <span class="sep"></span>
+  <button id="btnChords" title="按小节识别和弦（显示和弦名 + 置信度）">🎵 和弦检测</button>
+  <button id="btnChordTrack" title="把识别出的和弦写成一条新轨（不动已有轨）">🎼 生成和弦轨</button>
+  <span class="sep"></span>
+  <button id="btnDup" title="复制整轨">⧉ 复制轨</button>
+  <button id="btnDelTrack" title="删除当前轨">🗑 删轨</button>
+  <button id="btnClean" title="去掉完全重复的音">🧹 去重</button>
+  <button id="btnMono" title="修剪同音高重叠（后音截断前音）">✂ 修剪重叠</button>
+</section>
+
+<main id="grid">
+  <section id="tracks" class="panel">
+    <h2>轨道 <span class="dim" id="trHint">（点选 → 下面的卷帘只显示它；Ctrl+点可多选）</span></h2>
+    <div id="trackList"></div>
+  </section>
+
+  <section class="panel" id="center">
+    <h2>钢琴卷帘
+      <span class="dim">（拖=移动 · 右缘拖=改时值 · 空白拖=新建 · 右键=删除 · 滚轮=缩放 · Alt+拖=力度）</span>
+    </h2>
+    <canvas id="roll"></canvas>
+    <div id="velWrap"><canvas id="velLane" title="力度通道：拖竖直条改力度，与卷帘同步"></canvas></div>
+  </section>
+
+  <section class="panel" id="side">
+    <h2>音符属性</h2>
+    <div id="noteProps" class="dim">（选中音符后这里可以精确改数值）</div>
+    <h2>和弦 <span class="dim">（识别结果 / 每小节）</span></h2>
+    <div id="chordList" class="dim">（点「🎵 和弦检测」按小节识别；🎼 可写成一条和弦轨）</div>
+    <h2>文件信息</h2>
+    <div id="fileInfo" class="dim">（还没导入文件）</div>
+    <h2>导出预览</h2>
+    <div id="exportInfo" class="dim">（导出后显示往返校验结果）</div>
+  </section>
+</main>
+
+<footer id="logWrap" class="panel"><pre id="log"></pre></footer>
+<audio id="player" preload="auto"></audio><script src="/ed.js?v=6"></script>
+</body>
+</html>

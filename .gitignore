@@ -43,6 +43,9 @@ _lint_sandbox/
 _lint_*/
 songs/_*/
 
+# 验收产物（每次跑 studio\tools\browser_check.js 都会覆盖，不进仓库）
+studio/tools/_browser_check.png
+
 # ---- ⑤ 编辑器 / 系统 ----
 .vscode/
 .idea/

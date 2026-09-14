@@ -19,16 +19,34 @@ ROOT = os.path.dirname(HERE)
 REFS = os.path.join(ROOT, 'refs')
 
 
+def ref_path(spec):
+    """参考画像 → 路径。按名字查**两处**：`refs/<名字>.json`（人工扒的单份）
+    和 `refs/mix_targets/<名字>.json`（**多方聚合画像**，见 `theme_pack.aggregate_refs`）。
+
+    ⚠ 聚合画像的文件名必须是 `<名字>.json`（引用名 = 文件名）—— 第一版写成
+    `<主题>.json` 而 `ref` 是 `<主题>_mix`，于是 `new_song` 按 ref 名找不到它。
+    """
+    if os.path.isabs(spec):
+        return spec
+    stem = spec[:-5] if spec.endswith('.json') else spec
+    for p in (os.path.join(REFS, stem + '.json'),
+              os.path.join(REFS, 'mix_targets', stem + '.json')):
+        if os.path.exists(p):
+            return p
+    return os.path.join(REFS, stem + '.json')
+
+
 def load_ref(spec):
-    p = spec if os.path.isabs(spec) else os.path.join(REFS, spec)
-    if not p.endswith('.json'):
-        p += '.json'
+    p = ref_path(spec)
     if not os.path.exists(p):
         have = [f[:-5] for f in sorted(os.listdir(REFS)) if f.endswith('.json')] \
             if os.path.isdir(REFS) else []
-        raise SystemExit('找不到参考曲画像 %s\n  已有: %s\n'
+        aggs = [f[:-5] for f in sorted(os.listdir(os.path.join(REFS, 'mix_targets')))
+                if f.endswith('.json')] if os.path.isdir(os.path.join(REFS, 'mix_targets')) \
+            else []
+        raise SystemExit('找不到参考曲画像 %s\n  单份: %s\n  聚合: %s\n'
                          '  新建: scripts\\profile_ref.py <参考曲> <名字>'
-                         % (p, ', '.join(have) or '（无）'))
+                         % (p, ', '.join(have) or '（无）', ', '.join(aggs) or '（无）'))
     with open(p, encoding='utf-8') as f:
         return json.load(f)
 

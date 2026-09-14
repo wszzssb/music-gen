@@ -1,0 +1,1180 @@
+{
+ "theme": "seaside",
+ "label": "海边",
+ "desc": "海边（主题模板包：10 首同主题模板聚合）",
+ "styles": [
+  "newage",
+  "folk",
+  "pop"
+ ],
+ "engine_style": "acoustic",
+ "meter": [
+  4,
+  4
+ ],
+ "min_templates": 8,
+ "template_count": 10,
+ "bpm": {
+  "median": 130.0,
+  "p25": 120.0,
+  "p75": 158.0
+ },
+ "key": {
+  "tonic": "C",
+  "pc": 0,
+  "mode": "major",
+  "confidence": 0.319,
+  "scale_degree_weight": [
+   3223193.44,
+   18480.0,
+   941700.92,
+   159198.12,
+   1326766.52,
+   1305504.24,
+   120840.0,
+   1842787.92,
+   158034.72,
+   1071871.64,
+   407593.32,
+   712683.12
+  ]
+ },
+ "templates": [
+  {
+   "file": "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
+   "style": "folk",
+   "md5": "1ceaa75f2ae81462948f215ebb8be0b6",
+   "bpm": 103.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 94,
+   "seconds": 216.7,
+   "source": "https://bitmidi.com/uploads/59404.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "folk/A.JACKSON.Gone country.mid",
+   "style": "folk",
+   "md5": "70a5389348d5d2bcad714245bd02c5e1",
+   "bpm": 125.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 126,
+   "seconds": 240.9,
+   "source": "https://bitmidi.com/uploads/3229.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "folk/Acid-Folk.mid",
+   "style": "folk",
+   "md5": "123e9efce8a0a062f8a88c6eff240f2d",
+   "bpm": 161.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 214,
+   "seconds": 318.3,
+   "source": "https://bitmidi.com/uploads/3715.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+   "style": "newage",
+   "md5": "e404d980042bf50d49fb8af353a06558",
+   "bpm": 96.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 114,
+   "seconds": 285.0,
+   "source": "https://bitmidi.com/uploads/22004.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "newage/Age of Empires II The Age of Kings - Menu.mid",
+   "style": "newage",
+   "md5": "a35d7bc191676344bab3dbeafd931460",
+   "bpm": 129.96,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 31,
+   "seconds": 56.5,
+   "source": "https://bitmidi.com/uploads/4280.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "newage/Nola, Novelty piano solo.mid",
+   "style": "newage",
+   "md5": "7f2955ed8dfac73c04a6119d1e7001da",
+   "bpm": 130.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 73,
+   "seconds": 134.8,
+   "source": "https://bitmidi.com/uploads/28310.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "newage/EarthBound - New Age Retro Hippie.mid",
+   "style": "newage",
+   "md5": "1651901cc34e0ae0093e87480e9245e1",
+   "bpm": 180.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 52,
+   "seconds": 69.3,
+   "source": "https://bitmidi.com/uploads/42465.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/IGGY POP.Louie Louie.mid",
+   "style": "pop",
+   "md5": "261cbf31ee92b73e4c11d37ff837511c",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 112,
+   "seconds": 222.2,
+   "source": "https://bitmidi.com/uploads/60059.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/Disco Citizens - Footprint.mid",
+   "style": "pop",
+   "md5": "a15e4ec30d5281e6e10107525742861a",
+   "bpm": 132.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 16,
+   "seconds": 29.1,
+   "source": "https://bitmidi.com/uploads/39730.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/Disco-Fans.mid",
+   "style": "pop",
+   "md5": "476a8297bae896474f960a5b445fafb0",
+   "bpm": 158.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 127,
+   "seconds": 191.4,
+   "source": "https://bitmidi.com/uploads/39732.mid",
+   "kind": "bitmidi"
+  }
+ ],
+ "source_kinds": {
+  "bitmidi": 10
+ },
+ "harmony": {
+  "primary": [
+   "Em7",
+   "C6",
+   "F6",
+   "Cmaj7"
+  ],
+  "primary_source": "window4",
+  "progressions": [
+   {
+    "degrees": [
+     4,
+     0,
+     5,
+     0
+    ],
+    "romans": [
+     "iii7",
+     "I6",
+     "IV",
+     "I"
+    ],
+    "count": 4,
+    "templates": [
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Em7",
+     "C6",
+     "F6",
+     "Cmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     5,
+     0,
+     0
+    ],
+    "romans": [
+     "V7",
+     "IV7",
+     "i7",
+     "I6"
+    ],
+    "count": 3,
+    "templates": [
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "G7",
+     "F7",
+     "Cm7",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     0,
+     5,
+     9
+    ],
+    "romans": [
+     "IV6",
+     "Imaj7",
+     "iv6",
+     "vi7"
+    ],
+    "count": 8,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.1,
+    "symbols": [
+     "F6",
+     "Cmaj7",
+     "Fm6",
+     "Am7"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_4": [
+   {
+    "degrees": [
+     4,
+     0,
+     5,
+     0
+    ],
+    "romans": [
+     "iii7",
+     "I6",
+     "IV",
+     "I"
+    ],
+    "count": 4,
+    "templates": [
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Em7",
+     "C6",
+     "F6",
+     "Cmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     5,
+     0,
+     0
+    ],
+    "romans": [
+     "V7",
+     "IV7",
+     "i7",
+     "I6"
+    ],
+    "count": 3,
+    "templates": [
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "G7",
+     "F7",
+     "Cm7",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     0,
+     5,
+     9
+    ],
+    "romans": [
+     "IV6",
+     "Imaj7",
+     "iv6",
+     "vi7"
+    ],
+    "count": 8,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid"
+    ],
+    "template_share": 0.1,
+    "symbols": [
+     "F6",
+     "Cmaj7",
+     "Fm6",
+     "Am7"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_2": [
+   {
+    "degrees": [
+     5,
+     0
+    ],
+    "romans": [
+     "IV6",
+     "Imaj7"
+    ],
+    "count": 67,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Acid-Folk.mid",
+     "newage/Age of Empires II The Age of Kings - Menu.mid",
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
+    "template_share": 0.7,
+    "symbols": [
+     "F6",
+     "Cmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "V6",
+     "I6"
+    ],
+    "count": 18,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
+     "newage/Age of Empires II The Age of Kings - Menu.mid",
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "pop/Disco-Fans.mid"
+    ],
+    "template_share": 0.7,
+    "symbols": [
+     "G6",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     7
+    ],
+    "romans": [
+     "I",
+     "Vsus4"
+    ],
+    "count": 15,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
+     "newage/Age of Empires II The Age of Kings - Menu.mid",
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "pop/Disco-Fans.mid"
+    ],
+    "template_share": 0.7,
+    "symbols": [
+     "Cmaj7",
+     "Gsus4"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     5
+    ],
+    "romans": [
+     "V7",
+     "IV6"
+    ],
+    "count": 8,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Acid-Folk.mid",
+     "newage/Age of Empires II The Age of Kings - Menu.mid",
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "pop/Disco-Fans.mid"
+    ],
+    "template_share": 0.7,
+    "symbols": [
+     "G7",
+     "F6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6"
+    ],
+    "count": 65,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "pop/Disco Citizens - Footprint.mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
+    "template_share": 0.6,
+    "symbols": [
+     "Cmaj7",
+     "F6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     4
+    ],
+    "romans": [
+     "I",
+     "III7"
+    ],
+    "count": 41,
+    "templates": [
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Cmaj7",
+     "E7"
+    ],
+    "usable": true
+   }
+  ],
+  "pool_progression": [
+   "Cmaj7",
+   "Fm6",
+   "Cmaj7",
+   "Fm6"
+  ],
+  "pool_progression_romans": [
+   "I",
+   "iv6",
+   "I",
+   "iv6"
+  ],
+  "chord_pool": [
+   {
+    "degree": 0,
+    "roman": "I",
+    "suffix": "maj7",
+    "count": 229,
+    "templates": 10
+   },
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "6",
+    "count": 167,
+    "templates": 5
+   },
+   {
+    "degree": 7,
+    "roman": "V",
+    "suffix": "sus4",
+    "count": 155,
+    "templates": 9
+   },
+   {
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "6",
+    "count": 100,
+    "templates": 9
+   },
+   {
+    "degree": 11,
+    "roman": "VII",
+    "suffix": "m7",
+    "count": 47,
+    "templates": 2
+   },
+   {
+    "degree": 4,
+    "roman": "III",
+    "suffix": "7",
+    "count": 46,
+    "templates": 5
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m7",
+    "count": 41,
+    "templates": 5
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m6",
+    "count": 40,
+    "templates": 5
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
+    "suffix": "7",
+    "count": 16,
+    "templates": 4
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "sus4",
+    "count": 12,
+    "templates": 3
+   },
+   {
+    "degree": 1,
+    "roman": "bII",
+    "suffix": "",
+    "count": 10,
+    "templates": 2
+   },
+   {
+    "degree": 6,
+    "roman": "bV",
+    "suffix": "dim",
+    "count": 8,
+    "templates": 4
+   }
+  ],
+  "chord_per_bar": 0.85
+ },
+ "rhythm": {
+  "low16": "★·★·★·★·★·★·★·★·",
+  "high16": "★·★·★·★·★·★·★·★·",
+  "low_slot_share": [
+   0.9,
+   0.2,
+   0.7,
+   0.2,
+   0.9,
+   0.2,
+   0.9,
+   0.5,
+   0.9,
+   0.3,
+   0.7,
+   0.2,
+   0.9,
+   0.2,
+   0.7,
+   0.4
+  ],
+  "high_slot_share": [
+   1.0,
+   0.1,
+   0.6,
+   0.2,
+   0.9,
+   0.0,
+   0.8,
+   0.2,
+   0.8,
+   0.1,
+   0.8,
+   0.1,
+   1.0,
+   0.0,
+   0.7,
+   0.2
+  ],
+  "low_density": 20.71,
+  "high_density": 9.94,
+  "bass_density": 1.89,
+  "perc_density": 8.45,
+  "slots": 16,
+  "bass_style": "simple",
+  "perc_style": "light"
+ },
+ "arrangement": {
+  "roles": {
+   "bass": 0.3,
+   "brass": 0.1,
+   "fx": 0.1,
+   "guitar": 0.3,
+   "lead": 0.2,
+   "organ": 0.1,
+   "pad": 0.1,
+   "perc": 0.1,
+   "piano": 0.8,
+   "pipe": 0.2,
+   "strings": 0.1
+  },
+  "role_range": {
+   "bass": [
+    28,
+    48
+   ],
+   "brass": [
+    62,
+    89
+   ],
+   "fx": [
+    56,
+    56
+   ],
+   "guitar": [
+    43,
+    79
+   ],
+   "lead": [
+    53,
+    74
+   ],
+   "organ": [
+    55,
+    88
+   ],
+   "pad": [
+    53,
+    76
+   ],
+   "perc": [
+    57,
+    57
+   ],
+   "piano": [
+    38,
+    86
+   ],
+   "pipe": [
+    52,
+    91
+   ],
+   "strings": [
+    60,
+    86
+   ]
+  },
+  "arr_share": {
+   "bass": 0.3,
+   "piano": 0.8,
+   "uku": 0.3,
+   "strings": 0.1,
+   "pad": 0.1,
+   "glock": 0.0,
+   "ep": 0.2,
+   "perc": 0.1
+  },
+  "arr_on": [
+   "piano"
+  ],
+  "arr_off": [
+   "glock"
+  ],
+  "arr_maybe": [
+   "bass",
+   "ep",
+   "pad",
+   "perc",
+   "strings",
+   "uku"
+  ],
+  "track_count": 5.0,
+  "style_mix": {
+   "folk": 3,
+   "newage": 4,
+   "pop": 3
+  }
+ },
+ "form": {
+  "section_bars": 8,
+  "total_bars": 64,
+  "plan": [
+   {
+    "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A2",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A3",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
+    "bars": 8,
+    "prog": 0
+   }
+  ]
+ },
+ "melody": {
+  "notes": 3635,
+  "range": [
+   57,
+   79
+  ],
+  "mean_pitch": 70.23,
+  "notes_per_bar": 4.03,
+  "stepwise_pct": 53.09,
+  "onbeat_pct": 56.82,
+  "diatonic_pct": 89.79,
+  "interval_hist": {
+   "-38": 7,
+   "-36": 22,
+   "-33": 4,
+   "-32": 13,
+   "-31": 42,
+   "-29": 22,
+   "-28": 9,
+   "-27": 7,
+   "-24": 30,
+   "-23": 1,
+   "-22": 10,
+   "-21": 17,
+   "-20": 10,
+   "-19": 68,
+   "-18": 5,
+   "-17": 26,
+   "-16": 14,
+   "-15": 17,
+   "-14": 59,
+   "-13": 1,
+   "-12": 246,
+   "-11": 29,
+   "-10": 40,
+   "-9": 84,
+   "-8": 143,
+   "-7": 155,
+   "-6": 34,
+   "-5": 550,
+   "-4": 325,
+   "-3": 397,
+   "-2": 1081,
+   "-1": 533,
+   "0": 1905,
+   "1": 619,
+   "2": 1170,
+   "3": 380,
+   "4": 253,
+   "5": 522,
+   "6": 81,
+   "7": 218,
+   "8": 124,
+   "9": 63,
+   "10": 138,
+   "11": 7,
+   "12": 125,
+   "13": 36,
+   "14": 16,
+   "15": 28,
+   "16": 27,
+   "17": 45,
+   "18": 14,
+   "19": 19,
+   "20": 8,
+   "21": 19,
+   "22": 10,
+   "23": 5,
+   "24": 21,
+   "25": 1,
+   "26": 23,
+   "28": 8,
+   "29": 33,
+   "30": 9,
+   "31": 9,
+   "32": 13,
+   "33": 14,
+   "35": 5,
+   "36": 10,
+   "38": 12,
+   "39": 7
+  },
+  "dur16_hist": {
+   "0": 186,
+   "1": 1809,
+   "2": 5366,
+   "3": 294,
+   "4": 1067,
+   "5": 15,
+   "6": 145,
+   "7": 25,
+   "8": 529,
+   "9": 6,
+   "10": 52,
+   "11": 13,
+   "12": 14,
+   "14": 6,
+   "15": 100,
+   "16": 373
+  },
+  "onset16_hist": {
+   "0": 2025,
+   "1": 90,
+   "2": 833,
+   "3": 137,
+   "4": 1444,
+   "5": 115,
+   "6": 1094,
+   "7": 202,
+   "8": 1150,
+   "9": 70,
+   "10": 726,
+   "11": 106,
+   "12": 1063,
+   "13": 61,
+   "14": 768,
+   "15": 115
+  },
+  "phrases": 162,
+  "phrase_bars": [
+   3.98,
+   4.0,
+   5.98,
+   0.6,
+   4.0,
+   0.25,
+   0.12,
+   1.12,
+   8.36,
+   3.74,
+   19.75,
+   6.86,
+   3.74,
+   19.75,
+   7.5,
+   2.74,
+   3.74,
+   19.75,
+   0.38,
+   1.12,
+   17.17,
+   59.0,
+   24.0,
+   15.0,
+   46.38,
+   67.38,
+   11.24,
+   18.6,
+   0.25,
+   0.25,
+   0.75,
+   0.25,
+   0.75,
+   0.25,
+   2.75,
+   0.25,
+   0.75,
+   0.25,
+   0.75,
+   0.25,
+   0.5,
+   1.5,
+   6.75,
+   0.17,
+   0.17,
+   0.25,
+   0.25,
+   0.75,
+   0.25,
+   0.75,
+   0.25,
+   2.75,
+   0.25,
+   0.75,
+   0.25,
+   0.75,
+   0.25,
+   0.5,
+   1.5,
+   1.88
+  ],
+  "bars": 90.1,
+  "templates": 10
+ },
+ "notes": [
+  "共 10 首模板，来源：bitmidi×10",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/seaside_tracks.json"
+ ],
+ "tool": "theme_pack.py",
+ "mix_target": {
+  "ref": "seaside_mix",
+  "score": 0.911,
+  "why": "BPM 128.0（差 2.0，0.93）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）",
+  "aggregate": true,
+  "members": [
+   {
+    "ref": "bgm01c",
+    "score": 0.911,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "bgm01c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM06",
+    "score": 0.808,
+    "bpm": 133.9,
+    "centroid": 1533,
+    "rms_db": -16.9,
+    "width": 0.261,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM06.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM15c",
+    "score": 0.803,
+    "bpm": 132.4,
+    "centroid": 3338,
+    "rms_db": -19.3,
+    "width": 0.66,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM15c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM04",
+    "score": 0.694,
+    "bpm": 114.1,
+    "centroid": 2281,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM04.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM18",
+    "score": 0.689,
+    "bpm": 134.7,
+    "centroid": 2043,
+    "rms_db": -22.2,
+    "width": 0.818,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM18.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "fine_BGM09",
+    "score": 0.664,
+    "bpm": 123.0,
+    "centroid": 3695,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "D:\\game\\end\\仰望夜空星辰 FINE DAYS\\Bgm\\BGM09.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   }
+  ],
+  "agg_profile": "seaside_mix",
+  "weights": {
+   "bpm": 0.55,
+   "perc": 0.3,
+   "mode": 0.15
+  },
+  "perc_style_target": 0.35,
+  "energy_curve_db": [],
+  "structure_db": [
+   -17.0,
+   -17.0,
+   -17.0,
+   -17.0,
+   -16.0,
+   -16.0,
+   -16.0
+  ],
+  "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
+  "candidates": [
+   {
+    "ref": "bgm01c",
+    "score": 0.911,
+    "bpm": 128.0,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "centroid": 3284,
+    "perc": 0.437,
+    "mode": "major",
+    "structure": [
+     -17,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -15,
+     -14
+    ],
+    "parts": {
+     "bpm": 0.933,
+     "perc": 0.826,
+     "mode": 1.0
+    },
+    "why": "BPM 128.0（差 2.0，0.93）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）"
+   },
+   {
+    "ref": "BGM06",
+    "score": 0.808,
+    "bpm": 133.9,
+    "rms_db": -16.9,
+    "width": 0.261,
+    "centroid": 1533,
+    "perc": 0.15,
+    "mode": "major",
+    "structure": [
+     -16,
+     -17,
+     -17,
+     -17,
+     -17,
+     -17,
+     -17,
+     -16,
+     -16
+    ],
+    "parts": {
+     "bpm": 0.87,
+     "perc": 0.6,
+     "mode": 1.0
+    },
+    "why": "BPM 133.9（差 3.9，0.87）· 打击感 0.15 vs 目标 0.35（0.60）· 调式 major（1.00）"
+   },
+   {
+    "ref": "BGM15c",
+    "score": 0.803,
+    "bpm": 132.4,
+    "rms_db": -19.3,
+    "width": 0.66,
+    "centroid": 3338,
+    "perc": 0.605,
+    "mode": "major",
+    "structure": [
+     -22,
+     -19,
+     -17,
+     -20,
+     -23,
+     -18,
+     -19,
+     -19
+    ],
+    "parts": {
+     "bpm": 0.92,
+     "perc": 0.49,
+     "mode": 1.0
+    },
+    "why": "BPM 132.4（差 2.4，0.92）· 打击感 0.60 vs 目标 0.35（0.49）· 调式 major（1.00）"
+   }
+  ],
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+ },
+ "skipped": []
+}

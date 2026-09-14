@@ -52,5 +52,16 @@
  "meter_assumed": [
   4,
   4
- ]
+ ],
+ "source": {
+  "kind": "game_bgm",
+  "detail": "仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）",
+  "file": "D:\\game\\end\\仰望夜空星辰 FINE DAYS\\Bgm\\BGM16.ogg",
+  "origin_path": "D:\\game\\end\\仰望夜空星辰 FINE DAYS\\Bgm",
+  "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
+  "url_alt": [
+   "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
+  ],
+  "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
+ }
 }

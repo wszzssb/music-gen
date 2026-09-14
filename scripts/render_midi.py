@@ -216,6 +216,19 @@ def mid_boost_np(x, sr, gain_db=0.0, f_lo=1200.0, f_hi=6000.0):
     return _freq_filter(x, H, nflt)
 
 
+# 上一次 render() 的实测留痕（给自动调参判断"响度是不是被峰值上限挡住了"）。
+# 用侧信道而不是改返回值：`render()` 的 (wav, ogg) 返回值被 make_song / rehearsal /
+# mutation_check / 自检多处依赖，改签名等于把它们全拖下水。
+LAST = {}
+
+# **响度归一化的口径**（写进 render.json，用来判断"这份配置是哪个口径下调出来的"）。
+# `mono` = 按**单声道(mid)** RMS 归一化 —— 与验收口径（metrics/scorecard）同量。
+# 2026-09-14 之前用的是**双声道** 2D RMS：加宽把 side 放大 → 单声道响度比目标低最多 ~2.1dB，
+# 自动调参因此永远追不上目标（详见 PITFALLS 119）。旧配置重渲染会**变响**（更贴近参考），
+# 所以 make_song 见到没有这个标记的 render.json 会提示重跑自动调参。
+NORM = 'mono'
+
+
 def soft_limit(x, drive=1.6):
     """温和软限幅：压掉一点动态余量（crest），让响度能对上参考曲。
     注意 tanh(x*d)/tanh(d) 在 x>1 时会**超过 1.0**（不是真限幅器），
@@ -271,6 +284,7 @@ def render(mid_path, out_base, rms_db=-16.9, width=2.2, shelf_db=3.0,
     用途：参考曲的混响尾巴 6.8dB/300ms，我们默认只有 4.6dB —— 差的那截就是"空间感"。"""
     exe, sf2 = find_exe(), find_sf2()
     out_base = os.path.abspath(out_base)
+    LAST.clear()                  # 先清空：调用方只该看到**本次**渲染的实测留痕
     raw = out_base + '.raw.wav'
     opts = []
     skip = {'synth.reverb.%s' % k for k in (reverb or {})}
@@ -313,6 +327,12 @@ def render(mid_path, out_base, rms_db=-16.9, width=2.2, shelf_db=3.0,
 
     # 响度目标与峰值上限会互相打架：加宽会抬高峰值，天花板于是把整体拉小、
     # 响度就掉下来了（实测可差 4dB）。真母带的做法是**用限幅压峰值**，而不是整体降增益。
+    #
+    # ⚠ **归一化的量必须与验收口径同量**（坑 105 的同类）：`metrics.profile`／scorecard／
+    # 自检量的都是**单声道(mid)** 的 RMS（`metrics.load` 取 `x.mean(axis=1)`）。
+    # 以前这里用**双声道** 2D RMS 归一化，加宽后 side 被放大 → 双声道 RMS 虚高 →
+    # 成品单声道响度比目标低（宽度 2.2 实测 −18.99 vs 目标 −16.9，宽度 1.0 只差 0.25）——
+    # 于是自动调参**永远追不上响度目标**，每轮重设同一个值、白烧 6 轮渲染。
     base = x
     target = 10 ** (rms_db / 20.0)
     drive_now = max(1.0, drive)
@@ -320,7 +340,8 @@ def render(mid_path, out_base, rms_db=-16.9, width=2.2, shelf_db=3.0,
     pk = 0.0
     for _ in range(4):
         y = soft_limit(base, drive_now)
-        r = np.sqrt((y ** 2).mean())
+        mono = (y[:, 0] + y[:, 1]) / 2
+        r = float(np.sqrt((mono ** 2).mean()))
         if r > 0:
             y = y * (target / r)
         mid = (y[:, 0] + y[:, 1]) / 2
@@ -330,11 +351,21 @@ def render(mid_path, out_base, rms_db=-16.9, width=2.2, shelf_db=3.0,
         if pk <= 0.97:
             break
         drive_now *= 1.35                      # 限幅更狠一点，用峰值换响度
-    if pk > 0.97:                              # 到极限还不达标：只能整体降，并说明
+    peak_limited = pk > 0.97
+    if peak_limited:                           # 到极限还不达标：只能整体降，并说明
         y *= 0.97 / pk
         if verbose:
             print('  注意：峰值仍超上限，响度被压低（内容动态过大）')
     x = y
+    mono_out = (x[:, 0] + x[:, 1]) / 2
+    got_db = round(float(20 * np.log10(max(1e-9, np.sqrt((mono_out ** 2).mean())))), 2)
+    # **留痕给自动调参**：响度是不是被峰值上限挡住的、差多少 —— 调参据此停手并报"到顶"，
+    # 而不是每轮重设同一个值把 6 轮渲染烧光（实测就是这么烧的）。
+    LAST.update({'target_db': round(float(rms_db), 2), 'achieved_db': got_db,
+                 'shortfall_db': round(got_db - float(rms_db), 2),
+                 'peak': round(pk, 4), 'peak_limited': bool(peak_limited),
+                 'width': round(float(width), 3), 'drive': round(drive_now, 3),
+                 'norm': NORM})
     wav = out_base + '.wav'
     sf.write(wav, x, sr, subtype='PCM_16')
     if not keep_raw:

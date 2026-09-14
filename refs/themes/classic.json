@@ -1,0 +1,1272 @@
+{
+ "theme": "classic",
+ "label": "古典庄重",
+ "desc": "古典庄重（主题模板包：10 首同主题模板聚合）",
+ "styles": [
+  "classical",
+  "baroque",
+  "public_domain"
+ ],
+ "engine_style": "gorgeous",
+ "meter": [
+  4,
+  4
+ ],
+ "min_templates": 8,
+ "template_count": 10,
+ "bpm": {
+  "median": 110.0,
+  "p25": 92.0,
+  "p75": 132.0
+ },
+ "key": {
+  "tonic": "C",
+  "pc": 0,
+  "mode": "major",
+  "confidence": 0.166,
+  "scale_degree_weight": [
+   1261756.88,
+   165274.16,
+   660604.08,
+   468129.4,
+   459745.52,
+   622416.48,
+   131141.4,
+   1411999.6,
+   361316.64,
+   535069.12,
+   339950.88,
+   402029.56
+  ]
+ },
+ "templates": [
+  {
+   "file": "baroque/Handel in the Strand.mid",
+   "style": "baroque",
+   "md5": "b4eb331347d812965499a89e6b2b6459",
+   "bpm": 70.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 78,
+   "seconds": 265.7,
+   "source": "https://bitmidi.com/uploads/28665.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "baroque/Variations and Fugue on theme by Handel op24.mid",
+   "style": "baroque",
+   "md5": "99ac41c0bb0cbaecb53d93fe3ef51e0d",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 555,
+   "seconds": 1109.7,
+   "source": "https://bitmidi.com/uploads/28190.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "classical/Bach-1.mid",
+   "style": "classical",
+   "md5": "e931949f544391a5a128b1daee23a2d1",
+   "bpm": 102.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 29,
+   "seconds": 66.0,
+   "source": "https://bitmidi.com/uploads/14984.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "classical/chopin-sonata11.mid",
+   "style": "classical",
+   "md5": "38a21d60b80c11dd314d0673d7ae4031",
+   "bpm": 107.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 146,
+   "seconds": 326.9,
+   "source": "https://bitmidi.com/uploads/23779.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "classical/Arty & Mat Zo - Mozart.mid",
+   "style": "classical",
+   "md5": "c818d462bb21226bc2ba31bba41917fe",
+   "bpm": 132.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 16,
+   "seconds": 29.1,
+   "source": "https://bitmidi.com/uploads/7830.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "classical/chopin-ballade1.mid",
+   "style": "classical",
+   "md5": "ecf75fab55ca88b2a04ee37b7c1520f0",
+   "bpm": 150.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 304,
+   "seconds": 485.2,
+   "source": "https://bitmidi.com/uploads/23776.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "public_domain/MentreDormi.mid",
+   "style": "public_domain",
+   "md5": "7a2b572a14896a1d6c08e36d8eca9355",
+   "bpm": 40.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 41,
+   "seconds": 246.0,
+   "source": "https://www.mutopiaproject.org/ftp/VivaldiA/rv725/MentreDormi/MentreDormi.mid",
+   "kind": "mutopiaproject"
+  },
+  {
+   "file": "public_domain/03-gavotte.mid",
+   "style": "public_domain",
+   "md5": "8e0e306b7d143955459d106913f1ba4d",
+   "bpm": 92.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 20,
+   "seconds": 52.2,
+   "source": "https://www.mutopiaproject.org/ftp/HandelGF/Aylesford/03-gavotte/03-gavotte.mid",
+   "kind": "mutopiaproject"
+  },
+  {
+   "file": "public_domain/k375g.mid",
+   "style": "public_domain",
+   "md5": "542f13fbdeb4fcca30d21887da02dfdc",
+   "bpm": 110.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 27,
+   "seconds": 57.3,
+   "source": "https://www.mutopiaproject.org/ftp/MozartWA/Anh41/k375g/k375g.mid",
+   "kind": "mutopiaproject"
+  },
+  {
+   "file": "public_domain/LVB_Sonate_02no1_1.mid",
+   "style": "public_domain",
+   "md5": "4150034bb5aeaeda919a367865ecbd86",
+   "bpm": 190.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 152,
+   "seconds": 191.4,
+   "source": "https://www.mutopiaproject.org/ftp/BeethovenLv/O2/LVB_Sonate_02no1_1/LVB_Sonate_02no1_1.mid",
+   "kind": "mutopiaproject"
+  }
+ ],
+ "source_kinds": {
+  "bitmidi": 6,
+  "mutopiaproject": 4
+ },
+ "harmony": {
+  "primary": [
+   "G7",
+   "Gm7",
+   "Cm6",
+   "Fm7"
+  ],
+  "primary_source": "window4",
+  "progressions": [
+   {
+    "degrees": [
+     7,
+     7,
+     0,
+     5
+    ],
+    "romans": [
+     "V7",
+     "v7",
+     "i",
+     "iv7"
+    ],
+    "count": 6,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/chopin-ballade1.mid",
+     "public_domain/MentreDormi.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "G7",
+     "Gm7",
+     "Cm6",
+     "Fm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     7,
+     7,
+     0
+    ],
+    "romans": [
+     "IV6",
+     "V6",
+     "V",
+     "I"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/chopin-sonata11.mid",
+     "public_domain/MentreDormi.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "F6",
+     "G6",
+     "G7",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0,
+     5,
+     5
+    ],
+    "romans": [
+     "Vmaj7",
+     "I",
+     "iv7",
+     "IVmaj7"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/chopin-ballade1.mid",
+     "public_domain/LVB_Sonate_02no1_1.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Gmaj7",
+     "C6",
+     "Fm7",
+     "Fmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     4,
+     0,
+     7,
+     0
+    ],
+    "romans": [
+     "iii7",
+     "I6",
+     "V6",
+     "I6"
+    ],
+    "count": 3,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/Bach-1.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Em7",
+     "C6",
+     "G6",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     2,
+     7,
+     0
+    ],
+    "romans": [
+     "I6",
+     "II7",
+     "V6",
+     "i7"
+    ],
+    "count": 3,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "classical/chopin-ballade1.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "C6",
+     "D7",
+     "G6",
+     "Cm7"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_4": [
+   {
+    "degrees": [
+     7,
+     7,
+     0,
+     5
+    ],
+    "romans": [
+     "V7",
+     "v7",
+     "i",
+     "iv7"
+    ],
+    "count": 6,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/chopin-ballade1.mid",
+     "public_domain/MentreDormi.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "G7",
+     "Gm7",
+     "Cm6",
+     "Fm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     7,
+     7,
+     0
+    ],
+    "romans": [
+     "IV6",
+     "V6",
+     "V",
+     "I"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/chopin-sonata11.mid",
+     "public_domain/MentreDormi.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "F6",
+     "G6",
+     "G7",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0,
+     5,
+     5
+    ],
+    "romans": [
+     "Vmaj7",
+     "I",
+     "iv7",
+     "IVmaj7"
+    ],
+    "count": 4,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/chopin-ballade1.mid",
+     "public_domain/LVB_Sonate_02no1_1.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Gmaj7",
+     "C6",
+     "Fm7",
+     "Fmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     4,
+     0,
+     7,
+     0
+    ],
+    "romans": [
+     "iii7",
+     "I6",
+     "V6",
+     "I6"
+    ],
+    "count": 3,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/Bach-1.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Em7",
+     "C6",
+     "G6",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     2,
+     7,
+     0
+    ],
+    "romans": [
+     "I6",
+     "II7",
+     "V6",
+     "i7"
+    ],
+    "count": 3,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "classical/chopin-ballade1.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "C6",
+     "D7",
+     "G6",
+     "Cm7"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_2": [
+   {
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "V6",
+     "I6"
+    ],
+    "count": 93,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/Bach-1.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-sonata11.mid",
+     "public_domain/03-gavotte.mid",
+     "public_domain/LVB_Sonate_02no1_1.mid",
+     "public_domain/MentreDormi.mid",
+     "public_domain/k375g.mid"
+    ],
+    "template_share": 0.9,
+    "symbols": [
+     "G6",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     7
+    ],
+    "romans": [
+     "I6",
+     "V6"
+    ],
+    "count": 81,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/Bach-1.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-sonata11.mid",
+     "public_domain/LVB_Sonate_02no1_1.mid",
+     "public_domain/MentreDormi.mid"
+    ],
+    "template_share": 0.7,
+    "symbols": [
+     "C6",
+     "G6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     5
+    ],
+    "romans": [
+     "V7",
+     "IV6"
+    ],
+    "count": 27,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/Bach-1.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-sonata11.mid",
+     "public_domain/03-gavotte.mid",
+     "public_domain/LVB_Sonate_02no1_1.mid"
+    ],
+    "template_share": 0.7,
+    "symbols": [
+     "G7",
+     "F6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     2
+    ],
+    "romans": [
+     "V",
+     "II7"
+    ],
+    "count": 26,
+    "templates": [
+     "baroque/Handel in the Strand.mid",
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-sonata11.mid",
+     "public_domain/LVB_Sonate_02no1_1.mid",
+     "public_domain/MentreDormi.mid"
+    ],
+    "template_share": 0.6,
+    "symbols": [
+     "G7",
+     "D7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     7
+    ],
+    "romans": [
+     "IV6",
+     "V6"
+    ],
+    "count": 25,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-sonata11.mid",
+     "public_domain/03-gavotte.mid",
+     "public_domain/LVB_Sonate_02no1_1.mid",
+     "public_domain/MentreDormi.mid"
+    ],
+    "template_share": 0.6,
+    "symbols": [
+     "F6",
+     "G6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     0
+    ],
+    "romans": [
+     "IVmaj7",
+     "I6"
+    ],
+    "count": 28,
+    "templates": [
+     "baroque/Variations and Fugue on theme by Handel op24.mid",
+     "classical/chopin-ballade1.mid",
+     "public_domain/LVB_Sonate_02no1_1.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "Fmaj7",
+     "C6"
+    ],
+    "usable": true
+   }
+  ],
+  "pool_progression": [
+   "C6",
+   "Em7",
+   "G7",
+   "C6"
+  ],
+  "pool_progression_romans": [
+   "I",
+   "iii7",
+   "V7",
+   "I"
+  ],
+  "chord_pool": [
+   {
+    "degree": 7,
+    "roman": "V",
+    "suffix": "7",
+    "count": 362,
+    "templates": 9
+   },
+   {
+    "degree": 0,
+    "roman": "I",
+    "suffix": "6",
+    "count": 318,
+    "templates": 10
+   },
+   {
+    "degree": 4,
+    "roman": "III",
+    "suffix": "m7",
+    "count": 107,
+    "templates": 9
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m7",
+    "count": 104,
+    "templates": 9
+   },
+   {
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "6",
+    "count": 99,
+    "templates": 9
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m7",
+    "count": 83,
+    "templates": 9
+   },
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "maj7",
+    "count": 70,
+    "templates": 4
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "6",
+    "count": 60,
+    "templates": 5
+   },
+   {
+    "degree": 11,
+    "roman": "VII",
+    "suffix": "dim",
+    "count": 38,
+    "templates": 8
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
+    "suffix": "7",
+    "count": 38,
+    "templates": 5
+   },
+   {
+    "degree": 1,
+    "roman": "bII",
+    "suffix": "",
+    "count": 13,
+    "templates": 3
+   },
+   {
+    "degree": 6,
+    "roman": "bV",
+    "suffix": "m7b5",
+    "count": 13,
+    "templates": 7
+   }
+  ],
+  "chord_per_bar": 0.96
+ },
+ "rhythm": {
+  "low16": "★···★···★···★···",
+  "high16": "★·★·★·★·★·★·★·★·",
+  "low_slot_share": [
+   0.8,
+   0.1,
+   0.3,
+   0.1,
+   0.8,
+   0.1,
+   0.4,
+   0.2,
+   0.7,
+   0.1,
+   0.4,
+   0.2,
+   0.7,
+   0.1,
+   0.4,
+   0.2
+  ],
+  "high_slot_share": [
+   1.0,
+   0.4,
+   0.7,
+   0.5,
+   1.0,
+   0.5,
+   0.7,
+   0.4,
+   1.0,
+   0.5,
+   1.0,
+   0.5,
+   1.0,
+   0.5,
+   0.7,
+   0.5
+  ],
+  "low_density": 8.79,
+  "high_density": 16.11,
+  "bass_density": 0.0,
+  "perc_density": 0.23,
+  "slots": 16,
+  "bass_style": "simple",
+  "perc_style": "orchestral"
+ },
+ "arrangement": {
+  "roles": {
+   "brass": 0.2,
+   "glock": 0.1,
+   "piano": 1.0,
+   "pipe": 0.1,
+   "reed": 0.2,
+   "strings": 0.2
+  },
+  "role_range": {
+   "brass": [
+    65,
+    82
+   ],
+   "glock": [
+    58,
+    77
+   ],
+   "piano": [
+    36,
+    83
+   ],
+   "pipe": [
+    58,
+    105
+   ],
+   "reed": [
+    60,
+    90
+   ],
+   "strings": [
+    55,
+    101
+   ]
+  },
+  "arr_share": {
+   "bass": 0.0,
+   "piano": 1.0,
+   "uku": 0.0,
+   "strings": 0.2,
+   "pad": 0.0,
+   "glock": 0.1,
+   "ep": 0.1,
+   "perc": 0.0
+  },
+  "arr_on": [
+   "piano"
+  ],
+  "arr_off": [
+   "pad",
+   "perc",
+   "uku"
+  ],
+  "arr_maybe": [
+   "ep",
+   "glock",
+   "strings"
+  ],
+  "track_count": 5.1,
+  "style_mix": {
+   "baroque": 2,
+   "classical": 4,
+   "public_domain": 4
+  }
+ },
+ "form": {
+  "section_bars": 8,
+  "total_bars": 64,
+  "plan": [
+   {
+    "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A2",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A3",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
+    "bars": 8,
+    "prog": 0
+   }
+  ]
+ },
+ "melody": {
+  "notes": 5284,
+  "range": [
+   60,
+   88
+  ],
+  "mean_pitch": 70.54,
+  "notes_per_bar": 4.15,
+  "stepwise_pct": 54.18,
+  "onbeat_pct": 50.18,
+  "diatonic_pct": 91.95,
+  "interval_hist": {
+   "-57": 1,
+   "-48": 3,
+   "-45": 1,
+   "-34": 1,
+   "-33": 6,
+   "-31": 1,
+   "-30": 1,
+   "-29": 8,
+   "-28": 7,
+   "-27": 17,
+   "-26": 5,
+   "-25": 1,
+   "-24": 39,
+   "-23": 7,
+   "-22": 9,
+   "-21": 10,
+   "-20": 11,
+   "-19": 17,
+   "-18": 9,
+   "-17": 30,
+   "-16": 18,
+   "-15": 19,
+   "-14": 16,
+   "-13": 10,
+   "-12": 93,
+   "-11": 22,
+   "-10": 71,
+   "-9": 86,
+   "-8": 61,
+   "-7": 639,
+   "-6": 90,
+   "-5": 308,
+   "-4": 211,
+   "-3": 414,
+   "-2": 1720,
+   "-1": 796,
+   "0": 851,
+   "1": 810,
+   "2": 1242,
+   "3": 348,
+   "4": 414,
+   "5": 340,
+   "6": 70,
+   "7": 478,
+   "8": 115,
+   "9": 105,
+   "10": 52,
+   "11": 24,
+   "12": 136,
+   "13": 13,
+   "14": 23,
+   "15": 23,
+   "16": 21,
+   "17": 33,
+   "18": 7,
+   "19": 27,
+   "20": 19,
+   "21": 18,
+   "22": 10,
+   "23": 6,
+   "24": 26,
+   "25": 1,
+   "26": 5,
+   "28": 1,
+   "29": 9,
+   "31": 1,
+   "32": 4,
+   "33": 2,
+   "36": 1,
+   "38": 1,
+   "43": 3,
+   "48": 1
+  },
+  "dur16_hist": {
+   "0": 640,
+   "1": 3236,
+   "2": 3423,
+   "3": 156,
+   "4": 1708,
+   "5": 29,
+   "6": 97,
+   "7": 6,
+   "8": 20,
+   "9": 11,
+   "10": 23,
+   "12": 88,
+   "15": 1,
+   "16": 560
+  },
+  "onset16_hist": {
+   "0": 1600,
+   "1": 172,
+   "2": 739,
+   "3": 241,
+   "4": 1130,
+   "5": 253,
+   "6": 666,
+   "7": 279,
+   "8": 1216,
+   "9": 208,
+   "10": 916,
+   "11": 283,
+   "12": 1073,
+   "13": 232,
+   "14": 757,
+   "15": 237
+  },
+  "phrases": 130,
+  "phrase_bars": [
+   43.25,
+   30.75,
+   2.0,
+   9.03,
+   3.34,
+   1.97,
+   1.75,
+   1.75,
+   1.75,
+   1.75,
+   1.81,
+   0.35,
+   0.35,
+   0.35,
+   0.35,
+   0.35,
+   0.35,
+   0.35,
+   0.35,
+   1.12,
+   1.12,
+   1.12,
+   1.12,
+   1.0,
+   3.0,
+   2.12,
+   0.5,
+   0.17,
+   0.5,
+   0.25,
+   0.5,
+   0.17,
+   0.5,
+   0.25,
+   0.5,
+   0.5,
+   1.25,
+   0.5,
+   0.5,
+   1.0,
+   15.88,
+   0.21,
+   0.21,
+   11.96,
+   0.21,
+   0.94,
+   27.99,
+   11.7,
+   15.7,
+   11.7,
+   15.7,
+   28.75,
+   15.7,
+   28.75,
+   15.7,
+   3.25,
+   3.75,
+   3.75,
+   3.75,
+   0.5
+  ],
+  "bars": 127.4,
+  "templates": 10
+ },
+ "notes": [
+  "共 10 首模板，来源：bitmidi×6, mutopiaproject×4",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/classic_tracks.json"
+ ],
+ "tool": "theme_pack.py",
+ "mix_target": {
+  "ref": "classic_mix",
+  "score": 0.85,
+  "why": "BPM 114.1（差 4.1，0.86）· 打击感 0.33 vs 目标 0.45（0.75）· 调式 major（1.00）",
+  "aggregate": true,
+  "members": [
+   {
+    "ref": "BGM04",
+    "score": 0.85,
+    "bpm": 114.1,
+    "centroid": 2281,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM04.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM13",
+    "score": 0.784,
+    "bpm": 109.2,
+    "centroid": 3068,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM13.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM09",
+    "score": 0.774,
+    "bpm": 106.0,
+    "centroid": 2421,
+    "rms_db": -16.2,
+    "width": 0.523,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM09.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM20",
+    "score": 0.709,
+    "bpm": 101.5,
+    "centroid": 2232,
+    "rms_db": -16.9,
+    "width": 0.338,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM20.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "bgm01c",
+    "score": 0.662,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "bgm01c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "fine_BGM09",
+    "score": 0.609,
+    "bpm": 123.0,
+    "centroid": 3695,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "D:\\game\\end\\仰望夜空星辰 FINE DAYS\\Bgm\\BGM09.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   }
+  ],
+  "agg_profile": "classic_mix",
+  "weights": {
+   "bpm": 0.55,
+   "perc": 0.3,
+   "mode": 0.15
+  },
+  "perc_style_target": 0.45,
+  "energy_curve_db": [
+   -1.0,
+   0.0,
+   0.0,
+   1.0,
+   0.0
+  ],
+  "structure_db": [
+   -17.0,
+   -16.0,
+   -16.0,
+   -15.0,
+   -16.0
+  ],
+  "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
+  "candidates": [
+   {
+    "ref": "BGM04",
+    "score": 0.85,
+    "bpm": 114.1,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "centroid": 2281,
+    "perc": 0.325,
+    "mode": "major",
+    "structure": [
+     -14,
+     -14,
+     -14,
+     -13,
+     -14,
+     -13,
+     -13,
+     -13
+    ],
+    "parts": {
+     "bpm": 0.863,
+     "perc": 0.75,
+     "mode": 1.0
+    },
+    "why": "BPM 114.1（差 4.1，0.86）· 打击感 0.33 vs 目标 0.45（0.75）· 调式 major（1.00）"
+   },
+   {
+    "ref": "BGM13",
+    "score": 0.784,
+    "bpm": 109.2,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "centroid": 3068,
+    "perc": 0.365,
+    "mode": "minor",
+    "structure": [
+     -20,
+     -20,
+     -19,
+     -20,
+     -22
+    ],
+    "parts": {
+     "bpm": 0.973,
+     "perc": 0.83,
+     "mode": 0.0
+    },
+    "why": "BPM 109.2（差 0.8，0.97）· 打击感 0.36 vs 目标 0.45（0.83）· 调式 minor≠主题（0.00）"
+   },
+   {
+    "ref": "BGM09",
+    "score": 0.774,
+    "bpm": 106.0,
+    "rms_db": -16.2,
+    "width": 0.523,
+    "centroid": 2421,
+    "perc": 0.445,
+    "mode": "minor",
+    "structure": [
+     -17,
+     -16,
+     -16,
+     -16,
+     -16,
+     -16,
+     -18
+    ],
+    "parts": {
+     "bpm": 0.867,
+     "perc": 0.99,
+     "mode": 0.0
+    },
+    "why": "BPM 106.0（差 4.0，0.87）· 打击感 0.45 vs 目标 0.45（0.99）· 调式 minor≠主题（0.00）"
+   }
+  ],
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+ },
+ "skipped": []
+}

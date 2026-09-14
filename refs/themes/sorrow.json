@@ -1,0 +1,1304 @@
+{
+ "theme": "sorrow",
+ "label": "悲伤",
+ "desc": "悲伤（主题模板包：10 首同主题模板聚合）",
+ "styles": [
+  "ballad",
+  "romantic",
+  "classical"
+ ],
+ "engine_style": "ballad",
+ "meter": [
+  4,
+  4
+ ],
+ "min_templates": 8,
+ "template_count": 10,
+ "bpm": {
+  "median": 110.0,
+  "p25": 79.98,
+  "p75": 130.0
+ },
+ "key": {
+  "tonic": "C",
+  "pc": 0,
+  "mode": "major",
+  "confidence": 0.291,
+  "scale_degree_weight": [
+   1217869.24,
+   155776.76,
+   743372.16,
+   370465.48,
+   618568.64,
+   681098.24,
+   74138.68,
+   1049649.52,
+   261900.36,
+   611772.52,
+   336039.6,
+   336532.96
+  ]
+ },
+ "templates": [
+  {
+   "file": "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+   "style": "ballad",
+   "md5": "96ebe7106597cd36421d1c9f89b097c7",
+   "bpm": 48.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 128,
+   "seconds": 638.2,
+   "source": "https://bitmidi.com/uploads/5932.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+   "style": "ballad",
+   "md5": "29cd472df4b01c60dedb172c60c7abf1",
+   "bpm": 79.98,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 21,
+   "seconds": 63.0,
+   "source": "https://bitmidi.com/uploads/6841.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "ballad/BALLAD-2.MID",
+   "style": "ballad",
+   "md5": "d1e2b5720faf37bad03fc992e3e22bb0",
+   "bpm": 89.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 49,
+   "seconds": 132.1,
+   "source": "https://bitmidi.com/uploads/15417.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "ballad/A-Very-Special-Love-Song.mid",
+   "style": "ballad",
+   "md5": "e863a3bcb92851c8cf23607cb6b596ab",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 112,
+   "seconds": 223.1,
+   "source": "https://bitmidi.com/uploads/3173.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "classical/Bach-1.mid",
+   "style": "classical",
+   "md5": "e931949f544391a5a128b1daee23a2d1",
+   "bpm": 102.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 29,
+   "seconds": 66.0,
+   "source": "https://bitmidi.com/uploads/14984.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "classical/chopin-pol53.mid",
+   "style": "classical",
+   "md5": "b7e9832a94a4bd44acb5977a6285e182",
+   "bpm": 130.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 184,
+   "seconds": 338.3,
+   "source": "https://bitmidi.com/uploads/23778.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "classical/chopin-ballade1.mid",
+   "style": "classical",
+   "md5": "ecf75fab55ca88b2a04ee37b7c1520f0",
+   "bpm": 150.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 304,
+   "seconds": 485.2,
+   "source": "https://bitmidi.com/uploads/23776.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "romantic/Liszt Bach Prelude Transcription.mid",
+   "style": "romantic",
+   "md5": "119e3cb5e06e8ee1cbf161677ebcb71a",
+   "bpm": 59.75,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 171,
+   "seconds": 683.3,
+   "source": "https://bitmidi.com/uploads/30179.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid",
+   "style": "romantic",
+   "md5": "c6ba342215b5ce56493860f31377cd28",
+   "bpm": 110.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 172,
+   "seconds": 375.1,
+   "source": "https://bitmidi.com/uploads/31291.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "romantic/brahms.mid",
+   "style": "romantic",
+   "md5": "bf0b59511cf001e0027d2ecc1d5f4eee",
+   "bpm": 160.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 17,
+   "seconds": 24.2,
+   "source": "https://bitmidi.com/uploads/19565.mid",
+   "kind": "bitmidi"
+  }
+ ],
+ "source_kinds": {
+  "bitmidi": 10
+ },
+ "harmony": {
+  "primary": [
+   "F6",
+   "Gm7",
+   "C6",
+   "C6"
+  ],
+  "primary_source": "window4",
+  "progressions": [
+   {
+    "degrees": [
+     5,
+     7,
+     0,
+     0
+    ],
+    "romans": [
+     "IV6",
+     "v7",
+     "I6",
+     "I6"
+    ],
+    "count": 5,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "classical/chopin-ballade1.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "F6",
+     "Gm7",
+     "C6",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     0,
+     5,
+     7
+    ],
+    "romans": [
+     "I6",
+     "I6",
+     "IV6",
+     "v7"
+    ],
+    "count": 5,
+    "templates": [
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "classical/chopin-pol53.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "C6",
+     "C6",
+     "F6",
+     "Gm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     7,
+     0,
+     0
+    ],
+    "romans": [
+     "II7",
+     "Vsus4",
+     "i7",
+     "i"
+    ],
+    "count": 4,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "D7",
+     "Gsus4",
+     "Cm7",
+     "Cm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     0,
+     3,
+     2
+    ],
+    "romans": [
+     "i7",
+     "i7",
+     "bIII",
+     "IIsus4"
+    ],
+    "count": 3,
+    "templates": [
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "classical/chopin-pol53.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Cm7",
+     "Cm7",
+     "D#6",
+     "Dsus4"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     9,
+     5,
+     4
+    ],
+    "romans": [
+     "ii6",
+     "vi7",
+     "IV6",
+     "iii7"
+    ],
+    "count": 3,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Dm6",
+     "Am7",
+     "F6",
+     "Em7"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_4": [
+   {
+    "degrees": [
+     5,
+     7,
+     0,
+     0
+    ],
+    "romans": [
+     "IV6",
+     "v7",
+     "I6",
+     "I6"
+    ],
+    "count": 5,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "classical/chopin-ballade1.mid"
+    ],
+    "template_share": 0.3,
+    "symbols": [
+     "F6",
+     "Gm7",
+     "C6",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     0,
+     5,
+     7
+    ],
+    "romans": [
+     "I6",
+     "I6",
+     "IV6",
+     "v7"
+    ],
+    "count": 5,
+    "templates": [
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "classical/chopin-pol53.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "C6",
+     "C6",
+     "F6",
+     "Gm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     7,
+     0,
+     0
+    ],
+    "romans": [
+     "II7",
+     "Vsus4",
+     "i7",
+     "i"
+    ],
+    "count": 4,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "D7",
+     "Gsus4",
+     "Cm7",
+     "Cm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     0,
+     3,
+     2
+    ],
+    "romans": [
+     "i7",
+     "i7",
+     "bIII",
+     "IIsus4"
+    ],
+    "count": 3,
+    "templates": [
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "classical/chopin-pol53.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Cm7",
+     "Cm7",
+     "D#6",
+     "Dsus4"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     9,
+     5,
+     4
+    ],
+    "romans": [
+     "ii6",
+     "vi7",
+     "IV6",
+     "iii7"
+    ],
+    "count": 3,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid"
+    ],
+    "template_share": 0.2,
+    "symbols": [
+     "Dm6",
+     "Am7",
+     "F6",
+     "Em7"
+    ],
+    "usable": true
+   }
+  ],
+  "progressions_2": [
+   {
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "V7",
+     "I6"
+    ],
+    "count": 36,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "ballad/BALLAD-2.MID",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "classical/Bach-1.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-pol53.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
+    ],
+    "template_share": 0.8,
+    "symbols": [
+     "G7",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     7
+    ],
+    "romans": [
+     "i",
+     "Vsus4"
+    ],
+    "count": 34,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/BALLAD-2.MID",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "classical/Bach-1.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-pol53.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
+    ],
+    "template_share": 0.8,
+    "symbols": [
+     "Cm7",
+     "Gsus4"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     9
+    ],
+    "romans": [
+     "ii7",
+     "vi7"
+    ],
+    "count": 20,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "classical/Bach-1.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-pol53.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
+    ],
+    "template_share": 0.7,
+    "symbols": [
+     "Dm7",
+     "Am7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     7
+    ],
+    "romans": [
+     "II7",
+     "Vsus4"
+    ],
+    "count": 21,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-pol53.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
+    ],
+    "template_share": 0.6,
+    "symbols": [
+     "D7",
+     "Gsus4"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     9,
+     2
+    ],
+    "romans": [
+     "vi7",
+     "ii7"
+    ],
+    "count": 20,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "classical/Bach-1.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-pol53.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
+    ],
+    "template_share": 0.6,
+    "symbols": [
+     "Am7",
+     "Dm7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     0
+    ],
+    "romans": [
+     "IV6",
+     "Imaj7"
+    ],
+    "count": 22,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-pol53.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
+    ],
+    "template_share": 0.5,
+    "symbols": [
+     "F6",
+     "Cmaj7"
+    ],
+    "usable": true
+   }
+  ],
+  "pool_progression": [
+   "C7",
+   "G6",
+   "Am7",
+   "F6"
+  ],
+  "pool_progression_romans": [
+   "I",
+   "V6",
+   "vi7",
+   "IV6"
+  ],
+  "chord_pool": [
+   {
+    "degree": 0,
+    "roman": "I",
+    "suffix": "7",
+    "count": 272,
+    "templates": 10
+   },
+   {
+    "degree": 7,
+    "roman": "V",
+    "suffix": "7",
+    "count": 190,
+    "templates": 9
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m7",
+    "count": 120,
+    "templates": 7
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m7",
+    "count": 105,
+    "templates": 7
+   },
+   {
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "6",
+    "count": 96,
+    "templates": 8
+   },
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "maj7",
+    "count": 88,
+    "templates": 5
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "6",
+    "count": 83,
+    "templates": 6
+   },
+   {
+    "degree": 4,
+    "roman": "III",
+    "suffix": "m7",
+    "count": 61,
+    "templates": 8
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
+    "suffix": "6",
+    "count": 41,
+    "templates": 7
+   },
+   {
+    "degree": 11,
+    "roman": "VII",
+    "suffix": "m7b5",
+    "count": 33,
+    "templates": 7
+   },
+   {
+    "degree": 1,
+    "roman": "bII",
+    "suffix": "",
+    "count": 29,
+    "templates": 4
+   },
+   {
+    "degree": 6,
+    "roman": "bV",
+    "suffix": "m7b5",
+    "count": 8,
+    "templates": 3
+   }
+  ],
+  "chord_per_bar": 0.9
+ },
+ "rhythm": {
+  "low16": "····★·★·····★·★·",
+  "high16": "★★★★★·★★★·★★★★★★",
+  "low_slot_share": [
+   0.5,
+   0.3,
+   0.5,
+   0.3,
+   0.6,
+   0.3,
+   0.6,
+   0.3,
+   0.5,
+   0.3,
+   0.5,
+   0.3,
+   0.6,
+   0.3,
+   0.6,
+   0.3
+  ],
+  "high_slot_share": [
+   0.9,
+   0.6,
+   0.6,
+   0.7,
+   0.8,
+   0.5,
+   0.7,
+   0.8,
+   0.9,
+   0.5,
+   0.8,
+   0.7,
+   0.9,
+   0.6,
+   0.8,
+   0.8
+  ],
+  "low_density": 10.53,
+  "high_density": 18.34,
+  "bass_density": 0.27,
+  "perc_density": 1.29,
+  "slots": 16,
+  "bass_style": "simple",
+  "perc_style": "orchestral"
+ },
+ "arrangement": {
+  "roles": {
+   "bass": 0.1,
+   "brass": 0.1,
+   "guitar": 0.2,
+   "piano": 0.9,
+   "pipe": 0.1,
+   "reed": 0.1,
+   "strings": 0.1
+  },
+  "role_range": {
+   "bass": [
+    29,
+    50
+   ],
+   "brass": [
+    32,
+    81
+   ],
+   "guitar": [
+    60,
+    79
+   ],
+   "piano": [
+    31,
+    84
+   ],
+   "pipe": [
+    64,
+    105
+   ],
+   "reed": [
+    34,
+    88
+   ],
+   "strings": [
+    28,
+    93
+   ]
+  },
+  "arr_share": {
+   "bass": 0.1,
+   "piano": 0.9,
+   "uku": 0.2,
+   "strings": 0.1,
+   "pad": 0.0,
+   "glock": 0.0,
+   "ep": 0.1,
+   "perc": 0.0
+  },
+  "arr_on": [
+   "piano"
+  ],
+  "arr_off": [
+   "glock",
+   "pad",
+   "perc"
+  ],
+  "arr_maybe": [
+   "bass",
+   "ep",
+   "strings",
+   "uku"
+  ],
+  "track_count": 4.6,
+  "style_mix": {
+   "ballad": 4,
+   "classical": 3,
+   "romantic": 3
+  }
+ },
+ "form": {
+  "section_bars": 8,
+  "total_bars": 64,
+  "plan": [
+   {
+    "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A2",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A3",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
+    "bars": 8,
+    "prog": 0
+   }
+  ]
+ },
+ "melody": {
+  "notes": 6164,
+  "range": [
+   48,
+   86
+  ],
+  "mean_pitch": 70.63,
+  "notes_per_bar": 5.65,
+  "stepwise_pct": 52.47,
+  "onbeat_pct": 32.21,
+  "diatonic_pct": 89.05,
+  "interval_hist": {
+   "-67": 1,
+   "-55": 1,
+   "-53": 1,
+   "-52": 0,
+   "-51": 0,
+   "-50": 0,
+   "-48": 0,
+   "-47": 1,
+   "-45": 0,
+   "-43": 9,
+   "-41": 9,
+   "-40": 3,
+   "-39": 1,
+   "-38": 8,
+   "-36": 11,
+   "-35": 6,
+   "-34": 5,
+   "-33": 12,
+   "-32": 6,
+   "-31": 15,
+   "-30": 3,
+   "-29": 14,
+   "-28": 12,
+   "-27": 11,
+   "-26": 18,
+   "-25": 4,
+   "-24": 59,
+   "-23": 4,
+   "-22": 25,
+   "-21": 24,
+   "-20": 41,
+   "-19": 52,
+   "-18": 8,
+   "-17": 39,
+   "-16": 32,
+   "-15": 37,
+   "-14": 55,
+   "-13": 20,
+   "-12": 126,
+   "-11": 15,
+   "-10": 74,
+   "-9": 93,
+   "-8": 72,
+   "-7": 265,
+   "-6": 45,
+   "-5": 227,
+   "-4": 324,
+   "-3": 444,
+   "-2": 1648,
+   "-1": 814,
+   "0": 683,
+   "1": 750,
+   "2": 1351,
+   "3": 445,
+   "4": 287,
+   "5": 439,
+   "6": 35,
+   "7": 334,
+   "8": 131,
+   "9": 100,
+   "10": 79,
+   "11": 79,
+   "12": 126,
+   "13": 19,
+   "14": 27,
+   "15": 29,
+   "16": 25,
+   "17": 46,
+   "18": 16,
+   "19": 48,
+   "20": 28,
+   "21": 26,
+   "22": 18,
+   "23": 13,
+   "24": 44,
+   "25": 6,
+   "26": 6,
+   "27": 12,
+   "28": 12,
+   "29": 18,
+   "30": 4,
+   "31": 19,
+   "32": 1,
+   "33": 6,
+   "34": 3,
+   "35": 3,
+   "36": 10,
+   "38": 1,
+   "39": 0,
+   "40": 5,
+   "41": 3,
+   "43": 8,
+   "45": 1,
+   "46": 1,
+   "50": 2,
+   "51": 1,
+   "52": 1,
+   "55": 1,
+   "57": 0,
+   "58": 1,
+   "67": 1
+  },
+  "dur16_hist": {
+   "0": 1113,
+   "1": 4365,
+   "2": 2413,
+   "3": 765,
+   "4": 478,
+   "5": 122,
+   "6": 314,
+   "7": 19,
+   "8": 149,
+   "9": 16,
+   "10": 76,
+   "11": 2,
+   "12": 59,
+   "13": 6,
+   "14": 22,
+   "16": 81
+  },
+  "onset16_hist": {
+   "0": 906,
+   "1": 367,
+   "2": 679,
+   "3": 471,
+   "4": 730,
+   "5": 433,
+   "6": 727,
+   "7": 651,
+   "8": 823,
+   "9": 376,
+   "10": 821,
+   "11": 454,
+   "12": 764,
+   "13": 496,
+   "14": 839,
+   "15": 463
+  },
+  "phrases": 116,
+  "phrase_bars": [
+   7.57,
+   8.62,
+   9.08,
+   7.85,
+   8.45,
+   7.1,
+   1.7,
+   8.45,
+   7.1,
+   2.2,
+   1.58,
+   1.58,
+   1.58,
+   1.58,
+   1.58,
+   1.58,
+   20.99,
+   3.36,
+   3.51,
+   11.5,
+   3.51,
+   9.12,
+   1.28,
+   0.09,
+   0.55,
+   0.13,
+   61.51,
+   1.16,
+   7.46,
+   36.04,
+   1.73,
+   27.99,
+   0.03,
+   2.88,
+   2.9,
+   0.71,
+   0.03,
+   0.07,
+   0.71,
+   0.03,
+   16.23,
+   2.07,
+   16.51,
+   3.05,
+   4.55,
+   2.24,
+   25.84,
+   0.1,
+   0.1,
+   0.07,
+   0.12,
+   0.13,
+   5.45,
+   11.08,
+   0.08,
+   12.2,
+   43.25,
+   2.7,
+   2.83,
+   7.18
+  ],
+  "bars": 109.2,
+  "templates": 10
+ },
+ "notes": [
+  "共 10 首模板，来源：bitmidi×10",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/sorrow_tracks.json"
+ ],
+ "tool": "theme_pack.py",
+ "mix_target": {
+  "ref": "sorrow_mix",
+  "score": 0.85,
+  "why": "BPM 114.1（差 4.1，0.86）· 打击感 0.33 vs 目标 0.45（0.75）· 调式 major（1.00）",
+  "aggregate": true,
+  "members": [
+   {
+    "ref": "BGM04",
+    "score": 0.85,
+    "bpm": 114.1,
+    "centroid": 2281,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM04.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM13",
+    "score": 0.784,
+    "bpm": 109.2,
+    "centroid": 3068,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM13.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM09",
+    "score": 0.774,
+    "bpm": 106.0,
+    "centroid": 2421,
+    "rms_db": -16.2,
+    "width": 0.523,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM09.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "BGM20",
+    "score": 0.709,
+    "bpm": 101.5,
+    "centroid": 2232,
+    "rms_db": -16.9,
+    "width": 0.338,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "BGM20.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "bgm01c",
+    "score": 0.662,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "bgm01c.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   },
+   {
+    "ref": "fine_BGM09",
+    "score": 0.609,
+    "bpm": 123.0,
+    "centroid": 3695,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "file": "D:\\game\\end\\仰望夜空星辰 FINE DAYS\\Bgm\\BGM09.ogg",
+     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+    }
+   }
+  ],
+  "agg_profile": "sorrow_mix",
+  "weights": {
+   "bpm": 0.55,
+   "perc": 0.3,
+   "mode": 0.15
+  },
+  "perc_style_target": 0.45,
+  "energy_curve_db": [
+   -1.0,
+   0.0,
+   0.0,
+   1.0,
+   0.0
+  ],
+  "structure_db": [
+   -17.0,
+   -16.0,
+   -16.0,
+   -15.0,
+   -16.0
+  ],
+  "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
+  "candidates": [
+   {
+    "ref": "BGM04",
+    "score": 0.85,
+    "bpm": 114.1,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "centroid": 2281,
+    "perc": 0.325,
+    "mode": "major",
+    "structure": [
+     -14,
+     -14,
+     -14,
+     -13,
+     -14,
+     -13,
+     -13,
+     -13
+    ],
+    "parts": {
+     "bpm": 0.863,
+     "perc": 0.75,
+     "mode": 1.0
+    },
+    "why": "BPM 114.1（差 4.1，0.86）· 打击感 0.33 vs 目标 0.45（0.75）· 调式 major（1.00）"
+   },
+   {
+    "ref": "BGM13",
+    "score": 0.784,
+    "bpm": 109.2,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "centroid": 3068,
+    "perc": 0.365,
+    "mode": "minor",
+    "structure": [
+     -20,
+     -20,
+     -19,
+     -20,
+     -22
+    ],
+    "parts": {
+     "bpm": 0.973,
+     "perc": 0.83,
+     "mode": 0.0
+    },
+    "why": "BPM 109.2（差 0.8，0.97）· 打击感 0.36 vs 目标 0.45（0.83）· 调式 minor≠主题（0.00）"
+   },
+   {
+    "ref": "BGM09",
+    "score": 0.774,
+    "bpm": 106.0,
+    "rms_db": -16.2,
+    "width": 0.523,
+    "centroid": 2421,
+    "perc": 0.445,
+    "mode": "minor",
+    "structure": [
+     -17,
+     -16,
+     -16,
+     -16,
+     -16,
+     -16,
+     -18
+    ],
+    "parts": {
+     "bpm": 0.867,
+     "perc": 0.99,
+     "mode": 0.0
+    },
+    "why": "BPM 106.0（差 4.0，0.87）· 打击感 0.45 vs 目标 0.45（0.99）· 调式 minor≠主题（0.00）"
+   }
+  ],
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+ },
+ "skipped": []
+}
