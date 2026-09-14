@@ -1477,4 +1477,33 @@ galgame 商业 BGM，可交叉印证，但不替它下结论）。守卫加强�
 顺带修掉我自己的一个副作用：`songMixSlot()` 原来**无条件**把 `programs`/`mix` 都建成 `{}`，
 于是"只拖了下音量"也往交付物里塞了 `"programs": {}`（已清理，并加了 smoke 断言
 "改音量时不许建 programs"）。**处理方式**：`mix.Melody` 是人的改动 → 保留并交给用户定夺
-（重渲认下 / 撤回），**不动检查**。
+（重渲认下 / 撤回），**不动检查**。（结论：用户选择撤掉那处混音改动 → 已还原，
+`song.json` 与暂存区一致、`check_song` 通过、`determinism_and_bytes` 随之恢复。）
+
+## 2026-09-14 第十八批：**推送前把本机绝对路径全部换成占位符**
+
+用户要求"更新到 `https://github.com/wszzssb/music-gen`"（`origin` 本来就是它）。
+推完前两批之后做了第二件事：**仓库是公开的，而文档与数据里写着本机绝对路径**。
+
+量出来 **87 个文件 / 169 处**（refs 41 · songs 35 · scripts 5 · docs 2 · studio 1 · 根文档 3），
+换成 `<工具链根>` / `<参考曲目录>` / `<仓库根>` / `<临时工作目录>`；
+浏览器安装路径（`C:\Program Files\…\msedge.exe`）**保留** —— 那是通用路径，也正是
+`tools/browser_check.js` 的探测逻辑本身。`scripts/new_song.py` 里**生成 notes.md 的模板**
+也一并改 → 以后新曲目的成绩单不再带本机路径。
+
+**踩的坑（值得记）**：第一版实现是"前缀 replace + 带**单**反斜杠的替换值"，而文本里同时存在
+两种写法（命令行/markdown 用单反斜杠，JSON / Python 源码里是转义后的双反斜杠）→ 结果把
+`refs/fine_BGM09.json` 写成 `"<参考曲目录>\仰望…\\BGM09.ogg"` → **Invalid escape、JSON 当场损坏**
+（`git checkout -- .` 恢复后重做）。第二版改成"**认出根前缀 → 吃掉整条路径 → `<占位符>` + 逐级 `/名字`**"，
+占位符与尾部一律正斜杠：JSON / Python / markdown 都合法，而且让
+`theme_pack.REF_PROV` 的 `match in file` 子串判断**继续成立**（两边同时被规范化）。
+
+**我的验证脚本自己连踩三次"数据形状"**（与坑 142 同一族）：以为 `REF_PROV` 是"元组的元组"
+（其实是 dict 元组）、以为 `refs/**/*.json` 顶层都是 dict（有 list）、以为 `source` 一定是 dict
+（有字符串）—— 三次都是"先假设形状、再被数据打脸"。
+
+验证：JSON **219 个全部可解析（0 损坏）** · 参考曲溯源 **命中 5 / 丢失 0** · theme_pack 自测 33/33 ·
+selftest **107/107** · smoke_ui · smoke_ed 74/74；远端用 **GitHub raw 读回**确认占位符真的在服务器上，
+仓库内 `D:\software` / `D:\test` / `D:\game` / `C:\Users` 命中 **0 行**。
+替换后 CHEATSHEET 在估算里贵了 1 tok → 压缩纯格式与一个词（1701 → 1696，**没有抬上限**）。
+去路径的脚本留在**仓库外**（不进 git），将来新曲目若又带路径可以再跑一次。
