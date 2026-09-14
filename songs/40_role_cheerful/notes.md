@@ -48,8 +48,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py scripts\theme_pack.py cheerful        # 模板包（模板不足时 --allow-fetch 联网抓）
 & $py scripts\new_song.py 40_role_cheerful --theme cheerful --seed 7
 & $py scripts\make_song.py 40_role_cheerful --check

@@ -43,9 +43,9 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-$mg = "D:\software\skill"
-& $py "$mg\scripts\profile_ref.py" "D:\refs\BGM33.ogg" BGM33
+$py = "<工具链根>/venv/python.exe"
+$mg = "<工具链根>"
+& $py "$mg\scripts\profile_ref.py" "<参考曲目录>/BGM33.ogg" BGM33
 & $py "$mg\scripts\new_song.py" 12_d75_warm --from 09_d129_strings --ref BGM33 --style daily
 & $py "$mg\scripts\make_song.py" 12_d75_warm      # 4 分钟的歌请后台跑
 ```

@@ -60,8 +60,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py scripts\make_song.py 29_meter34_waltz --check   # 先 2 秒查数据
 & $py scripts\make_song.py 29_meter34_waltz           # 作曲 → 渲染 → 自动调参 → 成绩单
 ```

@@ -43,7 +43,7 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"; cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"; cd <工具链根>
 & $py scripts\check_audio.py <参考曲> --deep
 & $py scripts\profile_ref.py <参考曲> hitorigohan_new --bpm 72.8
 & $py scripts\analyze_sections.py <参考曲> hitorigohan_new

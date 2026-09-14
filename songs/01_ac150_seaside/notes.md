@@ -12,14 +12,14 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py songs\01_ac150_seaside\ac150_seaside.py            # 作曲 → MIDI + 合成器试听版
 & $py scripts\render_midi.py songs\01_ac150_seaside\ac150_seaside.mid ac150_seaside_sf `
      --width 2.2 --rms -16.9 --shelf 3.0                    # 真音源成品
 ```
 
-## 实测对比（vs `D:\refs\BGM16c.ogg`，同口径）
+## 实测对比（vs `<参考曲目录>/BGM16c.ogg`，同口径）
 
 | 指标 | 本曲 | 参考 |
 |---|---|---|

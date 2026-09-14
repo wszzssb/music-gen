@@ -11,9 +11,9 @@
   ④ **状态**：该文件是否已有画像（refs/*.json / refs/melody/*.json）
 
 用法:
-  python scripts\\check_audio.py "D:\\refs\\BGM19.ogg"      # 单曲体检
+  python scripts\\check_audio.py "<参考曲目录>/BGM19.ogg"      # 单曲体检
   python scripts\\check_audio.py a.ogg b.m4a c.mp4                    # 多曲对照
-  python scripts\\check_audio.py "D:\\refs" --formats        # 目录里哪些能读
+  python scripts\\check_audio.py "<参考曲目录>" --formats        # 目录里哪些能读
   python scripts\\check_audio.py song.m4a --bpm 150 --json           # 强制速度 + 机器可读
   python scripts\\check_audio.py x.ogg --deep                         # 加倍频程/节奏型
 

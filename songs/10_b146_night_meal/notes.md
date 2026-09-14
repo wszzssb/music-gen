@@ -55,9 +55,9 @@ C 段第 6 小节改成 `Fm7`），不是硬改旋律。
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-$mg = "D:\software\skill"
-& $py "$mg\scripts\profile_ref.py" "D:\refs\参考曲.flac" hitorigohan
+$py = "<工具链根>/venv/python.exe"
+$mg = "<工具链根>"
+& $py "$mg\scripts\profile_ref.py" "<参考曲目录>/参考曲.flac" hitorigohan
 & $py "$mg\scripts\new_song.py" 10_b146_night_meal --from 09_d129_strings --ref hitorigohan --style ballad
 & $py "$mg\scripts\make_song.py" 10_b146_night_meal
 ```

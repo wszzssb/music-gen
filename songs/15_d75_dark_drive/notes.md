@@ -2,7 +2,7 @@
 
 | 项目 | 值 |
 |---|---|
-| 参考 | `D:\refs\BGM33.ogg` —— 257.0s / 75.0 BPM / 80 小节 / `character: instrumental` |
+| 参考 | `<参考曲目录>/BGM33.ogg` —— 257.0s / 75.0 BPM / 80 小节 / `character: instrumental` |
 | 本曲 | **D 小调** / 75.0 BPM / 80 小节（10 段 × 8）/ 260.6s |
 | 编制 | `daily`：钢琴 + 钢弦吉他 + 电钢 + 颤音琴 + 弦乐 + 原声贝斯 + 鼓组 |
 | 引擎特性 | `bass_style: pump16` · `perc_style: pump` · **`perc_layers`（kick 走 `offbeat` + air 空气层）** · `kick_vel` / `bass_vel` / `sub_gain` · `arr.shimmer` / `harmony` / `mix` |
@@ -76,12 +76,12 @@
 ## 复现
 
 ```powershell
-$mg = "D:\software\skill"
+$mg = "<工具链根>"
 $py = "$mg\.venv\Scripts\python.exe"
 $ml = "$mg\.venv-ml\Scripts\python.exe"
 & $py "$mg\scripts\make_song.py" 15_d75_dark_drive
 & $ml -m demucs -n htdemucs -o "$mg\stems" "$mg\songs\15_d75_dark_drive\d75_dark_drive_sf.wav"
-& $py "$mg\scripts\stem_compare.py" --ref "D:\refs\BGM33.ogg" --cur "$mg\songs\15_d75_dark_drive\d75_dark_drive_sf.ogg" --start 40
+& $py "$mg\scripts\stem_compare.py" --ref "<参考曲目录>/BGM33.ogg" --cur "$mg\songs\15_d75_dark_drive\d75_dark_drive_sf.ogg" --start 40
 ```
 
 ## 文件

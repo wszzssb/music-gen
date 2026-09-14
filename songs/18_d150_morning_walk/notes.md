@@ -49,10 +49,10 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"; cd D:\software\skill
-& $py scripts\check_audio.py "D:\refs\BGM16c.ogg" --deep
-& $py scripts\profile_ref.py "D:\refs\BGM16c.ogg" bgm16c_new --bpm 150
-& $py scripts\analyze_sections.py "D:\refs\BGM16c.ogg" bgm16c_new
+$py = "<工具链根>/venv/python.exe"; cd <工具链根>
+& $py scripts\check_audio.py "<参考曲目录>/BGM16c.ogg" --deep
+& $py scripts\profile_ref.py "<参考曲目录>/BGM16c.ogg" bgm16c_new --bpm 150
+& $py scripts\analyze_sections.py "<参考曲目录>/BGM16c.ogg" bgm16c_new
 & $py scripts\melody_profile.py stems\htdemucs\BGM16c\other.wav bgm16c_new_other --tonic F
 & $py scripts\build_song.py _spec20.json                       # spec → song.json
 & $py scripts\melody_gen.py songs\18_d150_morning_walk\song.json refs\melody\bgm16c_new_other_melody.json --seed 7

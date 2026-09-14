@@ -50,7 +50,7 @@
 ## 5. 快速自查
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"; cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"; cd <工具链根>
 & $py scripts\token_audit.py          # 预算余量
 & $py scripts\selftest.py --fast      # 守卫（含路由/指针/预算）
 & $py scripts\mutation_check.py       # 新检查是否"坏得起来"

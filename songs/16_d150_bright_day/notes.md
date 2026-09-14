@@ -1,6 +1,6 @@
 ﻿# 16 d150_bright_day —— BGM19 的欢快改写（原曲 → 明亮快歌）
 
-用户需求：**把 `D:\refs\BGM19.ogg` 的音乐改写成欢快的歌**。
+用户需求：**把 `<参考曲目录>/BGM19.ogg` 的音乐改写成欢快的歌**。
 
 | 项目 | 值 |
 |---|---|
@@ -65,8 +65,8 @@ EQ 也已到顶、且在往反方向补偿。参考曲 BGM16c 在 315–630Hz �
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py scripts\make_song.py 16_d150_bright_day
 ```
 

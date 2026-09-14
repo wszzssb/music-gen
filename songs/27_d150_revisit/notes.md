@@ -11,7 +11,7 @@
 
 ## 这一版新在哪：和声来自扒谱，不是印象
 
-先跑 `analyze_chords.py "D:\test\galgame\BGM16c.ogg" --bpm 150` 把真实和声扒出来，再照着写：
+先跑 `analyze_chords.py "<参考曲目录>/BGM16c.ogg" --bpm 150` 把真实和声扒出来，再照着写：
 
 **扒出来的语汇**（罗马数字为工具自动标注）：
 
@@ -54,11 +54,11 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 # ① 先扒谱（和声来源，可复核）
-& $py scripts\analyze_chords.py "D:\test\galgame\BGM16c.ogg" --bpm 150
-& $py scripts\analyze_sections.py "D:\test\galgame\BGM16c.ogg" bgm16c_v3
+& $py scripts\analyze_chords.py "<参考曲目录>/BGM16c.ogg" --bpm 150
+& $py scripts\analyze_sections.py "<参考曲目录>/BGM16c.ogg" bgm16c_v3
 # ② 再生成
 & $py scripts\build_song.py songs\27_d150_revisit\spec.json --out songs\27_d150_revisit
 & $py scripts\make_song.py 27_d150_revisit

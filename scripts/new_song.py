@@ -693,8 +693,8 @@ def write_notes(dst, new, data, pack, ref):
                       % (ref.get('name'), ref.get('rms_db', 0), ref.get('width', 0),
                          ref.get('centroid', 0))]
     lines += ['', '## 复现', '', '```powershell',
-              '$py = "D:\\software\\skill\\.venv\\Scripts\\python.exe"',
-              'cd D:\\software\\skill',
+              '$py = "<工具链根>/venv/python.exe"',
+              'cd <工具链根>',
               '& $py scripts\\theme_pack.py %s        # 模板包（模板不足时 --allow-fetch 联网抓）'
               % pack['theme'],
               '& $py scripts\\new_song.py %s --theme %s --seed %d'
@@ -875,8 +875,8 @@ def main():
                 '- 倍频程：%s\n- 低频节奏型 `%s`\n- 高频节奏型 `%s`\n'
                 '- 安静段调式 %s\n\n'
                 '## 复现\n\n```powershell\n'
-                '$py = "D:\\software\\skill\\.venv\\Scripts\\python.exe"\n'
-                'cd D:\\software\\skill\n'
+                '$py = "<工具链根>/venv/python.exe"\n'
+                'cd <工具链根>\n'
                 '& $py scripts\\make_song.py %s\n```\n'
                 % (short, ref['name'], ref['bpm'], ref['bar'], ref['duration'],
                    ref['rms_db'], ref['width'], ref['centroid'], bands,

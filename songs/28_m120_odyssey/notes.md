@@ -59,8 +59,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py scripts\build_song.py songs\28_m120_odyssey\spec.json --out songs\28_m120_odyssey
 & $py scripts\make_song.py 28_m120_odyssey
 & $py scripts\analyze_sections.py songs\28_m120_odyssey\m120_odyssey_sf.wav odyssey_mine   # 验证三段差异

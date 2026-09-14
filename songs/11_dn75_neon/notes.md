@@ -63,9 +63,9 @@ v1 的听感问题不是口味差异，解剖出来三条硬伤：
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-$mg = "D:\software\skill"
-& $py "$mg\scripts\profile_ref.py" "D:\refs\BGM33.ogg" BGM33
+$py = "<工具链根>/venv/python.exe"
+$mg = "<工具链根>"
+& $py "$mg\scripts\profile_ref.py" "<参考曲目录>/BGM33.ogg" BGM33
 & $py "$mg\scripts\new_song.py" 11_dn75_neon --from 09_d129_strings --ref BGM33 --style dance
 & $py "$mg\scripts\make_song.py" 11_dn75_neon
 ```

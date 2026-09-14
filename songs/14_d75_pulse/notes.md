@@ -93,14 +93,14 @@
 ## 复现
 
 ```powershell
-$mg = "D:\software\skill"
+$mg = "<工具链根>"
 $py = "$mg\.venv\Scripts\python.exe"
 $ml = "$mg\.venv-ml\Scripts\python.exe"
 & $py "$mg\scripts\make_song.py" 14_d75_pulse                 # 4 分钟以上请后台跑
 & $ml -m demucs -n htdemucs -o "$mg\stems" "$mg\songs\14_d75_pulse\d75_pulse_sf.wav"
 & $py "$mg\scripts\stem_compare.py" --ref "$mg\stems\BGM33" --cur "$mg\stems\htdemucs\d75_pulse_sf"
 & $py "$mg\scripts\sf2_lib.py" "$mg\vendor\GeneralUser GS v1.471.sf2" --drums 35,36,41,43
-& $py "$mg\scripts\master_match.py" "$mg\songs\14_d75_pulse\d75_pulse_sf.wav" "D:\refs\BGM33.ogg"
+& $py "$mg\scripts\master_match.py" "$mg\songs\14_d75_pulse\d75_pulse_sf.wav" "<参考曲目录>/BGM33.ogg"
 ```
 
 ## 文件

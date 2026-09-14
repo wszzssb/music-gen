@@ -1081,12 +1081,12 @@ def write_agg_ref(pack, root=None):
 # ⚠ **厂牌与发行日期以那些页面为准，本次没有逐项核对** —— 所以字段里不写死年份/厂牌，
 # 免得把没核实过的信息当事实（"写了权威却不给依据"比不写更糟）。
 REF_PROV = (
-    {'match': r'D:\game\end\仰望夜空星辰 FINE DAYS\Bgm',
+    {'match': r'<参考曲目录/仰望夜空星辰 FINE DAYS>',
      'work': '仰望夜空的星辰（FINE DAYS）',
      'url': 'https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0',
      'url_alt': ['https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0'],
      'kind': 'game_bgm'},
-    {'match': r'D:\test\galgame\ピュアソングガーデン！解包\Bgm',
+    {'match': r'<参考曲目录/ピュアソングガーデン>',
      'work': 'Pure Song Garden！（ピュアソングガーデン！）',
      'url': 'https://zh.wikipedia.org/zh-hant/Pure_Song_Garden%EF%BC%81',
      'url_alt': ['https://vndb.org/r161991', 'https://vndb.org/r145443'],

@@ -36,7 +36,7 @@
 |---|---|---|---|
 | `BGM04` | 0.877 | 2281 | 项目素材包 Bgm（同批提取的 galgame 商业 BGM）（BGM04.ogg） |
 | `bgm01c` | 0.801 | 3284 | 项目素材包 Bgm（同批提取的 galgame 商业 BGM）（bgm01c.ogg） |
-| `fine_BGM09` | 0.737 | 3695 | 仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）（D:\game\end\仰望夜空星辰 FINE DAYS\Bgm\BGM09.ogg） |
+| `fine_BGM09` | 0.737 | 3695 | 仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）（<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg） |
 | `BGM13` | 0.643 | 3068 | 项目素材包 Bgm（同批提取的 galgame 商业 BGM）（BGM13.ogg） |
 | `BGM06` | 0.625 | 1533 | 项目素材包 Bgm（同批提取的 galgame 商业 BGM）（BGM06.ogg） |
 | `BGM15c` | 0.620 | 3338 | 项目素材包 Bgm（同批提取的 galgame 商业 BGM）（BGM15c.ogg） |
@@ -48,8 +48,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py scripts\theme_pack.py tender        # 模板包（模板不足时 --allow-fetch 联网抓）
 & $py scripts\new_song.py 39_tender_probe --theme tender --seed 5
 & $py scripts\make_song.py 39_tender_probe --check

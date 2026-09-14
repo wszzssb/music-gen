@@ -20,8 +20,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py scripts\make_song.py 05_d135_cheerful              # 作曲 + 渲染 + 成绩单
 & $py scripts\make_song.py 05_d135_cheerful --no-compose # 只调渲染参数
 ```

@@ -1,15 +1,15 @@
 # 命令速查（CHEATSHEET）
 
-README 有 token 预算（守卫会拦），所以**完整命令示例集中在这里**。README 只留一行指针。
+README 有 token 预算（守卫会拦），完整命令示例集中在这里。README 只留一行指针。
 
 ## 写一首新歌（四步）
 
 ```powershell
-cd D:\software\skill
+cd <工具链根>
 $py = ".\.venv\Scripts\python.exe"
 
 # ① 模板包：同主题 ≥8 首 MIDI 模板聚合成画像（新歌的**唯一合规依据**）
-& $py scripts\theme_pack.py --list-themes                  # 15 个主题：日常/夜晚/海边/战斗/三拍圆舞…
+& $py scripts\theme_pack.py --list-themes                  # 15 个主题：日常/夜晚/海边/战斗/圆舞…
 & $py scripts\theme_pack.py seaside                        # → refs/themes/seaside.json（模板清单+来源 URL）
 & $py scripts\theme_pack.py seaside --allow-fetch          # 同主题不足 8 首时联网抓（BitMidi/VGMusic/Mutopia）
 & $py scripts\theme_pack.py seaside --calibrate            # 标定段间曲线的阻尼系数（出探针曲→渲染→写回包）
@@ -62,7 +62,7 @@ $py = ".\.venv\Scripts\python.exe"
 & $py scripts\bands_abs.py a.wav b.wav --win 6-20                        # 只看安静段
 & $py scripts\probe_timbre.py --programs 8,9,51,95,99                    # 挑"空气层"音色（等响度比）
 & $py scripts\probe_timbre.py --solo songs\21_g150_velvet\song.json      # 逐轨量真实电平（弱轨现形）
-& $py scripts\probe_peaks.py "D:\test\BGM16c.ogg" --bpm 150 --bars 1-16  # 谱峰扒谱（速度必须先钉死）
+& $py scripts\probe_peaks.py "<参考曲目录>/BGM16c.ogg" --bpm 150 --bars 1-16  # 谱峰扒谱（速度必须先钉死）
 ```
 
 **口径**：成绩单的"倍频程"是**相对本曲最响频段**的 → 判断编配改动一律用 `bands_abs`（绝对 dB）。

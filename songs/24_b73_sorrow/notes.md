@@ -44,8 +44,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py scripts\build_song.py songs\24_b73_sorrow\spec.json --out songs\24_b73_sorrow
 & $py scripts\make_song.py 24_b73_sorrow
 ```

@@ -1,6 +1,6 @@
 {
  "name": "bgm16c_v3",
- "file": "D:\\test\\galgame\\BGM16c.ogg",
+ "file": "<参考曲目录>/BGM16c.ogg",
  "duration": 104.0,
  "whole_bpm": 150.0,
  "whole_bands": {

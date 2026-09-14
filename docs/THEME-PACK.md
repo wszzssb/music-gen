@@ -175,7 +175,7 @@
 ## 7. 命令
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
+$py = "<工具链根>/venv/python.exe"
 
 & $py scripts\theme_pack.py --list-themes      # 主题表（主题 → 风格集合 → 引擎预设）
 & $py scripts\theme_pack.py --selftest         # 聚合规则自测（不读库、不联网）

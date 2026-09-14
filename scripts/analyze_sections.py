@@ -18,7 +18,7 @@
 用法:
   python scripts\\analyze_sections.py <参考曲> [名字] [--bars N] [--json]
   # 自动分段（默认 5 段，也可 --segments N）
-  python scripts\\analyze_sections.py "D:\\refs\\(17) … .flac" hitorigohan2
+  python scripts\\analyze_sections.py "<参考曲目录>/(17) … .flac" hitorigohan2
 """
 import json
 import os

@@ -1163,7 +1163,7 @@
     "source": {
      "kind": "project_audio",
      "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
-     "file": "D:\\game\\end\\仰望夜空星辰 FINE DAYS\\Bgm\\BGM09.ogg",
+     "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
      "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
     }
    }

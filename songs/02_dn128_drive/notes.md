@@ -20,8 +20,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py songs\02_dn128_drive\dn128_drive.py
 & $py scripts\render_midi.py songs\02_dn128_drive\dn128_drive.mid dn128_drive_sf `
      --width 1.0 --rms -14.3 --shelf 2.5 --hp 42 --low 3.5 --drive 2.0

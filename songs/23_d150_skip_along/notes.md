@@ -57,8 +57,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 # 改曲只改 spec.json（创作源头），再重建 song.json：
 & $py scripts\build_song.py songs\23_d150_skip_along\spec.json --out songs\23_d150_skip_along
 & $py scripts\make_song.py 23_d150_skip_along

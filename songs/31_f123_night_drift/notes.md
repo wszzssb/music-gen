@@ -1,6 +1,6 @@
 # 31 Night Drift —— 仿 BGM09（仰望夜空星辰 FINE DAYS）
 
-**任务**：依据 `D:\game\end\仰望夜空星辰 FINE DAYS\Bgm\BGM09.ogg` 生成一首 BGM。
+**任务**：依据 `<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg` 生成一首 BGM。
 **参考曲实测**：115.4s / **123 BPM**（61.5 是倍层）/ RMS −17.1 / 宽度 0.369 / 质心 3695Hz /
 调性 F maj（`analyze_chords` 相关 0.58）；律动稀疏（低频型每 4 拍一次，不是四踩）。
 
@@ -31,10 +31,10 @@
 
 **复现**：
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
-& $py scripts\profile_ref.py     "D:\game\end\仰望夜空星辰 FINE DAYS\Bgm\BGM09.ogg" fine_BGM09 --bpm 123
-& $py scripts\melody_profile.py  "D:\game\end\仰望夜空星辰 FINE DAYS\Bgm\BGM09.ogg" fine_BGM09 --tonic D
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
+& $py scripts\profile_ref.py     "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg" fine_BGM09 --bpm 123
+& $py scripts\melody_profile.py  "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg" fine_BGM09 --tonic D
 & $py scripts\new_song.py 31_f123_night_drift --from 28_m120_odyssey --ref fine_BGM09 --style daily
 & $py scripts\melody_gen.py songs\31_f123_night_drift\song.json refs\melody\fine_BGM09_melody.json --seed 31 --dens 1.5 --avoid songs --candidates 8
 & $py scripts\make_song.py 31_f123_night_drift

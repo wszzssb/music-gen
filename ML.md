@@ -32,9 +32,9 @@ py -3.13 -m venv .venv-ml
 ## 标准流程
 
 ```powershell
-$ml = "D:\software\skill\.venv-ml\Scripts\python.exe"
+$ml = "<工具链根>/venv-ml/python.exe"
 # ① 分离参考曲（也分离我们自己的成品，做逐声部对比）
-& $ml -m demucs -n htdemucs -o stems "D:\refs\BGM33.ogg"
+& $ml -m demucs -n htdemucs -o stems "<参考曲目录>/BGM33.ogg"
 & $ml -m demucs -n htdemucs -o stems "songs\14_d75_pulse\pulse_sf.wav"
 # ② 在 other 声部上扒旋律语言（调内率 66%→93%，这才敢用）
 & .\.venv\Scripts\python.exe scripts\melody_profile.py stems\BGM33\other.flac BGM33_other --tonic G

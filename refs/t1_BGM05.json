@@ -1,6 +1,6 @@
 {
  "name": "t1_BGM05",
- "file": "D:\\test\\galgame\\ピュアソングガーデン！解包\\Bgm\\BGM05.ogg",
+ "file": "<参考曲目录/ピュアソングガーデン>/BGM05.ogg",
  "duration": 158.8,
  "bpm": 84.1,
  "bar": 2.854,
@@ -57,8 +57,8 @@
  "source": {
   "kind": "game_bgm",
   "detail": "Pure Song Garden！（ピュアソングガーデン！） 的 Bgm 目录（真实商业混音）",
-  "file": "D:\\test\\galgame\\ピュアソングガーデン！解包\\Bgm\\BGM05.ogg",
-  "origin_path": "D:\\test\\galgame\\ピュアソングガーデン！解包\\Bgm",
+  "file": "<参考曲目录/ピュアソングガーデン>/BGM05.ogg",
+  "origin_path": "<参考曲目录/ピュアソングガーデン>",
   "url": "https://zh.wikipedia.org/zh-hant/Pure_Song_Garden%EF%BC%81",
   "url_alt": [
    "https://vndb.org/r161991",

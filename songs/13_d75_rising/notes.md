@@ -70,8 +70,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-$mg = "D:\software\skill"
+$py = "<工具链根>/venv/python.exe"
+$mg = "<工具链根>"
 & $py "$mg\scripts\new_song.py" 13_d75_rising --from 12_d75_warm --ref BGM33 --style daily
 & $py "$mg\scripts\make_song.py" 13_d75_rising      # 4 分钟以上请后台跑
 ```
@@ -105,6 +105,6 @@ $mg = "D:\software\skill"
 **同画像换 seed 的稳定性**（本轮实测）：seed 13 与 seed 99 两版的"说话方式"重合 **79%**
 （落点 87 / 时值 85 / 音程 82 / 句长 84 / 拱形 57）—— 方言由画像决定、具体句子由 seed 决定，
 这正是治本要的效果（治本前换 seed 与换画像都换不出差异）。旧版音频留档在
-`D:\test\_bgm16c_work\_v1_13_d75_rising\`。
+`<临时工作目录>/_v1_13_d75_rising\`。
 
 **还没验证的**：听感 —— 客观指标只能证明"与其它九首不再说同一种话"，好不好听只能人听。

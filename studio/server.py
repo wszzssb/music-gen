@@ -8,7 +8,7 @@ r"""server.py —— BGM Studio 本地服务：静态页面 + JSON API（驱动 
   / bridge.py（指标 / 分轨 / 导出）
 
 启动:
-  python server.py [--port 8765] [--root D:\\software\\skill] [--open]
+  python server.py [--port 8765] [--root <工具链根>] [--open]
 API（前缀 /api）:
   GET  /api/songs                     曲目列表（含产物/时长/速度）
   GET  /api/song?id=<曲>               song.json + render.json + 逐轨事件（钢琴卷帘用）

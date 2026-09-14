@@ -50,8 +50,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py scripts\build_song.py songs\26_g114_intricate\spec.json --out songs\26_g114_intricate
 & $py scripts\make_song.py 26_g114_intricate
 ```

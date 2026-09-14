@@ -44,8 +44,8 @@
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py scripts\check_audio.py <参考曲> --deep                       # ① 体检（含速度层建议）
 & $py scripts\profile_ref.py <参考曲> hitorigohan2 --bpm 72.8       # ② 整曲画像（钉死层）
 & $py scripts\analyze_sections.py <参考曲> hitorigohan2             # ③ **分段目标**（新）

@@ -108,8 +108,8 @@ Bass 十六分三连→两条；**无鼓段落不减**）；② **运行时让�
 ## 复现
 
 ```powershell
-$py = "D:\software\skill\.venv\Scripts\python.exe"
-cd D:\software\skill
+$py = "<工具链根>/venv/python.exe"
+cd <工具链根>
 & $py scripts\theme_pack.py cheerful        # 模板包（模板不足时 --allow-fetch 联网抓）
 & $py scripts\new_song.py 38_d132_full --theme cheerful --seed 21
 & $py scripts\make_song.py 38_d132_full --check

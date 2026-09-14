@@ -10,7 +10,7 @@
 而主管线是纯 numpy 的确定性管线，两者分开更好维护；另外匹配是**可选的最后一步**。
 
 用法:
-  python scripts\\master_match.py songs\\14_d75_pulse\\pulse_sf.wav "D:\\refs\\BGM33.ogg"
+  python scripts\\master_match.py songs\\14_d75_pulse\\pulse_sf.wav "<参考曲目录>/BGM33.ogg"
   # 产物：<同名>_matched.wav / .ogg（原文件不动）
 """
 
