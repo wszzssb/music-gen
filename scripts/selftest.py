@@ -2766,7 +2766,13 @@ TMP_MAX_MB = 512          # 这些目录累计超过这个量 = 有工具在漏
 MOTIF_MAX_REPEAT = 0.45      # 上限：节奏动机重复率（真实中位 23% / 均值 33%）
 MOTIF_MIN_REVERSE = 0.60     # 大跳后反向率（真实中位 66% / 均值 62%）
 MOTIF_MIN_FILL = 0.50        # 反向里"回填"的比例（真实中位 60%）
-MOTIF_MIN_CADENCE = 0.55     # 句末收束率（多 seed 夹具实测 66%）
+# 句末收束率下限。**2026-09-15 从 0.55 降到 0.25**：用**同一口径**（逐 4 小节窗取句末音，
+# 时值 ≥1.0 拍且音级落在主/属和弦音；主音取旋律音级直方图最高音级）复算 **218 首真实模板
+# （`refs/midi2/`）**：10% 分位 = 0.25、25% = 0.50、中位 = 0.67。
+# → **旧门 0.55 会把 33% 的真实写法判成不合格**（实测），而"开放句尾"是现代/悬留型
+# 编曲的常见写法、不是缺陷（用户口径："给标准降低一点，现代音乐也符合标准"）。
+# 新门取真实模板的 **10% 分位**：只有比 90% 的真实写法更不闭合才算问题。
+MOTIF_MIN_CADENCE = 0.25
 # 旋律"形态层"的判据（`t_melody_form_rules`）—— 对照值全部来自真实模板（同上 150 首）：
 # 小节末落点 ≥8 格的小节占比中位 90%（cheerful 主题 79%）、小节内最大空档中位 1.03 拍
 # （cheerful 1.40）、格 0 落点占比中位 12.9%（cheerful 14.8%）、密度 cheerful 2.63。
@@ -3321,6 +3327,17 @@ def t_melody_motif_rules():
     prog = ['C', 'G', 'Am', 'F'] * 4
     sec = {'name': 'A', 'bars': 16, 'melody': 'm', 'chords': prog, 'arr': {}}
 
+    # **门本身要有护栏**：这四个门都有真实模板对照值（见常量处的注释），被改成 0 或 0.9
+    # 都会让判据变成瞎的；而"门被改了却没人报警"正是变异测试该抓的 —— 实测：删掉自证①
+    # 之后，把 `MOTIF_MIN_CADENCE` 改成 0 **已经没有任何断言会失败**（mutation 122/123 报漏），
+    # 所以补这一道。区间只围"有依据"的范围，不是紧箍咒。
+    for _n, _v, _lo, _hi in (('MOTIF_MIN_REVERSE', MOTIF_MIN_REVERSE, 0.30, 0.90),
+                             ('MOTIF_MIN_FILL', MOTIF_MIN_FILL, 0.20, 0.90),
+                             ('MOTIF_MIN_CADENCE', MOTIF_MIN_CADENCE, 0.10, 0.60),
+                             ('MOTIF_MAX_REPEAT', MOTIF_MAX_REPEAT, 0.20, 0.80)):
+        assert _lo <= _v <= _hi, \
+            '%s = %.2f 落在有依据的区间 [%.2f, %.2f] 之外（门被改坏了？）' % (_n, _v, _lo, _hi)
+
     def run(use_motif, seed=11, frozen=False):
         rng = _rnd.Random(seed)
         per = M.persona(prof, rng)
@@ -3346,10 +3363,16 @@ def t_melody_motif_rules():
     frozen = avg_metrics(True, frozen=True)
     assert good['leap_after'] >= 6, \
         ('夹具里的大跳太少（%d 个）—— 期待规则无从检验，这条检查会空转' % good['leap_after'])
-    # 判据自证①：关掉动机层必须掉到门以下（否则这四条抓不到"没结构"的旋律）
-    assert weak['cadence_rate'] < MOTIF_MIN_CADENCE, \
-        '判据自证失败：逐音直方图版（关动机）的句末收束率 %.0f%% 竟然达标（门 %.0f%%）—— ' \
-        '说明这条判据不区分有无结构' % (weak['cadence_rate'] * 100, MOTIF_MIN_CADENCE * 100)
+    # 判据自证①：**原写法是错的假设，已改为只打印对照**（2026-09-15 实测）。
+    # 原断言是"关掉动机层后 cadence 必须破门"。cadence 门从 0.55 降到有真实模板依据的 0.25
+    # 后它立刻失败；改成"四维里至少一维破门"后**仍然失败** —— 实测关掉动机层（逐音直方图版）：
+    #   跳后反向 85% / 回填 82% / 收束 38% / 重复 19%**全部达标**。
+    # 原因：这四维来自**音程与节奏的分布**，而逐音直方图版同样按画像抽样，自然也有这些性质
+    # —— 它们与"动机层有没有工作"**无关**。所以这里只打印对照值，不再断言；
+    # 真正能区分"有无结构"的是自证②（关掉变体层 → 重复率必须回升到上限之上）。
+    print('        [对照] 关动机版：跳后反向 %.0f%% · 回填 %.0f%% · 收束 %.0f%% · 重复 %.0f%%'
+          % (weak['leap_reverse_rate'] * 100, weak['gap_fill_rate'] * 100,
+             weak['cadence_rate'] * 100, weak['rhythm_repeat'] * 100))
     # 判据自证②：关掉**变体层**（每小节复刻同一 figure）→ 重复率必须回升到上限之上
     assert frozen['rhythm_repeat'] > MOTIF_MAX_REPEAT, \
         '判据自证失败：每小节复刻同一 figure 的旧形态重复率只有 %.0f%%（上限 %.0f%%）—— ' \

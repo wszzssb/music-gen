@@ -957,6 +957,11 @@ def main():
     results.append(case('级进偏好量级过大（盖过去重）', 'melody_step_bias',
                         lambda: Mut(_mg, 'cand_score',
                                     lambda a, b, c, d, e: a * 2.0 + b + c * 0.5 - 100.0 * e * d)))
+    # **句末收束门本身**：2026-09-15 从 0.55 降到 **0.25**（旧门会把 **33% 的真实模板**
+    # 判成不合格 —— 用同一口径复算 218 首 `refs/midi2` 的实测结果；用户口径"现代音乐也符合"）。
+    # 把门改到 0（守卫变瞎）必须被抓到：该检查里"注入旧形态必须破门"的自证会失败。
+    results.append(case('旋律句末收束门被改坏（下限 0）', 'melody_motif_rules',
+                        lambda: Mut(st, 'MOTIF_MIN_CADENCE', 0.0)))
     # "小步打转"（|iv|≤1 占 50%）—— 用户嘴里"d d d d ddd"的真身
     _stag = dict(name='注入的小步打转曲', notes=20, dens=2.0, same=30.0, maxrun=3, chop=0.0,
                  grids=6, onbeat=50.0, fit=100.0, bpm=100.0, gen=None, bars=10,
