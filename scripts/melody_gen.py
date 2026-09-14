@@ -1288,6 +1288,40 @@ def _hist_phrase(prof):
     return [q / s for q in v] if s else v
 
 
+def stepwise_pct(mel):
+    """级进率 = |相邻音程| ≤ 2 半音 的占比（**只用于候选之间的相对排序，不当门槛**）。
+
+    为什么不设门槛：画像的 `stepwise_pct` 是 F0 跟踪的产物（实测 45~89%），而手写曲的
+    实际旋律只有 6~15%（见 `persona` 里那句注释）——两个口径不可比，拿画像值当门会把
+    正常旋律判成不合格（我为此连推翻过三次自己的诊断）。
+
+    但**同一次生成的多条候选之间**它是有序的：用户实测同一骨架的 4 条候选
+    "级进 17% → 52% **越来越顺**，202 之后都比原版好"。所以它适合做**相对偏好**
+    （`--step-bias`），而不是绝对判据。
+    """
+    iv = []
+    for notes in (mel or {}).values():
+        ns = sorted(notes, key=lambda x: (x[0], x[1]))
+        iv += [abs(b[3] - a[3]) for a, b in zip(ns, ns[1:])]
+    if not iv:
+        return 0.0
+    return sum(1 for x in iv if x <= 2) / float(len(iv))
+
+
+def cand_score(shape_share, lang_share, clash, stepwise, step_bias):
+    """候选打分（**越小越好**）：以"不像库里已有旋律"为主，级进偏好为次（opt-in）。
+
+    抽成独立函数有两个原因：① `mutation_check` 的注入机制是**改内存里的模块属性**，
+    而打分原先写在 `main()` 里、只能靠 subprocess 端到端验（注入打不进去）；
+    ② 打分公式本身值得单独守住（它是"挑哪条候选"的唯一依据）。
+
+    量级：`shape_share`/`lang_share` 是 0~1 的比例，`clash` 是计数 → 前两项和约 0~3，
+    `step_bias × stepwise` 最多 1（`step_bias` 默认 1.0），所以级进偏好**不会盖过**
+    "去重"这个主要目标，但足以在同分候选之间改变选择（实测 44% → 68%）。
+    """
+    return shape_share * 2.0 + lang_share + clash * 0.5 - step_bias * stepwise
+
+
 def main():
     if len(sys.argv) < 3:
         print(__doc__)
@@ -1297,6 +1331,10 @@ def main():
     ncand = int(sys.argv[sys.argv.index('--candidates') + 1]) \
         if '--candidates' in sys.argv else 1
     avoid = sys.argv[sys.argv.index('--avoid') + 1] if '--avoid' in sys.argv else None
+    # 级进偏好（opt-in；默认 0 = 与旧版逐字一致）。见 `stepwise_pct` 的说明：
+    # 它只在**同批候选之间**排序，不是绝对门槛。
+    step_bias = float(sys.argv[sys.argv.index('--step-bias') + 1]) \
+        if '--step-bias' in sys.argv else 0.0
     prof = json.load(open(prof_path, encoding='utf-8'))
     d = json.load(open(song, encoding='utf-8'))
     # **拍号守卫**：落点/时值/拱形全是按"一小节 4 拍、16 个十六分格"写的 ——
@@ -1379,14 +1417,23 @@ def main():
         tmp = dict(d); tmp['melody'] = mel
         alln = _abs_notes(tmp, mel)
         sc = _distinct(alln, lib) if lib else (0.0, 0.0)
+        sw = stepwise_pct(mel)
         print('  候选 %d（seed=%d）：音符 %d  与库里最大形状共享 %.1f%%  语言重合 %.1f%%'
-              '  强拍复核修正 %d  复用段冲突 %d'
+              '  级进 %.0f%%  强拍复核修正 %d  复用段冲突 %d'
               % (ci + 1, seed + ci * 1000, len(alln), sc[0] * 100, sc[1] * 100,
-                 nfix, clash))
-        score = sc[0] * 2.0 + sc[1] + clash * 0.5     # 复用段冲突要付出代价
+                 sw * 100, nfix, clash))
+        score = cand_score(sc[0], sc[1], clash, sw, step_bias)   # 越小越好，见该函数说明
+        # 旧挑法只等于 `score = sc[0]*2 + sc[1] + clash*0.5`（`step_bias=0` 时逐字一致）。
+        # 用户在 2026-09-14 实测：同骨架 4 条候选"级进 17% → 52% 越来越顺，202 之后
+        # 两条都比原版好"，而旧挑法完全不看听感维度 → 会随机挑到跳进多的那条
+        # （根因还有 `persona` 里 `leap = uniform(0.70, 1.40)` 的两倍范围）。
         if best is None or score < best[0]:
             best = (score, mel, per, ci, nfix, clash)
+            best_sw = sw
     d['melody'] = best[1]
+    if step_bias:
+        print('  ✓ 级进偏好 %.2f 生效：选中候选级进 %.0f%%（候选 %d 条里挑）'
+              % (step_bias, best_sw * 100, max(1, ncand)))
     # **生成元数据**：写进 song.json，让"这首该像哪份画像"变成可查的事实 ——
     # 自检 `melody_matches_profile` 靠它决定查谁，人复盘时也不必翻 notes（复现会漂移）。
     d['melody_gen'] = {
@@ -1401,6 +1448,9 @@ def main():
         # 而是逐小节铺变体（移位/压缩/扩展/稀疏长音）。自检 `melody_form_rules`
         # 只对带这个标记的曲目判"形态层"判据（旧曲的形态是历史数据，不追溯）。
         'variants': bool(use_motif),
+        # **级进偏好留痕**：>0 才写，方便复盘"这条旋律是挑了级进高的那条"。
+        # 默认 0 时不写字段 → 旧曲的 song.json 逐字节不变。
+        **({'step_bias': step_bias} if step_bias else {}),
     }
     json_io.save(song, d)
     # **落盘重读复核**（坑 114）：一律不信生成过程中的统计 —— 出口处可能还有第二套裁剪。

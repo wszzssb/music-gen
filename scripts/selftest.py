@@ -3401,6 +3401,74 @@ def t_melody_motif_rules():
 
 
 @check
+def t_melody_step_bias():
+    """`--step-bias`：关掉时＝旧挑法，打开时**选中的必须是候选里级进最高的那条**。
+
+    用户实测（2026-09-14）：同一骨架的 4 条候选"级进 17% → 52% **越来越顺**，202 之后
+    两条都比原版好"；而旧挑法 `score = 形状共享×2 + 语言重合 + 复用冲突×0.5` **完全不看
+    听感维度** → 同一份画像下会随机挑到跳进多的那条（根因还有 `persona` 里
+    `leap = uniform(0.70, 1.40)` 的两倍范围）。
+
+    **为什么判据只能是相对的**：画像的 `stepwise_pct` 是 F0 跟踪的产物（实测 45~89%），
+    手写曲实际旋律只有 6~15% —— 两个口径不可比，设绝对门槛会把正常旋律判成不合格
+    （我为此连推翻过三次自己的诊断）。所以这里验的是"打开偏好时挑中的是不是候选里
+    级进最高的那条"，而不是"级进必须 ≥ 某值"。
+
+    不带 `--avoid` 时 `score` 只剩 `-step_bias × 级进率`，所以打开后**必然**挑最高那条 ——
+    这样断言是确定的，不依赖随机。
+    """
+    import melody_gen as M
+    import subprocess, tempfile
+    prof = {'range': [60, 84], 'notes_per_bar': 2.6, 'stepwise_pct': 55, 'onbeat_pct': 45,
+            'dur16_hist': {'2': 6, '4': 8, '8': 5},
+            'onset16_hist': {str(k): v for k, v in ((0, 9), (4, 7), (8, 8), (12, 6))},
+            'interval_hist': {'-2': 8, '2': 7, '-1': 3, '1': 3, '0': 2, '3': 2, '5': 2},
+            'phrase_bars': [4.0, 4.0, 2.0]}
+    song = {'name': 'sb', 'bpm': 120, 'meter': [4, 4], 'style': 'ballad',
+            'chords': {'C': [36, [55, 60, 64, 67]], 'G': [31, [55, 59, 62, 67]],
+                       'Am': [33, [57, 60, 64, 69]], 'F': [29, [53, 57, 60, 65]]},
+            'melody': {'m': [[0, 0, 1, 60], [0, 2, 1, 62]]},
+            'sections': [{'name': 'A', 'bars': 16, 'melody': 'm',
+                          'chords': ['C', 'G', 'Am', 'F'] * 4, 'arr': {}}]}
+    with tempfile.TemporaryDirectory() as td:
+        pf, sf = os.path.join(td, 'p.json'), os.path.join(td, 's.json')
+        io.open(pf, 'w', encoding='utf-8').write(json.dumps(prof))
+        sw_of = M.stepwise_pct
+
+        def run(bias):
+            io.open(sf, 'w', encoding='utf-8').write(json.dumps(song))
+            r = subprocess.run([sys.executable, os.path.join(ROOT, 'scripts', 'melody_gen.py'),
+                                sf, pf, '--seed', '11', '--candidates', '4',
+                                '--dens', '2.5', '--step-bias', '%.2f' % bias],
+                               capture_output=True, text=True, encoding='utf-8',
+                               errors='replace', cwd=ROOT)
+            assert r.returncode == 0, 'melody_gen 非零退出：%s' % (r.stdout or '')[-300:]
+            cands = [int(x) for x in re.findall(r'级进 (\d+)%', r.stdout or '')]
+            d = json.load(io.open(sf, encoding='utf-8'))
+            return sw_of(d['melody']), cands, d.get('melody_gen') or {}
+
+        off, _c0, _m0 = run(0.0)
+        on, cands, meta = run(1.0)
+    assert off > 0 and on > 0, 'stepwise_pct 没算出来（off=%.3f on=%.3f）' % (off, on)
+    assert cands, 'CLI 没有逐条报候选级进（无法核对"挑的是不是最高那条"）'
+    assert abs(on - max(cands) / 100.0) < 0.005, \
+        '打开偏好后没挑最高那条：候选 %s，实际选中的是 %.0f%%' % (cands, on * 100)
+    assert abs(meta.get('step_bias', 0) - 1.0) < 1e-9, '生成元数据没留 step_bias 痕迹'
+
+    # **打分公式本身**（`cand_score` 抽出来就是为了这一条能被注入验证）：关掉时与旧式逐字一致，
+    # 打开时对"级进更高"的候选给出更低分；且偏好量级不盖过去重（同分候选才会被它改变选择）。
+    base = M.cand_score(0.10, 0.80, 1, 0.40, 0.0)
+    assert abs(base - (0.10 * 2 + 0.80 + 0.5)) < 1e-12, 'step_bias=0 时打分与旧式不一致'
+    hi = M.cand_score(0.10, 0.80, 1, 0.68, 1.0)
+    lo = M.cand_score(0.10, 0.80, 1, 0.44, 1.0)
+    assert hi < lo, '打开偏好后"级进高"的候选分没有更低（%.3f vs %.3f）' % (hi, lo)
+    dedup = M.cand_score(0.90, 0.90, 0, 0.95, 1.0)
+    assert dedup > hi, '级进偏好盖过了去重（不该：去重是主要目标）'
+    return ('step_bias 0→级进 %.0f%%、1.0→%.0f%%（候选 %s，挑中最高那条）'
+            % (off * 100, on * 100, cands))
+
+
+@check
 def t_melody_form_rules():
     """**旋律的节奏形态**：音要铺满小节、每小节不许复刻同一 figure（结构层第二组判据）。
 

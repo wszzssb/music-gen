@@ -27,14 +27,14 @@ $py = ".\.venv\Scripts\python.exe"
 模板**只能是** `refs/midi2/` 或网络权威数据；老 `--from` 会写 `basis=copied_song`，
 `check_song` 报"依据不合规"。
 
-### 旋律：**一首一份画像**（共用一份 = 十首一套口音，实测孪生 5 对）
+### 旋律：**一首一份画像**（共用 = 十首一套口音，孪生 5 对）
 
 ```powershell
-# 画像一首一份；--avoid 拿库里已有旋律做去重筛选（生成 8 条取最不像的一条）
+# --avoid 去重（8 条取最不像）；--step-bias 1.0 优先挑级进最高的那条（听感更顺）
 & $py scripts\melody_gen.py songs\23_x\song.json refs\melody\psg_BGM16b_melody.json `
-      --seed 23 --avoid songs --candidates 8
-& $py scripts\melody_gen.py <song.json> <画像> --motif off      # 退回"逐音直方图"版（A/B 对照用）
-#   v2 动机层（默认开）：动机重复 + 大跳后反向/回填 + 句末终止式；结构层指标在输出末尾打印
+      --seed 23 --avoid songs --candidates 8 --step-bias 1.0
+& $py scripts\melody_gen.py <song.json> <画像> --motif off   # 退回"逐音直方图"版（A/B 对照）
+#   v2 动机层（默认开）：动机重复 + 大跳反向/回填 + 句末终止式（结构层指标见输出末尾）
 & $py scripts\probe_melody_lang.py      # 验收：孪生对（≥85%）必须 0；落点/音程维看全库平均
 ```
 

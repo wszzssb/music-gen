@@ -467,7 +467,15 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     return d
 
 
-def run_melody_gen(song_json, pack, theme, seed, ncand):
+# **级进偏好**（`melody_gen --step-bias`）的默认值 —— 用户实测（2026-09-14）：
+# 同一骨架的 4 条候选"级进 17% → 52% **越来越顺**，202 之后两条都比原版好"，
+# 而旧挑法只看"与库里不像"、完全不看听感维度（根因还有 `persona` 里 `leap` 每首随机
+# 0.70~1.40 的两倍范围）→ 同一份画像下会随机挑到跳进多的那条。
+# 设 `BGM_STEP_BIAS=0` 可关掉（回到旧行为）；它是**候选之间的相对排序**，不是绝对门槛。
+STEP_BIAS = float(os.environ.get('BGM_STEP_BIAS', '1.0'))
+
+
+def run_melody_gen(song_json, pack, theme, seed, ncand, step_bias=None):
     """用**主题旋律画像**生成旋律（唯一入口 `melody_gen.py`）；失败就大声报错
 
     非 4/4（如三拍圆舞）时 `melody_gen` 拒绝工作（它按"一小节 16 格"写的）→ 这里**返回 False**
@@ -493,13 +501,18 @@ def run_melody_gen(song_json, pack, theme, seed, ncand):
     # 后者是混音 F0 跟踪的**上界估计**（cheerful 3.23），照抄实测把密度顶到 3.4 ——
     # 音长被压短、每小节挤成一句（用户口径"密度压回 2.0~2.6"）。单一出处在 melody_gen。
     base = max(1.2, min(MG.DENS_MAX, ((pack.get('melody') or {}).get('notes_per_bar') or 2.0)))
+    # 有级进偏好时**候选数至少 4**：只有 1~2 条就无所谓"挑"
+    sb = STEP_BIAS if step_bias is None else float(step_bias)
+    if sb > 0:
+        ncand = max(int(ncand), 4)
     tried, last = [], None
     for k in (1.0, 0.75, 0.6, 0.5):
         dens = round(max(1.2, base * k), 2)
         cmd = [sys.executable, os.path.join(HERE, 'melody_gen.py'), song_json, prof,
                '--seed', str(seed), '--candidates', str(ncand),
                '--tonic', str((pack.get('key') or {}).get('pc') or 0),
-               '--dens', '%.2f' % dens, '--avoid', 'songs']
+               '--dens', '%.2f' % dens, '--avoid', 'songs',
+               '--step-bias', '%.2f' % sb]
         print('  melody_gen：画像 %s（密度 %.2f 音/小节，%d 候选）'
               % (os.path.relpath(prof, ROOT), dens, ncand))
         r = subprocess.run(cmd, cwd=ROOT)

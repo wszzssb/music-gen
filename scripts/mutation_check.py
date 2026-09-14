@@ -946,6 +946,17 @@ def main():
     results.append(case('旋律形态阈值被改坏（上限 0）',
                         'melody_health',
                         lambda: Mut(_mh, 'MAX_RUN', 0)))
+    # **候选打分**（`--step-bias` 的落点）：① 公式被反向（级进越高反而分越高）
+    # ② 偏好量级大到盖过去重（"与库里不像"才是主要目标，级进只是同分时的偏好）。
+    # 打分已抽成 `melody_gen.cand_score`，所以能用 mutation 的"改内存"机制注入
+    # —— 原先它写在 `main()` 里，只能靠 subprocess 端到端验，注入打不进去。
+    import melody_gen as _mg
+    results.append(case('候选打分被反向（级进越高分越高）', 'melody_step_bias',
+                        lambda: Mut(_mg, 'cand_score',
+                                    lambda a, b, c, d, e: a * 2.0 + b + c * 0.5 + e * d)))
+    results.append(case('级进偏好量级过大（盖过去重）', 'melody_step_bias',
+                        lambda: Mut(_mg, 'cand_score',
+                                    lambda a, b, c, d, e: a * 2.0 + b + c * 0.5 - 100.0 * e * d)))
     # "小步打转"（|iv|≤1 占 50%）—— 用户嘴里"d d d d ddd"的真身
     _stag = dict(name='注入的小步打转曲', notes=20, dens=2.0, same=30.0, maxrun=3, chop=0.0,
                  grids=6, onbeat=50.0, fit=100.0, bpm=100.0, gen=None, bars=10,
