@@ -129,6 +129,21 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `studio/` | **可视化面板**（`studio\start.cmd` → http://127.0.0.1:8765）：音轨/混音台/卷帘/指标/试听本段/配平/搜索/导出（用法见 `studio/README.md`） |
 | `selftest.py` | **全链路自检**（改完东西先跑它） |
 | `mutation_check.py` | **变异测试**：注入故障验证自检**真会报警**（改过检查项就跑它；新检查必须配注入用例） |
+| `render_midi.py` | **MIDI → 真音源 → WAV → OGG 渲染管线**（搁架/搁低/高通→软限幅→响度归一→中侧加宽→q8 编码） |
+| `to_ogg.py` | WAV→OGG（ffmpeg libvorbis q=8；libsndfile 会崩，见坑 5） |
+| `analyze_chords.py` | **扒谱**：节拍跟踪 → 逐小节 chroma → 和弦模板匹配 → 罗马数字（`--bpm N` 可强制速度） |
+| `analyze_prog.py` | **和弦进行读取**（root-anchored 法）：根音取 80-220Hz 避开底鼓，再定 maj/min/7/sus/6 |
+| `analyze_bass.py` | 根音 + 三度倾向 + 音级排序（判断大小调/多利亚色彩） |
+| `analyze_ref.py` / `analyze_ref2.py` | 参考曲画像：时长/响度/速度/调性/**倍频程平衡**/立体声宽度/逐 4 秒响度 |
+| `probe_style.py` | **风格画像**：安静段干净 chroma + 逐拍 16 分节奏型（底鼓/踩镲）+ 结构 |
+| `section_probe.py` | 分段体检：RMS / 频谱质心 / 6-16k / 低频 / 宽度 / 起音密度（段落地图按曲子硬编码，换曲子要改 `SECS`） |
+| `arrange_probe.py` | 编配诊断：逐段音高分布、音符密度、亮度指数 |
+| `noise_probe.py` | 杂音体检：6-16k 尾巴电平 + 谱平坦度（噪声高、纯音≈0）+ 爆音检测 |
+| `midi_probe.py` | MIDI 解析：轨名/音色/速度/音域/音符数/小节数 |
+| `fetch_midi_lib.py` | **抓 MIDI 建模板库**（BitMidi/VGMusic/Mutopia）→ 风格目录 + `_index.json`（2 号库 ≈200 首） |
+| `play_midi.py` | 不用 DAW 试听 MIDI（Windows 自带 GS Wavetable，`--wait` 等放完，`--stop` 停） |
+| `setup_soundfont.py` | 下载并安装 FluidSynth + GeneralUser GS 到 `vendor\` |
+| `probe_mirrors.py` / `check_soundfont.py` | GitHub 镜像 / 音源可下载性探测 |
 
 ### ML 工具链（可选）：见 `ML.md`
 
@@ -182,21 +197,11 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 11. **旋律"同质化"（已治本）**：根因不是"画像少"而是**生成器把画像差异吃掉了**（换画像只值 42%）。
     已改成真读画像**分布** + 每首一份画像 + 个性参数 + 候选去重：**孪生对 5→0**。
     守卫 `melody_distinct` / `melody_lang_diverse` / `melody_matches_profile`；见坑 109–116。
-| `render_midi.py` | **MIDI → 真音源 → WAV → OGG 渲染管线**（搁架/搁低/高通→软限幅→响度归一→中侧加宽→q8 编码） |
-| `to_ogg.py` | WAV→OGG（ffmpeg libvorbis q=8；libsndfile 会崩，见坑 5） |
-| `analyze_chords.py` | **扒谱**：节拍跟踪 → 逐小节 chroma → 和弦模板匹配 → 罗马数字（`--bpm N` 可强制速度） |
-| `analyze_prog.py` | **和弦进行读取**（root-anchored 法）：根音取 80-220Hz 避开底鼓，再定 maj/min/7/sus/6 |
-| `analyze_bass.py` | 根音 + 三度倾向 + 音级排序（判断大小调/多利亚色彩） |
-| `analyze_ref.py` / `analyze_ref2.py` | 参考曲画像：时长/响度/速度/调性/**倍频程平衡**/立体声宽度/逐 4 秒响度 |
-| `probe_style.py` | **风格画像**：安静段干净 chroma + 逐拍 16 分节奏型（底鼓/踩镲）+ 结构 |
-| `section_probe.py` | 分段体检：RMS / 频谱质心 / 6-16k / 低频 / 宽度 / 起音密度（段落地图按曲子硬编码，换曲子要改 `SECS`） |
-| `arrange_probe.py` | 编配诊断：逐段音高分布、音符密度、亮度指数 |
-| `noise_probe.py` | 杂音体检：6-16k 尾巴电平 + 谱平坦度（噪声高、纯音≈0）+ 爆音检测 |
-| `midi_probe.py` | MIDI 解析：轨名/音色/速度/音域/音符数/小节数 |
-| `fetch_midi_lib.py` | **抓 MIDI 建模板库**（BitMidi/VGMusic/Mutopia）→ 风格目录 + `_index.json`（2 号库 ≈200 首） |
-| `play_midi.py` | 不用 DAW 试听 MIDI（Windows 自带 GS Wavetable，`--wait` 等放完，`--stop` 停） |
-| `setup_soundfont.py` | 下载并安装 FluidSynth + GeneralUser GS 到 `vendor\` |
-| `probe_mirrors.py` / `check_soundfont.py` | GitHub 镜像 / 音源可下载性探测 |
+12. **没有"LLM 直出音乐"这条路（LLM 已在作曲位）**：LLM（或人）只写 `song.json` 的
+    `chords`/`melody`/`sections`，编排/织体/CC7/音色由 `song_engine.py` 展开、FluidSynth
+    出音频 —— **LLM 不直接产出音频或 MIDI**，也**没接** Suno/Udio/MusicGen 等外部音乐生成
+    （模板须可溯源，见 §1）。**没做过的对照**：LLM 直写 MIDI 跳过引擎差多少
+    （会丢 9 轨编排与 `check_song` 全部校验）。
 
 
 ## 3. 产物
