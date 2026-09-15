@@ -87,6 +87,7 @@ def main():
                     help='全库：每首均匀取 %d 片 %.0f 秒平均后排序（整曲一段只会量到开头）'
                          % (NSEG, SEG_S))
     ap.add_argument('--sort', default='', help='全库排序键=短标签（如 sad/happy/galgame）')
+    ap.add_argument('--glob', default='', help='--all 改用它取文件（例：对照权威 BGM 目录）')
     ap.add_argument('--json', default='', help='把全库结果写成 JSON（便于与 AQA 交叉算相关）')
     a = ap.parse_args()
 
@@ -116,7 +117,7 @@ def main():
     scale = float(model.logit_scale_a.exp())
 
     if a.all:
-        files = sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*_sf.ogg')))
+        files = sorted(glob.glob(a.glob or os.path.join(ROOT, 'songs', '*', '*_sf.ogg')))
         if not files:
             raise SystemExit('没找到 songs/*/*_sf.ogg')
         key = a.sort or labels[0]
@@ -135,8 +136,10 @@ def main():
                     af = _feat(model.get_audio_features(**ain))
                     af = af / af.norm(dim=-1, keepdim=True)
                     ps.append((scale * af @ tf.T).softmax(dim=-1)[0])
-                rows.append((os.path.basename(os.path.dirname(f)),
-                             torch.stack(ps).mean(0)))
+                # --glob 指向别处（如权威 BGM 目录）时父目录名全是同一个 → 改用文件名
+                _sid = (os.path.splitext(os.path.basename(f))[0] if a.glob
+                        else os.path.basename(os.path.dirname(f)))
+                rows.append((_sid, torch.stack(ps).mean(0)))
         rows.sort(key=lambda r: -float(r[1][labels.index(key)]))
         if a.json:
             import json

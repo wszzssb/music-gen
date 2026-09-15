@@ -81,7 +81,10 @@ def _patch():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('audio', nargs='*')
-    ap.add_argument('--all', action='store_true', help='遍历 songs/*/*_sf.ogg 全库排序')
+    ap.add_argument('--all', action='store_true', help='全库排序（默认 songs/*/*_sf.ogg）')
+    ap.add_argument('--glob', default='',
+                    help='--all 改用它取文件（例：对照权威商业 BGM 目录 '
+                         '"<素材包>\\Bgm\\*.ogg"）')
     ap.add_argument('--segments', type=int, default=0,
                     help='>1 时把每个文件等分几段分别打分（看走向）')
     ap.add_argument('--sort', default='CE', choices=[k for k, _v in AXES],
@@ -105,14 +108,17 @@ def main():
         return res
 
     if a.all:
-        files = sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*_sf.ogg')))
+        files = sorted(glob.glob(a.glob or os.path.join(ROOT, 'songs', '*', '*_sf.ogg')))
         if not files:
             raise SystemExit('没找到 songs/*/*_sf.ogg —— 先跑 make_song.py 渲染')
         out = _run([{'path': f} for f in files], a.chunk)
         rows = []
         for f, o in zip(files, out):
             if isinstance(o, dict):
-                rows.append((os.path.basename(os.path.dirname(f)), o))
+                # --glob 指向别处时父目录名全是同一个 → 改用文件名
+                _sid = (os.path.splitext(os.path.basename(f))[0] if a.glob
+                        else os.path.basename(os.path.dirname(f)))
+                rows.append((_sid, o))
         rows.sort(key=lambda r: -(r[1].get(a.sort) or 0))
         print()
         print('%d 首（按 %s 倒序）' % (len(rows), a.sort))

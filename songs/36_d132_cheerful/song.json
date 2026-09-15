@@ -112,7 +112,7 @@
     "uku": true,
     "arp": true,
     "pad": false,
-    "strings": true,
+    "strings": false,
     "glock": false,
     "mix": {
      "Melody": 90,
@@ -124,7 +124,8 @@
      "Bass": 76,
      "Glock": 73,
      "Perc": 68
-    }
+    },
+    "ep": false
    }
   },
   {
@@ -139,9 +140,9 @@
     "uku": true,
     "arp": true,
     "pad": false,
-    "strings": true,
+    "strings": false,
     "glock": false,
-    "ep": true,
+    "ep": false,
     "mix": {
      "Melody": 108,
      "Hook": 83,
@@ -167,9 +168,9 @@
     "uku": true,
     "arp": true,
     "pad": false,
-    "strings": true,
+    "strings": false,
     "glock": false,
-    "ep": true,
+    "ep": false,
     "mix": {
      "Melody": 122,
      "Hook": 94,
@@ -195,7 +196,7 @@
     "uku": true,
     "arp": true,
     "pad": false,
-    "strings": true,
+    "strings": false,
     "glock": false,
     "mix": {
      "Melody": 102,
@@ -207,7 +208,8 @@
      "Bass": 86,
      "Glock": 82,
      "Perc": 76
-    }
+    },
+    "ep": false
    }
   },
   {
@@ -222,9 +224,9 @@
     "uku": true,
     "arp": true,
     "pad": false,
-    "strings": true,
+    "strings": false,
     "glock": false,
-    "ep": true,
+    "ep": false,
     "mix": {
      "Melody": 85,
      "Hook": 65,
@@ -250,9 +252,9 @@
     "uku": true,
     "arp": true,
     "pad": false,
-    "strings": true,
+    "strings": false,
     "glock": false,
-    "ep": true,
+    "ep": false,
     "mix": {
      "Melody": 115,
      "Hook": 88,
@@ -278,7 +280,7 @@
     "uku": true,
     "arp": true,
     "pad": false,
-    "strings": true,
+    "strings": false,
     "glock": false,
     "mix": {
      "Melody": 108,
@@ -290,7 +292,8 @@
      "Bass": 91,
      "Glock": 87,
      "Perc": 81
-    }
+    },
+    "ep": false
    }
   },
   {
@@ -305,9 +308,9 @@
     "uku": true,
     "arp": true,
     "pad": false,
-    "strings": true,
+    "strings": false,
     "glock": false,
-    "ep": true,
+    "ep": false,
     "mix": {
      "Melody": 108,
      "Hook": 83,
