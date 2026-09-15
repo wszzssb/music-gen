@@ -19,7 +19,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo [1/4] 虚拟环境 .venv
+echo [1/5] 虚拟环境 .venv
 if exist ".venv\Scripts\python.exe" (
   echo       已存在，跳过
 ) else (
@@ -27,18 +27,31 @@ if exist ".venv\Scripts\python.exe" (
   if errorlevel 1 goto fail
 )
 
-echo [2/4] 依赖 numpy / soundfile / imageio-ffmpeg
+echo [2/5] 依赖 numpy / soundfile / imageio-ffmpeg
 ".venv\Scripts\python.exe" -m pip install -q --upgrade pip
 ".venv\Scripts\python.exe" -m pip install -q numpy soundfile imageio-ffmpeg
 if errorlevel 1 goto fail
 
-echo [3/4] 音源 GeneralUser GS + fluidsynth（约 32MB）
+echo [3/5] 音源 GeneralUser GS + fluidsynth（约 32MB）
 echo       多镜像自动重试；国内网络前几次断连很正常，它会换镜像继续
 ".venv\Scripts\python.exe" scripts\setup_soundfont.py
 if errorlevel 1 goto fail
 
 echo.
-echo [4/4] 自检：78 项全绿就说明环境可用
+echo [4/5] 写歌技能接入 DSH（可选；没装 DSH 就跳过）
+if exist "%USERPROFILE%\.dsh\skills\bgm-studio" (
+  echo       已存在，跳过
+) else (
+  if exist "%USERPROFILE%\.dsh\skills" (
+    mklink /J "%USERPROFILE%\.dsh\skills\bgm-studio" "%~dp0skill\bgm-studio" >nul 2>nul
+    if errorlevel 1 (echo       建链接失败，可手动: mklink /J 目标 源) else (echo       已接入 skill\bgm-studio)
+  ) else (
+    echo       跳过（没装 DSH；命令行用法见 CHEATSHEET.md）
+  )
+)
+
+echo.
+echo [5/5] 自检：78 项全绿就说明环境可用
 ".venv\Scripts\python.exe" scripts\selftest.py
 echo.
 echo ============================================================

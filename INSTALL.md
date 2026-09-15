@@ -26,6 +26,17 @@ python -m venv .venv                                                          # 
 .\.venv\Scripts\python.exe scripts\rehearsal.py     # 彩排：5 套风格端到端（约 4 分钟）
 ```
 
+## 写歌技能（可选，推荐）
+
+仓库里带了 **`skill/bgm-studio/SKILL.md`** —— 写歌的**唯一流程**、开工前必定的 **7 件事**、
+以及省 token 的纪律都在里面（`setup.cmd` 会自动把它接到 DSH 的技能目录）。手动等价于：
+
+```powershell
+mklink /J "%USERPROFILE%\.dsh\skills\bgm-studio" "<仓库路径>\skill\bgm-studio"
+```
+
+没装 DSH 也不影响用命令行：`CHEATSHEET.md` + `docs/` 覆盖了同样的命令与数据格式。
+
 ## 参考曲：自备（版权原因不随仓库分发）
 
 `refs\` 里只有**画像**（频谱/速度/频段/节奏型统计），没有任何参考曲音频。想扒自己的曲子：
