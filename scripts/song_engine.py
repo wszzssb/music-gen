@@ -1258,6 +1258,42 @@ def build_events(d):
         bar0 += nbars
     for k in ev:
         ev[k].sort()
+    # **逐轨自定义音符**（opt-in `notes_extra`）—— **扒带/还原**用：从 Demucs 分轨各自扒出的
+    # 音符按轨写进来。格式 {'Bass': [[小节, 拍内, 时值拍, 音高], ...], ...}
+    #
+    # ⚠ **不能整轨平铺**（2026-09-15 实测教训）：第一版直接整轨替换，结果把引擎按
+    #   `arr.density` 做出的段落起伏**整个抹平**了 —— `similarity.py` 上 `density`
+    #   从 52.9 掉到 41.5、`variation` 的"跨块方差"也被拉平，抄了 5243 个音总分只从
+    #   62.9 涨到 63.2（净效果≈0）。
+    # 所以按**每段的 density 档**给"每小节音符数上限"，超出就均匀抽样：
+    # **疏段留骨架、密段留全部** —— 抄来的音符服从段落结构，而不是覆盖它。
+    # 实测上限取 2/6/12/20/40 时密度变化只有 **6.3 倍**（引擎原本 36.2 倍）——
+    # 疏段压不下去（density=0 仍留 2 音/小节 × 4 轨 = 8 音）。改为 **1/4/10/18/40**，
+    # 让"呼吸口"真的空下来。
+    _cap = {0: 1, 1: 4, 2: 10, 3: 18, 4: 40}
+    _sec_cap = []
+    for _s in (d.get('sections') or []):
+        _dk = int((_s.get('arr') or {}).get('density') or 2)
+        _sec_cap.extend([_cap.get(_dk, 12)] * int(_s.get('bars') or 0))
+    _extra = d.get('notes_extra') or {}
+    for _tr, _ns in _extra.items():
+        if _tr not in ev or not _ns:
+            continue
+        _by_bar = {}
+        for _x in _ns:
+            _by_bar.setdefault(int(_x[0]), []).append(_x)
+        _keep = []
+        for _b, _lst in _by_bar.items():
+            _lim = _sec_cap[_b] if 0 <= _b < len(_sec_cap) else 12
+            if len(_lst) <= _lim or _lim <= 1:
+                _keep.extend(_lst)
+                continue
+            _step = (len(_lst) - 1) / float(_lim - 1)
+            _keep.extend(_lst[min(len(_lst) - 1, int(round(i * _step)))]
+                         for i in range(_lim))
+        ev[_tr] = sorted((float(b) * 4.0 + float(bt), max(0.05, float(dd)),
+                          int(max(0, min(127, p))), 84)
+                         for (b, bt, dd, p) in _keep)
     return ev, bar0
 
 
