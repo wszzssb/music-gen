@@ -368,6 +368,12 @@ def write_midi(path, tracks, ppq=480, meter=None):
         if program is not None:
             ev.append((0, bytes([0xC0 | channel, program])))
         for (tick, cc, val) in ccs:
+            # `cc == 'prog'` → 写 **program change**（段级主奏音色用：用户要"不同部分
+            # 都有不同旋律音色"，而上面的 `program` 参数只能给整轨一个音色）。
+            if cc == 'prog':
+                ev.append((int(tick * ppq), bytes([0xC0 | channel,
+                                                   max(0, min(127, int(val)))])))
+                continue
             ev.append((int(tick * ppq), bytes([0xB0 | channel, cc & 0x7F,
                                                max(0, min(127, int(val)))])))
         for (start, dur, note, vel) in events:

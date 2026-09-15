@@ -1201,6 +1201,45 @@ def t_section_transition():
 
 
 @check
+def t_density_dynamic_range():
+    """**段级密度要有大起大落** —— 用户指定案例 BGM35 实测"逐小节起音数 0→66，变化 66 倍"，
+    结构是 3 个高潮 + 3 个呼吸口；而我们原来只有 **1.5–2.8 倍**（全程一条平线）。
+
+    口径：**直接数 MIDI 音符**（不渲染、不受音源质量影响 —— 用户："只需要 midi 一样就行"）。
+    判据：每小节音符数的 **max/min ≥ 4 倍**。
+    只查**声明了 `arr.density`** 的曲目 —— 早期曲没有这一档，量的是历史包袱；
+    新曲（`new_song` 生成的）都带 `density`（见 `song_engine.build_events` 的说明）。
+    """
+    checked, bad = 0, []
+    for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
+        try:
+            d = song_engine.load(p)
+        except Exception:
+            continue
+        secs = d.get('sections') or []
+        if not any((s.get('arr') or {}).get('density') is not None for s in secs):
+            continue                      # 没声明 density 的曲不查（历史曲目）
+        ev, _nb = song_engine.build_events(d)
+        per, bar = [], 0
+        for s in secs:
+            n = int(s.get('bars') or 0)
+            lo, hi = bar * 4.0, (bar + n) * 4.0
+            cnt = sum(1 for k in ev for (t, _d, _m, _v) in ev[k] if lo <= t < hi)
+            per.append(cnt / max(1.0, n))
+            bar += n
+        if len(per) < 3 or min(per) <= 0:
+            continue
+        checked += 1
+        ratio = max(per) / min(per)
+        if ratio < 4.0:
+            bad.append('%s: %.1f 倍（min %.1f / max %.1f 音每小节）'
+                       % (os.path.basename(os.path.dirname(p)), ratio, min(per), max(per)))
+    assert checked >= 1, '没有声明 arr.density 的曲目（这条检查会空转）'
+    assert not bad, ('段级密度太平（要 ≥4 倍起伏，BGM35 是 66 倍）：%s' % '；'.join(bad[:4]))
+    print('        %d 首带 density 的曲目：段级密度起伏都 ≥4 倍' % checked)
+
+
+@check
 def t_style_desc_matches_programs():
     """风格预设的文字说明要与实际音色一致（防复制粘贴串味）"""
     want = {'gorgeous': ('竖琴', 'Hook', 46), 'ballad': ('尼龙', 'Hook', 24),

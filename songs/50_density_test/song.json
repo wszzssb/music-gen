@@ -1,0 +1,409 @@
+{
+ "name": "density_test",
+ "bpm": 110.0,
+ "meter": [4, 4],
+ "desc": "悲伤（依据主题模板包 sorrow：10 首同主题模板）",
+ "style": "ballad",
+ "patterns": {
+  "bass_style": "simple",
+  "perc_style": "orchestral",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 1, 3, 2],
+  "guitar_beats": [0.0, 0.25, 0.5, 0.75, 1.0, 1.5, 1.75, 2.0, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75],
+  "guitar_vary": true,
+  "space": true,
+  "section_gap": 1.0
+ },
+ "chords": {
+  "Dm7": [38, [62, 65, 69, 72]],
+  "G6": [31, [55, 59, 62, 64]],
+  "C6": [36, [60, 64, 67, 69]],
+  "Dsus4": [38, [62, 67, 69]],
+  "Gm7": [31, [55, 58, 62, 65]],
+  "A7": [33, [57, 61, 64, 67]]
+ },
+ "melody": {
+  "intro": [
+   [0, 0.75, 0.5, 79], [0, 2.0, 0.5, 84], [0, 2.75, 1.25, 82],
+   [1, 1.25, 0.75, 79], [1, 2.25, 0.5, 81], [1, 3.25, 0.75, 83],
+   [2, 1.0, 0.25, 81], [2, 1.5, 0.5, 84], [2, 2.0, 0.75, 84], [2, 3.0, 1.0, 86],
+   [3, 0.75, 1.5, 79]
+  ],
+  "A": [
+   [0, 1.0, 0.5, 76], [0, 2.0, 0.5, 69], [0, 3.5, 0.5, 70],
+   [1, 1.0, 0.25, 60], [1, 1.5, 0.25, 60], [1, 2.25, 0.5, 58], [1, 3.5, 0.5, 57],
+   [2, 1.0, 0.5, 62], [2, 2.25, 0.5, 60], [2, 3.5, 0.5, 57],
+   [3, 0.0, 2.25, 55],
+   [4, 0.5, 0.5, 53], [4, 1.75, 0.5, 60], [4, 3.0, 1.0, 57],
+   [5, 0.0, 2.25, 62],
+   [6, 1.0, 0.25, 60], [6, 1.5, 0.25, 62], [6, 2.25, 0.5, 57], [6, 3.5, 0.5, 60],
+   [7, 0.0, 2.25, 55]
+  ],
+  "B": [
+   [0, 0.75, 0.5, 64], [0, 2.0, 0.5, 74], [0, 2.75, 0.5, 72], [0, 3.5, 0.5, 76],
+   [1, 0.5, 0.5, 81], [1, 1.75, 0.75, 79], [1, 3.25, 0.75, 81],
+   [2, 0.0, 0.5, 86], [2, 1.5, 0.75, 84], [2, 3.0, 1.0, 86],
+   [3, 1.75, 1.25, 86],
+   [4, 0.0, 0.5, 83], [4, 1.5, 0.75, 86], [4, 3.0, 1.0, 84],
+   [5, 0.5, 0.5, 86], [5, 1.75, 0.75, 84], [5, 3.25, 0.75, 83],
+   [6, 0.75, 0.5, 81], [6, 2.0, 0.75, 81], [6, 3.5, 0.5, 84],
+   [7, 1.75, 0.75, 86]
+  ],
+  "C": [
+   [0, 1.0, 0.25, 55], [0, 1.5, 0.75, 53], [0, 3.0, 1.0, 52],
+   [1, 1.5, 0.25, 50], [1, 2.0, 0.5, 53], [1, 2.75, 0.75, 55], [1, 3.5, 0.5, 50],
+   [2, 1.25, 0.25, 52], [2, 2.0, 0.75, 53], [2, 3.25, 0.75, 54],
+   [3, 1.75, 0.75, 57],
+   [4, 1.25, 0.25, 62], [4, 2.0, 0.75, 62], [4, 3.25, 0.75, 64],
+   [5, 1.0, 0.25, 62], [5, 1.5, 0.75, 65], [5, 3.0, 1.0, 65],
+   [6, 1.5, 0.25, 60], [6, 2.0, 0.75, 60], [6, 3.5, 0.75, 62],
+   [7, 1.75, 1.25, 62]
+  ],
+  "outro": [
+   [0, 1.0, 0.5, 72], [0, 1.5, 0.75, 62], [0, 3.0, 1.0, 64],
+   [1, 1.25, 0.5, 52], [1, 2.0, 0.75, 55], [1, 3.25, 0.75, 55],
+   [2, 0.5, 1.5, 48], [2, 2.0, 1.5, 50],
+   [3, 0.5, 1.5, 50]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 4,
+   "chords": ["Dm7", "G6", "Dm7", "G6"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 0,
+    "perc_in": 2,
+    "mix": {
+     "Melody": 94,
+     "Hook": 72,
+     "Piano": 70,
+     "Arp": 45,
+     "Pad": 64,
+     "Strings": 70,
+     "Bass": 85,
+     "Glock": 66,
+     "Perc": 66
+    }
+   }
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["C6", "Dm7", "G6", "G6", "C6", "Dm7", "Dm7", "G6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 97,
+     "Hook": 73,
+     "Piano": 72,
+     "Arp": 46,
+     "Pad": 66,
+     "Strings": 72,
+     "Bass": 87,
+     "Glock": 68,
+     "Perc": 68
+    }
+   }
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["C6", "Dm7", "G6", "G6", "C6", "Dm7", "Dm7", "G6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 99,
+     "Hook": 75,
+     "Piano": 74,
+     "Arp": 48,
+     "Pad": 68,
+     "Strings": 74,
+     "Bass": 89,
+     "Glock": 70,
+     "Perc": 70
+    }
+   }
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["G6", "C6", "Dm7", "G6", "G6", "C6", "Dm7", "G6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": true,
+    "glock": true,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 3,
+    "mix": {
+     "Melody": 100,
+     "Hook": 76,
+     "Piano": 74,
+     "Arp": 48,
+     "Pad": 68,
+     "Strings": 74,
+     "Bass": 90,
+     "Glock": 70,
+     "Perc": 70
+    }
+   }
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["C6", "Dm7", "G6", "G6", "C6", "Dm7", "Dm7", "G6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 100,
+     "Hook": 76,
+     "Piano": 74,
+     "Arp": 48,
+     "Pad": 68,
+     "Strings": 74,
+     "Bass": 90,
+     "Glock": 70,
+     "Perc": 70
+    }
+   }
+  },
+  {
+   "name": "C",
+   "bars": 8,
+   "chords": ["Dsus4", "Gm7", "Gm7", "A7", "Dsus4", "Gm7", "Dm7", "G6"],
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": true,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 3,
+    "mix": {
+     "Melody": 101,
+     "Hook": 77,
+     "Piano": 75,
+     "Arp": 49,
+     "Pad": 69,
+     "Strings": 75,
+     "Bass": 91,
+     "Glock": 71,
+     "Perc": 71
+    }
+   }
+  },
+  {
+   "name": "A4",
+   "bars": 8,
+   "chords": ["C6", "Dm7", "G6", "G6", "C6", "Dm7", "Dm7", "G6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 104,
+     "Hook": 79,
+     "Piano": 77,
+     "Arp": 50,
+     "Pad": 71,
+     "Strings": 77,
+     "Bass": 94,
+     "Glock": 73,
+     "Perc": 73
+    }
+   }
+  },
+  {
+   "name": "B2",
+   "bars": 8,
+   "chords": ["G6", "C6", "Dm7", "G6", "G6", "C6", "Dm7", "G6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "ep": true,
+    "glock_all": false,
+    "shimmer": true,
+    "density": 3,
+    "mix": {
+     "Melody": 106,
+     "Hook": 80,
+     "Piano": 78,
+     "Arp": 51,
+     "Pad": 72,
+     "Strings": 78,
+     "Bass": 95,
+     "Glock": 74,
+     "Perc": 74
+    }
+   }
+  },
+  {
+   "name": "A5",
+   "bars": 8,
+   "chords": ["C6", "Dm7", "G6", "G6", "C6", "Dm7", "Dm7", "G6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 103,
+     "Hook": 78,
+     "Piano": 76,
+     "Arp": 49,
+     "Pad": 70,
+     "Strings": 76,
+     "Bass": 92,
+     "Glock": 72,
+     "Perc": 72
+    }
+   }
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": ["Dm7", "G6", "Dm7", "G6"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 0,
+    "mix": {
+     "Melody": 100,
+     "Hook": 76,
+     "Piano": 74,
+     "Arp": 48,
+     "Pad": 68,
+     "Strings": 74,
+     "Bass": 90,
+     "Glock": 70,
+     "Perc": 70
+    }
+   }
+  }
+ ],
+ "theme": {
+  "name": "sorrow",
+  "label": "悲伤",
+  "pack": "refs/themes/sorrow.json",
+  "template_count": 10,
+  "styles": ["ballad", "romantic", "classical"],
+  "source_kinds": {
+   "bitmidi": 10
+  },
+  "primary_source": "window4",
+  "mix_target": "sorrow_mix",
+  "energy_curve_db": [-1.0, -0.56, -0.11, 0.0, 0.0, 0.22, 0.67, 0.89, 0.44, 0.0],
+  "energy_gain": 1.0,
+  "templates": ["ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "ballad/Animal Crossing - KK Ballad Aircheck.mid", "ballad/BALLAD-2.MID", "ballad/A-Very-Special-Love-Song.mid", "classical/Bach-1.mid", "classical/chopin-pol53.mid", "classical/chopin-ballade1.mid", "romantic/Liszt Bach Prelude Transcription.mid", "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid", "romantic/brahms.mid"],
+  "melody_profile": "refs/themes/sorrow_melody.json",
+  "seed": 50,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "sorrow",
+  "seed": 50,
+  "dens": 2.6,
+  "candidates": 8,
+  "mode": "motif",
+  "variants": true
+ }
+}

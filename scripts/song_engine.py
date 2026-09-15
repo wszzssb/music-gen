@@ -156,7 +156,11 @@ STYLES = {
 # 2026-09-15 实测踩过 —— 加了 `arr.perc_in`（引子渐入）却忘了同步这张表，
 # 结果新歌生成时报"无效的编配开关: perc_in"，而且只在 `dry_compose` 里露一次面。
 ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
-            'perc', 'perc_in', 'harmony', 'shimmer', 'mix')
+            'perc', 'perc_in', 'harmony', 'shimmer', 'mix',
+            # 段级密度（0–4，见 `build_events` 里的说明）与**段级主奏音色**
+            # （`melody_prog`，见 `write_midi` 里的说明）—— 2026-09-15 加。
+            # ⚠ **必须同步这张表**（上面那条教训就是加了 `perc_in` 忘了这里）。
+            'density', 'melody_prog')
 
 # ---------------------------------------------------------------------------
 # 段落角色 → 编制（opt-in，`patterns.arr_by_role`）
@@ -293,7 +297,8 @@ def arr_by_role(base, roles, energy=None, tier=1, sparse=False):
         a = out[i]
         a['glock_all'] = False               # 角色编制不继承段落级 glock_all（那会让亮色段过满）
         nth = seen.get(role, 0)
-        pack = ARR_PACKS[arr_pack_idx(role, nth, tier)]
+        _idx = arr_pack_idx(role, nth, tier)
+        pack = ARR_PACKS[_idx]
         if role in ('B', 'bridge'):
             seen[role] = nth + 1
         for k in ROLE_COLOR + ROLE_LIFT:
@@ -301,6 +306,12 @@ def arr_by_role(base, roles, energy=None, tier=1, sparse=False):
         for k in ROLE_BASE:                  # 基础层永在（bass 是低频唯一来源、piano 是主奏）
             a[k] = True
         a['perc'] = int(pack.get('perc') or 0)
+        # **段级密度**（`arr.density` 0–4，见 `build_events` 里的说明）：按编制档映射 ——
+        # 用户指定案例 BGM35 的"逐小节起音数 0→66（**66 倍**）"就是靠段间密度的大起大落，
+        # 而我们原来只有 1.5–2.8 倍（全程一条平线）。引子/尾声给 0（只留骨架音），
+        # 主歌 2，副歌随次序 3 → 4。
+        a['density'] = (0 if role in ('intro', 'outro')
+                        else (4 if _idx >= 4 else (3 if _idx >= 2 else 2)))
         if role == 'intro':
             # **引子渐入**（2026-09-15 按真值改）：真值里引子**不是**"不许上打击" ——
             # cheerful 10 首里 7 首前 4 小节有鼓，合计中位 18 点（主段约 22 点/小节），
@@ -754,11 +765,23 @@ def strings_part(ch, B=4.0):
 
 def glock_part(ch, i, B=4.0):
     _, tones = ch
+
+    def _hi(k, dur, vel):
+        """取和弦音 +24；⚠ `tone(tones, k)` 在**索引越界时会退回最低的和弦音**
+        （常在 C2 附近，如 36）—— +24 之后只有 60，低于钟琴合理下界 63
+        （`TR_RANGE['Glock'] = (63, 115)`）。实测 `50_density_test` 的 Glock 掉到 60-96，
+        被 `track_ranges_musical` 抓到。这里夹到 ≥63。"""
+        m = tone(tones, k) + 24
+        while m < 63:
+            m += 12
+        return m, dur, vel
+
     if i % 4 == 2:
-        return [(B - 2.5, 0.4, tone(tones, 3) + 24, 58),
-                (B - 1.0, 0.4, tone(tones, 2) + 24, 54)]
+        a, b = _hi(3, 0.4, 58), _hi(2, 0.4, 54)
+        return [(B - 2.5, a[1], a[0], a[2]), (B - 1.0, b[1], b[0], b[2])]
     if i % 4 == 3:
-        return [(0.0, 0.4, tone(tones, 4) + 24, 60)]
+        c = _hi(4, 0.4, 60)
+        return [(0.0, c[1], c[0], c[2])]
     return []
 
 
@@ -977,12 +1000,38 @@ def build_events(d):
                                      % (sec.get('name', '?'), i + 2, nn))
                 nxt = voicing(ch_all[nn])
             t0 = (bar0 + i) * B
+            # **段级密度**（opt-in `arr.density` 0–4；缺省 -1 = 逐字节保持现有行为）——
+            # 依据（用户指定的最佳案例 BGM35 实测）：它"逐小节起音数 0→66，**变化 66 倍**"，
+            # 结构是 3 个高潮 + 3 个呼吸口串起来的组曲；而我们只有 `perc` 开关与轨开关
+            # 两种密度手段，钢琴/贝斯每段照常演奏 → 稀疏段起音数仍有 ~19，
+            # 做不出"主体内部 6↔37 反复"（实测只做到总体 39 倍、主体内部 18~22 一条平线）。
+            # 这一档同时影响**四条轨**：贝斯音型 / 吉他落点 / 钢琴反拍音数 / 琶音间隔。
+            _dens = int(arr.get('density', -1))
+            _bpat, _beats, _gap_step = pat, pat.get('guitar_beats'), None
+            if _dens >= 0:
+                if _dens <= 1:                    # 极简：贝斯退 simple、吉他只留正拍
+                    _bpat = dict(pat, bass_style='simple')
+                    _gb = [b for b in (pat.get('guitar_beats') or [0.0, 1.0, 2.0, 3.0])
+                           if abs(b - round(b)) < 1e-6]
+                    _beats = _gb or [0.0, 2.0]
+                    _gap_step = 2.0
+                elif _dens >= 3:                  # 加厚：吉他回到八分、琶音八分
+                    _beats = [k * 0.5 for k in range(8)]
+                    _gap_step = 0.5
+                # _dens == 2：保持现有密度（不加不减）
+            # `density == 0` 的**极端稀疏**：一小节只留骨架音（每轨第 1 个）——
+            # 实测（BGM35）它最稀疏的段落起音只有 0~6/小节，而我们即使关掉打击、
+            # 钢琴/贝斯仍各弹十几个音（稀疏段 14.2/小节），"呼吸口"根本呼吸不起来。
+            _bare = (_dens == 0)
             if arr.get('bass'):
-                for (b, dd, m, v) in bass_part(ch, nxt, i, pat, B):
+                _ev = list(bass_part(ch, nxt, i, _bpat, B))
+                if _bare:
+                    _ev = _ev[:1]
+                for (b, dd, m, v) in _ev:
                     bucket['Bass'].append((t0 + b, dd, m, v))
-            if arr.get('uku'):
+            if arr.get('uku') and not _bare:
                 for (b, dd, m, v) in guitar_arpeggio(ch, i, pat['arpeggio'], B,
-                                                     beats=pat.get('guitar_beats'),
+                                                     beats=_beats,
                                                      sec_i=sec_i, prev_chords=sec_chords,
                                                      vary=bool(pat.get('guitar_vary'))):
                     bucket['Hook'].append((t0 + b, dd * sc, m, v))
@@ -999,8 +1048,13 @@ def build_events(d):
                 # 钢琴轨缺失时依次退到 Hook / Arp，避免落到音色不对的轨道
                 tr = next((k for k in ('Piano', 'Hook', 'Arp') if k in bucket), None)
                 if tr:
-                    for (b, dd, m, v) in piano_part(ch, i, B, thin=_thin,
-                                                    dense=bool(arr.get('perc'))):
+                    _pev = list(piano_part(
+                            ch, i, B,
+                            thin=(_thin or (_dens >= 0 and _dens <= 1)),
+                            dense=bool(arr.get('perc'))))
+                    if _bare:
+                        _pev = _pev[:1]          # 极简：一小节只留一个钢琴长音
+                    for (b, dd, m, v) in _pev:
                         bucket[tr].append((t0 + b, dd * sc, m, v))
             if arr.get('pad'):
                 for (b, dd, m, v) in pad_part(ch, B):
@@ -1024,7 +1078,8 @@ def build_events(d):
                 # 靠"持续"而不是"靠音数"占高频 —— 与 `shimmer` 层同一课（高频要连续的墙，
                 # 不是点+空）。实测音数减半后高频占用率因此不降。
                 _dense = bool(arr.get('perc')) and _thin
-                _step = 1.0 if _dense else 0.5
+                # 段级密度优先（见上面 `arr.density` 的说明）
+                _step = _gap_step if _gap_step else (1.0 if _dense else 0.5)
                 _n2 = max(1, int(round(B / _step)))
                 _b = [k * _step for k in range(_n2)]
                 if i % 4 == 3 and _n2 >= 4:
@@ -1230,19 +1285,30 @@ def write_midi(d, ev, path):
     # 段落级混音自动化（opt-in）：`sections[i].arr.mix = {"Strings": 74, ...}`
     # → 在该段起点写 CC7。这是"起伏"最直接的手段：不用改音符，光靠推子就能做出层次。
     auto = {}
+    aprog = {}
     bar0 = 0
     B = float(d.get('bar_beats') or 4.0)
     for sec in d.get('sections', []):
-        amix = (sec.get('arr') or {}).get('mix') or {}
+        a = sec.get('arr') or {}
+        amix = a.get('mix') or {}
         for name, vol in amix.items():
             auto.setdefault(name, []).append(((bar0) * B, 7, max(0, min(127, int(vol)))))
+        # **段级主奏音色**（opt-in `sections[i].arr.melody_prog`）—— 用户："不同部分都有
+        # 不同旋律音色，变化很大但是不突兀"。`programs.Melody` 只能给整轨一个音色，
+        # 所以在段边界写 program change（`bgm_synth.write_midi` 里 `cc == 'prog'`）。
+        if a.get('melody_prog') is not None:
+            aprog.setdefault('Melody', []).append(
+                (bar0 * B, 'prog', int(a['melody_prog'])))
         bar0 += sec['bars']
     for name, (prog, chan) in d['programs'].items():
         if not ev.get(name):
             skipped.append(name)           # 空轨不写进 MIDI（否则 DAW 里多一堆空轨）
             continue
         pan, vol = d['mix'][name]
+        # CC 与 program change 分开拼：前者带 int 的 CC 号，后者是字符串 'prog'，
+        # 混在一起排序会 TypeError（第一版就这么写的）。
         ccs = [(0.0, 10, pan), (0.0, 7, vol)] + sorted(auto.get(name, []))
+        ccs += sorted(aprog.get(name, []), key=lambda z: z[0])
         tracks.append((name, prog, chan, ev[name], ccs))
     if skipped:
         print('  (跳过空轨: %s)' % ', '.join(skipped))

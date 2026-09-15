@@ -1298,6 +1298,20 @@ def main():
                         'section_transition',
                         lambda: MutMany([(st, 'TRANSITION_FADE_MIN', 99.0),
                                          (st, 'TRANSITION_JUMP_MAX', -99.0)])))
+    # ㉓ 段级密度被压平（`build_events` 忽略 `arr.density`）→ 带 density 的曲目会被
+    #    `t_density_dynamic_range` 跳过，导致 `checked == 0` 断言失败 —— 必须被抓到。
+    #    它守的是"BGM35 那种 66 倍起伏"（我们原来只有 1.5–2.8 倍）。
+    _be3 = _se.build_events
+
+    def _flat_density(d, *a, **kw):
+        import copy as _c3
+        d2 = _c3.deepcopy(d)
+        for s in d2.get('sections') or []:
+            (s.get('arr') or {}).pop('density', None)
+        return _be3(d2, *a, **kw)
+    results.append(case('段级密度：density 被忽略（压平）',
+                        'density_dynamic_range',
+                        lambda: Mut(_se, 'build_events', _flat_density)))
     # ⑰ 吉他换回"每小节同一个音型"（关掉相位轮换）→ 同和弦的小节逐音复读 →
     #    `guitar_variation` 必须抓到（用户听感"每首曲子的刚弦吉他都是这个节奏音调"）
     results.append(case('吉他：关掉音型轮换（逐小节复读）',
