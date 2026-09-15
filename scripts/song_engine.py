@@ -1106,7 +1106,24 @@ def build_events(d):
                     bucket['Arp'].append((t0, B - 0.1, m, 58))
                 for m in [t + 36 for t in tones if t + 36 <= 108][:3]:
                     bucket['Arp'].append((t0, B - 0.1, m, 72))
-            if arr.get('perc'):
+            # **自定义鼓型**（opt-in `patterns.drum_grid`）—— 用户："没有韵律感"。
+            # `perc_style: dance` 是"四踩 + 反拍踩镲"的固定套路，而原曲的律动是具体的
+            # （`b35_drums.py` 从 Demucs 分离的 drums 轨逐 16 分格实测）：
+            #   kick  每拍"正拍 + e 位"（格 0,1 / 4,5 / 8,9 / 12,13）
+            #   snare 格 0,3,7,11,15（正拍 + a 位，2/4 拍加强）
+            #   hat   8 分格为主、格 7/15 重音
+            # 格式：{'kick': [[格, 力度], ...], 'snare': [...], 'hat': [...], 'open': [...]}
+            # 给了它就**完全替代** `perc_part`（不再走固定套路）。
+            _dg = pat.get('drum_grid')
+            if arr.get('perc') and _dg:
+                _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
+                for _nm, _note in (('kick', 36), ('snare', 38),
+                                   ('hat', 42), ('open', 46)):
+                    for (_g, _v) in (_dg.get(_nm) or []):
+                        bucket['Perc'].append(
+                            (t0 + float(_g) * 0.25, 0.2, _note,
+                             max(1, min(127, int(round(float(_v) * _lvl))))))
+            elif arr.get('perc'):
                 for (b, dd, m, v) in perc_part(pat['perc_style'], arr['perc'], i, nbars,
                                                pat.get('perc_layers'),
                                                pat.get('kick_vel'), B,

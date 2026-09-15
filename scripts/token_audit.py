@@ -54,7 +54,7 @@ LIMITS = {
     # +200（同日）：指向 `docs/CASE-BGM36.md`（用户指定的最佳案例）+ 它最硬的两个反例
     #   （CLAP tense 0.961、AQA CE 7.115 却最好）—— 防止下次又拿指标判好坏。
     #   压缩时的首选：把 §3 与 §4 的重复条目并掉，别动第 0 条。
-    'SKILL.md（音乐任务加载）': 2400,
+    'SKILL.md（音乐任务加载）': 2750,
     # +160：工具清单加 theme_pack / new_song（含混音目标）+ 主题包文档指针
     # +100（2026-09-15，用户授权"预算可以增加，最后压缩就行"）：补登记 4 个已存在但漏在
     # 索引外的探针（probe_voicing / probe_tension / probe_aesthetic / probe_aqa）——
