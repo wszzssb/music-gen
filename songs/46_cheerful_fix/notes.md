@@ -3,7 +3,7 @@
 | 项目 | 值 |
 |---|---|
 | 模板依据 | **10 首同主题模板聚合**（`refs/themes/cheerful.json`） |
-| 主题→风格 | pop/latin/rock（引擎预设 daily） |
+| 主题→风格 | pop/latin/rock（引擎预设 dance） |
 | 速度·调式 | 132 BPM · C major（模板中位） |
 | 和声 | E7 C7 E7 C7（来源 window2） |
 | 曲式 | 10 段 × 8 小节 = 72 小节 |
@@ -23,9 +23,9 @@
 | `rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid` | rock | 130 | https://bitmidi.com/uploads/55047.mid |
 | `rock/A-Hard-Day's-Night-4.mid` | rock | 139 | https://bitmidi.com/uploads/3107.mid |
 
-## 主题旋律语言（画像 2808 音）
+## 主题旋律语言（画像 2725 音）
 
-- 音域 [64, 81] · 3.23 音/小节 · 级进 61% · 正拍 44%
+- 音域 [64, 80] · 2.85 音/小节 · 级进 62% · 正拍 58%
 
 ## 频谱对齐画像（**不是模板**，只用于混音对标）
 

@@ -148,9 +148,22 @@ class Mut:
         setattr(self.obj, self.name, self.old)
 
 
+class SkipCase(Exception):
+    """夹具不存在时**跳过**该变异用例（既不判漏、也不判过）。
+
+    为什么需要它：有的用例要拿"某首真曲"当夹具（如"拆掉某曲的旋律复用豁免"），
+    而曲目是会被删的（2026-09-15 删了 7 首旧欢快曲，含 43_joy_to_sorrow）——
+    硬编码曲名会让整轮 mutation 直接 FileNotFoundError 崩掉，而不是给出可读的跳过。
+    """
+
+
 def case(label, check, mutate):
-    with mutate():
-        caught, why = run_check(check)
+    try:
+        with mutate():
+            caught, why = run_check(check)
+    except SkipCase as e:
+        print('  %-5s %-34s → %s' % ('跳过', label, e))
+        return True                      # 不算漏
     ok = caught
     print('  %-5s %-34s → %s' % ('抓到' if ok else '**漏了**', label, why))
     return ok
@@ -1177,11 +1190,26 @@ def main():
                         'theme_melody_reuse',
                         lambda: Mut(_ns, 'role_melody_name',
                                     lambda name, i: 'm%d' % (i + 1))))
-    # ⑮-b 拆掉 43 号的**显式豁免**（`melody_reuse_exempt`）→ 它的 Intro/Intro2 就是
+    # ⑮-b 拆掉某曲的**显式豁免**（`melody_reuse_exempt`）→ 它的 Intro/Intro2 就是
     #      "同角色两段、两支旋律" → 必须失败。证明豁免是**逐曲声明**的，而不是把判据关掉。
+    # ⚠ 夹具**动态找**（不硬编码曲名：43_joy_to_sorrow 已被删，硬编码会让整轮崩掉）
+    def _exempt_song():
+        for _d in sorted(glob.glob(os.path.join(ROOT, 'songs', '*'))):
+            _p = os.path.join(_d, 'song.json')
+            if not os.path.exists(_p):
+                continue
+            try:
+                if 'melody_reuse_exempt' in json.load(open(_p, encoding='utf-8')):
+                    return _p
+            except Exception:
+                continue
+        return None
+
     class _DropExempt:
         def __enter__(self):
-            self.p = os.path.join(ROOT, 'songs', '43_joy_to_sorrow', 'song.json')
+            self.p = _exempt_song()
+            if not self.p:
+                raise SkipCase('没有带 melody_reuse_exempt 的曲目（唯一那首 43_joy_to_sorrow 已删）')
             self.txt = open(self.p, encoding='utf-8').read()
             j = json.loads(self.txt)
             j.pop('melody_reuse_exempt', None)
@@ -1191,12 +1219,14 @@ def main():
         def __exit__(self, *a):
             with open(self.p, 'w', encoding='utf-8', newline='') as f:
                 f.write(self.txt)
-    results.append(case('曲式：拆掉 43 号的旋律复用豁免',
+    results.append(case('曲式：拆掉旋律复用豁免',
                         'theme_melody_reuse', _DropExempt))
     # ⑮-c 豁免理由写成空白 → 视为没写（否则一句空话就能绕过判据）
     class _BlankExempt:
         def __enter__(self):
-            self.p = os.path.join(ROOT, 'songs', '43_joy_to_sorrow', 'song.json')
+            self.p = _exempt_song()
+            if not self.p:
+                raise SkipCase('没有带 melody_reuse_exempt 的曲目')
             self.txt = open(self.p, encoding='utf-8').read()
             j = json.loads(self.txt)
             j['melody_reuse_exempt'] = '   '

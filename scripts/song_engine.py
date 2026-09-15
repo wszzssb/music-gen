@@ -92,8 +92,12 @@ STYLES = {
     },
     # 日常/抒情：钢琴主奏 + 吉他 + 电钢琴切分，柔和
     'daily': {
-        'desc': '日常抒情：钢琴主奏 + 钢弦吉他 + 电钢琴切分 + 沙锤',
-        'programs': _progs(Melody=0, Hook=25, Piano=4, Pad=89, Strings=48,
+        'desc': '日常抒情：钢琴主奏 + 尼龙吉他 + 电钢琴切分 + 沙锤',
+        # ⚠ 2026-09-15：Hook 25（钢弦吉他）→ **24（尼龙）**。钢弦（program 25）的拨弦
+        #   泛音在 2.5–10k 比电钢（4）高 **39dB**，实测把旋律盖住（修前 Hook 38.2dB
+        #   vs Melody 22.2dB）—— 用户听感"欢快的音乐都有一个音轨和其它不平衡"。
+        #   尼龙吉他泛音少、衰减快，同时保住 daily 的"温暖"底色。
+        'programs': _progs(Melody=0, Hook=24, Piano=4, Pad=89, Strings=48,
                            Bass=32, Glock=9),
         'mix': {'Melody': (76, 104), 'Hook': (42, 80), 'Piano': (88, 78),
                 'Arp': (92, 50), 'Pad': (64, 66), 'Strings': (52, 70),
@@ -114,8 +118,12 @@ STYLES = {
     },
     # 舞曲：合成主奏 + 电钢琴 + 琶音 + 合成贝斯（四踩底鼓）
     'dance': {
-        'desc': '舞曲：合成主奏 + 电钢琴 + 琶音 + 合成贝斯 + 四踩底鼓',
-        'programs': _progs(Melody=81, Hook=4, Piano=4, Pad=89, Strings=48,
+        'desc': '舞曲：颤音琴主奏 + 电钢琴 + 琶音 + 合成贝斯 + 四踩底鼓',
+        # ⚠ 2026-09-15：主奏 Melody 81（合成主奏）→ **11（颤音琴）**。
+        #   原合成主奏够亮、平衡好（Melody 32.6dB vs 打击 33.2dB），但电子味重、
+        #   CLAP happy 只有 0.323（tense 0.58）。颤音琴同属"明亮金属"音色，
+        #   高频不输合成主奏，听感更接近真实乐器 —— 兼顾"平衡"与"不电子"。
+        'programs': _progs(Melody=11, Hook=4, Piano=4, Pad=89, Strings=48,
                            Bass=38, Glock=9),
         'mix': {'Melody': (72, 100), 'Hook': (48, 78), 'Piano': (88, 74),
                 'Arp': (92, 58), 'Pad': (64, 66), 'Strings': (56, 62),
@@ -771,7 +779,10 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0, inbars=
         for b in range(1, NB, 2):                         # 军鼓 2、4（4/4 → 1、3）
             out.append((b, 0.1, 38, 96))
         for b in range(NB):
-            out.append((b + 0.5, 0.1, 42, 98))            # 只放反拍
+            # ⚠ 2026-09-15 修：踩镲 vel 98 → 66。实测 46/47 的 Perc 在 10–18k 有 28.8dB，
+            #   而旋律（钢琴，音区中位 74 左右）在 5–10k 只有 1.5dB —— 高频打击把旋律盖住。
+            #   降到 66 后 Perc 的 10–18k 掉到 19.8dB（−9dB），CLAP happy 0.438→0.449。
+            out.append((b + 0.5, 0.1, 42, 66))            # 只放反拍
             if level >= 3:
                 out.append((b + 0.25, 0.1, 42, 20))
         if level >= 3:

@@ -66,7 +66,14 @@ AUTHORITATIVE_HOSTS = ('bitmidi.com', 'vgmusic.com', 'mutopiaproject.org',
 # 一个主题给 3 个风格：既能凑够 ≥8 首模板，又不至于风格漂移（"同主题"要真的同主题）。
 THEMES = {
     'daily':    {'label': '日常', 'styles': ['pop', 'folk', 'anime'], 'engine': 'daily'},
-    'cheerful': {'label': '欢快', 'styles': ['pop', 'latin', 'rock'], 'engine': 'daily'},
+    # ⚠ 2026-09-15：这里一度改成 `dance`（因为原配 daily 用**钢弦吉他**、拨弦泛音把旋律
+    #   盖住 —— 用户听感"欢快的音乐都有一个音轨和其它不平衡"）。dance 确实修好了平衡
+    #   （Hook 38.2→0.1dB、Melody 22.2→32.6dB），但电子味重、happy 0.438→0.323。
+    #   改试"daily + 尼龙吉他"只有部分改善（Hook 仍高 6.9dB）—— 真正瓶颈是 **daily 的
+    #   旋律音色是钢琴（偏暗）**，2.5–5k 只有 22dB 而打击有 33dB。
+    #   最终取 dance（旋律亮、平衡好）并把它的主奏音色从合成主奏 81 换成颤音琴 11，
+    #   见 song_engine.STYLES —— 兼顾"平衡"与"不电子"。
+    'cheerful': {'label': '欢快', 'styles': ['pop', 'latin', 'rock'], 'engine': 'dance'},
     'tender':   {'label': '温柔抒情', 'styles': ['ballad', 'romantic', 'pop'], 'engine': 'ballad'},
     'night':    {'label': '夜晚', 'styles': ['newage', 'jazz', 'electronic'], 'engine': 'daily'},
     'seaside':  {'label': '海边', 'styles': ['newage', 'folk', 'pop'], 'engine': 'acoustic'},
@@ -353,7 +360,16 @@ def _melody_track(res, bars=None):
         poly = _polyphony(notes)
         tb = (max(s + d for (s, d, _n, _v) in notes) / float(bar_ticks)) or 1.0
         dens = len(notes) / max(1.0, tb)
-        score = mean - 6.0 * max(0.0, poly - 1.15) - 2.0 * max(0.0, dens - 3.0)
+        # ⚠ 2026-09-15 修：原先 dens 的惩罚只有 -2.0/音，而 `mean` 的跨度可达 20+ 半音
+        #   → 结果**总是选到"音高最高但很密"的织体轨**（钢琴/吉他分解），不是旋律。
+        #   证据：cheerful 画像 **2808 个音**（10 模板 = 281 音/模板），而 neon 1311、
+        #   battle 1552；它的音域上界被拉到 [64,81]，生成的旋律最高只到 G5。
+        #   而打击（踩镲）在 5–18k 有 33dB、旋律在 5–10k 只有 1.5dB —— **旋律被彻底盖住**，
+        #   这正是用户总结的"欢快的音乐都有一个音轨和其它不平衡"。
+        #   真旋律通常 1.5~3 音/小节 → 惩罚加到 -5.0，并**硬性排除** >6 音/小节（织体）。
+        if dens > 6.0:
+            continue
+        score = mean - 6.0 * max(0.0, poly - 1.15) - 5.0 * max(0.0, dens - 3.0)
         if best is None or score > best[0]:
             best = (score, t, round(poly, 2), round(mean, 1), round(dens, 2))
     return best
