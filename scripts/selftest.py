@@ -4227,6 +4227,13 @@ def t_arr_role_variety():
     assert _p0 == 0 and out[0]['perc'] == 1, \
         ('判据自证失败：档 0 的 perc=%s、引子 perc=%s —— 引子没有走"强制 1 + perc_in"这条'
          % (_p0, out[0]['perc']))
+    # **引擎写进 arr 的键必须在 `ARR_KEYS` 里**（白名单与实现脱节的守卫，
+    # 见 `ARR_KEYS` 上方注释：加 `perc_in` 时漏过一次）
+    _extra = set()
+    for _a in out:
+        _extra |= set(_a) - set(se.ARR_KEYS) - {'vel', 'glock_all'}
+    assert not _extra, \
+        'arr_by_role 写了 ARR_KEYS 之外的键：%s —— 请同步 ARR_KEYS' % sorted(_extra)
     solo = se.arr_by_role([{'bass': True, 'piano': True}] * 3,
                           ['intro', 'intro', 'outro'], energy=None, tier=1)
     assert any(a.get('perc') for a in solo), '引子/尾声为主的夹具下兜底没生效（全曲无打击）'

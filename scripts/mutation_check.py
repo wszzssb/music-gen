@@ -958,6 +958,11 @@ def main():
     results.append(case('旋律落点分散门归零',
                         'melody_onset_spread',
                         lambda: Mut(st, 'ONSET_TVD_MAX', 0.0)))
+    # ④ `ARR_KEYS` 白名单与实现脱节（引擎写了白名单外的键）→ 必须被抓
+    results.append(case('编配白名单漏掉引擎写的键',
+                        'arr_role_variety',
+                        lambda: Mut(_se, 'ARR_KEYS',
+                                    tuple(k for k in _se.ARR_KEYS if k != 'perc_in'))))
     # ③ 引子渐入被绕过（`perc_part` 忽略 `inbars`）→ 前 2 小节又敲起来，必须被抓
     _perc_orig = _se.perc_part
     results.append(case('引子渐入被绕过（perc_in 失效）',

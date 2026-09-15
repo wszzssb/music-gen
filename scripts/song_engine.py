@@ -133,8 +133,11 @@ STYLES = {
         'patterns': {'bass_style': 'simple', 'perc_style': 'light'},
     },
 }
+# ⚠ **引擎写进 `arr` 的键必须全在这里**（自检 `arr_role_variety` 守着）：
+# 2026-09-15 实测踩过 —— 加了 `arr.perc_in`（引子渐入）却忘了同步这张表，
+# 结果新歌生成时报"无效的编配开关: perc_in"，而且只在 `dry_compose` 里露一次面。
 ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
-            'perc', 'harmony', 'shimmer', 'mix')
+            'perc', 'perc_in', 'harmony', 'shimmer', 'mix')
 
 # ---------------------------------------------------------------------------
 # 段落角色 → 编制（opt-in，`patterns.arr_by_role`）
