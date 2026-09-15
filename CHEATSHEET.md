@@ -65,8 +65,25 @@ $py = ".\.venv\Scripts\python.exe"
 & $py scripts\probe_peaks.py "<参考曲目录>/BGM16c.ogg" --bpm 150 --bars 1-16  # 谱峰扒谱（速度必须先钉死）
 ```
 
-**口径**：成绩单的"倍频程"是**相对本曲最响频段**的 → 判断编配改动一律用 `bands_abs`（绝对 dB）。
-"像不像"还差一层**占用率**（墙/点），只有 `bands_abs` / `probe_timbre` 有这一列（见坑 103）。
+**口径**：成绩单的"倍频程"是相对本曲最响频段的 → 编配改动看 `bands_abs`（绝对 dB）；
+"像不像"还差**占用率**（墙/点），只有它和 `probe_timbre` 有（见坑 103）。
+
+### 模型侧主观分（可选，需 `.venv-ml`）
+
+`metrics` 全绿后剩下的"好不好听"只能靠耳朵 —— 这两支把**部分**主观判断变成可复现数字：
+
+```powershell
+$ml = ".venv-ml\Scripts\python.exe"          # 主 venv 没有 torch
+$env:HF_ENDPOINT = 'https://hf-mirror.com'   # HF 直连不通时（镜像实测可用）
+
+& $ml scripts\probe_aesthetic.py <音频> --segments 6   # CLAP 情绪走向（看"前悲后喜"有没有被听出来）
+& $ml scripts\probe_aesthetic.py --all --prompts mood  # 全库情绪排序（--json 存结果）
+& $ml scripts\probe_aqa.py --all                       # 全库美学分排序（CE/PQ/CU/PC，--chunk 控显存）
+```
+
+**口径**：CLAP 量"**像哪一类**"，不是好听度；AQA 是模型对人类主观分的回归，**没有本地绝对参照**。
+⚠ 实测库内区分度极低（39 首里 31 首的 CE 挤在 0.3 内），与客观指标几乎不相关（|r| ≤ 0.28）
+——**只用来揪异常曲目，不能当验收门**（完整边界见两个探针的 docstring）。
 
 ### 逐轨事件（面板卷帘 / 排查用）
 
@@ -75,10 +92,10 @@ $py = ".\.venv\Scripts\python.exe"
 ```
 ### 可视化面板（写歌时最省时间的一条路）
 
-`powershell
-studio\start.cmd                     # 起面板（已在跑则只开浏览器）→ http://127.0.0.1:8765
-studio\stop.cmd                      # 停
-`
+```powershell
+studio\start.cmd    # 起面板（已在跑则只开浏览器）→ http://127.0.0.1:8765
+studio\stop.cmd     # 停
+```
 
 面板里点：**⚡ 试听本段** · **🎚 自动配平** · **🧬 候选搜索**（结果**逐项勾选采用**）· **📦 导出**。
 细节见 studio/README.md；口径与 CLI 完全一致（改的都是 song.json）。
@@ -91,9 +108,8 @@ studio\stop.cmd                      # 停
 & $py scripts\midi_ref.py <file.mid> --bars 5-20  # 只看某几小节
 ```
 
-**音符层看 MIDI，频谱层看音频画像**：`refs/*.json` 画像的频谱/宽度/响度只能从真实录音拿；
-MIDI 精确给的是速度/和声/声部/节奏/曲式 —— 两者**互补，不能互相替代**。
-素材自备：公共领域用 Mutopia / IMSLP；游戏动漫 MIDI（VGMusic 等）**版权灰色，只内部学习、不进仓库**。
+**音符层看 MIDI，频谱层看音频画像**：画像的频谱/宽度/响度只能从真实录音拿，MIDI 精确给速度/和声/
+声部/节奏/曲式 —— 两者**互补**。素材自备：公共领域用 Mutopia / IMSLP；动漫游戏 MIDI **版权灰色，不进仓库**。
 ### 体检与校验
 
 ```powershell

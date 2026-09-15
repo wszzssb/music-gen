@@ -24,8 +24,11 @@ r"""probe_aesthetic.py —— **让模型"听"一遍**：零样本音频-文本�
   # 分段情绪走向（默认 6 段）：看"前悲后喜"这类设计有没有被听出来
   .venv-ml\Scripts\python.exe scripts\probe_aesthetic.py songs\45_sorrow_to_joy\sorrow_to_joy_sf.ogg
   .venv-ml\Scripts\python.exe scripts\probe_aesthetic.py <音频> --segments 8 --prompts mood
+  # 全库情绪排序（每首均匀取 4 片 8 秒平均 —— 整曲一段只会量到开头 10 秒）
+  .venv-ml\Scripts\python.exe scripts\probe_aesthetic.py --all --prompts mood --json clap.json
 """
 import argparse
+import glob
 import os
 import sys
 
@@ -37,6 +40,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cli_utf8 as _cu; _cu.setup()                          # noqa: E402  控制台编码兜底
 
 SR = 48000                                                  # CLAP 要求的采样率
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+SEG_S = 8.0                                                 # 全库模式每片秒数
+NSEG = 4                                                    # 全库模式每首取几片
+
+# ⚠ CLAP 只吃 **前 ~10 秒**（processor max_length 480000 @48k，超了直接截断）——
+# 所以「整曲一段」量到的其实是开头。全库模式因此**均匀取 NSEG 片 8 秒再平均**。
 
 
 def _feat(x):
@@ -69,10 +79,15 @@ PROMPT_SETS = {
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('audio')
+    ap.add_argument('audio', nargs='?', help='音频路径（--all 时省略）')
     ap.add_argument('--segments', type=int, default=6, help='等分几段（默认 6）')
     ap.add_argument('--prompts', default='mood',
                     help='提示词组：mood / quality / style（逗号分隔可组合）')
+    ap.add_argument('--all', action='store_true',
+                    help='全库：每首均匀取 %d 片 %.0f 秒平均后排序（整曲一段只会量到开头）'
+                         % (NSEG, SEG_S))
+    ap.add_argument('--sort', default='', help='全库排序键=短标签（如 sad/happy/galgame）')
+    ap.add_argument('--json', default='', help='把全库结果写成 JSON（便于与 AQA 交叉算相关）')
     a = ap.parse_args()
 
     import librosa
@@ -92,18 +107,60 @@ def main():
     model = ClapModel.from_pretrained('laion/clap-htsat-unfused').eval()
     proc = ClapProcessor.from_pretrained('laion/clap-htsat-unfused')
 
-    y, _sr = librosa.load(a.audio, sr=SR, mono=True)
+    y, _sr = librosa.load(a.audio, sr=SR, mono=True) if a.audio else (None, None)
+
+    with torch.no_grad():                 # 文本特征只算一次（--all 全库复用）
+        tin = proc(text=texts, return_tensors='pt', padding=True)
+        tf = _feat(model.get_text_features(**tin))
+        tf = tf / tf.norm(dim=-1, keepdim=True)
+    scale = float(model.logit_scale_a.exp())
+
+    if a.all:
+        files = sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*_sf.ogg')))
+        if not files:
+            raise SystemExit('没找到 songs/*/*_sf.ogg')
+        key = a.sort or labels[0]
+        if key not in labels:
+            raise SystemExit('--sort 只能是：%s' % '/'.join(labels))
+        n = int(SEG_S * SR)
+        rows = []
+        with torch.no_grad():
+            for f in files:
+                yy, _r = librosa.load(f, sr=SR, mono=True)
+                starts = ([0] if len(yy) <= n
+                          else list(np.linspace(0, len(yy) - n, NSEG).astype(int)))
+                ps = []
+                for s0 in starts:
+                    ain = proc(audio=yy[s0:s0 + n], sampling_rate=SR, return_tensors='pt')
+                    af = _feat(model.get_audio_features(**ain))
+                    af = af / af.norm(dim=-1, keepdim=True)
+                    ps.append((scale * af @ tf.T).softmax(dim=-1)[0])
+                rows.append((os.path.basename(os.path.dirname(f)),
+                             torch.stack(ps).mean(0)))
+        rows.sort(key=lambda r: -float(r[1][labels.index(key)]))
+        if a.json:
+            import json
+            json.dump({sid: {lab: round(float(v[i]), 4) for i, lab in enumerate(labels)}
+                       for sid, v in rows},
+                      open(a.json, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+            print('已写 %s' % a.json)
+        print()
+        print('%d 首（每首 %d 片 %.0f 秒平均，按 %s 倒序）' % (len(rows), NSEG, SEG_S, key))
+        print('%-26s' % '' + ''.join('%-10s' % lab for lab in labels))
+        for sid, v in rows:
+            print('%-26s' % sid[:26] + ''.join('%-10s' % ('%.3f' % float(p)) for p in v))
+        print()
+        print('读法：**成组相对**（每行和为 1）——看的是「更像哪一类」，不是绝对好坏。')
+        print('      排在两端的曲子值得优先听；配合 probe_aqa.py 的 CE 交叉看。')
+        return 0
+
+    if not a.audio:
+        raise SystemExit('给一个音频路径，或用 --all')
     dur = len(y) / float(SR)
     n = max(1, a.segments)
     step = len(y) // n
     print('%s  %.1f 秒  →  %d 段' % (os.path.basename(a.audio), dur, n))
 
-    with torch.no_grad():
-        tin = proc(text=texts, return_tensors='pt', padding=True)
-        tf = _feat(model.get_text_features(**tin))
-        tf = tf / tf.norm(dim=-1, keepdim=True)
-
-    scale = float(model.logit_scale_a.exp())
     print()
     print('段   时间          ' + ''.join('%-10s' % lab for lab in labels))
     for i in range(n):

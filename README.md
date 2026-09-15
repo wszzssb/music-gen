@@ -136,6 +136,8 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `analyze_bass.py` | 根音 + 三度倾向 + 音级排序（判断大小调/多利亚色彩） |
 | `analyze_ref.py` / `analyze_ref2.py` | 参考曲画像：时长/响度/速度/调性/**倍频程平衡**/立体声宽度/逐 4 秒响度 |
 | `probe_style.py` | **风格画像**：安静段干净 chroma + 逐拍 16 分节奏型（底鼓/踩镲）+ 结构 |
+| `probe_voicing.py` / `probe_tension.py` | **声部进行 / 张力曲线**：voicing 移动·保持·交叉；逐段调内张力 σ 与头尾走向 |
+| `probe_aesthetic.py` / `probe_aqa.py` | **模型侧主观分**（`.venv-ml`，`--all` 全库排序）：CLAP 零样本情绪 / AQA 的 CE·PQ·CU·PC。⚠ 库内区分度极低 → **只揪异常，不当验收门** |
 | `section_probe.py` | 分段体检：RMS / 频谱质心 / 6-16k / 低频 / 宽度 / 起音密度（段落地图按曲子硬编码，换曲子要改 `SECS`） |
 | `arrange_probe.py` | 编配诊断：逐段音高分布、音符密度、亮度指数 |
 | `noise_probe.py` | 杂音体检：6-16k 尾巴电平 + 谱平坦度（噪声高、纯音≈0）+ 爆音检测 |
