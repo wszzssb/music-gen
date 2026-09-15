@@ -1086,6 +1086,49 @@ def t_track_balance():
 
 
 @check
+def t_lead_timbre_attack():
+    """**主奏音色的起音必须够快** —— 用户听感："有一个乐器慢一点不太和谐"。
+
+    那条"慢"的乐器就是主旋律。渲染固定乐句量音头（10%→90% 峰值）实测：
+      电钢 4ms · 钟琴 4ms · 钢琴 8ms · **木琴 12ms** · 颤音琴 42ms · 合成主奏 282ms
+    打击（踩镲/底鼓）的起音是 1–5ms —— 主奏慢一个数量级，在 132BPM 的 8/16 分
+    伴奏里就显"慢半拍"（用户就是这么听出来的，当时主奏是颤音琴）。
+    判据 **≤ 20ms**：木琴 12 有余量，颤音琴 42 会被拦住。
+    """
+    import tempfile
+    import probe_timbre as pt
+    import numpy as np
+    bad = []
+    out = os.path.join(tempfile.gettempdir(), 'mg_lead_atk')
+    os.makedirs(out, exist_ok=True)
+    for st, cfg in sorted(song_engine.STYLES.items()):
+        prog = (cfg.get('programs') or {}).get('Melody')
+        if not prog:
+            continue
+        mid = os.path.join(out, '%s.mid' % st)
+        base = os.path.join(out, st)
+        pt.phrase_midi(mid, prog[0], (84,), 1, 120.0)
+        pt.render_bare(mid, base)
+        w = base + '.raw.wav'
+        if not os.path.exists(w):
+            w = base + '.wav'
+        assert os.path.exists(w), '主奏起音检查渲染失败：%s' % st
+        import soundfile as _sf
+        y, sr = _sf.read(w, dtype='float64')
+        m = y.mean(axis=1) if y.ndim > 1 else y
+        hop = max(1, int(sr * 0.002))
+        env = np.array([np.sqrt((m[i:i + hop] ** 2).mean())
+                        for i in range(0, max(1, len(m) - hop), hop)])
+        ref = env.max()
+        i90 = next((i for i, v in enumerate(env) if v >= ref * 0.9), 0)
+        atk = i90 * 2
+        if atk > 20:
+            bad.append('%s(Melody prog %d) 起音 %dms' % (st, prog[0], atk))
+    assert not bad, '主奏起音太慢（会听着"慢半拍"）：%s' % '；'.join(bad)
+    print('        各 STYLES 的主奏起音都 ≤ 20ms（渲染固定乐句量音头）')
+
+
+@check
 def t_style_desc_matches_programs():
     """风格预设的文字说明要与实际音色一致（防复制粘贴串味）"""
     want = {'gorgeous': ('竖琴', 'Hook', 46), 'ballad': ('尼龙', 'Hook', 24),

@@ -1268,6 +1268,13 @@ def main():
     results.append(case('平衡：伴奏音色被换亮（盖住旋律）',
                         'track_balance',
                         lambda: Mut(_se, 'STYLES', _ST)))
+    # ㉑ 把主奏换成"起音慢"的音色（dance 的 Melody 木琴 13 → 颤音琴 11，起音 42ms）→
+    #    `t_lead_timbre_attack` 必须抓到 —— 用户听感"有一个乐器慢一点不太和谐"
+    _ST2 = _copy2.deepcopy(_se.STYLES)
+    _ST2['dance']['programs']['Melody'] = [11, 0]
+    results.append(case('音色：主奏换成慢起音（听着慢半拍）',
+                        'lead_timbre_attack',
+                        lambda: Mut(_se, 'STYLES', _ST2)))
     # ⑰ 吉他换回"每小节同一个音型"（关掉相位轮换）→ 同和弦的小节逐音复读 →
     #    `guitar_variation` 必须抓到（用户听感"每首曲子的刚弦吉他都是这个节奏音调"）
     results.append(case('吉他：关掉音型轮换（逐小节复读）',
