@@ -1,11 +1,11 @@
-# 44_verify_fix（主题模板包：cheerful / 欢快）
+# 47_cheer_pop（主题模板包：cheerful / 欢快）
 
 | 项目 | 值 |
 |---|---|
 | 模板依据 | **10 首同主题模板聚合**（`refs/themes/cheerful.json`） |
 | 主题→风格 | pop/latin/rock（引擎预设 daily） |
 | 速度·调式 | 132 BPM · C major（模板中位） |
-| 和声 | Am6 B7 Gmaj7 B7（来源 window4） |
+| 和声 | E7 C7 E7 C7（来源 window2） |
 | 曲式 | 10 段 × 8 小节 = 72 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py cheerful        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 44_verify_fix --theme cheerful --seed 123
-& $py scripts\make_song.py 44_verify_fix --check
+& $py scripts\new_song.py 47_cheer_pop --theme cheerful --seed 47
+& $py scripts\make_song.py 47_cheer_pop --check
 ```
 
 ## 还没验证什么

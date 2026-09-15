@@ -4344,7 +4344,13 @@ def t_midi_file_editor_roundtrip():
     assert not bad, 'MIDI 往返不一致：%s' % '；'.join(bad[:3])
 
     # format 0（多轨合并单轨）：内容不许丢
-    src = os.path.join(ROOT, 'songs', '38_d132_full', 'd132_full.mid')
+    # 夹具**动态挑**，不硬编码曲名 —— 2026-09-15 删掉 7 首旧欢快曲后 `38_d132_full`
+    # 没了，这两条硬编码路径的检查当场 FileNotFoundError（删曲是正常操作，检查不该因此断）。
+    # 取最大的那个 .mid（音符最多，够撑住下面的统计）。
+    _cands = sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*.mid')),
+                    key=os.path.getsize, reverse=True)
+    assert _cands, 'songs/ 里没有任何 .mid，这条检查无从下手'
+    src = _cands[0]
     m = mfi.import_midi(src)
     n0 = mop.stats(m)['notes']
     out0 = os.path.join(tempfile.gettempdir(), 'selftest_fmt0.mid')
@@ -4389,7 +4395,11 @@ def t_midi_ops_semantics():
     import midi_file as mfi
     import midi_ops as mop
 
-    src = os.path.join(ROOT, 'songs', '38_d132_full', 'd132_full.mid')
+    # 夹具同样**动态挑**（同上：不硬编码曲名，删曲不该让检查断）
+    _cands = sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*.mid')),
+                    key=os.path.getsize, reverse=True)
+    assert _cands, 'songs/ 里没有任何 .mid，这条检查无从下手'
+    src = _cands[0]
     base = mfi.import_midi(src)
     st = mop.stats(base)
     assert st['notes'] > 1000, '夹具太小（%d 音符）' % st['notes']

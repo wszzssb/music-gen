@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""05 Cheerful —— 编配数据在 song.json，本文件只负责调用引擎（新歌照抄这个即可）"""
+"""neon_elec —— 编配数据在 song.json，本文件只负责调用引擎"""
 import os
 import sys
 

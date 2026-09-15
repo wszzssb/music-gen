@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""d132_cheerful —— 编配数据在 song.json，本文件只负责调用引擎"""
+"""battle_rock —— 编配数据在 song.json，本文件只负责调用引擎"""
 import os
 import sys
 
