@@ -153,3 +153,20 @@
      改：`plan` 前后各补 `Intro`/`Outro`(4 小节)；引子给 `perc=1` + `perc_in: 2`
      （前 2 小节不敲，`perc_part(inbars=…)`）；**尾声保持 0**。断言与自证同步改。
      实测新歌引子鼓点 `[0, 0, 10, 12, …]` ✓ 与模板同形。
+
+
+156. **`pwsh -Command "<整条命令>"` 这一层会吃掉命令里的半角双引号** —— 凡是要把
+     "一段含引号的文本"当参数传给别的程序（`git commit -m`、`gh release --notes`、
+     `python -c`、`--desc`/JSON 片段…），**别写在命令行里，落到文件再引用**。
+     实测（PowerShell 5.1.26100）：
+       · `git commit -m '测试 引号 " 和 反引号'`
+         → `error: pathspec '和' did not match any file(s) known to git`
+         （`-m` 的值被拆成多个参数，git 把后半段当成路径；commit 根本没执行）
+       · `git commit -F <文件>` → 正常接收，`"` `'` `` ` `` `$` `%` `;` `&` `|` `( ) { }` 全部原样
+     做法（**顺序很重要**）：① 用**文件工具**把 message 写盘（完全不经过 shell）；
+     ② `git commit -F <绝对路径>`。写盘这一步不能省 —— 用 `Set-Content`/`echo >` 写
+     同样会经过 shell，等于没绕开。
+     同族坑：`powershell` 里 `>' 重定向写出来的是 UTF-16`，读的时候要用 `-Encoding unicode`；
+     `Get-Content` 按默认编码读 UTF-8 中文会变 GBK 乱码 —— 文本读写一律指明编码，
+     或者干脆走文件工具（见坑 156 与 `cli_utf8.py`）。
+
