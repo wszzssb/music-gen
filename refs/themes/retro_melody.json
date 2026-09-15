@@ -151,7 +151,7 @@
  "name": "retro",
  "file": "theme:retro",
  "bpm": 140.0,
- "tonic": "C",
+ "tonic": "G",
  "mode": "minor",
  "source": "theme_pack.py",
  "provenance": {

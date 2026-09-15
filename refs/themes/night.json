@@ -20,10 +20,10 @@
   "p75": 162.0
  },
  "key": {
-  "tonic": "C",
-  "pc": 0,
+  "tonic": "F",
+  "pc": 5,
   "mode": "major",
-  "confidence": 0.278,
+  "confidence": 0.3,
   "scale_degree_weight": [
    4037065.11,
    129723.48,
@@ -186,10 +186,10 @@
  },
  "harmony": {
   "primary": [
+   "A#6",
    "F6",
-   "C6",
-   "C7",
-   "G7"
+   "F7",
+   "C7"
   ],
   "primary_source": "window4",
   "progressions": [
@@ -213,10 +213,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
+     "A#6",
      "F6",
-     "C6",
-     "C7",
-     "G7"
+     "F7",
+     "C7"
     ],
     "usable": true
    },
@@ -240,10 +240,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "Fm6",
-     "Em7",
-     "C6",
-     "Fmaj7"
+     "A#m6",
+     "Am7",
+     "F6",
+     "A#maj7"
     ],
     "usable": true
    },
@@ -267,10 +267,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "C6",
+     "F6",
+     "F7",
      "C7",
-     "G7",
-     "F7"
+     "A#7"
     ],
     "usable": true
    },
@@ -294,10 +294,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "C7",
-     "G7",
      "F7",
-     "Cm7"
+     "C7",
+     "A#7",
+     "Fm7"
     ],
     "usable": true
    },
@@ -320,10 +320,10 @@
     ],
     "template_share": 0.1,
     "symbols": [
-     "Fmaj7",
-     "Fm6",
-     "Em7",
-     "C6"
+     "A#maj7",
+     "A#m6",
+     "Am7",
+     "F6"
     ],
     "usable": true
    }
@@ -349,10 +349,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
+     "A#6",
      "F6",
-     "C6",
-     "C7",
-     "G7"
+     "F7",
+     "C7"
     ],
     "usable": true
    },
@@ -376,10 +376,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "Fm6",
-     "Em7",
-     "C6",
-     "Fmaj7"
+     "A#m6",
+     "Am7",
+     "F6",
+     "A#maj7"
     ],
     "usable": true
    },
@@ -403,10 +403,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "C6",
+     "F6",
+     "F7",
      "C7",
-     "G7",
-     "F7"
+     "A#7"
     ],
     "usable": true
    },
@@ -430,10 +430,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "C7",
-     "G7",
      "F7",
-     "Cm7"
+     "C7",
+     "A#7",
+     "Fm7"
     ],
     "usable": true
    },
@@ -456,10 +456,10 @@
     ],
     "template_share": 0.1,
     "symbols": [
-     "Fmaj7",
-     "Fm6",
-     "Em7",
-     "C6"
+     "A#maj7",
+     "A#m6",
+     "Am7",
+     "F6"
     ],
     "usable": true
    }
@@ -485,8 +485,8 @@
     ],
     "template_share": 0.6,
     "symbols": [
-     "C6",
-     "Fmaj7"
+     "F6",
+     "A#maj7"
     ],
     "usable": true
    },
@@ -510,8 +510,8 @@
     ],
     "template_share": 0.6,
     "symbols": [
-     "C6",
-     "Gsus4"
+     "F6",
+     "Csus4"
     ],
     "usable": true
    },
@@ -535,8 +535,8 @@
     ],
     "template_share": 0.6,
     "symbols": [
-     "Gsus4",
-     "Cmaj7"
+     "Csus4",
+     "Fmaj7"
     ],
     "usable": true
    },
@@ -558,8 +558,8 @@
     ],
     "template_share": 0.4,
     "symbols": [
-     "F6",
-     "C6"
+     "A#6",
+     "F6"
     ],
     "usable": true
    },
@@ -580,8 +580,8 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "Fmaj7",
-     "Em7"
+     "A#maj7",
+     "Am7"
     ],
     "usable": true
    },
@@ -602,15 +602,15 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "D#6",
-     "Csus4"
+     "G#6",
+     "Fsus4"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
-   "Cm7",
-   "Gm7"
+   "Fm7",
+   "Cm7"
   ],
   "pool_progression_romans": [
    "i7",

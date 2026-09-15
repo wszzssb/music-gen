@@ -199,8 +199,8 @@
  "name": "gorgeous",
  "file": "theme:gorgeous",
  "bpm": 108.0,
- "tonic": "C",
- "mode": "major",
+ "tonic": "A",
+ "mode": "minor",
  "source": "theme_pack.py",
  "provenance": {
   "generated_by": "theme_pack.py",

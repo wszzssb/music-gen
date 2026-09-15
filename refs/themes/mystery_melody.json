@@ -225,7 +225,7 @@
  "name": "mystery",
  "file": "theme:mystery",
  "bpm": 120.0,
- "tonic": "C",
+ "tonic": "D#",
  "mode": "major",
  "source": "theme_pack.py",
  "provenance": {

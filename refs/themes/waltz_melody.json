@@ -165,7 +165,7 @@
  "name": "waltz",
  "file": "theme:waltz",
  "bpm": 72.0,
- "tonic": "C",
+ "tonic": "F",
  "mode": "major",
  "source": "theme_pack.py",
  "provenance": {

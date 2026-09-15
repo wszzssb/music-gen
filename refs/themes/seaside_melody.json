@@ -195,7 +195,7 @@
  "name": "seaside",
  "file": "theme:seaside",
  "bpm": 130.0,
- "tonic": "C",
+ "tonic": "A",
  "mode": "major",
  "source": "theme_pack.py",
  "provenance": {

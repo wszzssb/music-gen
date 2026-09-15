@@ -196,8 +196,8 @@
  "name": "classic",
  "file": "theme:classic",
  "bpm": 110.0,
- "tonic": "C",
- "mode": "major",
+ "tonic": "G",
+ "mode": "minor",
  "source": "theme_pack.py",
  "provenance": {
   "generated_by": "theme_pack.py",

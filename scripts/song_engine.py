@@ -214,7 +214,31 @@ def role_of_section(name):
     return 'A'
 
 
-def arr_by_role(base, roles, energy=None, tier=1):
+def arr_sparse(arr):
+    """把一段编制**削薄**：关掉 pad / strings / ep 三层，只留节奏与和声骨架
+    （uku / piano / arp / glock / bass / perc）。
+
+    **实测依据（2026-09-15，`probe_aesthetic.py`）**：36 号把四层全关（9 轨 → 5 轨）后
+      CLAP happy **0.207 → 0.356（+72%）**、tense **0.579 → 0.350（−40%）**，
+      而 width / rms / 质心几乎没动（0.66 / −19.3 / 3902）。
+    对照实验：同一首改 `perc_style`（dance→pump）、改宽度（0.66→0.40）、3kHz 提亮 3dB、
+    换和声（→ C 大调 I-V-vi-IV）—— **四类"改声音"全部无效**，因为都没动结构。
+    旁证：我们 happy 最高的 12_d75_warm(0.409) 正是每段 4–6 轨的小编制；
+    权威 50 首商业 BGM 的 happy 中位 0.393，我们只有 0.281。
+
+    ⚠ **`glock` 故意不关**：它是"亮色层"，只在副歌档出现 —— 关掉它会连带抹平
+    **段间编制差异**，实测让 `arr_role_variety` 的段间 Jaccard 中位从 0.67 涨到
+    0.80，超过 0.78 的门（battle/cheerful/neon/retro 四首当场报红）。
+    留一层亮色，既有"副歌更亮"的对比，又保住"段落换了编制"。
+    """
+    out = dict(arr or {})
+    for k in ('pad', 'strings', 'ep'):
+        if k in out:
+            out[k] = False
+    return out
+
+
+def arr_by_role(base, roles, energy=None, tier=1, sparse=False):
     """**按段落角色**改编制（opt-in；`patterns.arr_by_role` 或 `song.json.arr_by_role`）
 
     参数：
@@ -224,6 +248,8 @@ def arr_by_role(base, roles, energy=None, tier=1):
               有起伏（≥0.5dB）时**抬/压**而非推翻角色表：高能量段额外开亮色与中频层
       tier    int        —— 主题包允许的编配厚度档（`arr_level` 的 0/1），
               0 = 保守（只保留 BASE + 一种亮色），用在模板证据薄的主题上
+      sparse  bool       —— 削薄（走 `arr_sparse`）：关掉 pad/strings/glock/ep 四层。
+              舞曲/欢快类主题（`perc_style` 为 dance/pump）用它 —— 实测 happy +72%。
 
     返回**新的** list（不改入参）。性质（自检 `arr_role_variety` 断言这些）：
       · BASE 每段都在（bass/piano 永不为假）
@@ -272,6 +298,8 @@ def arr_by_role(base, roles, energy=None, tier=1):
     if not any(a.get('perc') for a in out):   # 兜底：别让全曲没有高频来源
         cand = next((i for i, r in enumerate(roles) if r not in ('intro', 'outro')), 0)
         out[cand]['perc'] = 2
+    if sparse:                                # 舞曲/欢快类：削薄（实测 happy +72%）
+        out = [arr_sparse(a) for a in out]
     return out
 
 

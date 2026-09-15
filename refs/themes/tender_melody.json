@@ -204,7 +204,7 @@
  "name": "tender",
  "file": "theme:tender",
  "bpm": 120.0,
- "tonic": "C",
+ "tonic": "A",
  "mode": "major",
  "source": "theme_pack.py",
  "provenance": {

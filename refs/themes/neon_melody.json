@@ -154,7 +154,7 @@
  "name": "neon",
  "file": "theme:neon",
  "bpm": 140.0,
- "tonic": "C",
+ "tonic": "G",
  "mode": "major",
  "source": "theme_pack.py",
  "provenance": {

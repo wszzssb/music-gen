@@ -200,7 +200,7 @@
  "name": "night",
  "file": "theme:night",
  "bpm": 140.0,
- "tonic": "C",
+ "tonic": "F",
  "mode": "major",
  "source": "theme_pack.py",
  "provenance": {

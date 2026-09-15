@@ -227,7 +227,7 @@
  "name": "sorrow",
  "file": "theme:sorrow",
  "bpm": 110.0,
- "tonic": "C",
+ "tonic": "G",
  "mode": "major",
  "source": "theme_pack.py",
  "provenance": {

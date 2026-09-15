@@ -4237,6 +4237,24 @@ def t_arr_role_variety():
     solo = se.arr_by_role([{'bass': True, 'piano': True}] * 3,
                           ['intro', 'intro', 'outro'], energy=None, tier=1)
     assert any(a.get('perc') for a in solo), '引子/尾声为主的夹具下兜底没生效（全曲无打击）'
+    # **削薄（`sparse`，2026-09-15 新增）**：欢快/舞曲类主题用它 —— 实测 CLAP happy +72%
+    # （见 `song_engine.arr_sparse` 的实测记录）。断言三件事：
+    #   ① 真的关掉 pad/strings/ep；② **glock 必须留着**（它承载段间亮色差异 ——
+    #   一起关掉会让段间 Jaccard 从 0.67 涨到 0.80，超 0.78 的门，battle/cheerful/
+    #   neon/retro 四首当场报红）；③ 基础层不能被动。
+    sp = se.arr_by_role(base, roles, energy=None, tier=1, sparse=True)
+    for _i, _a in enumerate(sp):
+        assert not any(_a.get(k) for k in ('pad', 'strings', 'ep')), \
+            'sparse 没关掉 pad/strings/ep（第 %d 段）：%s' % (_i, _a)
+        assert all(_a.get(k) for k in ROLE_ALWAYS), \
+            'sparse 把基础层也削了（第 %d 段）：%s' % (_i, _a)
+    assert any(a.get('glock') for a in sp), \
+        'sparse 把 glock 也关了 —— 那会连带抹平段间编制差异（实测 Jaccard 0.67→0.80 超门）'
+    # **判据自证**：不传 sparse 时必须仍有段开 pad/strings —— 否则上面那条断言
+    # 只是"本来就没有"，量不到"削薄"这件事。
+    _plain = se.arr_by_role(base, roles, energy=None, tier=1)
+    assert any(a.get('strings') or a.get('pad') for a in _plain), \
+        '不传 sparse 时也没有任何段开 strings/pad —— 上一条断言量不到"削薄"'
 
     # ② 端到端
     import theme_pack as tp
@@ -4270,7 +4288,8 @@ def t_arr_role_variety():
     # 变异自证：还原成旧行为（原样返回）→ 必须失败
     _old = se.arr_by_role
     try:
-        se.arr_by_role = lambda base, roles, energy=None, tier=1: [dict(b) for b in base]
+        se.arr_by_role = lambda base, roles, energy=None, tier=1, sparse=False: \
+            [dict(b) for b in base]
         pack = tp.load_pack('cheerful')
         d = ns.build_from_theme(pack, 'arr_role_probe', seed=1, ncand=1)
         m, _ss = jac_med(d.get('sections') or [])

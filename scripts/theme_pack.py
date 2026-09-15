@@ -692,13 +692,30 @@ def aggregate(theme, rows, feats, min_n=MIN_TEMPLATES):
         raise SystemExit('主题 %s 只有 %d 首模板可用，少于下限 %d' % (theme, len(feats), min_n))
     bpms = sorted(f['bpm'] for f in feats)
     med_bpm = bpms[len(bpms) // 2]
-    # 主题调式：各模板音级权重按**自己主音**折成级数后求和（跨调可比）
+    # 级数共识：各模板音级权重按**自己主音**折成级数后求和（跨调可比）。
+    # 用途是"这个主题常用哪些级数"（和弦池 / 罗马数字 / 兜底进行的依据）——
+    # ⚠ 它**不是调名**的来源，见下。
     deg_w = [0.0] * 12
     for f in feats:
         t = NAMES.index(f['tonic'])
         for i, w in enumerate(f['key_pc_weight']):
             deg_w[(i - t) % 12] += w
-    ton, mode, conf = _key_of(deg_w)
+    # 主题调式：**各模板主音的众数** —— 不是把每个模板归一化后再判一次。
+    # ⚠ 旧行为（2026-09-15 查出，实为循环论证）：先按"自己主音"把权重折成级数
+    #   （= 上面的 `deg_w`），再对 `deg_w` 跑 `_key_of`。但归一化**已经把每个模板的
+    #   主音搬到了 index 0**，于是 `deg_w[0]` 恒为最大，**15 个主题包全部判成 C major**
+    #   （实测 deg_w[0] 占比 0.185–0.348，confidence 只有 0.005–0.319）。
+    #   `deg_w` 仍然照算：它是"跨调可比的级数共识"，供和弦池 / 罗马数字 / 兜底进行用；
+    #   但**不能拿它反推调名** —— 调名只能来自各模板自己判出的主音投票。
+    tcnt = collections.Counter(f['tonic'] for f in feats)
+    ton_name, ton_hits = tcnt.most_common(1)[0]
+    ton = NAMES.index(ton_name)
+    mcnt = collections.Counter((f.get('mode') or 'major')
+                               for f in feats if f['tonic'] == ton_name)
+    mode = mcnt.most_common(1)[0][0]
+    # 置信度换口径：**一致率**（多少比例的模板同意这个主音）。旧的"最优 − 次优"
+    # 在归一化后的 deg_w 上没有意义（0.005 那种数字就是这么来的）。
+    conf = round(ton_hits / float(len(feats)), 3)
     pool = _chord_pool(feats)
     qdeg = {p['degree']: p['suffix'] for p in pool}
     # 和声进行：4 小节窗口优先，不够就退到 2 小节窗口；再不够就用"和弦池前四名"兜底。
@@ -717,11 +734,28 @@ def aggregate(theme, rows, feats, min_n=MIN_TEMPLATES):
     pool_syms = _abs_progression(pool_prog, ton, qdeg) if pool_prog else None
     # **主进行**：按证据强度降级选取（4 小节窗口 分享≥20% → 2 小节窗口 分享≥30% → 转移链）。
     # 选定结果与来源写进包，生成时直接用 —— 免得"每次生成挑哪条"变成一个说不清的决定。
+    #
+    # ⚠ 2026-09-15 加一条**"必须有主和弦"**的判据：窗口里至少出现一次 I/i（含
+    #   Imaj7/I6/i7 等延伸音写法），否则那条进行**没有归属感** —— 实测 cheerful 的
+    #   头号候选 `vi6 VII7 Vmaj7 VII7`（share 0.20）一次主和弦都没有，落到吉他上就是
+    #   "漂浮/忧郁"，正是用户反馈"开心曲子很差"的和声层来源；而含 Imaj7 的候选
+    #   （`II7 biim7b5 Imaj7 VII6`）share 只有 0.10，够不上 0.20 的门槛。
+    #   加这条之后 cheerful 会**如实降级**到 2 小节窗口 / 转移链，而不是硬用一个
+    #   没有主和弦的进行。
+    def _has_tonic(syms):
+        for _s in syms or []:
+            _pc, _suf = split_symbol(_s)
+            if _pc is not None and (_pc - ton) % 12 == 0:
+                return True
+        return False
+
+    p4 = [p for p in progs4 if _has_tonic(p['symbols'])]
+    p2 = [p for p in progs2 if _has_tonic(p['symbols'])]
     primary, primary_src = None, None
-    if progs4 and progs4[0]['template_share'] >= 0.2:
-        primary, primary_src = progs4[0]['symbols'], 'window4'
-    elif progs2 and progs2[0]['template_share'] >= 0.3:
-        primary, primary_src = progs2[0]['symbols'] * 2, 'window2'
+    if p4 and p4[0]['template_share'] >= 0.2:
+        primary, primary_src = p4[0]['symbols'], 'window4'
+    elif p2 and p2[0]['template_share'] >= 0.3:
+        primary, primary_src = p2[0]['symbols'] * 2, 'window2'
     elif pool_syms:
         primary, primary_src = pool_syms, 'chain'
 

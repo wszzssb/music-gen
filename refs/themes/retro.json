@@ -20,10 +20,10 @@
   "p75": 150.0
  },
  "key": {
-  "tonic": "C",
-  "pc": 0,
+  "tonic": "G",
+  "pc": 7,
   "mode": "minor",
-  "confidence": 0.11,
+  "confidence": 0.4,
   "scale_degree_weight": [
    1380248.0,
    75588.32,
@@ -186,10 +186,10 @@
  },
  "harmony": {
   "primary": [
-   "F7",
-   "G7",
-   "F7",
-   "G7"
+   "Gm6",
+   "D7",
+   "Gm6",
+   "D7"
   ],
   "primary_source": "window2",
   "progressions": [
@@ -212,10 +212,10 @@
     ],
     "template_share": 0.1,
     "symbols": [
-     "A#6",
-     "F7",
-     "Am7",
-     "G6"
+     "F6",
+     "C7",
+     "Em7",
+     "D6"
     ],
     "usable": true
    }
@@ -240,10 +240,10 @@
     ],
     "template_share": 0.1,
     "symbols": [
-     "A#6",
-     "F7",
-     "Am7",
-     "G6"
+     "F6",
+     "C7",
+     "Em7",
+     "D6"
     ],
     "usable": true
    }
@@ -267,8 +267,8 @@
     ],
     "template_share": 0.4,
     "symbols": [
-     "F7",
-     "G7"
+     "C7",
+     "D7"
     ],
     "usable": true
    },
@@ -289,8 +289,8 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "F7",
-     "Am7"
+     "C7",
+     "Em7"
     ],
     "usable": true
    },
@@ -311,8 +311,8 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "A#6",
-     "F7"
+     "F6",
+     "C7"
     ],
     "usable": true
    },
@@ -333,8 +333,8 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "Am7b5",
-     "F7"
+     "Em7b5",
+     "C7"
     ],
     "usable": true
    },
@@ -355,8 +355,8 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "Gsus4",
-     "G#dim"
+     "Dsus4",
+     "D#dim"
     ],
     "usable": true
    },
@@ -377,15 +377,15 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "Cm6",
-     "G7"
+     "Gm6",
+     "D7"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
-   "G7",
-   "Gsus4"
+   "D7",
+   "Dsus4"
   ],
   "pool_progression_romans": [
    "V7",

@@ -415,8 +415,12 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     # 段间乐器组合 Jaccard 中位 0.86 —— 用户听感就是"好多部分都是一样的"。
     if arr_by_role:
         roles = [song_engine.role_of_section(s['name']) for s in secs]
+        # 舞曲/欢快类主题**削薄**编配（`arr_sparse`）：实测 36 号关掉 pad/strings/
+        # glock/ep 后 CLAP happy 0.207→0.356（+72%）、tense 0.579→0.350（−40%），
+        # 而 width/rms/质心几乎没动 —— 见 `song_engine.arr_sparse` 的实测记录。
+        _sparse = (pack.get('rhythm') or {}).get('perc_style') in ('dance', 'pump')
         arrs = song_engine.arr_by_role([s['arr'] for s in secs], roles,
-                                       energy=(eused or None), tier=1)
+                                       energy=(eused or None), tier=1, sparse=_sparse)
         for s, a in zip(secs, arrs):
             s['arr'] = a
     for sec, mx in zip(secs, emix):

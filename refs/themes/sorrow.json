@@ -20,10 +20,10 @@
   "p75": 130.0
  },
  "key": {
-  "tonic": "C",
-  "pc": 0,
+  "tonic": "G",
+  "pc": 7,
   "mode": "major",
-  "confidence": 0.291,
+  "confidence": 0.2,
   "scale_degree_weight": [
    1217869.24,
    155776.76,
@@ -186,10 +186,10 @@
  },
  "harmony": {
   "primary": [
-   "F6",
-   "Gm7",
    "C6",
-   "C6"
+   "Dm7",
+   "G6",
+   "G6"
   ],
   "primary_source": "window4",
   "progressions": [
@@ -214,10 +214,10 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "F6",
-     "Gm7",
      "C6",
-     "C6"
+     "Dm7",
+     "G6",
+     "G6"
     ],
     "usable": true
    },
@@ -241,10 +241,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
+     "G6",
+     "G6",
      "C6",
-     "C6",
-     "F6",
-     "Gm7"
+     "Dm7"
     ],
     "usable": true
    },
@@ -268,10 +268,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "D7",
-     "Gsus4",
-     "Cm7",
-     "Cm7"
+     "A7",
+     "Dsus4",
+     "Gm7",
+     "Gm7"
     ],
     "usable": true
    },
@@ -295,10 +295,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "Cm7",
-     "Cm7",
-     "D#6",
-     "Dsus4"
+     "Gm7",
+     "Gm7",
+     "A#6",
+     "Asus4"
     ],
     "usable": true
    },
@@ -322,10 +322,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "Dm6",
-     "Am7",
-     "F6",
-     "Em7"
+     "Am6",
+     "Em7",
+     "C6",
+     "Bm7"
     ],
     "usable": true
    }
@@ -352,10 +352,10 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "F6",
-     "Gm7",
      "C6",
-     "C6"
+     "Dm7",
+     "G6",
+     "G6"
     ],
     "usable": true
    },
@@ -379,10 +379,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
+     "G6",
+     "G6",
      "C6",
-     "C6",
-     "F6",
-     "Gm7"
+     "Dm7"
     ],
     "usable": true
    },
@@ -406,10 +406,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "D7",
-     "Gsus4",
-     "Cm7",
-     "Cm7"
+     "A7",
+     "Dsus4",
+     "Gm7",
+     "Gm7"
     ],
     "usable": true
    },
@@ -433,10 +433,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "Cm7",
-     "Cm7",
-     "D#6",
-     "Dsus4"
+     "Gm7",
+     "Gm7",
+     "A#6",
+     "Asus4"
     ],
     "usable": true
    },
@@ -460,10 +460,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "Dm6",
-     "Am7",
-     "F6",
-     "Em7"
+     "Am6",
+     "Em7",
+     "C6",
+     "Bm7"
     ],
     "usable": true
    }
@@ -491,8 +491,8 @@
     ],
     "template_share": 0.8,
     "symbols": [
-     "G7",
-     "C6"
+     "D7",
+     "G6"
     ],
     "usable": true
    },
@@ -518,8 +518,8 @@
     ],
     "template_share": 0.8,
     "symbols": [
-     "Cm7",
-     "Gsus4"
+     "Gm7",
+     "Dsus4"
     ],
     "usable": true
    },
@@ -544,8 +544,8 @@
     ],
     "template_share": 0.7,
     "symbols": [
-     "Dm7",
-     "Am7"
+     "Am7",
+     "Em7"
     ],
     "usable": true
    },
@@ -569,8 +569,8 @@
     ],
     "template_share": 0.6,
     "symbols": [
-     "D7",
-     "Gsus4"
+     "A7",
+     "Dsus4"
     ],
     "usable": true
    },
@@ -594,8 +594,8 @@
     ],
     "template_share": 0.6,
     "symbols": [
-     "Am7",
-     "Dm7"
+     "Em7",
+     "Am7"
     ],
     "usable": true
    },
@@ -618,17 +618,17 @@
     ],
     "template_share": 0.5,
     "symbols": [
-     "F6",
-     "Cmaj7"
+     "C6",
+     "Gmaj7"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
-   "C7",
-   "G6",
-   "Am7",
-   "F6"
+   "G7",
+   "D6",
+   "Em7",
+   "C6"
   ],
   "pool_progression_romans": [
    "I",

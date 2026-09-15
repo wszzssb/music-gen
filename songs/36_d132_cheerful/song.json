@@ -169,7 +169,7 @@
     "arp": true,
     "pad": false,
     "strings": false,
-    "glock": false,
+    "glock": true,
     "ep": false,
     "mix": {
      "Melody": 122,
@@ -225,7 +225,7 @@
     "arp": true,
     "pad": false,
     "strings": false,
-    "glock": false,
+    "glock": true,
     "ep": false,
     "mix": {
      "Melody": 85,

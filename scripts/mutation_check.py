@@ -1213,8 +1213,19 @@ def main():
     results.append(case('编配：段落编制不随角色变（旧行为）',
                         'arr_role_variety',
                         lambda: Mut(_se, 'arr_by_role',
-                                    lambda base, roles, energy=None, tier=1:
+                                    lambda base, roles, energy=None, tier=1, sparse=False:
                                     [dict(b or {}) for b in base])))
+    # ⑱ 削薄（`sparse`）失效：原样返回 → `t_arr_role_variety` 的机制断言必须抓到
+    results.append(case('编配：削薄失效（sparse 不关层）',
+                        'arr_role_variety',
+                        lambda: Mut(_se, 'arr_sparse', lambda arr: dict(arr or {}))))
+    # ⑲ 削薄时**把 glock 也一起关**：段间亮色差异被抹平 —— 实测段间 Jaccard 从 0.67
+    #    涨到 0.80 超过 0.78 的门（battle/cheerful/neon/retro 报红），必须被抓
+    _sp_orig = _se.arr_sparse
+    results.append(case('编配：削薄误关 glock（抹平段间差异）',
+                        'arr_role_variety',
+                        lambda: Mut(_se, 'arr_sparse',
+                                    lambda arr: dict(_sp_orig(arr), glock=False))))
     # ⑰ 吉他换回"每小节同一个音型"（关掉相位轮换）→ 同和弦的小节逐音复读 →
     #    `guitar_variation` 必须抓到（用户听感"每首曲子的刚弦吉他都是这个节奏音调"）
     results.append(case('吉他：关掉音型轮换（逐小节复读）',

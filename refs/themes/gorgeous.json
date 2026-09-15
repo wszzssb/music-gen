@@ -20,10 +20,10 @@
   "p75": 120.0
  },
  "key": {
-  "tonic": "C",
-  "pc": 0,
-  "mode": "major",
-  "confidence": 0.272,
+  "tonic": "A",
+  "pc": 9,
+  "mode": "minor",
+  "confidence": 0.3,
   "scale_degree_weight": [
    1377961.6,
    75846.08,
@@ -186,10 +186,10 @@
  },
  "harmony": {
   "primary": [
-   "Dm7",
-   "G7",
-   "C6",
-   "C6"
+   "Bm7",
+   "E7",
+   "A6",
+   "A6"
   ],
   "primary_source": "window4",
   "progressions": [
@@ -214,10 +214,10 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "Dm7",
-     "G7",
-     "C6",
-     "C6"
+     "Bm7",
+     "E7",
+     "A6",
+     "A6"
     ],
     "usable": true
    },
@@ -241,10 +241,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "G6",
-     "G6",
-     "C6",
-     "Fmaj7"
+     "E6",
+     "E6",
+     "A6",
+     "Dmaj7"
     ],
     "usable": true
    },
@@ -268,10 +268,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "C6",
-     "G7",
-     "G6",
-     "Em7"
+     "A6",
+     "E7",
+     "E6",
+     "C#m7"
     ],
     "usable": true
    },
@@ -295,10 +295,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "G6",
-     "C6",
-     "Fmaj7",
-     "Fmaj7"
+     "E6",
+     "A6",
+     "Dmaj7",
+     "Dmaj7"
     ],
     "usable": true
    },
@@ -322,10 +322,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "G6",
-     "Em7",
-     "C6",
-     "G7"
+     "E6",
+     "C#m7",
+     "A6",
+     "E7"
     ],
     "usable": true
    }
@@ -352,10 +352,10 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "Dm7",
-     "G7",
-     "C6",
-     "C6"
+     "Bm7",
+     "E7",
+     "A6",
+     "A6"
     ],
     "usable": true
    },
@@ -379,10 +379,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "G6",
-     "G6",
-     "C6",
-     "Fmaj7"
+     "E6",
+     "E6",
+     "A6",
+     "Dmaj7"
     ],
     "usable": true
    },
@@ -406,10 +406,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "C6",
-     "G7",
-     "G6",
-     "Em7"
+     "A6",
+     "E7",
+     "E6",
+     "C#m7"
     ],
     "usable": true
    },
@@ -433,10 +433,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "G6",
-     "C6",
-     "Fmaj7",
-     "Fmaj7"
+     "E6",
+     "A6",
+     "Dmaj7",
+     "Dmaj7"
     ],
     "usable": true
    },
@@ -460,10 +460,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "G6",
-     "Em7",
-     "C6",
-     "G7"
+     "E6",
+     "C#m7",
+     "A6",
+     "E7"
     ],
     "usable": true
    }
@@ -491,8 +491,8 @@
     ],
     "template_share": 0.8,
     "symbols": [
-     "C6",
-     "G6"
+     "A6",
+     "E6"
     ],
     "usable": true
    },
@@ -517,8 +517,8 @@
     ],
     "template_share": 0.7,
     "symbols": [
-     "D7",
-     "C6"
+     "B7",
+     "A6"
     ],
     "usable": true
    },
@@ -542,8 +542,8 @@
     ],
     "template_share": 0.6,
     "symbols": [
-     "G6",
-     "C6"
+     "E6",
+     "A6"
     ],
     "usable": true
    },
@@ -567,8 +567,8 @@
     ],
     "template_share": 0.6,
     "symbols": [
-     "G6",
-     "Em7"
+     "E6",
+     "C#m7"
     ],
     "usable": true
    },
@@ -592,8 +592,8 @@
     ],
     "template_share": 0.6,
     "symbols": [
-     "C6",
-     "F6"
+     "A6",
+     "D6"
     ],
     "usable": true
    },
@@ -615,17 +615,17 @@
     ],
     "template_share": 0.4,
     "symbols": [
-     "G7",
-     "Fm6"
+     "E7",
+     "Dm6"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
-   "C6",
-   "C7",
-   "Cm6",
-   "D#m7b5"
+   "A6",
+   "A7",
+   "Am6",
+   "Cm7b5"
   ],
   "pool_progression_romans": [
    "I",
@@ -1105,30 +1105,13 @@
  "tool": "theme_pack.py",
  "mix_target": {
   "ref": "gorgeous_mix",
-  "score": 0.813,
-  "why": "BPM 114.1（差 6.1，0.80）· 打击感 0.33 vs 目标 0.45（0.75）· 调式 major（1.00）",
+  "score": 0.96,
+  "why": "BPM 106.0（差 2.0，0.93）· 打击感 0.45 vs 目标 0.45（0.99）· 调式 minor（1.00）",
   "aggregate": true,
   "members": [
    {
-    "ref": "BGM04",
-    "score": 0.813,
-    "bpm": 114.1,
-    "centroid": 2281,
-    "rms_db": -13.5,
-    "width": 0.233,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM04.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
     "ref": "BGM09",
-    "score": 0.81,
+    "score": 0.96,
     "bpm": 106.0,
     "centroid": 2421,
     "rms_db": -16.2,
@@ -1145,7 +1128,7 @@
    },
    {
     "ref": "BGM13",
-    "score": 0.777,
+    "score": 0.927,
     "bpm": 109.2,
     "centroid": 3068,
     "rms_db": -20.4,
@@ -1161,42 +1144,8 @@
     }
    },
    {
-    "ref": "BGM20",
-    "score": 0.746,
-    "bpm": 101.5,
-    "centroid": 2232,
-    "rms_db": -16.9,
-    "width": 0.338,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM20.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "bgm01c",
-    "score": 0.626,
-    "bpm": 128.0,
-    "centroid": 3284,
-    "rms_db": -14.3,
-    "width": 0.316,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "bgm01c.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
     "ref": "t1_BGM34",
-    "score": 0.597,
+    "score": 0.747,
     "bpm": 95.1,
     "centroid": 3812,
     "rms_db": -12.3,
@@ -1212,6 +1161,59 @@
      ],
      "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
     }
+   },
+   {
+    "ref": "fine_BGM09",
+    "score": 0.723,
+    "bpm": 123.0,
+    "centroid": 3695,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "source": {
+     "kind": "game_bgm",
+     "detail": "仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）",
+     "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
+     "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
+     "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
+     "url_alt": [
+      "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
+     ],
+     "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
+    }
+   },
+   {
+    "ref": "BGM15",
+    "score": 0.711,
+    "bpm": 99.1,
+    "centroid": 3286,
+    "rms_db": -19.1,
+    "width": 0.669,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM15.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM15b",
+    "score": 0.698,
+    "bpm": 99.0,
+    "centroid": 3480,
+    "rms_db": -20.3,
+    "width": 0.635,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM15b.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
    }
   ],
   "agg_profile": "gorgeous_mix",
@@ -1222,50 +1224,24 @@
   },
   "perc_style_target": 0.45,
   "energy_curve_db": [
-   -2.4,
-   0.6,
-   0.6,
-   0.6,
-   0.6
+   -0.8,
+   -0.8,
+   0.2,
+   0.2,
+   1.2
   ],
   "structure_db": [
+   -18.0,
+   -18.0,
    -17.0,
-   -14.0,
-   -14.0,
-   -14.0,
-   -14.0
+   -17.0,
+   -16.0
   ],
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
-    "ref": "BGM04",
-    "score": 0.813,
-    "bpm": 114.1,
-    "rms_db": -13.5,
-    "width": 0.233,
-    "centroid": 2281,
-    "perc": 0.325,
-    "mode": "major",
-    "structure": [
-     -14,
-     -14,
-     -14,
-     -13,
-     -14,
-     -13,
-     -13,
-     -13
-    ],
-    "parts": {
-     "bpm": 0.797,
-     "perc": 0.75,
-     "mode": 1.0
-    },
-    "why": "BPM 114.1（差 6.1，0.80）· 打击感 0.33 vs 目标 0.45（0.75）· 调式 major（1.00）"
-   },
-   {
     "ref": "BGM09",
-    "score": 0.81,
+    "score": 0.96,
     "bpm": 106.0,
     "rms_db": -16.2,
     "width": 0.523,
@@ -1284,13 +1260,13 @@
     "parts": {
      "bpm": 0.933,
      "perc": 0.99,
-     "mode": 0.0
+     "mode": 1.0
     },
-    "why": "BPM 106.0（差 2.0，0.93）· 打击感 0.45 vs 目标 0.45（0.99）· 调式 minor≠主题（0.00）"
+    "why": "BPM 106.0（差 2.0，0.93）· 打击感 0.45 vs 目标 0.45（0.99）· 调式 minor（1.00）"
    },
    {
     "ref": "BGM13",
-    "score": 0.777,
+    "score": 0.927,
     "bpm": 109.2,
     "rms_db": -20.4,
     "width": 0.656,
@@ -1307,9 +1283,38 @@
     "parts": {
      "bpm": 0.96,
      "perc": 0.83,
-     "mode": 0.0
+     "mode": 1.0
     },
-    "why": "BPM 109.2（差 1.2，0.96）· 打击感 0.36 vs 目标 0.45（0.83）· 调式 minor≠主题（0.00）"
+    "why": "BPM 109.2（差 1.2，0.96）· 打击感 0.36 vs 目标 0.45（0.83）· 调式 minor（1.00）"
+   },
+   {
+    "ref": "t1_BGM34",
+    "score": 0.747,
+    "bpm": 95.1,
+    "rms_db": -12.3,
+    "width": 0.384,
+    "centroid": 3812,
+    "perc": 0.477,
+    "mode": "minor",
+    "structure": [
+     -13,
+     -12,
+     -12,
+     -12,
+     -12,
+     -12,
+     -12,
+     -12,
+     -12,
+     -13,
+     -12
+    ],
+    "parts": {
+     "bpm": 0.57,
+     "perc": 0.946,
+     "mode": 1.0
+    },
+    "why": "BPM 95.1（差 12.9，0.57）· 打击感 0.48 vs 目标 0.45（0.95）· 调式 minor（1.00）"
    }
   ],
   "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"

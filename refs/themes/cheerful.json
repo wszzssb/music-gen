@@ -23,7 +23,7 @@
   "tonic": "C",
   "pc": 0,
   "mode": "major",
-  "confidence": 0.248,
+  "confidence": 0.3,
   "scale_degree_weight": [
    3196337.99,
    142966.32,
@@ -186,12 +186,12 @@
  },
  "harmony": {
   "primary": [
-   "Am6",
-   "B7",
-   "Gmaj7",
-   "B7"
+   "E7",
+   "C7",
+   "E7",
+   "C7"
   ],
-  "primary_source": "window4",
+  "primary_source": "window2",
   "progressions": [
    {
     "degrees": [
