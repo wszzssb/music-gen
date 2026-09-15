@@ -48,8 +48,16 @@ DEFAULT_MIX = {
 # 现在：**伴奏整体降八度让位、旋律升八度独占最高**（各轨仍分居不同八度，分工不丢）。
 # 个别曲子的旋律本来就高（实测 17/28 号升八度后到 104/105，超出 Melody 上界 103）——
 # 那些曲子由下面的**边界保护**自动退回不移调（整轨统一，不许轨内八度跳变）。
+# ⚠ 2026-09-15 **撤销旋律的 +12**（用户口径："8~11 秒有点奇怪"）。
+# 依据：**模板旋律画像的 `range` 才是"旋律该在哪儿"的权威**（cheerful [64,81]、
+# tender [59,93]，mean_pitch 76.2）。实测全库 9 首带旋律的曲子，song.json 的原始音域
+# **全部落在各自画像内**，渲染后却被 +12 顶出画像之外：43 号 66~81(A#4~A5) → 78~93(F#5~A6)，
+# 中位从 D5 升到 D6 —— 比画像均值高 10 个半音，听感就是"旋律飞在顶上、发尖"。
+# 伴奏的 −12 **保留**：旋律回到原音区后依旧是最高的非打击轨（Hook 最高 67 < 旋律 70），
+# 纵向配合不变，变的只是旋律不再高一个八度。
+# 自证：`track_ranges_musical` + `melody_register_vs_profile`（新增）必须同时通过。
 TR_SHIFT = {'Pad': -12, 'Hook': -12, 'Piano': -12, 'Strings': -12, 'Arp': -12,
-            'Melody': 12}
+            'Melody': 0}
 
 # 各轨**乐器合理音域**（按库里成品实测包络，上下各外扩 7 半音；Bass 下界不放）。
 # 放在**引擎**里而不是自检里：`TR_SHIFT` 的自适应八度要用它做**边界保护** ——
@@ -245,6 +253,14 @@ def arr_by_role(base, roles, energy=None, tier=1):
         for k in ROLE_BASE:                  # 基础层永在（bass 是低频唯一来源、piano 是主奏）
             a[k] = True
         a['perc'] = int(pack.get('perc') or 0)
+        if role == 'intro':
+            # **引子渐入**（2026-09-15 按真值改）：真值里引子**不是**"不许上打击" ——
+            # cheerful 10 首里 7 首前 4 小节有鼓，合计中位 18 点（主段约 22 点/小节），
+            # 模式是 "b1–b2 安静、b3–b4 鼓组进来"。所以引子给 `perc=1`，
+            # 并由 `perc_in: 2` 让前 2 小节不敲（`perc_part(inbars=…)`）。
+            # 尾声仍保持档 0 的 `perc=0`（sorrow 池鼓点中位 0 = 真的不收打击）。
+            a['perc'] = 1
+            a['perc_in'] = 2
         if hi:                               # 能量曲线：只做**微调**，不推翻角色底色
             if energy[i] > mid:
                 a['strings'] = True
@@ -396,6 +412,17 @@ def load(path):
     return d
 
 
+def _oct_pick(bar, beat, rate):
+    """确定性挑选（同一位置永远同一结果）—— 不用随机数，免得改一处影响全曲。
+
+    低八度加厚要按比例挑音，但引擎的输出必须**可复现**（交付 MIDI 与引擎一致由自检核），
+    所以用位置哈希而不是 rng。
+    """
+    import zlib
+    h = zlib.crc32(('%d:%.2f' % (bar, beat)).encode('utf-8'))
+    return (h % 1000) / 1000.0 < rate
+
+
 def tone(tones, i):
     return tones[min(max(0, i), len(tones) - 1)]
 
@@ -543,6 +570,13 @@ def fifth_tone(bass, tones):
     return bass + 7
 
 
+# **sub 层音高下限**（= C1，32.7Hz）：真实模板的低音线最低就到 C1
+# （`refs/midi2` cheerful 最低 C1 / 中位 G1(49Hz)、sorrow 最低 C1）。
+# sub 层是 `bass − 12`，bass 本身低到 F1(29) 时就会掉进 21.8Hz 的次声波 ——
+# 实测 43 号 Bass 有 28% 的音低于 28Hz，而模板一首都没有。
+SUB_FLOOR = 24
+
+
 def bass_part(ch, nxt, i, pat, B=4.0):
     """贝斯：四种风格（都由参考曲低频节奏型反推出来的）
     sub_gain / sub_dur 可调：sub 层必须用**短音**（默认 0.3 拍），
@@ -561,16 +595,21 @@ def bass_part(ch, nxt, i, pat, B=4.0):
         out = [(0.25, 0.35, bass, 96), (0.75, 0.3, bass, 80),
                (B - 1.75, 0.35, bass, 92), (B - 1.25, 0.3, bass, 76),
                (B - 0.75, 0.3, bass, 84)]
-        out.append((0.25, sub_dur, bass - 12, int(72 * sub_gain)))
-        out.append((B - 1.75, sub_dur, bass - 12, int(68 * sub_gain)))
+        if sub_gain:                       # ⚠ 2026-09-15 修：这里原来**无条件**加 sub 音
+            # （`sub_gain: 0` 只把力度乘成 0，音高照样写进 MIDI → 留下 21.8Hz 的次声波音）。
+            # 实测 43 号被 sub 层推到 Bass F0(21.8Hz)、28% 的音低于 28Hz；
+            # 而真实模板低音线（每 0.25 拍最低音）cheerful 最低 C1(32.7Hz)/中位 G1(49Hz)、
+            # sorrow 最低 C1/中位 F1(43.7Hz)。其他风格分支早就写了 `if sub_gain`，只有这里漏。
+            out.append((0.25, sub_dur, max(bass - 12, SUB_FLOOR), int(72 * sub_gain)))
+            out.append((B - 1.75, sub_dur, max(bass - 12, SUB_FLOOR), int(68 * sub_gain)))
     elif style == 'eighth':
         pc = [bass, bass, bass, bass + 12, bass, bass, bass, bass + 7]
         vc = [104, 84, 96, 80, 104, 84, 96, 82]
         out = [(k * 0.5, 0.22, pc[k % 8], vc[k % 8])
                for k in range(max(1, int(round(B * 2))))]
         if sub_gain:                       # sub 层：参考曲 20-40Hz 常有能量
-            out.append((0.0, max(sub_dur, 0.8), bass - 12, int(70 * sub_gain)))
-            out.append((B / 2.0, max(sub_dur, 0.8), bass - 12, int(64 * sub_gain)))
+            out.append((0.0, max(sub_dur, 0.8), max(bass - 12, SUB_FLOOR), int(70 * sub_gain)))
+            out.append((B / 2.0, max(sub_dur, 0.8), max(bass - 12, SUB_FLOOR), int(64 * sub_gain)))
     elif style == 'sixteenth':
         f5, up = fifth_tone(bass, tones), bass + 12
         # 每拍**三条**（正拍 + e + a）；⚠ `patterns.space`（opt-in）时减到**两条**
@@ -607,8 +646,8 @@ def bass_part(ch, nxt, i, pat, B=4.0):
                         f5 if (2 * beat + 1) % 8 == 5 else bass, d8[(2 * beat + 1) % 8]))
         out.append((0.0, 0.18, bass, 60))             # 正拍只给短促弱音（有颗粒、不断层）
         if sub_gain:
-            out.append((0.75, sub_dur, bass - 12, int(72 * sub_gain)))
-            out.append((B - 1.25, sub_dur, bass - 12, int(68 * sub_gain)))
+            out.append((0.75, sub_dur, max(bass - 12, SUB_FLOOR), int(72 * sub_gain)))
+            out.append((B - 1.25, sub_dur, max(bass - 12, SUB_FLOOR), int(68 * sub_gain)))
     elif style == 'waltz':
         # 华尔兹的 "oom"：根音踩**第 1 拍**（长音铺住前两拍），第 3 拍给一个轻五度。
         # "pah-pah" 交给钢琴/电钢（`piano_part` / `ep_part` 的奇数拍分支）。
@@ -617,7 +656,7 @@ def bass_part(ch, nxt, i, pat, B=4.0):
             out.append((float(NB - 1), 0.8,
                         bass + 7 if bass + 7 <= 47 else bass - 5, 70))
         if sub_gain:
-            out.append((0.0, max(sub_dur, 1.2), bass - 12, int(70 * sub_gain)))
+            out.append((0.0, max(sub_dur, 1.2), max(bass - 12, SUB_FLOOR), int(70 * sub_gain)))
     else:                                       # simple
         out = [(0.0, 1.4, bass, 96)]
         for k in range(2, NB):                  # 4/4 → 第 2、3 拍（与老行为一致）
@@ -626,7 +665,7 @@ def bass_part(ch, nxt, i, pat, B=4.0):
             out.append((B - 1.5, 0.45, bass + 7 if bass + 7 <= 47 else bass - 5, 72))
         # sub 层（20-40Hz）：参考曲这一段常有能量，主贝斯落在 40-80 时补不上
         if sub_gain:
-            out.append((0.0, max(sub_dur, 1.2), bass - 12, int(70 * sub_gain)))
+            out.append((0.0, max(sub_dur, 1.2), max(bass - 12, SUB_FLOOR), int(70 * sub_gain)))
     if i % 4 == 3 and nxt:                       # 句尾半音引导
         nb = nxt[0]
         out.append((B - 0.25, 0.3, nb + (1 if nb > bass else -1), 78))
@@ -673,7 +712,7 @@ def glock_part(ch, i, B=4.0):
     return []
 
 
-def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0):
+def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0, inbars=0):
     """打击：light = 沙锤+轻底鼓（抒情向）；dance = 四踩+反拍踩镲（舞曲向）
 
     `B` = 一小节的四分音符数（默认 4 = 老行为，逐字节不变）；十六分格数 = B*4。
@@ -681,8 +720,14 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0):
     额外叠"垫层"，用来补**时间连续性**（占用率），而不是补能量——
     逐声部实测发现我们与例曲差的不是频段能量（EQ 早已对齐），而是
     "低频/高频有没有一直响着"：例曲 5–10kHz 占用 96~100%，我们只有 78~79%。
-    格式 {'kick': [[note, vel, 拍长], ...], 'air': [[note, vel, 拍长], ...]}"""
+    格式 {'kick': [[note, vel, 拍长], ...], 'air': [[note, vel, 拍长], ...]}
+
+    `inbars`（opt-in，默认 0 = 逐字节不变）：段内**前 N 小节不敲** —— 引子渐入。
+    真实模板（cheerful 10 首）里 7 首前 4 小节有鼓，模式是 **b1–b2 安静、b3–b4 进来**；
+    整段一次性全开会让段落切换处出现亮度突变（43 号实测质心 788 → 4907Hz）。"""
     if style == 'none' or level == 0:
+        return []
+    if inbars and i < inbars:
         return []
     NB = max(1, int(round(B)))
     S = NB * 4                                     # 一小节的十六分格数（4/4 → 16）
@@ -956,7 +1001,8 @@ def build_events(d):
             if arr.get('perc'):
                 for (b, dd, m, v) in perc_part(pat['perc_style'], arr['perc'], i, nbars,
                                                pat.get('perc_layers'),
-                                               pat.get('kick_vel'), B):
+                                               pat.get('kick_vel'), B,
+                                               int(arr.get('perc_in') or 0)):
                     bucket['Perc'].append((t0 + b, dd, m, v))
         for (b, beat, dur, m) in mel:
             t = (bar0 + b) * B + beat
@@ -971,7 +1017,23 @@ def build_events(d):
             if pat.get('melody_dyn'):
                 mv *= mel_dyn_env(b, beat, dur, pat['melody_dyn'])
             bucket['Melody'].append((t, dur * 0.96, m, max(1, min(127, int(round(96 * mv))))))
-            if 0 <= m - 12 <= 127:
+            # **低八度加厚**（`patterns.mel_octave`，默认 **0.15**；`1.0` = 旧行为全叠）。
+            # 实测（2026-09-15）：我们 Melody 轨 **100% 的旋律音**都被叠了低八度，而真实模板
+            # （cheerful 10 首）叠加率**中位 0%**（7 首为 0，最高 32%）——无条件全叠会把旋律
+            # 变成"双八度 synth lead"，听感"电子味 / 假"（用户："所有你生成的快乐的都有这个问题"，
+            # 并在 MIDI 里指出 9s / 15s 处"不正常"就是这两层同起点相差 12 的音）。
+            # 现在：**只给长音（≥1 拍）按 15% 的比例加**，越界仍不加。
+            # **低八度加厚**（`patterns.mel_octave`，默认 **0 = 不加**；`1.0` = 旧行为全叠）。
+            # 演进过程（都留痕，别重走）：
+            #   ① 原行为：**每个旋律音**都叠低八度 → 实测叠加率 100%，而真实模板（cheerful
+            #      10 首）**中位 0%**（7 首为 0，最高 32%）→ 旋律变成"双八度 synth lead"，
+            #      听感"电子味/假"（用户："所有你生成的快乐的都有这个问题"）。
+            #   ② 第一版修正：按 15% **逐音哈希挑** → 用户反馈"**不连贯**" —— 挑中的音有
+            #      低八度、没挑中的没有，**相邻音忽厚忽薄**；旧行为虽"假"但厚度一致。
+            #   ③ 现在：**默认不加**（最贴近真实：7/10 首是 0%）。要让旋律浮出来请用
+            #      `mel_vel` / 编配平衡（`mix` 与乐器层数），别再靠"随机加厚"。
+            mo = float(pat.get('mel_octave', 0.0))
+            if mo > 0 and dur >= 1.0 and 0 <= m - 12 <= 127 and _oct_pick(b, beat, mo):
                 bucket['Melody'].append((t, dur * 0.9, m - 12,
                                          max(1, min(127, int(round(62 * mv))))))
             # 高八度钟琴：同理，越界丢弃而不是夹断

@@ -180,7 +180,24 @@
   1.88
  ],
  "bars": 90.1,
- "templates": 10,
+ "templates": [
+  "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
+  "folk/A.JACKSON.Gone country.mid",
+  "folk/Acid-Folk.mid",
+  "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+  "newage/Age of Empires II The Age of Kings - Menu.mid",
+  "newage/Nola, Novelty piano solo.mid",
+  "newage/EarthBound - New Age Retro Hippie.mid",
+  "pop/IGGY POP.Louie Louie.mid",
+  "pop/Disco Citizens - Footprint.mid",
+  "pop/Disco-Fans.mid"
+ ],
+ "name": "seaside",
+ "file": "theme:seaside",
+ "bpm": 130.0,
+ "tonic": "C",
+ "mode": "major",
+ "source": "theme_pack.py",
  "provenance": {
   "generated_by": "theme_pack.py",
   "aggregate_of": 10,
@@ -236,6 +253,6 @@
     "bpm": 158.0
    }
   ],
-  "note": "旋律语言画像 = 上面这些模板的**旋律轨聚合**（落点/时值/音程/句长方言）。它是**作曲依据层**（管旋律怎么说），与混音目标（refs/mix_targets/<主题>_mix.json，管混成什么样）是两层，别混。"
+  "note": "旋律语言画像 = 上面这些模板的**旋律轨聚合**（落点/时值/音程/句长方言）。它是**作曲依据层**（管\"旋律怎么说\"），与混音目标 （`refs/mix_targets/<主题>_mix.json`，管\"混成什么样\"）是两层，别混。"
  }
 }

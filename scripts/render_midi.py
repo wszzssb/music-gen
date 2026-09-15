@@ -273,9 +273,53 @@ def encode_ogg(out_base):
     return to_ogg.convert(out_base + '.wav')
 
 
+def humanize_midi(src, dst, seed=20260915, time_ms=45.0, vel_amt=6.0, share=0.27):
+    """把"精确吸在网格上"的 MIDI 加一点人手抖动（opt-in、**确定性 seed**、**只用于渲染**）。
+
+    依据（2026-09-15 实测，cheerful 的 10 首真实模板）：
+      · 最大时序偏差**中位 51.5ms**、**27%** 的音不在 16 分网格上（个别曲目 64% / 98%）；
+        反过来说**七成以上的音仍然精确在网格上** —— 真实 MIDI 是"量化 + 少量自由"的混合，
+        不是全量化也不是全自由（第一版按"每个音都抖"写，实测非零比例 **93%**，明显过头）。
+      · 而我们的交付 MIDI：偏差**恒为 0.0ms、0% 非零** —— 用户听感反馈正是"假/不自然"。
+    所以：只有 `share` 比例的音偏离网格（幅度 gauss(0, time_ms/2)，上限 time_ms），
+    **鼓轨的比例与幅度都乘 0.35**（真人鼓组更贴拍）。力度按 ±`vel_amt` 正态微扰
+    （真实力度 σ 中位 20.9，我们 15.7~18.5）。
+    **交付 MIDI 不带抖动**：那些判据（`melody_form_rules` 等）都按 16 分格算，
+    所以只在渲染前对副本动手，产物 MIDI 保持网格对齐。
+    """
+    import random
+    import midi_file
+    m = midi_file.import_midi(src)
+    rng = random.Random(seed)
+    bpm = float(m.get('bpm') or 120.0)
+    ms_per_beat = 60000.0 / bpm
+    n = n_off = 0
+    for t in m['tracks']:
+        drum = (t.get('channel') == 9)
+        lim = time_ms * 0.35 if drum else time_ms
+        sh = share * 0.35 if drum else share
+        # **偏移按小节给**（同一小节内所有音同向移动）：真人演奏的微时序是**局部一致**的
+        # （同一拍/同一小节的音一起略微提前或延后），所以听感是"律动在呼吸"。
+        # ⚠ 第一版**逐音独立**随机偏移 → 相邻音互相错开，用户反馈"**不连贯**"。
+        per_bar = {}
+        for nt in t['notes']:
+            bar = int(nt[0] // 4.0)
+            if bar not in per_bar:
+                per_bar[bar] = (max(-lim, min(lim, rng.gauss(0.0, lim / 2.0)))
+                                if rng.random() < sh else 0.0)
+            off = per_bar[bar]
+            if off:
+                nt[0] = max(0.0, nt[0] + off / ms_per_beat)
+                n_off += 1
+            nt[3] = max(1, min(127, int(round(nt[3] + rng.gauss(0.0, vel_amt / 2.0)))))
+            n += 1
+    midi_file.export_midi(m, dst, fmt=1)
+    return n, n_off
+
+
 def render(mid_path, out_base, rms_db=-16.9, width=2.2, shelf_db=3.0,
            hp_hz=38.0, low_db=0.0, drive=1.6, mid_db=0.0, keep_raw=False,
-           verbose=True, ogg=True, reverb=None, trim=True):
+           verbose=True, ogg=True, reverb=None, trim=True, humanize=None):
     """out_base 只给名字时，产物写到 MIDI 所在目录（即该曲目的 songs/<曲名>/）
 
     `ogg=False` 时**不编码 OGG**（仍写 WAV）：自动调参的中间轮次用得上。
@@ -284,6 +328,13 @@ def render(mid_path, out_base, rms_db=-16.9, width=2.2, shelf_db=3.0,
     用途：参考曲的混响尾巴 6.8dB/300ms，我们默认只有 4.6dB —— 差的那截就是"空间感"。"""
     exe, sf2 = find_exe(), find_sf2()
     out_base = os.path.abspath(out_base)
+    # **人手抖动**（opt-in）：只对渲染用的副本动手，交付 MIDI 一个字节不动。
+    if humanize:
+        hum = out_base + '.hum.mid'
+        k, koff = humanize_midi(mid_path, hum)
+        print('  人手抖动：%d 个音里 %d 个偏离网格（%.0f%%，真实模板 27%%）'
+              % (k, koff, 100.0 * koff / max(1, k)))
+        mid_path = hum
     LAST.clear()                  # 先清空：调用方只该看到**本次**渲染的实测留痕
     raw = out_base + '.raw.wav'
     opts = []
@@ -413,9 +464,15 @@ def main():
         drive = float(sys.argv[sys.argv.index('--drive') + 1])
     if '--mid' in sys.argv:
         mid_db = float(sys.argv[sys.argv.index('--mid') + 1])
-    print('== %s → %s (宽度×%.2f, RMS %+.1f, 搁架%+.1f, 中频%+.1f, 高通%.0f, 低调%+.1f, 限幅%.1f) =='
-          % (mid, base, width, rms, shelf, mid_db, hp, low, drive))
-    render(mid, base, rms, width, shelf, hp, low, drive, mid_db)
+    # 人手抖动（opt-in）：不给 = 关；给 `--humanize` = 用默认 25ms；`--humanize 12` 可调
+    hum = None
+    if '--humanize' in sys.argv:
+        i = sys.argv.index('--humanize') + 1
+        hum = float(sys.argv[i]) if (i < len(sys.argv) and not sys.argv[i].startswith('--')) else 25.0
+    print('== %s → %s (宽度×%.2f, RMS %+.1f, 搁架%+.1f, 中频%+.1f, 高通%.0f, 低调%+.1f, 限幅%.1f%s) =='
+          % (mid, base, width, rms, shelf, mid_db, hp, low, drive,
+             '' if not hum else ', 抖动±%.0fms' % hum))
+    render(mid, base, rms, width, shelf, hp, low, drive, mid_db, humanize=hum)
     return 0
 
 

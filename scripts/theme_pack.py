@@ -789,13 +789,20 @@ def aggregate(theme, rows, feats, min_n=MIN_TEMPLATES):
     sec_bars = max(4, min(16, span * 2))
     tot_med = sorted(f['bars'] for f in feats)[len(feats) // 2]
     nsec = max(2, min(8, int(round(tot_med / float(sec_bars)))))
-    total = sec_bars * nsec                    # **总小节 = 段落数 × 段长**（对得上，不许各算各的）
-    plan = []
+    # **引子与尾声**（2026-09-15 补）：真实模板普遍"前 4 小节稀疏进入、末段收束" ——
+    # cheerful 10 首里 7 首前 4 小节有鼓，但合计只有**中位 18 点**（主段约 22 点/小节），
+    # 也就是引子明显比主段稀。旧版 `plan` 是硬编码段名表（`A/A2/B/…`），**没有 intro/outro**
+    # → 新歌一律"开门就是主歌"（听感"没有起承转合"），而且 `song_engine` 的
+    # `arr.perc_in`（引子渐入）一直没有触发场景。这里按真值补上，各 4 小节。
+    INTRO_BARS = 4
+    total = sec_bars * nsec + INTRO_BARS * 2   # 总小节 = 段数 × 段长 + 引子/尾声
+    plan = [{'name': 'Intro', 'bars': INTRO_BARS, 'prog': 0}]
     for i in range(nsec):
         nm = ['A', 'A2', 'B', 'A3', 'C', 'A4', 'B2', 'A5'][i % 8]
         prog_i = 0 if nm.startswith('A') else (1 if nm.startswith('B') else 2)
         plan.append({'name': nm, 'bars': sec_bars,
                      'prog': min(prog_i, max(0, len(progs) - 1))})
+    plan.append({'name': 'Outro', 'bars': INTRO_BARS, 'prog': 0})
 
     pack = {
         'theme': theme, 'label': th['label'], 'desc': '%s（主题模板包：%d 首同主题模板聚合）'

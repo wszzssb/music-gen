@@ -422,6 +422,14 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     for sec, mx in zip(secs, emix):
         if mx:
             sec['arr']['mix'] = mx
+    # **引子渐入**（`arr.perc_in` → `song_engine.perc_part(inbars=…)`）：真实模板里引子是
+    # "b1–b2 安静、b3–b4 鼓组进来"（cheerful 10 首里 7 首前 4 小节有鼓、合计中位 18 点，
+    # 而单看 b1 多数是 0）。整段一次性全开会在段落切换处造成亮度突变
+    # （43 号实测逐小节频谱质心 788 → 4907Hz）。
+    # 只在引子且段长 ≥4 时生效；`perc=0` 的段本来就不敲，加了也没有副作用。
+    for _s in secs:
+        if song_engine.role_of_section(_s['name']) == 'intro' and _s['bars'] >= 4:
+            _s['arr']['perc_in'] = 2
     d = {'name': short,
          'bpm': float((pack.get('bpm') or {}).get('median') or 120.0),
          'meter': list(pack.get('meter') or [4, 4]),

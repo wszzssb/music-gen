@@ -851,8 +851,13 @@
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 64,
+  "total_bars": 72,
   "plan": [
+   {
+    "name": "Intro",
+    "bars": 4,
+    "prog": 0
+   },
    {
     "name": "A",
     "bars": 8,
@@ -891,6 +896,11 @@
    {
     "name": "A5",
     "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "Outro",
+    "bars": 4,
     "prog": 0
    }
   ]
@@ -1069,9 +1079,12 @@
     "width": 0.53,
     "source": {
      "kind": "project_audio",
-     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
      "file": "あまくてとろける.flac",
-     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
    },
    {
@@ -1083,9 +1096,12 @@
     "width": 0.404,
     "source": {
      "kind": "project_audio",
-     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
      "file": "BGM33.ogg",
-     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
    },
    {
@@ -1097,9 +1113,12 @@
     "width": 0.678,
     "source": {
      "kind": "project_audio",
-     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
      "file": "BGM16.ogg",
-     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
    },
    {
@@ -1111,9 +1130,12 @@
     "width": 0.627,
     "source": {
      "kind": "project_audio",
-     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
      "file": "BGM15d.ogg",
-     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
    },
    {
@@ -1125,9 +1147,12 @@
     "width": 0.544,
     "source": {
      "kind": "project_audio",
-     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
      "file": "BGM12.ogg",
-     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
    },
    {
@@ -1139,9 +1164,12 @@
     "width": 0.478,
     "source": {
      "kind": "project_audio",
-     "detail": "项目素材包 Bgm（提取自 galgame 素材的 50 首 BGM，真实商业混音）",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
      "file": "BGM01.ogg",
-     "note": "厂商 / 作品名未标注 —— 能溯源到\"哪个文件\"，但**不是**带 URL 的权威来源"
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
    }
   ],

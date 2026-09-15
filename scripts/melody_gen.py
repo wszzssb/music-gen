@@ -1308,7 +1308,33 @@ def stepwise_pct(mel):
     return sum(1 for x in iv if x <= 2) / float(len(iv))
 
 
-def cand_score(shape_share, lang_share, clash, stepwise, step_bias):
+def onset_tvd(mel, prof):
+    """候选旋律的**落点格分布**与画像 `onset16_hist` 的总变差距离（0 = 与画像一致）。
+
+    为什么加（用户 2026-09-15："全部都检查一下过渡问题，限制的条件也有可能出错"）：
+    43 号 B/Outro 的落点集中在 3~4 个格（0.5 / 1.5 / 2.0 拍），而 ballad 组四首参考曲
+    都是 6+ 个格 —— 听感上就是"整段一个节奏型、没有推进"。候选循环此前只看
+    "与库里不像"（`_distinct`）与级进，**从没看过落点**。
+
+    与 `stepwise_pct` 同一条纪律：**只当候选之间的相对排序，不当绝对门槛** ——
+    画像的 `onset16_hist` 是十首模板聚合（sorrow 画像里 6/10 是古典钢琴），
+    当门槛会把正常写法判死（我在 43 号上先按"倍率 ≥3"下过结论，后来用 TVD 口径推翻）。
+    """
+    h, pt = {}, 0.0
+    for notes in (mel or {}).values():
+        for x in notes:
+            g = int(round(x[1] * 4)) % 16
+            h[g] = h.get(g, 0) + 1
+    tot = float(sum(h.values())) or 1.0
+    P = (prof or {}).get('onset16_hist') or {}
+    pt = float(sum(P.values())) or 1.0
+    if not P:
+        return 0.0
+    keys = set(h) | {int(k) for k in P}
+    return 0.5 * sum(abs(h.get(k, 0) / tot - (P.get(str(k), 0) / pt)) for k in keys)
+
+
+def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0.0):
     """候选打分（**越小越好**）：以"不像库里已有旋律"为主，级进偏好为次（opt-in）。
 
     抽成独立函数有两个原因：① `mutation_check` 的注入机制是**改内存里的模块属性**，
@@ -1318,8 +1344,10 @@ def cand_score(shape_share, lang_share, clash, stepwise, step_bias):
     量级：`shape_share`/`lang_share` 是 0~1 的比例，`clash` 是计数 → 前两项和约 0~3，
     `step_bias × stepwise` 最多 1（`step_bias` 默认 1.0），所以级进偏好**不会盖过**
     "去重"这个主要目标，但足以在同分候选之间改变选择（实测 44% → 68%）。
+    `onset_dist`（落点分布与画像的 TVD，0~1）同量级，理由见 `onset_tvd`。
     """
-    return shape_share * 2.0 + lang_share + clash * 0.5 - step_bias * stepwise
+    return (shape_share * 2.0 + lang_share + clash * 0.5
+            - step_bias * stepwise + onset_dist)
 
 
 def main():
@@ -1418,11 +1446,13 @@ def main():
         alln = _abs_notes(tmp, mel)
         sc = _distinct(alln, lib) if lib else (0.0, 0.0)
         sw = stepwise_pct(mel)
+        ot = onset_tvd(mel, prof)          # 落点格分布与画像的距离（0 = 一致）
         print('  候选 %d（seed=%d）：音符 %d  与库里最大形状共享 %.1f%%  语言重合 %.1f%%'
-              '  级进 %.0f%%  强拍复核修正 %d  复用段冲突 %d'
+              '  级进 %.0f%%  落点偏离 %.3f  强拍复核修正 %d  复用段冲突 %d'
               % (ci + 1, seed + ci * 1000, len(alln), sc[0] * 100, sc[1] * 100,
-                 sw * 100, nfix, clash))
-        score = cand_score(sc[0], sc[1], clash, sw, step_bias)   # 越小越好，见该函数说明
+                 sw * 100, ot, nfix, clash))
+        # 越小越好，见 `cand_score`：去重为主，级进与落点分散为次（都对候选间排序）
+        score = cand_score(sc[0], sc[1], clash, sw, step_bias, ot)
         # 旧挑法只等于 `score = sc[0]*2 + sc[1] + clash*0.5`（`step_bias=0` 时逐字一致）。
         # 用户在 2026-09-14 实测：同骨架 4 条候选"级进 17% → 52% 越来越顺，202 之后
         # 两条都比原版好"，而旧挑法完全不看听感维度 → 会随机挑到跳进多的那条

@@ -776,12 +776,16 @@ def main():
             def __enter__(self):
                 self.old = open(_s20, encoding='utf-8').read()
                 d = json.loads(self.old)
-                d['chords'] = {k: [v[0] - 12, list(v[1])] for k, v in d['chords'].items()}
+                # 降**两个**八度：引擎的 `SUB_FLOOR = 24` 会把 sub 层抬回 C1，
+                # 只降一个八度已经不构成音域越界（故障被引擎挡住了）——
+                # 这条 case 要验的是 `track_ranges_musical` 还抓不抓得到越界。
+                d['chords'] = {k: [max(0, v[0] - 24), list(v[1])]
+                               for k, v in d['chords'].items()}
                 json.dump(d, open(_s20, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
                 return d
             def __exit__(self, *a):
                 open(_s20, 'w', encoding='utf-8').write(self.old)
-        results.append(case('低音整体再降八度（次声波）', 'track_ranges_musical',
+        results.append(case('低音整体再降两个八度（次声波）', 'track_ranges_musical',
                             lambda: _LowerBass()))
 
     # 58. spec 漂移（手工改 spec 的时值列）必须被抓 —— 复现命令会失效
@@ -946,6 +950,23 @@ def main():
     results.append(case('旋律形态阈值被改坏（上限 0）',
                         'melody_health',
                         lambda: Mut(_mh, 'MAX_RUN', 0)))
+    # ① sub 层音高下限被拆掉（= 旧行为：`bass − 12` 无条件）→ 贝斯掉进次声波，必须被抓
+    results.append(case('贝斯 sub 层掉进次声波（SUB_FLOOR 归零）',
+                        'bass_register',
+                        lambda: Mut(_se, 'SUB_FLOOR', 0)))
+    # ② 落点分散门被压到 0 → 每段都会"破门"，必须被抓（证明判据真的量得到落点集中）
+    results.append(case('旋律落点分散门归零',
+                        'melody_onset_spread',
+                        lambda: Mut(st, 'ONSET_TVD_MAX', 0.0)))
+    # ③ 引子渐入被绕过（`perc_part` 忽略 `inbars`）→ 前 2 小节又敲起来，必须被抓
+    _perc_orig = _se.perc_part
+    results.append(case('引子渐入被绕过（perc_in 失效）',
+                        'intro_gradience',
+                        lambda: Mut(_se, 'perc_part',
+                                    lambda style, level, i, nbars, layers=None,
+                                    kick_vel=None, B=4.0, inbars=0:
+                                    _perc_orig(style, level, i, nbars, layers,
+                                               kick_vel, B, 0))))
     # **候选打分**（`--step-bias` 的落点）：① 公式被反向（级进越高反而分越高）
     # ② 偏好量级大到盖过去重（"与库里不像"才是主要目标，级进只是同分时的偏好）。
     # 打分已抽成 `melody_gen.cand_score`，所以能用 mutation 的"改内存"机制注入
@@ -1151,6 +1172,37 @@ def main():
                         'theme_melody_reuse',
                         lambda: Mut(_ns, 'role_melody_name',
                                     lambda name, i: 'm%d' % (i + 1))))
+    # ⑮-b 拆掉 43 号的**显式豁免**（`melody_reuse_exempt`）→ 它的 Intro/Intro2 就是
+    #      "同角色两段、两支旋律" → 必须失败。证明豁免是**逐曲声明**的，而不是把判据关掉。
+    class _DropExempt:
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'songs', '43_joy_to_sorrow', 'song.json')
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            j.pop('melody_reuse_exempt', None)
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                json.dump(j, f, ensure_ascii=False, indent=1)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(self.txt)
+    results.append(case('曲式：拆掉 43 号的旋律复用豁免',
+                        'theme_melody_reuse', _DropExempt))
+    # ⑮-c 豁免理由写成空白 → 视为没写（否则一句空话就能绕过判据）
+    class _BlankExempt:
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'songs', '43_joy_to_sorrow', 'song.json')
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            j['melody_reuse_exempt'] = '   '
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                json.dump(j, f, ensure_ascii=False, indent=1)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(self.txt)
+    results.append(case('曲式：豁免理由写成空白',
+                        'theme_melody_reuse', _BlankExempt))
     # ⑯ 段落编制换回"原样返回"（= 旧行为：能量曲线微调音量，段落间同一套乐器）→
     #    `arr_role_variety` 的端到端判据（段间 Jaccard）与自证分支必须抓到
     results.append(case('编配：段落编制不随角色变（旧行为）',

@@ -2749,7 +2749,7 @@ def t_breath_fix_works():
 MELODY_WIN = 8          # 旋律窗口：连续 8 个音（≈2–3 小节）
 MELODY_SIM_MAX = 0.05   # 允许的"跨曲共享窗口"比例上限
 MELODY_LANG_TWIN_MAX = 2   # 允许的"孪生对"数（语言重合 ≥85% = 同一种说话方式）
-MELODY_ACCEPT_MIN = 0.55   # 生成旋律与画像的逐维承接度下限（落点/时值）
+MELODY_ACCEPT_MIN = 0.40   # 生成旋律与画像的逐维承接度下限（落点/时值）
 MELODY_ACCEPT_SPARSE = 0.40   # 画像本身很稀疏（<80 个旋律音）时的下限：直方图是稀疏采样
 MIDI_LIB_DIRS = ('refs/midi', 'refs/midi2')   # 模板库（音符层参考素材）目录
 # 本项目会往系统临时目录写东西的前缀 + 卫生阈值（`t_tmp_hygiene` 用）
@@ -2786,11 +2786,19 @@ FORM_MAX_G0 = 0.22           # 格 0（小节第 1 拍）落点占比上限
 FORM_PEAK = (0.45, 0.85)
 # 音域：**对着画像判**，不是拍绝对下限。旧版 `persona` 把画像 range 两头各砍一点
 # （`lo+2 / hi-1`）→ 实测 37 号只用了 13 个半音（画像 17），用户口径是"音域用足"。
-FORM_SPAN_RATIO = 0.85
+FORM_SPAN_RATIO = 0.45
 # 落盘曲目的**音域合理下限**（半音）：一个八度 —— 旋律的常识下限。
 # ⚠ 别拿"画像 range × 比例"当单曲下限：画像是**同主题多首模板的并集**（tender 34 半音），
 # 单曲自然更窄（39 号 18 半音 = 53%，完全正常）。
-FORM_SPAN_MIN = 12
+FORM_SPAN_MIN = 8
+# **上面三条门的真值依据**（2026-09-15 用模板重新校准时发现原值过严）：
+#   时值交叠（MIDI note 时值 vs 画像 `dur16_hist`）：cheerful min 0.42 / 中位 0.52；
+#     sorrow min 0.49 / 中位 0.70 —— 原门 0.55 比真实音乐还严（cheerful 误伤 6/9 首）。
+#     口径差异是根因：画像那张表是 **F0 跟踪的"发声时长"**，与 MIDI 的 note-off 不是一回事
+#     （见 `melody_gen._make_cell` 的注释），所以本就不该要求高交叠。
+#   span/画像：cheerful min 0.47 / 中位 1.12；sorrow min 0.45 / 中位 0.76 ——
+#     **单曲音域比聚合画像窄是常态**，原门 0.85 误伤 4/9 与 6/10 首。
+#   模板最小 span = 8（Disco Citizens - Footprint）→ 原下限 12 误伤 3 首。
 # 夹具只有 16 小节，**音域本来就撑不满**（实测 4 个 seed 合并 19/24 = 79%）——
 # 短样本用这个门；落盘曲目（64 小节）用上面的 0.85。
 FORM_SPAN_RATIO_SHORT = 0.70
@@ -3437,8 +3445,9 @@ def t_melody_step_bias():
     （我为此连推翻过三次自己的诊断）。所以这里验的是"打开偏好时挑中的是不是候选里
     级进最高的那条"，而不是"级进必须 ≥ 某值"。
 
-    不带 `--avoid` 时 `score` 只剩 `-step_bias × 级进率`，所以打开后**必然**挑最高那条 ——
-    这样断言是确定的，不依赖随机。
+    不带 `--avoid` 时去重两项为 0，但 2026-09-15 起 `score` **还含「落点偏离画像」一项**
+    （`onset_tvd`，治 43 号 B/Outro 落点集中在 3~4 个格的问题）→ 不再保证挑中"级进最高"那条，
+    所以断言改成**单调性**：打开偏好后选中的级进率不得低于关闭时。
     """
     import melody_gen as M
     import subprocess, tempfile
@@ -3474,13 +3483,23 @@ def t_melody_step_bias():
         on, cands, meta = run(1.0)
     assert off > 0 and on > 0, 'stepwise_pct 没算出来（off=%.3f on=%.3f）' % (off, on)
     assert cands, 'CLI 没有逐条报候选级进（无法核对"挑的是不是最高那条"）'
-    assert abs(on - max(cands) / 100.0) < 0.005, \
-        '打开偏好后没挑最高那条：候选 %s，实际选中的是 %.0f%%' % (cands, on * 100)
+    assert on >= off - 0.005, \
+        ('打开级进偏好后选中的反而更跳：关 %.0f%% → 开 %.0f%%（候选级进 %s）'
+         % (off * 100, on * 100, cands))
     assert abs(meta.get('step_bias', 0) - 1.0) < 1e-9, '生成元数据没留 step_bias 痕迹'
 
     # **打分公式本身**（`cand_score` 抽出来就是为了这一条能被注入验证）：关掉时与旧式逐字一致，
     # 打开时对"级进更高"的候选给出更低分；且偏好量级不盖过去重（同分候选才会被它改变选择）。
     base = M.cand_score(0.10, 0.80, 1, 0.40, 0.0)
+    # 落点项：偏离画像越多 → 分越高（`cand_score` 越小越好）；量级与级进项同级
+    assert M.cand_score(0.10, 0.80, 1, 0.40, 0.0, 0.30) > M.cand_score(0.10, 0.80, 1, 0.40, 0.0, 0.10), \
+        '落点偏离没有影响打分（`onset_dist` 项失效）'
+    # `onset_tvd` 本身：全挤在一个格 → 距离大；四格均匀 → 距离小；空画像 → 0（不误伤）
+    _P = {'onset16_hist': {'0': 25, '4': 25, '8': 25, '12': 25}}
+    _even = [[0, 0.0, 1.0, 60], [0, 1.0, 1.0, 64], [0, 2.0, 1.0, 62], [0, 3.0, 1.0, 65]]
+    _one = [[0, 0.0, 1.0, 60] for _ in range(4)]
+    assert M.onset_tvd({'_': _one}, _P) > M.onset_tvd({'_': _even}, _P), 'onset_tvd 方向反了'
+    assert M.onset_tvd({'_': _one}, {'onset16_hist': {}}) == 0.0, '空画像应返回 0（不误伤）'
     assert abs(base - (0.10 * 2 + 0.80 + 0.5)) < 1e-12, 'step_bias=0 时打分与旧式不一致'
     hi = M.cand_score(0.10, 0.80, 1, 0.68, 1.0)
     lo = M.cand_score(0.10, 0.80, 1, 0.44, 1.0)
@@ -3736,26 +3755,36 @@ def t_melody_dyn_optin():
     默认开就会改变所有老曲的 MIDI 字节（全库都得重渲染）。
 
     判据（就地编配 `build_events`，不渲染不落盘）：
-      ① **缺省 = 老行为**：不含该键时 Melody 轨只有 2 个力度值（96 / 62）
+      ① **缺省 = 老行为**：不含该键时 Melody 轨只有 1 个力度值（96）——
+         `mel_octave` 缺省 **0**（不加低八度层；实测真实模板 cheerful 10 首里 7 首叠加率为 0），
+         显式 `mel_octave: 1.0` 时才多出 62 那一档（低八度加厚层仍在，只是要显式开）
       ② 显式 `false` 与缺省**逐字节相同**，且两次编配结果相同（opt-in 语义 + 无隐藏随机）
       ③ **打开 = 有曲线**：力度取值 ≥ 6 档
-    **判据自证**：把 `mel_dyn_env` 换成恒返回 1.0 → ③ 必须掉回 2 档（判据抓得到）。
+    **判据自证**：把 `mel_dyn_env` 换成恒返回 1.0 → ③ 必须掉回缺省的 1 档（判据抓得到）。
     """
     import song_engine as SE
     base = {
         'name': 'dyn_probe', 'bpm': 120.0, 'meter': [4, 4], 'style': 'daily',
         'chords': {'C': [36, [55, 60, 64, 67]], 'G': [31, [55, 59, 62, 67]],
                    'Am': [33, [57, 60, 64, 69]], 'F': [29, [53, 57, 60, 65]]},
-        'melody': {'m': [[b, 0.0, 1.0, 72] for b in range(8)]},
-        'sections': [{'name': 'A', 'bars': 8, 'chords': ['C', 'G', 'Am', 'F'] * 2,
+        # 夹具要点：包络按"句内位置 prog"取值，采样点越多档数越多。
+        # 每小节只有一个 beat 0 的音时，4 小节的 prog 只取 0/0.25/0.5/0.75 四个点，
+        # `int(round(96*mv))` 后只落 3 档 —— 量不出判据 ③ 要的"乐句级曲线"。
+        # 所以用 **4 小节 × 每拍一个音**（16 个采样点）。
+        'melody': {'m': [[b, bt, 1.0, 72]
+                         for b in range(4) for bt in (0.0, 1.0, 2.0, 3.0)]},
+        'sections': [{'name': 'A', 'bars': 4, 'chords': ['C', 'G', 'Am', 'F'],
                       'melody': 'm', 'arr': {'bass': True, 'piano': True, 'perc': 1}}],
     }
     tmp = os.path.join(TMP, 'dyn_probe.json')
 
-    def vels(marker):
+    def vels(marker, extra=None):
         d = json.loads(json.dumps(base))          # 深拷贝（build_events 会填 programs/mix）
+        pat = dict(extra or {})
         if marker is not None:
-            d['patterns'] = {'melody_dyn': marker}
+            pat['melody_dyn'] = marker
+        if pat:
+            d['patterns'] = pat
         with open(tmp, 'w', encoding='utf-8') as f:
             json.dump(d, f)
         ev, _bars = SE.build_events(SE.load(tmp))
@@ -3764,9 +3793,13 @@ def t_melody_dyn_optin():
     off = vels(None)
     assert len(off) >= 8, '夹具没编出旋律（%d 个音）—— 这条检查会空转' % len(off)
     off2, off3, on = vels(False), vels(None), vels(True)
-    assert len(set(off)) == 2, \
-        ('缺省（opt-in 关）时旋律力度应只有 2 档（96/62），实测 %d 档：%s'
-         % (len(set(off)), sorted(set(off))))
+    assert set(off) == {96}, \
+        ('缺省（melody_dyn 关）时旋律力度应只有 1 档 96（`mel_octave` 缺省 0 = 不加低八度层），'
+         '实测 %d 档：%s' % (len(set(off)), sorted(set(off))))
+    oct_on = vels(None, {'mel_octave': 1.0})
+    assert set(oct_on) == {96, 62}, \
+        ('显式 mel_octave=1.0 时应有 2 档（96 主层 / 62 低八度加厚层），实测 %s'
+         % sorted(set(oct_on)))
     assert off == off2, '显式 melody_dyn=false 与缺省必须逐字节相同（opt-in 语义）'
     assert off == off3, '两次编配结果不同（存在隐藏状态/随机性）'
     nv = len(set(on))
@@ -3778,11 +3811,11 @@ def t_melody_dyn_optin():
         killed = sorted(set(vels(True)))
     finally:
         SE.mel_dyn_env = _old
-    assert len(killed) == 2, \
+    assert len(killed) == 1, \
         ('判据自证失败：把 mel_dyn_env 换成恒等函数后力度仍有 %d 档 —— 这条判据量不到曲线'
          % len(killed))
-    print('        旋律力度档数：缺省 %d（老行为）→ 打开 %d（%d~%d）'
-          % (len(set(off)), nv, min(on), max(on)))
+    print('        旋律力度档数：缺省 %d → 显式叠低八度 %d → 打开 %d（%d~%d）'
+          % (len(set(off)), len(set(oct_on)), nv, min(on), max(on)))
 
 
 @check
@@ -4175,8 +4208,12 @@ def t_arr_role_variety():
     for i, a in enumerate(out):
         assert all(a.get(k) for k in ROLE_ALWAYS), \
             '第 %d 段（%s）缺基础层（低频/主奏会空）：%s' % (i, names[i], a)
-    assert out[0]['perc'] == 0 and out[-1]['perc'] == 0, \
-        '引子/尾声不许上打击（"从简进入、留白收尾"）：%s' % [a.get('perc') for a in out]
+    # **引子可以有打击，但必须渐入**（2026-09-15 按真值改：cheerful 7/10 首引子有鼓，
+    # b1–b2 静、b3–b4 进来）；**尾声保持 0**（sorrow 池鼓点中位 0）。
+    assert out[0]['perc'] == 1 and out[0].get('perc_in') == 2, \
+        ('引子应 perc=1 且带 perc_in=2（渐入）：%s' % out[0])
+    assert out[-1]['perc'] == 0, \
+        '尾声不许上打击（"留白收尾"）：%s' % out[-1].get('perc')
     assert any(a.get('perc') for a in out), '全曲没有任何一段有打击 → 5–18kHz 会塌'
     assert sig(out[1]) == sig(out[2]) == sig(out[4]), \
         '同角色（A/A2/A3）必须拿到同一套编制：%s' % [sorted(sig(a)) for a in out]
@@ -4184,6 +4221,12 @@ def t_arr_role_variety():
         '两次副歌的编制不许一模一样（副歌按次序升级）：%s / %s' % (sorted(sig(out[3])), sorted(sig(out[6])))
     assert sig(out[1]) != sig(out[3]) and sig(out[1]) != sig(out[5]), \
         '主歌与副歌/桥段的编制不许相同 —— 那正是"段落换了却听不出来"'
+    # **判据自证**：引子的 perc 必须是**被强制**成 1 的（档 0 自己是 0）——
+    # 否则那条断言只是碰巧成立，量不到"引子渐入"这件事。
+    _p0 = se.ARR_PACKS[se.arr_pack_idx('intro')].get('perc')
+    assert _p0 == 0 and out[0]['perc'] == 1, \
+        ('判据自证失败：档 0 的 perc=%s、引子 perc=%s —— 引子没有走"强制 1 + perc_in"这条'
+         % (_p0, out[0]['perc']))
     solo = se.arr_by_role([{'bass': True, 'piano': True}] * 3,
                           ['intro', 'intro', 'outro'], energy=None, tier=1)
     assert any(a.get('perc') for a in solo), '引子/尾声为主的夹具下兜底没生效（全曲无打击）'
@@ -4812,7 +4855,7 @@ def t_theme_melody_reuse():
     **判据自证**：把 `role_melody_name` 换回"每段一个新名字"→ ① 必须失败。
     """
     import new_song as ns
-    bad, checked, spans = [], 0, []
+    bad, checked, spans, exempt = [], 0, [], []
     for d in song_dirs():
         try:
             j = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
@@ -4826,6 +4869,14 @@ def t_theme_melody_reuse():
             continue
         secs = j['sections']
         if len(secs) < 4:
+            continue
+        # **显式豁免**（`melody_reuse_exempt`，须写理由）：同一角色的两半段落若本来就该是
+        # 两支旋律（43 号 Intro=安静引子 / Intro2=鼓组渐入），引擎又**没有段内旋律偏移**
+        # （`mel_ = mel_all.get(sec['melody'])`，bar 索引是段内相对）→ 只能各写一支。
+        # 豁免是**逐曲声明**的，不是全局开关：没写这个键的曲目照样判。
+        _ex = j.get('melody_reuse_exempt')
+        if isinstance(_ex, str) and _ex.strip():      # 空话不算理由（同 `align_exempt`）
+            exempt.append('%s（%s）' % (os.path.basename(d), _ex))
             continue
         checked += 1
         nm = os.path.basename(d)
@@ -4860,9 +4911,194 @@ def t_theme_melody_reuse():
     assert per_seg == len(j['sections']), \
         ('判据自证失败：换成"每段一个新名字"后仍只有 %d 个旋律名（%d 段）—— 这条判据量不到复用'
          % (per_seg, len(j['sections'])))
-    print('        %d 首主题路径曲目：同名段落共用旋律，每首用 %s 支'
-          % (checked, '/'.join(str(x) for x in sorted(set(spans)))))
+    print('        %d 首主题路径曲目：同名段落共用旋律，每首用 %s 支%s'
+          % (checked, '/'.join(str(x) for x in sorted(set(spans))),
+             ('；%d 首显式豁免：%s' % (len(exempt), ' / '.join(exempt))) if exempt else ''))
     assert not bad, '旋律复用不达标：%s' % '；'.join(bad[:4])
+
+
+ONSET_TVD_MAX = 0.65      # 每段落点分布与画像的 TVD 上限
+BASS_FLOOR = 24           # Bass 轨音高下界 = C1(32.7Hz)（真值见 t_bass_register）
+# ⚠ 判据的门**必须是独立常量**，不能拿被检查对象自己的模块常量当门 ——
+# 否则 mutation 一注入（`SUB_FLOOR=0`），门跟着变成 0，判据自己就废了（实测漏抓过一次）。
+# 真值（10 首模板彼此 vs 画像的 TVD，`refs/midi2`）：cheerful 0.152~0.588、sorrow 0.083~0.407。
+# 门取两者较大者再放 ~10%（0.65）—— 43 号改前 B 段 0.682 / Outro 0.695，改后 0.483 / 0.618。
+
+
+@check
+def t_bass_register():
+    """**贝斯不许掉进次声波**：Bass 轨最低音 ≥ C1(24) = 32.7Hz。
+
+    依据（用户 2026-09-15："全部都检查一下过渡问题，限制的条件也有可能出错"）：
+    真实模板的**低音线**（每 0.25 拍取最低音）实测 cheerful 最低 C1(32.7Hz)/中位 G1(49Hz)、
+    sorrow 最低 C1 —— 模板里**一首都没**掉到 28Hz 以下。而 `bass_style` 的 sub 层是
+    `bass − 12`，bass 低到 F1(29) 时就掉到 F0(21.8Hz)：43 号实测 Bass F0、
+    **28% 的音低于 28Hz**（听感"低频糊、吃功放"，8~11 秒那段的 A0 就在这里）。
+
+    修法已固化进引擎：`song_engine.SUB_FLOOR = 24`，8 处 sub 层全改成
+    `max(bass - 12, SUB_FLOOR)`。这条检查守住它不被人改回去。
+    **判据自证**：`SUB_FLOOR` 归零（= 旧行为）→ 最低的那个 sub 分支必须掉到 24 以下。
+    """
+    import song_engine as SE
+    bad, checked = [], 0
+    for d in songs_or_fail():
+        try:
+            data = SE.load(os.path.join(d, 'song.json'))
+        except SystemExit:
+            continue
+        ev = SE.build_events(data)
+        if not hasattr(ev, 'items'):
+            ev = ev[0]
+        ps = [m for (_t, _dd, m, _v) in ev.get('Bass', [])]
+        if not ps:
+            continue
+        checked += 1
+        lo = min(ps)
+        if lo < BASS_FLOOR:
+            bad.append('%s Bass 最低 %d(%.1fHz) < %d'
+                       % (os.path.basename(d), lo, 440.0 * 2 ** ((lo - 69) / 12.0), BASS_FLOOR))
+    assert checked >= 5, '可判曲目太少（%d）—— 这条检查会空转' % checked
+    # 引擎常量必须与真值一致（漂移了就要么改引擎、要么改真值，不能两边各写一份）
+    assert SE.SUB_FLOOR == BASS_FLOOR, \
+        ('引擎的 `SUB_FLOOR` = %s，与真值下界 %d（C1）不一致 —— 次声波守卫会被绕过'
+         % (SE.SUB_FLOOR, BASS_FLOOR))
+    # **判据自证**：SUB_FLOOR 归零（旧行为）→ 最低的 sub 分支必须掉下去
+    _old = SE.SUB_FLOOR
+    try:
+        SE.SUB_FLOOR = 0
+        out = SE.bass_part((29, [53, 57, 60]), None, 0,
+                           {'bass_style': 'offbeat', 'sub_gain': 1.0})
+        lo_old = min(m for (_b, _d, m, _v) in out)
+    finally:
+        SE.SUB_FLOOR = _old
+    assert lo_old < BASS_FLOOR, \
+        ('判据自证失败：SUB_FLOOR 归零后 offbeat 的 sub 仍到 %d（应低到 %d = F0 21.8Hz）'
+         % (lo_old, 29 - 12))
+    print('        %d 首：Bass 最低音全部 ≥ %d（C1 = 32.7Hz；旧行为会掉到 %d）'
+          % (checked, BASS_FLOOR, lo_old))
+    assert not bad, '贝斯掉进次声波：%s' % '；'.join(bad[:4])
+
+
+@check
+def t_melody_onset_spread():
+    """**旋律落点不许挤在两三个格子里**：每段落点分布与该段画像的 TVD ≤ `ONSET_TVD_MAX`。
+
+    依据：43 号 B 段 3 个格占了 90%（0.5 / 1.5 / 2.0 拍），而 ballad 组四首参考曲
+    （ame ni uta / Animal Crossing / BALLAD-2 / A-Very-Special）都是 **6+ 个格** ——
+    听感上就是"整段一个节奏型、没有推进"。候选打分此前只看去重与级进，**从没看过落点**。
+
+    ⚠ **必须按段选画像**：B/Outro 是悲伤段，拿 cheerful 画像去量会把 +8 大跳与长音
+    全判成离群 —— 那是**口径错**（我为此推翻过自己一次）。
+    ⚠ 落点格是"小节内相对位置"，**无因次、不受 BPM 影响**，这条对照才是公平的
+    （时值对照就必须先按秒归一化，画像 132/110 BPM vs 本曲 120）。
+
+    **判据自证**：门改到 0 → 必须抓到（落点不可能与画像完全一致）。
+    """
+    import melody_gen as M
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    bad, checked, worst, last_prof = [], 0, (0.0, ''), None
+    for d in songs_or_fail():
+        try:
+            j = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
+        except Exception:                                          # noqa: BLE001
+            continue
+        rel = (j.get('theme') or {}).get('melody_profile')
+        if not rel:
+            continue
+        pp = os.path.join(root, rel)
+        if not os.path.isfile(pp):
+            continue
+        prof = json.load(open(pp, encoding='utf-8'))
+        if not (prof.get('onset16_hist') or {}):
+            continue
+        last_prof = prof
+        nm = os.path.basename(d)
+        for sec in j['sections']:
+            notes = (j.get('melody') or {}).get(sec.get('melody')) or []
+            if len(notes) < 8:
+                continue
+            checked += 1
+            t = M.onset_tvd({'_': notes}, prof)
+            if t > worst[0]:
+                worst = (t, '%s 段%s' % (nm, sec['name']))
+            if t > ONSET_TVD_MAX:
+                bad.append('%s 段%s 落点偏离 %.3f（门 %.2f）' % (nm, sec['name'], t, ONSET_TVD_MAX))
+    assert checked >= 5, '可判段落太少（%d）—— 这条检查会空转' % checked
+    # **判据自证**：把所有音塞进同一个格 → TVD 必须破门（证明判据真的量得到"落点集中"）
+    assert last_prof is not None, '没有任何可判段落 —— 这条检查只能空转'
+    _fake = [[0, 0.5, 1.0, 72] for _ in range(12)]
+    _ft = M.onset_tvd({'_': _fake}, last_prof)
+    assert _ft > ONSET_TVD_MAX, \
+        ('判据自证失败：把 12 个音全塞进同一个格，TVD 只有 %.3f（门 %.2f）—— 判据量不到落点集中'
+         % (_ft, ONSET_TVD_MAX))
+    print('        %d 个段落：落点偏离最大 %.3f（%s），门 %.2f' % (checked, worst[0], worst[1],
+                                                              ONSET_TVD_MAX))
+    assert not bad, '落点过于集中：%s' % '；'.join(bad[:4])
+
+
+@check
+def t_intro_gradience():
+    """**引子渐入**（`arr.perc_in`）：段内前 N 小节不敲 —— 对齐真实模板的进法。
+
+    依据：cheerful 10 首模板里 7 首前 4 小节有鼓，模式是 **b1–b2 安静、b3–b4 鼓组进来**
+    （合计中位 18 点；单看 b1 多数是 0）。43 号原先引子 4 小节全静、第 5 小节一次性全开
+    → 逐小节频谱质心 788 → 4907Hz，听感就是"第 8 秒突然变亮"。
+    引擎侧实现：`perc_part(..., inbars=…)` 读段的 `arr.perc_in`。
+
+    ⚠ **现状**：15 个主题包的 `form.plan` 全是 `A/A2/B/A3/C/A4/B2/A5`，**没有 intro** ——
+    所以这条机制当前只在**带引子的曲目**（手写、或 43 号那种拆段写法）上生效。
+    写这条守卫是为了让它别在无人知晓的情况下坏掉（也记录"新歌没有引子"这个事实）。
+
+    **判据自证**：把 `perc_part` 包一层忽略 `inbars` → 必须抓到。
+    """
+    import song_engine as SE
+    base = {
+        'name': 'intro_probe', 'bpm': 120.0, 'meter': [4, 4], 'style': 'daily',
+        'patterns': {'bass_style': 'simple', 'perc_style': 'dance'},
+        'chords': {'C': [36, [55, 60, 64, 67]], 'G': [31, [55, 59, 62, 67]]},
+        'melody': {'m': [[0, 0.0, 1.0, 72]]},
+        'sections': [
+            {'name': 'Intro', 'bars': 4, 'chords': ['C', 'C', 'G', 'G'], 'melody': 'm',
+             'arr': {'bass': True, 'perc': 1, 'perc_in': 2}},
+            {'name': 'A', 'bars': 2, 'chords': ['C', 'G'], 'melody': 'm',
+             'arr': {'bass': True, 'perc': 1}},
+        ],
+    }
+    tmp = os.path.join(TMP, 'intro_probe.json')
+
+    def perc_beats(strip=False):
+        d = json.loads(json.dumps(base))
+        if strip:
+            d['sections'][0]['arr'].pop('perc_in', None)
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(d, f)
+        ev = SE.build_events(SE.load(tmp))
+        if not hasattr(ev, 'items'):
+            ev = ev[0]
+        return sorted(t for (t, _d, _m, _v) in ev.get('Perc', []))
+
+    on = perc_beats()
+    off = perc_beats(strip=True)
+    assert off, '夹具没编出打击乐 —— 这条检查会空转'
+    assert len(on) < len(off), \
+        'perc_in 没有减少打击乐（带 %d 个 vs 不带 %d 个）—— 引子渐入失效' % (len(on), len(off))
+    early = [t for t in on if t < 8.0]
+    assert not early, '引子前 2 小节（拍 0~8）仍在敲打击乐：%s' % early[:5]
+    assert [t for t in on if 8.0 <= t < 16.0], '引子第 3~4 小节没有打击乐（渐入没进来）'
+    assert [t for t in on if t >= 16.0], 'A 段（拍 16 起）没有打击乐 —— `perc_in` 越界生效了'
+    # **判据自证**：把 perc_part 包一层忽略 inbars → 必须抓到
+    _orig = SE.perc_part
+    try:
+        SE.perc_part = lambda style, level, i, nbars, layers=None, kick_vel=None, \
+            B=4.0, inbars=0: _orig(style, level, i, nbars, layers, kick_vel, B, 0)
+        _bad = perc_beats()
+    finally:
+        SE.perc_part = _orig
+    assert _bad and min(_bad) < 8.0, \
+        ('判据自证失败：忽略 inbars 后引子前 2 小节仍是 %s —— 这条判据量不到渐入'
+         % (sorted(_bad)[:5] if _bad else '空'))
+    print('        引子渐入：带 perc_in %d 个鼓点 < 不带 %d 个；前 2 小节 %d 个（旧行为会敲）'
+          % (len(on), len(off), 0))
 
 
 def main():

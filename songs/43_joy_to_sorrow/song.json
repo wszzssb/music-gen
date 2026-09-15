@@ -1,0 +1,254 @@
+{
+ "name": "joy_to_sorrow",
+ "bpm": 120.0,
+ "meter": [4, 4],
+ "desc": "1 分钟情绪短片：C 大调欢快（A 段，依据 cheerful 包 10 首模板）→ 转折 Cmaj7→Cm7（同主音借用，只改三度音）→ C 小调悲伤（B/尾，和声依据 sorrow 包 10 首模板的备选进行 D7|Gsus4|Cm7|Cm）。120BPM × 30 小节 = 60.0 秒。",
+ "style": "daily",
+ "melody_reuse_exempt": "Intro 与 Intro2 是同一引子的两半（前 2 小节安静、后 2 小节鼓组渐入，对齐模板 b1-b2 无鼓 / b3-b4 进鼓），旋律刻意分写两支",
+ "patterns": {
+  "bass_style": "offbeat",
+  "perc_style": "dance",
+  "sub_gain": 0,
+  "melody_dyn": true,
+  "arr_by_role": false,
+  "arpeggio": [0, 2, 3, 4, 3, 2, 4],
+  "guitar_beats": [0.0, 1.0, 2.0, 3.0],
+  "guitar_vary": true,
+  "space": true,
+  "mel_vel": 1.15
+ },
+ "chords": {
+  "Am6": [33, [57, 60, 64, 66]],
+  "Gmaj7": [31, [55, 59, 62, 66]],
+  "G7": [31, [55, 59, 62, 65]],
+  "Cmaj7": [36, [60, 64, 67, 71]],
+  "D7": [38, [62, 66, 69, 72]],
+  "Cm7": [36, [60, 63, 67, 70]],
+  "Cm": [36, [60, 63, 67]],
+  "Gsus4": [31, [55, 60, 62]],
+  "F6": [29, [65, 69, 72, 74]],
+  "C6": [36, [60, 64, 67, 69]],
+  "Am7": [33, [57, 60, 64, 67]]
+ },
+ "melody": {
+  "A": [
+   [0, 1.0, 0.75, 72], [0, 2.5, 0.5, 70], [0, 3.0, 1.0, 72],
+   [1, 0.0, 2.0, 72],
+   [2, 0.0, 1.5, 74], [2, 2.0, 1.5, 72],
+   [3, 1.0, 0.75, 74], [3, 2.75, 0.5, 71], [3, 3.5, 0.5, 71],
+   [4, 1.5, 0.5, 76], [4, 2.0, 0.75, 72], [4, 3.0, 0.5, 76], [4, 3.5, 0.5, 79],
+   [5, 0.0, 2.0, 81],
+   [6, 1.0, 0.75, 79], [6, 2.75, 0.5, 77], [6, 3.5, 0.5, 77],
+   [7, 0.0, 2.0, 79]
+  ],
+  "intro1": [
+   [0, 0.5, 1.5, 76], [0, 2.0, 1.5, 79],
+   [1, 0.5, 1.0, 76], [1, 1.5, 0.5, 78], [1, 2.0, 1.5, 76]
+  ],
+  "intro2": [
+   [0, 0.5, 1.0, 74], [0, 1.5, 0.5, 71], [0, 2.0, 1.5, 79],
+   [1, 0.5, 3.0, 74]
+  ],
+  "turn": [
+   [0, 0.5, 0.5, 79], [0, 1.0, 1.0, 76], [0, 2.0, 2.0, 72],
+   [1, 0.5, 1.5, 75], [1, 2.0, 2.0, 79]
+  ],
+  "B": [
+   [0, 0.0, 0.75, 69], [0, 1.5, 0.5, 67], [0, 2.0, 1.5, 66], [0, 3.5, 0.5, 74],
+   [1, 0.5, 1.5, 74], [1, 2.5, 1.5, 72],
+   [2, 0.5, 1.0, 67], [2, 1.5, 0.5, 75], [2, 2.5, 1.5, 72],
+   [3, 0.5, 2.0, 67], [3, 3.0, 0.5, 67],
+   [4, 0.0, 0.75, 69], [4, 1.5, 0.5, 72], [4, 2.0, 0.5, 74], [4, 2.5, 1.0, 77],
+   [5, 0.5, 1.5, 79], [5, 3.0, 1.0, 74],
+   [6, 0.0, 0.75, 75], [6, 1.5, 0.5, 74], [6, 2.5, 1.5, 72],
+   [7, 0.5, 1.5, 67], [7, 3.0, 1.0, 75]
+  ],
+  "outro": [
+   [0, 0.5, 1.0, 72], [0, 2.0, 0.5, 72], [0, 2.5, 1.0, 75],
+   [1, 0.0, 1.0, 67], [1, 2.0, 1.5, 67],
+   [2, 0.5, 1.0, 69], [2, 2.0, 1.0, 72],
+   [3, 0.5, 1.5, 75], [3, 2.5, 1.0, 72],
+   [4, 0.5, 1.0, 72], [4, 2.5, 1.0, 70],
+   [5, 0.0, 1.0, 72], [5, 2.0, 1.5, 72],
+   [6, 0.5, 1.0, 74], [6, 2.0, 1.0, 72],
+   [7, 0.5, 1.5, 72], [7, 3.0, 1.0, 72]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 2,
+   "melody": "intro1",
+   "chords": ["Cmaj7", "Am6"],
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "vel": 0.85,
+    "mix": {
+     "Melody": 96,
+     "Piano": 72,
+     "Pad": 60,
+     "Bass": 78
+    }
+   }
+  },
+  {
+   "name": "Intro2",
+   "bars": 2,
+   "melody": "intro2",
+   "chords": ["Gmaj7", "G7"],
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "vel": 0.92,
+    "mix": {
+     "Melody": 96,
+     "Piano": 74,
+     "Pad": 62,
+     "Bass": 80,
+     "Perc": 62
+    }
+   }
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "melody": "A",
+   "chords": ["C6", "Am7", "F6", "G7", "C6", "Am7", "F6", "G7"],
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": true,
+    "vel": 1.0,
+    "mix": {
+     "Melody": 103,
+     "Hook": 80,
+     "Piano": 78,
+     "Arp": 52,
+     "Pad": 66,
+     "Bass": 88,
+     "Glock": 82,
+     "Perc": 78
+    }
+   }
+  },
+  {
+   "name": "Bridge",
+   "bars": 2,
+   "melody": "turn",
+   "chords": ["Cmaj7", "Cm7"],
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "mix": {
+     "Melody": 96,
+     "Piano": 74,
+     "Pad": 62,
+     "Strings": 70,
+     "Bass": 82,
+     "Perc": 62
+    }
+   }
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "melody": "B",
+   "mode": "minor",
+   "chords": ["D7", "Gsus4", "Cm7", "Cm", "D7", "Gsus4", "Cm7", "Cm"],
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "vel": 0.88,
+    "mix": {
+     "Melody": 92,
+     "Piano": 72,
+     "Pad": 66,
+     "Strings": 76,
+     "Bass": 80
+    }
+   }
+  },
+  {
+   "name": "Outro",
+   "bars": 8,
+   "melody": "outro",
+   "mode": "minor",
+   "chords": ["Cm7", "Cm", "F6", "Cm", "Cm7", "Cm", "Gsus4", "Cm"],
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "vel": 0.8,
+    "mix": {
+     "Melody": 84,
+     "Piano": 66,
+     "Pad": 60,
+     "Strings": 70,
+     "Bass": 70
+    }
+   }
+  }
+ ],
+ "theme": {
+  "name": "cheerful",
+  "label": "欢快",
+  "pack": "refs/themes/cheerful.json",
+  "template_count": 10,
+  "styles": ["pop", "latin", "rock"],
+  "source_kinds": {
+   "bitmidi": 10
+  },
+  "primary_source": "window4",
+  "mix_target": "cheerful_mix",
+  "energy_curve_db": [-1.12, -0.12, -0.12, 0.88, 0.88, 0.88, 0.88, -2.12],
+  "energy_gain": 1.0,
+  "templates": ["latin/Blue-Tango.mid", "latin/L.CARLTON.Rio Samba.mid", "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid", "latin/Azure-Bossa-Nova.mid", "pop/IGGY POP.Louie Louie.mid", "pop/Disco Citizens - Footprint.mid", "pop/Disco-Fans.mid", "rock/50's-Rock.mid", "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid", "rock/A-Hard-Day's-Night-4.mid"],
+  "melody_profile": "refs/themes/cheerful_melody.json",
+  "seed": 41,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "seed": 41,
+  "dens": 2.6,
+  "candidates": 4,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0,
+  "note": "A 段旋律由 melody_gen 按 cheerful 画像生成；intro / turn / B / outro 四段为手写（跨情绪：B 与尾段是 C 小调，本就不该套欢快画像的时值/落点方言）。因此不写 profile —— 手写旋律没有「该像谁」。"
+ }
+}
