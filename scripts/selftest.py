@@ -1129,6 +1129,78 @@ def t_lead_timbre_attack():
 
 
 @check
+def t_section_transition():
+    """**段与段之间要有过渡或留白** —— 用户："有转变可以，但要过渡自然或中间有空白作为间隔"。
+
+    量每个段边界：边界处（±0.15s）的短时 RMS 中位 vs 两侧（0.3~0.9s）的中位。
+      · **谷深 ≥ 6dB** → 边界处明显低 = 有留白（`patterns.section_gap`）✓
+      · **边界跳变 < 3dB** → 两侧本来就接近 = 有渐变（编配/能量曲线平滑）✓
+      · 两者都不是 → **硬切** ✗ —— 就是"突兀"
+
+    背景（2026-09-15 实测）：加留白之前 **34 首里 27 首是硬切**（谷深 −4~+5.7dB、
+    跳变中位 5.5dB）；47_cheer_pop 加 `section_gap: 1.0` 后谷深 −3.9 → **+9.2dB**，
+    从"硬切"变"有留白"。只查**主题路径**曲目（早期无主题曲的段界形态是历史包袱，
+    重做才有意义）。
+    """
+    import json as _json
+    import numpy as _np
+    bad, checked = [], 0
+    for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
+        sid = os.path.basename(os.path.dirname(p))
+        try:
+            d = song_engine.load(p)
+        except Exception:
+            continue
+        if not d.get('theme'):
+            continue
+        hit = glob.glob(os.path.join(ROOT, 'songs', sid, '*_sf.wav'))
+        if not hit:
+            continue
+        bpm = d.get('bpm') or 120.0
+        m, sr, x = metrics.load(hit[0])
+        mono = x.mean(axis=1) if x.ndim > 1 else x
+        hop = max(1, int(sr * 0.05))
+        env = 20 * _np.log10(_np.maximum(_np.array(
+            [_np.sqrt((mono[i:i + hop] ** 2).mean())
+             for i in range(0, max(1, len(mono) - hop), hop)]), 1e-9))
+        bar_s = 4 * 60.0 / float(bpm)
+        t, ok_all, worst = 0.0, True, None
+        for s in (d.get('sections') or [])[:-1]:
+            t += int(s.get('bars') or 0) * bar_s
+            b = int(t / 0.05)
+            pre = env[max(0, b - 18):b - 6]        # 边界前 0.3~0.9s（前段主体）
+            post = env[b + 6:b + 18]               # 边界后 0.3~0.9s（后段主体）
+            if len(pre) < 4 or len(post) < 4:
+                continue
+            # ⚠ 早先拿"边界 ±0.15s"当 mid 是错的：那个窗**跨了边界**，
+            #   前半是渐弱尾、后半是新段头，一平均就看不出留白（实测 dip 只有 −2~−3dB）。
+            #   正确做法是分别看两侧：
+            #     · 段末**渐弱**：边界前 0.15s 明显低于前段主体
+            #     · 段首**渐入**：边界后 0.15s 明显低于后段主体
+            #     · 或边界处有**留白**：两侧主体都比边界附近高（旧口径，保留）
+            p_edge = env[max(0, b - 3):b]
+            q_edge = env[b:b + 3]
+            fade_out = (float(_np.median(pre)) - float(_np.median(p_edge))
+                        if len(p_edge) >= 1 else 0.0)
+            fade_in = (float(_np.median(post)) - float(_np.median(q_edge))
+                       if len(q_edge) >= 1 else 0.0)
+            jump = abs(float(_np.median(post)) - float(_np.median(pre)))
+            ok = (fade_out >= TRANSITION_FADE_MIN) or (fade_in >= TRANSITION_FADE_MIN) \
+                or (jump < TRANSITION_JUMP_MAX)
+            if not ok:
+                ok_all = False
+                if worst is None or jump > worst[0]:
+                    worst = (jump, s.get('name'), max(fade_out, fade_in))
+        checked += 1
+        if not ok_all and worst:
+            bad.append('%s: 边界「%s」跳 %.1fdB、两端渐弱/渐入只有 %.1fdB（硬切）'
+                       % (sid, worst[1], worst[0], worst[2]))
+    assert checked >= 3, '主题路径曲目太少（%d），这条检查会空转' % checked
+    assert not bad, ('段界硬切（要"过渡自然或中间留白"）：%s' % '；'.join(bad[:4]))
+    print('        %d 首主题路径曲目：段界都有留白或渐变' % checked)
+
+
+@check
 def t_style_desc_matches_programs():
     """风格预设的文字说明要与实际音色一致（防复制粘贴串味）"""
     want = {'gorgeous': ('竖琴', 'Hook', 46), 'ballad': ('尼龙', 'Hook', 24),
@@ -5060,6 +5132,10 @@ def t_theme_melody_reuse():
 
 ONSET_TVD_MAX = 0.65      # 每段落点分布与画像的 TVD 上限
 BASS_FLOOR = 24           # Bass 轨音高下界 = C1(32.7Hz)（真值见 t_bass_register）
+# 段界"过渡/留白"的门（真值见 t_section_transition）：
+#   段末渐弱或段首渐入 ≥ 4dB，或边界两侧本来就接近（< 3dB）—— 三者居其一才算"不突兀"
+TRANSITION_FADE_MIN = 4.0
+TRANSITION_JUMP_MAX = 3.0
 # ⚠ 判据的门**必须是独立常量**，不能拿被检查对象自己的模块常量当门 ——
 # 否则 mutation 一注入（`SUB_FLOOR=0`），门跟着变成 0，判据自己就废了（实测漏抓过一次）。
 # 真值（10 首模板彼此 vs 画像的 TVD，`refs/midi2`）：cheerful 0.152~0.588、sorrow 0.083~0.407。

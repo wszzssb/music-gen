@@ -12,7 +12,8 @@
   "arpeggio": [0, 1, 3, 2],
   "guitar_beats": [0, 0.5, 1, 1.5, 1.75, 2, 2.5, 3, 3.5, 3.75],
   "guitar_vary": true,
-  "space": true
+  "space": true,
+  "section_gap": 1.0
  },
  "chords": {
   "D7": [38, [62, 66, 69, 72]],

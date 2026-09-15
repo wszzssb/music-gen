@@ -6,7 +6,8 @@
  "style": "acoustic",
  "patterns": {
   "bass_style": "simple",
-  "perc_style": "light"
+  "perc_style": "light",
+  "section_gap": 1.0
  },
  "chords": {
   "Em7": [28, [64, 67, 71, 74]],

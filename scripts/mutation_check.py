@@ -148,6 +148,23 @@ class Mut:
         setattr(self.obj, self.name, self.old)
 
 
+class MutMany:
+    """一次替换多个属性（`Mut` 只能一个）—— 有些判据是"几个门居其一"，
+    只关一个门证明不了它真在量那样东西。"""
+    def __init__(self, pairs):
+        self.pairs = pairs
+        self.olds = []
+
+    def __enter__(self):
+        for obj, name, value in self.pairs:
+            self.olds.append((obj, name, getattr(obj, name)))
+            setattr(obj, name, value)
+
+    def __exit__(self, *a):
+        for obj, name, old in self.olds:
+            setattr(obj, name, old)
+
+
 class SkipCase(Exception):
     """夹具不存在时**跳过**该变异用例（既不判漏、也不判过）。
 
@@ -1275,6 +1292,12 @@ def main():
     results.append(case('音色：主奏换成慢起音（听着慢半拍）',
                         'lead_timbre_attack',
                         lambda: Mut(_se, 'STYLES', _ST2)))
+    # ㉒ 把"过渡/留白"的两个门一起抬死 → 每个段界都会被判硬切，
+    #    `t_section_transition` 必须抓到（证明它真在量段界形态，而不是恒绿）
+    results.append(case('段界：过渡/留白门被抬死',
+                        'section_transition',
+                        lambda: MutMany([(st, 'TRANSITION_FADE_MIN', 99.0),
+                                         (st, 'TRANSITION_JUMP_MAX', -99.0)])))
     # ⑰ 吉他换回"每小节同一个音型"（关掉相位轮换）→ 同和弦的小节逐音复读 →
     #    `guitar_variation` 必须抓到（用户听感"每首曲子的刚弦吉他都是这个节奏音调"）
     results.append(case('吉他：关掉音型轮换（逐小节复读）',

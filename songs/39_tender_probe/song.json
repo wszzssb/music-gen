@@ -8,7 +8,8 @@
   "bass_style": "simple",
   "perc_style": "light",
   "melody_dyn": true,
-  "space": true
+  "space": true,
+  "section_gap": 1.0
  },
  "chords": {
   "D7": [38, [62, 66, 69, 72]],

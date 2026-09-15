@@ -1155,7 +1155,26 @@ def build_events(d):
                     _ps = [m for (_t, _d, m, _v) in bucket[k]]
                     if _ps and not (_rg[0] <= min(_ps) + _sh and max(_ps) + _sh <= _rg[1]):
                         _sh = 0
+            # **段末留白 + 渐弱**（opt-in `patterns.section_gap`，单位=拍的倍数）——
+            # 用户："有转变可以，但要过渡自然或中间有空白作为间隔"。
+            # ⚠ 实现是"最后 `gap` 拍**渐弱到 0**"而**不是直接切掉**：第一版直接切，
+            #   结果上一小节的余音（混响 + 采样尾巴）把空白填满了 —— 边界处并不比两侧低
+            #   （实测谷深只有 0.3dB），检查照样判"硬切"。渐弱才真把能量收下去。
+            # 依据：34 首里 27 首段界是硬切（谷深 −4~+5.7dB、跳变中位 5.5dB）。
+            _gap = float((d.get('patterns') or {}).get('section_gap') or 0.0)
+            # ⚠ `bucket` 里的事件时间是**全局拍**（见上面 `t0 = (bar0 + i) * B`），
+            #   所以段的结束位置必须是 `(bar0 + nbars) * B` —— 第一版错写成 `nbars * B`
+            #   （段内拍），于是 `_left` 对几乎所有音都是负数、被整段 `continue` 掉，
+            #   成品时长从 118s 塌成 19s（`render_duration_matches_midi` 当场抓到）。
+            _end = (bar0 + nbars) * B
             for (t, dd, m, v) in bucket[k]:
+                if _gap > 0:
+                    _left = _end - t
+                    if _left <= 0:
+                        continue                     # 越过段末：这一音不留
+                    if _left < _gap:
+                        v = v * (_left / _gap)       # 段末渐弱
+                        dd = min(dd, max(0.1, _left))
                 # 走到这里的音高都已在合法范围内（数据越界在 load() 就报错了，
                 # 派生声部越界在上游被丢弃）；这里只处理时间/时值/力度
                 assert 0 <= m <= 127, '%s 出现了越界音高 %s（派生声部漏了过滤）' % (k, m)

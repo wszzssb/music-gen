@@ -461,7 +461,11 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
                       # **给旋律留空间**（opt-in，见 `song_engine` 的 `patterns.space`）：
                       # 伴奏减薄到接近真实模板的密度（实测我们 45 音/小节 vs 真实 19.8，
                       # 旋律"独唱率"只有 15% vs 真实 43%）。同样只对新歌开。
-                      'space': True},
+                      'space': True,
+                      # **段末留白**（见 `song_engine.build_events` 的 `section_gap`）——
+                      # 用户："有转变可以，但要过渡自然或中间有空白作为间隔"。
+                      # 实测 27/34 首的段界是硬切（边界处不比两侧低、跳变中位 5.5dB）。
+                      'section_gap': 1.0},
          'chords': chords, 'melody': melody, 'sections': secs,
          # **模板依据留痕**：check_song / 自检照这份核对"是不是白名单来源、够不够多"
          'theme': {'name': pack['theme'], 'label': pack.get('label'),
