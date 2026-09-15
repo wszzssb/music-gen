@@ -1030,6 +1030,62 @@ def t_melody_within_sections():
 
 
 @check
+def t_track_balance():
+    """**旋律不许被伴奏盖住** —— 用户的听感总结："欢快的音乐都有一个音轨和其它不平衡"。
+
+    用 `probe_timbre.solo_song` 逐轨量**未归一化 raw** 的 2.5–5kHz 电平：
+    响度归一化会吃掉 `arr.mix` 的差异（CC7 60→127 只差 0.23dB），**只有 raw 反映真实比例**。
+
+    实测（47_cheer_pop）：
+      修前（cheerful 用 `daily` 引擎、Hook = 钢弦吉他 program 25）：
+        Hook **38.2dB** / Melody 22.2dB → 吉他比旋律高 **16dB**，把旋律盖住
+      修后（`dance` 引擎 + 主奏颤音琴 11）：
+        Hook **0.3dB** / Melody 20.8dB → 正常
+
+    判据：**伴奏轨（Hook/Piano/Arp/Strings/Pad/Bass）里最响的那条，
+    不得比 Melody 高 6dB 以上**。打击（Perc）不参与 —— 它是节奏层，
+    在 2.5–5kHz 天然比旋律高（实测各曲都 ~33dB），不是"伴奏压主奏"。
+    """
+    import probe_timbre as pt
+    bad, checked = [], 0
+    for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
+        if checked >= 2:                 # 逐轨 solo 要渲染 N 次，全库跑太慢
+            break
+        try:
+            d = song_engine.load(p)
+        except Exception:
+            continue
+        if (d.get('style') or '') not in ('dance', 'daily'):
+            continue
+        if not d.get('theme'):
+            # 只查**有主题依据**的曲目。早期无主题曲（11_dn75_neon / 12_d75_warm 等）
+            # 的旋律是手写的、音区本身偏低（实测 Melody 只有 6.0dB），量到的是
+            # "这首曲子的音区"而不是"轨间平衡" —— 拿它判平衡会误报。
+            continue
+        rows = pt.solo_song(p)
+        by = {r['name']: r['abs']['2500-5000'] for r in rows}
+        if 'Melody' not in by:
+            continue
+        mel = by['Melody']
+        # 只算**中高频伴奏层**：Hook（吉他）/ Arp / Strings / Pad / Piano。
+        # 排除 Perc（节奏层，2.5–5kHz 天然 ~33dB）与 Bass（低音层 —— 它在那里的能量
+        # 是泛音，实测 47 号的 Bass 有 22.4dB 但听感上并不"盖住旋律"，拿它判会误报）。
+        rest = {k: v for k, v in by.items()
+                if k in ('Hook', 'Arp', 'Strings', 'Pad', 'Piano')}
+        if not rest:
+            continue
+        checked += 1
+        top_k = max(rest, key=lambda k: rest[k])
+        if rest[top_k] > mel + 6.0:
+            bad.append('%s: %s %.1fdB 比 Melody %.1fdB 高 %.1fdB' % (
+                os.path.basename(os.path.dirname(p)), top_k, rest[top_k],
+                mel, rest[top_k] - mel))
+    assert checked >= 1, '没有可查的曲目（夹具太少，这条检查会空转）'
+    assert not bad, '伴奏盖住旋律（"一轨和其它不平衡"）：%s' % '；'.join(bad)
+    print('        %d 首：伴奏轨都未盖过旋律（阈值 +6dB，用未归一化 raw 量）' % checked)
+
+
+@check
 def t_style_desc_matches_programs():
     """风格预设的文字说明要与实际音色一致（防复制粘贴串味）"""
     want = {'gorgeous': ('竖琴', 'Hook', 46), 'ballad': ('尼龙', 'Hook', 24),

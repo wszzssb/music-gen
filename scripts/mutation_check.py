@@ -1256,6 +1256,18 @@ def main():
                         'arr_role_variety',
                         lambda: Mut(_se, 'arr_sparse',
                                     lambda arr: dict(_sp_orig(arr), glock=False))))
+    # ⑳ 把伴奏音色换回"盖住旋律"的那个（dance 的 Hook 由电钢 4 换回钢弦吉他 25）→
+    #    `t_track_balance` 必须抓到 —— 用户听感总结"欢快的音乐都有一个音轨和其它不平衡"，
+    #    实测就是钢弦吉他（program 25）的拨弦泛音把旋律压住了。
+    # ⚠ `Mut` 走 getattr/setattr，**只能换对象属性、改不了 dict 的键** ——
+    #   所以这里深拷贝整张 `STYLES` 再替换模块属性（第一版写成
+    #   `Mut(_se.STYLES['dance']['programs'], 'Hook', ...)`，当场 AttributeError）。
+    import copy as _copy2
+    _ST = _copy2.deepcopy(_se.STYLES)
+    _ST['dance']['programs']['Hook'] = [25, 1]          # 换回钢弦吉他（它会盖住旋律）
+    results.append(case('平衡：伴奏音色被换亮（盖住旋律）',
+                        'track_balance',
+                        lambda: Mut(_se, 'STYLES', _ST)))
     # ⑰ 吉他换回"每小节同一个音型"（关掉相位轮换）→ 同和弦的小节逐音复读 →
     #    `guitar_variation` 必须抓到（用户听感"每首曲子的刚弦吉他都是这个节奏音调"）
     results.append(case('吉他：关掉音型轮换（逐小节复读）',

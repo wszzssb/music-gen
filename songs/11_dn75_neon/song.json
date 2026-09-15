@@ -119,10 +119,10 @@
    "arr": {
     "arp": true,
     "piano": true,
-    "pad": true,
+    "pad": false,
     "bass": true,
     "perc": 1,
-    "ep": true,
+    "ep": false,
     "strings": false,
     "glock": false,
     "vel": 0.9
@@ -136,10 +136,10 @@
    "arr": {
     "arp": true,
     "piano": true,
-    "pad": true,
+    "pad": false,
     "bass": true,
     "perc": 2,
-    "ep": true,
+    "ep": false,
     "strings": false,
     "glock": false,
     "vel": 1.0
@@ -153,11 +153,11 @@
    "arr": {
     "arp": true,
     "piano": true,
-    "pad": true,
+    "pad": false,
     "bass": true,
     "perc": 2,
-    "ep": true,
-    "strings": true,
+    "ep": false,
+    "strings": false,
     "glock": true,
     "vel": 1.04
    }
@@ -170,11 +170,11 @@
    "arr": {
     "arp": true,
     "piano": true,
-    "pad": true,
+    "pad": false,
     "bass": true,
     "perc": 2,
-    "ep": true,
-    "strings": true,
+    "ep": false,
+    "strings": false,
     "glock": false,
     "vel": 1.02
    }
@@ -187,11 +187,11 @@
    "arr": {
     "arp": true,
     "piano": true,
-    "pad": true,
+    "pad": false,
     "bass": true,
     "perc": 1,
-    "ep": true,
-    "strings": true,
+    "ep": false,
+    "strings": false,
     "glock": true,
     "vel": 0.96
    }
@@ -204,11 +204,11 @@
    "arr": {
     "arp": true,
     "piano": true,
-    "pad": true,
+    "pad": false,
     "bass": true,
     "perc": 2,
-    "ep": true,
-    "strings": true,
+    "ep": false,
+    "strings": false,
     "glock": true,
     "vel": 1.06,
     "glock_all": true
@@ -222,11 +222,11 @@
    "arr": {
     "arp": true,
     "piano": true,
-    "pad": true,
+    "pad": false,
     "bass": true,
     "perc": 1,
-    "ep": true,
-    "strings": true,
+    "ep": false,
+    "strings": false,
     "glock": false,
     "vel": 0.92
    }
