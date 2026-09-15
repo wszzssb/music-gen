@@ -170,3 +170,14 @@
      `Get-Content` 按默认编码读 UTF-8 中文会变 GBK 乱码 —— 文本读写一律指明编码，
      或者干脆走文件工具（见坑 156 与 `cli_utf8.py`）。
 
+
+
+157. **`smoke_ui.js` / `browser_check.js` 会真的写回 `songs/<曲>/song.json`** ——
+     跑完验收 `git status` 会多出一条未提交改动，看着像自己改错了东西。
+     实测：`42_gtr_tender` 的数字格式被规范化（`2.0`→`2`、`3.0`→`3`），
+     **语义完全等价** —— `json_io.py` 判定"本来就是规范格式"、`song_json_canonical` PASS、
+     selftest 111/111。来源是"写回/撤销"那条用例（真的走了一遍 `json_io.normalize`）。
+     处理：跑完验收 `git checkout -- songs/` 还原，别把测试副作用提交进去。
+     **教训**：验收脚本碰真文件时，跑完必须回头看 `git status` —— 否则会把"测试的痕迹"
+     当成"自己的改动"一起提交（这一次差点）。
+
