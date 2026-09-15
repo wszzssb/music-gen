@@ -80,7 +80,7 @@
     "shimmer": false,
     "perc_in": 2,
     "mix": {
-     "Melody": 93,
+     "Melody": 92,
      "Hook": 73,
      "Piano": 69,
      "Arp": 54,
@@ -110,7 +110,7 @@
     "ep": false,
     "shimmer": false,
     "mix": {
-     "Melody": 98,
+     "Melody": 96,
      "Hook": 76,
      "Piano": 72,
      "Arp": 57,
@@ -140,7 +140,7 @@
     "ep": false,
     "shimmer": false,
     "mix": {
-     "Melody": 99,
+     "Melody": 97,
      "Hook": 77,
      "Piano": 73,
      "Arp": 58,
@@ -170,7 +170,7 @@
     "glock_all": false,
     "shimmer": false,
     "mix": {
-     "Melody": 101,
+     "Melody": 99,
      "Hook": 79,
      "Piano": 75,
      "Arp": 59,
@@ -200,7 +200,7 @@
     "glock_all": false,
     "shimmer": false,
     "mix": {
-     "Melody": 105,
+     "Melody": 103,
      "Hook": 82,
      "Piano": 78,
      "Arp": 61,
@@ -230,7 +230,7 @@
     "glock_all": false,
     "shimmer": false,
     "mix": {
-     "Melody": 105,
+     "Melody": 103,
      "Hook": 82,
      "Piano": 78,
      "Arp": 61,
@@ -260,7 +260,7 @@
     "glock_all": false,
     "shimmer": false,
     "mix": {
-     "Melody": 105,
+     "Melody": 103,
      "Hook": 82,
      "Piano": 78,
      "Arp": 61,
@@ -290,7 +290,7 @@
     "glock_all": false,
     "shimmer": true,
     "mix": {
-     "Melody": 105,
+     "Melody": 103,
      "Hook": 82,
      "Piano": 78,
      "Arp": 61,
@@ -320,7 +320,7 @@
     "glock_all": false,
     "shimmer": false,
     "mix": {
-     "Melody": 101,
+     "Melody": 99,
      "Hook": 79,
      "Piano": 75,
      "Arp": 59,
@@ -350,7 +350,7 @@
     "ep": false,
     "shimmer": false,
     "mix": {
-     "Melody": 88,
+     "Melody": 86,
      "Hook": 69,
      "Piano": 65,
      "Arp": 51,

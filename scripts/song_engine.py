@@ -92,14 +92,14 @@ STYLES = {
     },
     # 日常/抒情：钢琴主奏 + 吉他 + 电钢琴切分，柔和
     'daily': {
-        'desc': '日常抒情：颤音琴主奏 + 尼龙吉他 + 电钢琴切分 + 沙锤',
-        # ⚠ 2026-09-15：主奏 Melody 0（钢琴）→ **11（颤音琴）**。钢琴在 2.5–5kHz 能量
-        #   偏低（实测 12_d75_warm 只有 15.8dB），而伴奏（Hook/Strings）能到 22–24dB ——
-        #   旋律被盖住（`t_track_balance` 报 8.7dB 超标）。颤音琴同属"温暖明亮"路线，
-        #   既能压住伴奏，又不像合成主奏那样电子化。
-        'programs': _progs(Melody=11, Hook=24, Piano=4, Pad=89, Strings=48,
+        'desc': '日常抒情：木琴主奏 + 尼龙吉他 + 电钢琴切分 + 沙锤',
+        # ⚠ 2026-09-15：主奏 Melody 0（钢琴）→ 11（颤音琴）→ **13（木琴）**。钢琴在
+        #   2.5–5kHz 只有 15.8dB，被 Hook/Strings 的 22–24dB 盖住（`t_track_balance`
+        #   报 12_d75_warm 超 8.7dB）；颤音琴补上了亮度，但 attack 42ms 听着"慢半拍"；
+        #   木琴 attack 12ms、最响、不拖 —— 见 STYLES['dance'] 的实测表。
+        'programs': _progs(Melody=13, Hook=24, Piano=4, Pad=89, Strings=48,
                            Bass=32, Glock=9),
-        'mix': {'Melody': (76, 104), 'Hook': (42, 80), 'Piano': (88, 78),
+        'mix': {'Melody': (76, 98), 'Hook': (42, 80), 'Piano': (88, 78),
                 'Arp': (92, 50), 'Pad': (64, 66), 'Strings': (52, 70),
                 'Bass': (64, 88), 'Glock': (100, 84), 'Perc': (64, 78)},
         'patterns': {'bass_style': 'simple', 'perc_style': 'light'},
@@ -118,14 +118,25 @@ STYLES = {
     },
     # 舞曲：合成主奏 + 电钢琴 + 琶音 + 合成贝斯（四踩底鼓）
     'dance': {
-        'desc': '舞曲：颤音琴主奏 + 电钢琴 + 琶音 + 合成贝斯 + 四踩底鼓',
-        # ⚠ 2026-09-15：主奏 Melody 81（合成主奏）→ **11（颤音琴）**。
-        #   原合成主奏够亮、平衡好（Melody 32.6dB vs 打击 33.2dB），但电子味重、
-        #   CLAP happy 只有 0.323（tense 0.58）。颤音琴同属"明亮金属"音色，
-        #   高频不输合成主奏，听感更接近真实乐器 —— 兼顾"平衡"与"不电子"。
-        'programs': _progs(Melody=11, Hook=4, Piano=4, Pad=89, Strings=48,
+        'desc': '舞曲：木琴主奏 + 电钢琴 + 琶音 + 合成贝斯 + 四踩底鼓',
+        # ⚠ 2026-09-15：主奏 Melody 81（合成主奏）→ 11（颤音琴）→ **13（木琴）**。
+        #   合成主奏够亮、平衡好，但电子味重、CLAP happy 只有 0.323（tense 0.58）。
+        #   换成颤音琴后 happy 0.498，可用户听出"有一个乐器慢一点不太和谐" ——
+        #   逐项实测（`attack_probe.py`，渲染固定乐句量音头）：
+        #     音色      attack   拖尾     首音峰值
+        #     电钢 4      4ms    —        −9.9
+        #     钟琴 9      4ms    1690ms   −9.8   ← 拖尾太长
+        #     钢琴 0      8ms    —        −6.4
+        #     木琴 13    12ms    460ms    −3.6   ← ✓ 最响、干脆
+        #     颤音琴 11  42ms    310ms    −9.2   ← 比打击(~1–5ms)慢一个数量级 = "慢半拍"
+        #     八音盒 10 758ms    1700ms   −5.6
+        #   木琴（Xylophone）起音快、不拖、最响，适合 132BPM 的快节奏欢快曲。
+        'programs': _progs(Melody=13, Hook=4, Piano=4, Pad=89, Strings=48,
                            Bass=38, Glock=9),
-        'mix': {'Melody': (72, 100), 'Hook': (48, 78), 'Piano': (88, 74),
+        # ⚠ Melody 的 CC7 上限 104 → 98：木琴采样本身最响（峰值 −3.6dB，其他候选
+        #   −6~−10dB），归一化到目标 RMS 后峰值会过 1.0（实测 13_d75_rising 削波 1.001）。
+        #   降 6（≈1dB）即可，不影响"旋律压住伴奏"（实测 Melody 仍 28.6dB vs Hook 0.1dB）。
+        'mix': {'Melody': (72, 98), 'Hook': (48, 78), 'Piano': (88, 74),
                 'Arp': (92, 58), 'Pad': (64, 66), 'Strings': (56, 62),
                 'Bass': (64, 96), 'Glock': (104, 58), 'Perc': (64, 84)},
         'patterns': {'bass_style': 'sixteenth', 'perc_style': 'dance'},

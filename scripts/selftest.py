@@ -1093,10 +1093,10 @@ def t_style_desc_matches_programs():
             # daily 的 Hook 2026-09-15 由钢弦 25 改尼龙 24（钢弦的拨弦泛音在 2.5–10k
             # 比电钢高 39dB、把旋律盖住 —— 见 song_engine.STYLES 的注释），desc 同步改
             'daily': ('尼龙', 'Hook', 24),
-            # dance 的主奏 2026-09-15 由合成主奏 81 改颤音琴 11（合成主奏电子味重、
-            # CLAP happy 只有 0.323；颤音琴同属明亮金属音色但听感自然）—— 见
-            # song_engine.STYLES 的注释
-            'dance': ('颤音琴', 'Melody', 11)}
+            # dance 的主奏 2026-09-15：合成主奏 81 → 颤音琴 11 → **木琴 13**
+            # （合成主奏电子味重、happy 只 0.323；颤音琴 attack 42ms 听着"慢半拍"；
+            #  木琴 attack 12ms、最响、不拖 —— 见 song_engine.STYLES 的实测表）
+            'dance': ('木琴', 'Melody', 13)}
     for s, (kw, tr, prog) in want.items():
         preset = song_engine.STYLES[s]
         desc = preset.get('desc', '')
