@@ -180,7 +180,11 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             # 用户"按原曲逐段对齐编配" —— 原曲每段鼓点数在 0.1~28 格之间，
             # 而我的网格每小节最多 28 格 → 鼓比原曲多。给了目标就按
             # "每小节 ≤ 目标×1.5"均匀抽稀（`build_events` 的鼓段）。
-            'perc_target')
+            'perc_target',
+            # `perc_vel_max`（2026-09-16）：打击乐力度上限。参照用户提供的对照模板
+            # （力度 P90 只有 72），而 `drum_grid` 的力度上限是 127 ——
+            # GM 音源在 110+ 会明显"炸"。
+            'perc_vel_max')
 
 # ---------------------------------------------------------------------------
 # 段落角色 → 编制（opt-in，`patterns.arr_by_role`）
@@ -1279,9 +1283,14 @@ def build_events(d):
                                 _seq = [_seq[min(len(_seq) - 1, int(round(k * _st)))]
                                         for k in range(_lim)]
                         for (_g, _v) in _seq:
+                            # `arr.perc_vel_max`（opt-in）：打击乐力度上限。
+                            # 依据：用户提供的对照模板力度 P90 只有 **72**，而我方
+                            # `drum_grid` 的力度上限是 **127**（GM 音源在 110+ 明显"炸"）。
+                            _vmax = int(arr.get('perc_vel_max') or 127)
                             bucket['Perc'].append(
                                 (t0 + float(_g) * 0.25, 0.2, _note,
-                                 max(1, min(127, int(round(float(_v) * _lvl))))))
+                                 max(1, min(_vmax,
+                                            int(round(float(_v) * _lvl))))))
             elif arr.get('perc') and _dg:
                 _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
                 for _nm, _note in (('kick', 36), ('snare', 38),
@@ -1318,8 +1327,12 @@ def build_events(d):
             if pat.get('melody_dyn'):
                 mv *= mel_dyn_env(b, beat, dur, pat['melody_dyn'])
             _base96 = 96.0 if _mvel is None else _mvel
+            # `patterns.mel_vel_center`（opt-in）：旋律**力度基准**。
+            # 依据：用户提供的对照模板力度 P50 只有 **51**，而我方旋律原来是 96
+            # （P90 到 110）—— GM 音源下整曲偏重是"不像"的直接来源之一。
+            _mc = float(pat.get('mel_vel_center') or 96.0)
             bucket['Melody'].append((t, dur * 0.96, m,
-                                     max(1, min(127, int(round(_base96 * mv))))))
+                                     max(1, min(127, int(round(_mc * mv))))))
             # **低八度加厚**（`patterns.mel_octave`，默认 **0.15**；`1.0` = 旧行为全叠）。
             # 实测（2026-09-15）：我们 Melody 轨 **100% 的旋律音**都被叠了低八度，而真实模板
             # （cheerful 10 首）叠加率**中位 0%**（7 首为 0，最高 32%）——无条件全叠会把旋律
