@@ -86,7 +86,12 @@ def main():
     ap.add_argument('--bpm', type=float, default=150.0)
     ap.add_argument('--group', type=int, default=8)
     ap.add_argument('--band', type=float, nargs=2, default=[4000.0, 16000.0])
-    ap.add_argument('--max', type=float, default=6.0, help='单块最大增益 dB')
+    ap.add_argument('--max', type=float, default=6.0, help='单块最大**压制** dB')
+    ap.add_argument('--max-up', type=float, default=6.0,
+                    help='单块最大**抬升** dB（0 = 只压不抬）。'
+                         '⚠ 抬升不是"补内容"，只是把已有的高频推响 —— 对**合成音源**'
+                         '渲染的成品是安全的（没有模拟噪声基底，抬高频不会抬噪声），'
+                         '但对真实录音的成品要谨慎。')
     ap.add_argument('--smooth', type=int, default=0, help='块间交叉淡化样本数（0=自动 5%%）')
     a = ap.parse_args()
     bar_s = 4 * 60.0 / a.bpm
@@ -97,9 +102,12 @@ def main():
     sr = sr0
     n = min(len(A), len(B))
     A, B = A[:n], B[:n]
-    # 只在**偏亮**方向修（安静段偏暗是"缺内容"，拉 EQ 只会把噪声抬起来）
+    # 两个方向都修：偏亮压下去、偏暗抬上来。
+    # ⚠ 这里对"抬"的顾虑（原来只压不抬）经用户提醒后改了：**逐块 EQ 是纯频域操作，
+    #   音频后处理完全能做**，而且比回编配层更可控（编配一动会连带改密度/节奏格那些轴）。
+    #   对**合成音源**渲染的成品，抬高频只是把已有内容推响，不会抬噪声。
     want = np.clip(20 * np.log10(np.maximum(1e-6, A[:, 0] / np.maximum(1e-9, B[:, 0]))),
-                   -a.max, 0.0)
+                   -a.max, a.max_up)
     print('%-5s %10s %10s %9s %10s' % ('块', '原曲HF', '我HF', '比', '施加dB'))
     for i in range(n):
         print('%-5d %10.3f %10.3f %8.2fx %+9.2f'
