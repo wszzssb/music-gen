@@ -22,6 +22,20 @@ const $ = (id)=>document.getElementById(id);
 const api = async (p,opt)=>{const r=await fetch(p,opt);return r.json();};
 const fmt=(x,n=1)=> (x===null||x===undefined)?'-':Number(x).toFixed(n);
 
+/* **未捕获异常一律上屏**（用户口径"按了没有用"的根因排查教训）：
+ * 原来任何 JS 错误都只躺在 devtools 里，用户看到的就是"点了没反应"，
+ * 连自检脚本都只能看到"状态没变"而说不出为什么 —— 本次为此误诊了一整轮。
+ * 现在挂到 #log 上：出问题立刻能在面板里看到文件名+行号。
+ * （`log()` 是函数声明，会提升，所以这里可以先用。） */
+window.addEventListener('error', e => {
+  try { log('!! JS 错误：' + (e.message || '') + ' @'
+        + String(e.filename || '').split('/').pop() + ':' + (e.lineno || '?')); } catch (_) {}
+});
+window.addEventListener('unhandledrejection', e => {
+  try { log('!! 未处理的 Promise 拒绝：'
+        + ((e.reason && (e.reason.message || e.reason)) || '')); } catch (_) {}
+});
+
 /* ---------------- 曲目 ---------------- */
 async function loadSongs(){
   const d = await api('/api/songs');
@@ -747,7 +761,14 @@ async function startJob(kind,label){
 async function pollJob(){
   if(!S.job) return;
   const d=await api('/api/job?id='+encodeURIComponent(S.job));
-  if(!d.ok) return;
+  /* ⚠ 原来是 `if(!d.ok) return;` —— **静默退出**：任务一旦查不到（最典型的是服务重启过，
+   *   `JOBS` 是内存字典），轮询就此断掉，界面上什么都不说，表现为"点了试听没反应"。
+   *   现在把原因写进日志，并按任务类型给出可操作提示。 */
+  if(!d.ok){
+    log('!! 取任务状态失败：'+(d.error||'未知')+'（若是服务刚重启过，任务表在内存里会丢，重跑一次即可）');
+    S.job=null; S.jobKind=null;
+    return;
+  }
   $('log').textContent=d.log||''; $('log').scrollTop=$('log').scrollHeight;
   if(S.jobKind==='search') renderSearchLog(d.log||'');
   $('jobInfo').textContent='· '+d.job.kind+' '+d.job.state+(d.job.rc!==null?(' rc='+d.job.rc):'');
@@ -789,8 +810,13 @@ async function loadFiles(){
 
 /* ---------------- 事件绑定 ---------------- */
 function bind(){
-  $('btnLib').onclick=()=>openPath();
-  $('btnSave').onclick=()=>saveSong();
+  /* ⚠ 加元素前先判空：`$('x').onclick=…` 一旦 x 不存在就抛 TypeError，
+   *   而 bind() 是**一条直线** —— 第一行炸掉，后面所有绑定（播放模式、试听、拖拽…）
+   *   全部失效，表现是"好多按钮都没反应"。这类"某个元素缺失 → 半个面板失灵"
+   *   必须逐个兜住，不能靠"元素一定在"。 */
+  const _b=(id,fn)=>{ const e=$(id); if(e) e.onclick=fn; else console.warn('[bind] 缺元素 #'+id); };
+  _b('btnLib',()=>openPath());
+  _b('btnSave',()=>saveSong());
   $('btnCheck').onclick=async()=>{ if(S.dirty) await saveSong(true);
     const d=await api('/api/check?id='+encodeURIComponent(S.sid),{method:'POST'});
     $('log').textContent=(d.ok?'✅ 数据契约通过\n':'⚠ 未通过\n')+d.log; $('jobInfo').textContent='· 校验'; };
@@ -891,10 +917,15 @@ const num = (x, dflt) => (Number.isFinite(Number(x)) ? Number(x) : (dflt === und
 function setMode(m){
   S.mode=m;
   document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
-  const was=ENG.state().playing; ENG.stop();
-  if(was) togglePlay();
+  const was=ENG.state().playing;
+  ENG.stop();
+  /* 用户口径："主混音 / 分轨混音 / 参考曲 这三个按了没有用"。
+   * 原来只在**本来就在播放**时才 `togglePlay()` —— 于是没在播的时候点它只换个样式，
+   * 看着毫无反应。现在：**切完立刻尝试播放**（`ENG.stop()` 已把 playing 置 false，
+   * 所以 togglePlay 一定走"播放"分支）；该模式没音源时由 togglePlay 写日志说明原因。 */
+  togglePlay();
   drawWave();
-  log('播放模式 → '+m);
+  log('播放模式 → '+m+(was?'（播放中，已切过去）':''));
 }
 function applyLoop(){
   const a=parseFloat($('loopA').value), b=parseFloat($('loopB').value);
@@ -909,7 +940,18 @@ function bindWave(){
   c.onmousemove=(e)=>{ if(!dragging) return; if(shift){ $('loopB').value=pos(e).toFixed(1); $('loopChk').checked=true; applyLoop(); } else ENG.seek(pos(e)); drawWave(); };
   window.addEventListener('mouseup',()=>{dragging=false;});
 }
-function log(msg){ const l=$('log'); l.textContent=(msg+'\n'+l.textContent).slice(0,4000); }
+/* 追加式日志（新消息在**底部**）。
+ * ⚠ 原来是前插（`msg+'\n'+旧内容`）—— 两个后果：
+ *   ① 违背直觉：日志应该按时间往下长；
+ *   ② 排查时更致命：自检脚本读的是 `log` 的**最后两行**，而最新的错误恰恰在最上面，
+ *      于是"有错误但看不到"，白白多绕了好几轮。改成追加 + 自动滚到底。 */
+function log(msg){
+  const l=$('log');
+  const cur=(l.textContent||'').replace(/\n+$/,'');
+  l.textContent=(cur?cur+'\n':'')+msg;
+  if(l.textContent.length>6000) l.textContent=l.textContent.slice(-6000);
+  l.scrollTop=l.scrollHeight;
+}
 function drawWave(light){
   const c=$('wave'); if(!c) return;
   const W=c.width=c.clientWidth*devicePixelRatio, H=c.height=56*devicePixelRatio;
