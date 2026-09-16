@@ -1345,7 +1345,34 @@
     "why": "BPM 123.0（差 3.0，0.90）· 打击感 0.45 vs 目标 0.45（0.99）· 调式 minor≠主题（0.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -8.99,
+   -3.38,
+   0.0,
+   1.02,
+   1.94
+  ],
+  "density_meta": {
+   "n": 7,
+   "files": [
+    "chopin-pol53.mid",
+    "chopin-ballade1.mid",
+    "batman-movie-theme_en.mid",
+    "Metal Gear Solid - Enclosure (Soundtrack).mid",
+    "doctorwho-movie.mid",
+    "Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+    "EarthBound - New Age Retro Hippie.mid"
+   ],
+   "abs_curve": [
+    14.75,
+    28.12,
+    41.5,
+    46.69,
+    51.88
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

@@ -463,13 +463,19 @@ def load(path):
             _rng('和弦 %s' % cname, m)
     for mname, mel in d['melody'].items():
         for it in mel:
-            if not (isinstance(it, (list, tuple)) and len(it) == 4):
-                raise SystemExit('旋律 "%s" 的音符应为 [小节, 拍, 时值, 音高]：%r'
-                                 % (mname, it))
+            # 4 元 `[小节, 拍, 时值, 音高]`，或 5 元（第 5 个 = **逐音力度**，见
+            # `b35_vel.py`：扒带还原时从音频量出的真实强弱）
+            if not (isinstance(it, (list, tuple)) and len(it) in (4, 5)):
+                raise SystemExit('旋律 "%s" 的音符应为 [小节, 拍, 时值, 音高]'
+                                 '（可带第 5 个力度）：%r' % (mname, it))
             _rng('旋律 %s 的音高' % mname, it[3])
+            if len(it) == 5 and it[4] is not None:
+                _rng('旋律 %s 的力度' % mname, it[4])
     for sec in d['sections']:
         for it in (sec.get('melody_extra') or []):
             _rng('段落 %s 的 melody_extra' % sec.get('name', '?'), it[3])
+            if len(it) >= 5 and it[4] is not None:
+                _rng('段落 %s 的 melody_extra 力度' % sec.get('name', '?'), it[4])
     return d
 
 
@@ -1160,7 +1166,16 @@ def build_events(d):
                                                pat.get('kick_vel'), B,
                                                int(arr.get('perc_in') or 0)):
                     bucket['Perc'].append((t0 + b, dd, m, v))
-        for (b, beat, dur, m) in mel:
+        for _mi in mel:
+            b, beat, dur, m = _mi[0], _mi[1], _mi[2], _mi[3]
+            # **逐音力度**（第 5 个元素，opt-in）：扒带还原时从音频量出来的真实强弱。
+            # 不给就仍走原来的 96 × `mel_vel` × 乐句包络（老曲字节不变）。
+            _mvel = None
+            if len(_mi) >= 5 and _mi[4] is not None:
+                try:
+                    _mvel = float(_mi[4])
+                except (TypeError, ValueError):
+                    _mvel = None
             t = (bar0 + b) * B + beat
             # 低八度加厚：越界就**不加这一层**（以前是夹到 0/127 —— 会变成另一个音）
             # `patterns.mel_vel`（opt-in，默认 1.0）：旋律力度缩放。
@@ -1172,7 +1187,9 @@ def build_events(d):
             # 起 → 推（高点在句 2/3 处）→ 句末收。缺省时这一行是恒等变换（老曲字节不变）。
             if pat.get('melody_dyn'):
                 mv *= mel_dyn_env(b, beat, dur, pat['melody_dyn'])
-            bucket['Melody'].append((t, dur * 0.96, m, max(1, min(127, int(round(96 * mv))))))
+            _base96 = 96.0 if _mvel is None else _mvel
+            bucket['Melody'].append((t, dur * 0.96, m,
+                                     max(1, min(127, int(round(_base96 * mv))))))
             # **低八度加厚**（`patterns.mel_octave`，默认 **0.15**；`1.0` = 旧行为全叠）。
             # 实测（2026-09-15）：我们 Melody 轨 **100% 的旋律音**都被叠了低八度，而真实模板
             # （cheerful 10 首）叠加率**中位 0%**（7 首为 0，最高 32%）——无条件全叠会把旋律
@@ -1201,7 +1218,8 @@ def build_events(d):
         if arr.get('harmony'):
             ht = next((k for k in ('Strings', 'Hook', 'Piano') if k in bucket), None)
             if ht:
-                for (b, beat, dur, m) in mel:
+                for _mi in mel:
+                    b, beat, dur, m = _mi[0], _mi[1], _mi[2], _mi[3]
                     if b >= len(sec['chords']):
                         continue
                     cn2 = sec['chords'][b]
@@ -1220,7 +1238,7 @@ def build_events(d):
             # 这件事只能靠让位解决（实测减薄后"旋律起音处的伴奏音数"一点没降：6.5 → 6.5）。
             # ⚠ 无鼓段落不让位（同减薄的口径：那里本来就稀）。
             if arr.get('perc'):
-                _mel_t = {round((bar0 + b) * B + beat, 4) for (b, beat, _d, _m) in mel}
+                _mel_t = {round((bar0 + _mi[0]) * B + _mi[1], 4) for _mi in mel}
                 _prio = ('Bass', 'Piano', 'Hook', 'Strings', 'Pad', 'Arp')
                 _at = {}
                 for _k in _prio:
@@ -1319,6 +1337,24 @@ def build_events(d):
         _dk = int((_s.get('arr') or {}).get('density') or 2)
         _sec_cap.extend([_cap.get(_dk, 12)] * int(_s.get('bars') or 0))
     _extra = d.get('notes_extra') or {}
+
+    def _vel_of(_x, _default=84):
+        """音符的力度：第 5 个元素给了就用它，否则回退固定值。
+
+        ⚠ 为什么必须有这一维（用户："不只是音源的问题，**MIDI 就不像了**"）：
+        扒谱只输出 `[小节, 拍, 时值, 音高]`，于是这里原来硬编码 84 ——
+        实测重制 MIDI 的 Piano/Hook/Arp/Bass **3038 个音一个力度**，
+        而原曲这几条分轨的真实强弱跨度 **24~54dB**。
+        听感就是"每个音一样重、像打字机"，**换音源救不了**（力度曲线还是平的）。
+        补法见 `b35_vel.py`：按分轨音频的逐音峰值包络 → velocity。
+        """
+        if len(_x) >= 5 and _x[4] is not None:
+            try:
+                return int(max(1, min(127, int(_x[4]))))
+            except (TypeError, ValueError):
+                return _default
+        return _default
+
     for _tr, _ns in _extra.items():
         if _tr not in ev or not _ns:
             continue
@@ -1359,9 +1395,10 @@ def build_events(d):
                 _step = (len(_flat) - 1) / float(_want - 1)
                 _keep.extend(_flat[min(len(_flat) - 1, int(round(k * _step)))]
                              for k in range(_want))
-            ev[_tr] = sorted((float(b) * 4.0 + float(bt), max(0.05, float(dd)),
-                              int(max(0, min(127, p))), 84)
-                             for (b, bt, dd, p) in _keep)
+            ev[_tr] = sorted((float(_x[0]) * 4.0 + float(_x[1]),
+                              max(0.05, float(_x[2])),
+                              int(max(0, min(127, _x[3]))), _vel_of(_x))
+                             for _x in _keep)
             continue
         _keep = []
         for _b, _lst in _by_bar.items():
@@ -1372,9 +1409,9 @@ def build_events(d):
             _step = (len(_lst) - 1) / float(_lim - 1)
             _keep.extend(_lst[min(len(_lst) - 1, int(round(i * _step)))]
                          for i in range(_lim))
-        ev[_tr] = sorted((float(b) * 4.0 + float(bt), max(0.05, float(dd)),
-                          int(max(0, min(127, p))), 84)
-                         for (b, bt, dd, p) in _keep)
+        ev[_tr] = sorted((float(_x[0]) * 4.0 + float(_x[1]), max(0.05, float(_x[2])),
+                          int(max(0, min(127, _x[3]))), _vel_of(_x))
+                         for _x in _keep)
     return ev, bar0
 
 

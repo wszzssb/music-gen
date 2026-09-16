@@ -1204,7 +1204,41 @@
     "why": "BPM 132.4（差 2.4，0.92）· 打击感 0.60 vs 目标 0.35（0.49）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -16.94,
+   0.0,
+   0.66,
+   0.31,
+   -2.19,
+   0.11,
+   -13.18
+  ],
+  "density_meta": {
+   "n": 10,
+   "files": [
+    "I-Was-Country-When-Country-Wasn't-Cool.mid",
+    "A.JACKSON.Gone country.mid",
+    "Acid-Folk.mid",
+    "Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+    "Age of Empires II The Age of Kings - Menu.mid",
+    "Nola, Novelty piano solo.mid",
+    "EarthBound - New Age Retro Hippie.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid"
+   ],
+   "abs_curve": [
+    7.38,
+    51.87,
+    55.95,
+    53.75,
+    40.29,
+    52.56,
+    11.38
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

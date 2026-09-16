@@ -1307,7 +1307,41 @@
     "why": "BPM 128.0（差 12.0，0.60）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -5.88,
+   0.32,
+   0.15,
+   -0.35,
+   -4.05,
+   1.26,
+   0.0,
+   -0.12
+  ],
+  "density_meta": {
+   "n": 8,
+   "files": [
+    "Celine Dion - My Heart Will Go On (Techno Remix).mid",
+    "Arrow - Back In The House (U Can See It).mid",
+    "Cowboy Bebop - ELM.mid",
+    "Cowboy Bebop - Goodnight Julia.mid",
+    "Cowboy Bebop - Cat Blues.mid",
+    "Alexander's-Ragtime-Band.mid",
+    "Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+    "EarthBound - New Age Retro Hippie.mid"
+   ],
+   "abs_curve": [
+    4.12,
+    8.41,
+    8.25,
+    7.79,
+    5.09,
+    9.38,
+    8.11,
+    8.0
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

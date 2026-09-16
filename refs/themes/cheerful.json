@@ -1093,7 +1093,42 @@
     "why": "BPM 133.9（差 1.9，0.94）· 打击感 0.15 vs 目标 0.75（0.00）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -6.72,
+   -0.62,
+   0.0,
+   0.16,
+   -0.23,
+   0.96,
+   -0.6,
+   1.01
+  ],
+  "density_meta": {
+   "n": 9,
+   "files": [
+    "Blue-Tango.mid",
+    "L.CARLTON.Rio Samba.mid",
+    "Schuld-War-Nur-Der-Bossa-Nova-2.mid",
+    "Azure-Bossa-Nova.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid",
+    "50's-Rock.mid",
+    "A-Hard-Day's-Night-4.mid"
+   ],
+   "abs_curve": [
+    37.0,
+    74.7,
+    80.25,
+    81.75,
+    78.12,
+    89.62,
+    74.88,
+    90.12
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

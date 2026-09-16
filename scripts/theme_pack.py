@@ -1347,12 +1347,35 @@ def mix_target(pack, root=None, top=3):
         # "目标本来就没对比"的主题，**不写曲线才是对的**（别硬造）。
         if round(max(dev) - min(dev), 2) >= 1.5:
             curve = dev
+    # **段间密度曲线**（按段对齐的"密度层"）—— 与上面的**响度**曲线成对：
+    #   响度曲线让"段落整体响/轻"，密度曲线让"段落整体疏/密"（决定 `arr.density` 档）。
+    #   用户口径（还原曲反馈）：**"乐器有点乱，没有像原曲一样很好控制"** ——
+    #   而"控制得好"= 该疏的地方真的疏下去，这只能从参考曲量出来。
+    #   量法：同主题多份模板各自按 8 小节数音符 → 重采样到同一段数 → 逐段取中位数。
+    dens_curve, dens_meta = [], {}
+    try:
+        import song_density as _sd
+        # ⚠ 模板路径要取 `pick_templates` 的 `file`（形如 `latin/Blue-Tango.mid`，相对 `refs/midi2/`）；
+        #   `best`/`feats` 都不在这个作用域里（`feats` 属于 `build()`），别想当然引用。
+        _tpl = pick_templates(pack.get('theme') or '', min_n=MIN_TEMPLATES,
+                              target=DEF_TEMPLATES)
+        _files = [os.path.join(root or ROOT, 'refs', 'midi2', t.get('file') or '')
+                  for t in _tpl]
+        _c, dens_meta = _sd.curve_from_midis(_files, len(st) or 10, root=root or ROOT)
+        if len(_c) >= 3:
+            dens_curve = _sd.rel_curve(_c)
+            dens_meta = dict(dens_meta, abs_curve=_c,
+                             note='每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）'
+                                  '；消费端 `new_song` 映射成 `arr.density` 档')
+    except Exception as _e:                     # 密度曲线是**增强**，取不到不影响建包
+        dens_meta = {'error': str(_e)[:80]}
     return {'ref': (agg or {}).get('name') or best['ref'],
             'score': best['score'], 'why': best['why'],
             'aggregate': bool(agg), 'members': (agg or {}).get('members') or [],
             'agg_profile': (agg or {}).get('name'),
             'weights': dict(MIX_W), 'perc_style_target': want_perc,
             'energy_curve_db': curve, 'structure_db': struct_src,
+            'density_curve_db': dens_curve, 'density_meta': dens_meta,
             'curve_note': ('段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 '
                            'structure 中位数）；空 = 目标本身平坦，别硬造对比'),
             'candidates': rows[:top],

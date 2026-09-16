@@ -1317,7 +1317,35 @@
     "why": "BPM 95.1（差 12.9，0.57）· 打击感 0.48 vs 目标 0.45（0.95）· 调式 minor（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -2.72,
+   1.72,
+   -1.31,
+   0.0,
+   1.62
+  ],
+  "density_meta": {
+   "n": 8,
+   "files": [
+    "Handel in the Strand.mid",
+    "Variations and Fugue on theme by Handel op24.mid",
+    "batman-movie-theme_en.mid",
+    "Metal Gear Solid - Enclosure (Soundtrack).mid",
+    "doctorwho-movie.mid",
+    "Liszt Bach Prelude Transcription.mid",
+    "Tchaikovsky Lake Of The Swans Act 1 3mov.mid",
+    "Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
+   ],
+   "abs_curve": [
+    63.12,
+    105.28,
+    74.25,
+    86.38,
+    104.12
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

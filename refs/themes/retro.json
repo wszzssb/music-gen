@@ -1021,7 +1021,31 @@
     "why": "BPM 150.0（差 10.0，0.67）· 打击感 0.66 vs 目标 0.75（0.81）· 调式 major≠主题（0.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -3.42,
+   0.0,
+   1.1
+  ],
+  "density_meta": {
+   "n": 8,
+   "files": [
+    "1943boss.mid",
+    "1943-lev3.mid",
+    "1943boss1.mid",
+    "7thsaga_town3-1.mid",
+    "7thsaga_bt2.mid",
+    "7thsaga_bt2_w.mid",
+    "ClassicXG.mid",
+    "T_AVGFighterMAX_YukaThemeGM.mid"
+   ],
+   "abs_curve": [
+    35.12,
+    52.06,
+    59.12
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

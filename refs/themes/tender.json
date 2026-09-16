@@ -1299,7 +1299,36 @@
     "why": "BPM 123.0（差 3.0，0.90）· 打击感 0.45 vs 目标 0.35（0.81）· 调式 minor≠主题（0.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -3.0,
+   -0.94,
+   0.0,
+   2.48,
+   0.11
+  ],
+  "density_meta": {
+   "n": 9,
+   "files": [
+    "ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+    "Animal Crossing - KK Ballad Aircheck.mid",
+    "BALLAD-2.MID",
+    "A-Very-Special-Love-Song.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid",
+    "Liszt Bach Prelude Transcription.mid",
+    "Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
+   ],
+   "abs_curve": [
+    20.62,
+    26.13,
+    29.12,
+    38.75,
+    29.5
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

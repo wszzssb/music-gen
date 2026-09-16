@@ -221,6 +221,56 @@ def energy_mix(pack, plan, style, gain=None):
     return out, used
 
 
+def density_curve_mix(pack, plan, verbose=False):
+    """**段间密度曲线** → 每段的 `arr.density` 档（0–4）—— "按段对齐"的密度层。
+
+    与 `energy_mix` 成对：那条管"段落整体响/轻"（写 CC7），这条管"段落整体疏/密"
+    （开合贝斯音型/吉他落点/钢琴反拍/琶音间隔）。
+    用户口径（还原曲反馈）：**"乐器有点乱，没有像原曲一样很好控制"** ——
+    "控制得好"= 该疏的地方真的疏下去，而这件事只能从参考曲量出来
+    （实测 BGM35 逐段起音 **0.4 ~ 42.4**，**66 倍**范围里反复）。
+
+    数据来源 = 主题包 `mix_target.density_curve_db`（同主题多份模板按 8 小节量音符、
+    重采样到同段数后取中位数，再折成相对中位数的 dB —— 见 `song_density.py`）。
+
+    映射（**不硬造对比**）：
+      · 以曲线中位数为锚 → **2 档**（`arr.density=0` 是"每小节只留 1 音"的近乎独奏档，
+        整首偏 0 档听起来是"一直很空"，不是"跟着参考曲走"）
+      · 偏离越大档位越极端，**但档位跨度不人为拉满** —— 实测同主题模板的段间密度
+        起伏只有 **1.3~2.5 倍**（`night` 2.5、`battle` 1.3），若强行铺满 0–4 档，
+        等于把"参考曲本来很平"编造成"大起大落"，那正是我们自己的听感、不是对齐。
+      · 曲线取不到（模板不足）→ 返回空列表，调用方保持 `arr_by_role` 的结果。
+    """
+    curve = ((pack.get('mix_target') or {}).get('density_curve_db') or [])
+    n = len(plan)
+    if len(curve) < 3 or n < 2:
+        return []
+    import song_engine as _se
+    order = sorted(range(len(curve)), key=lambda i: (curve[i], i))
+    slot = {}
+    for rank, i in enumerate(order):
+        slot[i] = rank - (len(curve) - 1) / 2.0        # 中位数锚在 0
+    half = max(1.0, (len(curve) - 1) / 2.0)
+    out = []
+    for i in range(n):
+        pos = (i / float(n - 1)) * (len(curve) - 1)    # 段数不同就线性重采样
+        lo = int(pos)
+        hi = min(lo + 1, len(curve) - 1)
+        f = pos - lo
+        d = slot[lo] * (1 - f) + slot[hi] * f
+        # ⚠ 档位跨度收到 **±1（1~3 档）**：`arr.density=0` 的语义是
+        #   "每小节只留 1 个音"的**近乎独奏**档，`4` 是全开 —— 两者都是极端。
+        #   实测踩过：同主题模板的段间密度起伏本来就小（1.3~2.5 倍），
+        #   把它映到 0 档会把普通主歌削成极简，`melody_matches_profile` 立刻
+        #   报"生成旋律离画像太远（时值 34%，下限 40%）"。
+        #   参考曲的疏密该跟，但不该跟成"极简"，所以基线 2 档、只允许 ±1。
+        k = int(round(2.0 + 1.0 * d / half))
+        out.append(max(1, min(3, k)))
+    if verbose:
+        print('   密度曲线 → %s（%s）' % (out, {k: out.count(k) for k in range(5)}))
+    return out
+
+
 def _deg_of(sym, tonic_pc):
     """和弦符号 → 相对主音的半音级数（认不出来返回 None）"""
     import theme_pack as tp
@@ -423,6 +473,14 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
                                        energy=(eused or None), tier=1, sparse=_sparse)
         for s, a in zip(secs, arrs):
             s['arr'] = a
+    # **段间密度曲线**（"按段对齐"的密度层，`mix_target.density_curve_db`）：
+    # 放在 `arr_by_role` **之后**覆盖它的 `arr.density` —— 角色只是"副歌比主歌厚"的通用先验，
+    # 而这条曲线是**该主题参考曲实测的疏密走势**（谁该疏、谁该密），比先验更具体。
+    # 取不到曲线时返回空列表 → 保持 arr_by_role 的结果（向后兼容）。
+    dcurve = density_curve_mix(pack, plan)
+    if dcurve:
+        for s, k in zip(secs, dcurve):
+            s['arr'] = dict(s.get('arr') or {}, density=k)
     for sec, mx in zip(secs, emix):
         if mx:
             sec['arr']['mix'] = mx

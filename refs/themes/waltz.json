@@ -1280,7 +1280,36 @@
     "why": "BPM 75.0（差 3.0，0.90）· 打击感 0.52 vs 目标 0.40（0.75）· 调式 minor≠主题（0.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -2.76,
+   -0.94,
+   0.0,
+   0.88,
+   0.4
+  ],
+  "density_meta": {
+   "n": 9,
+   "files": [
+    "handel-ombra-mai-fu.mid",
+    "Bwv0593 Vivaldi Concerto Arrangement RV522.mid",
+    "Bach-Brandenburg-Menuetto.mid",
+    "Minuet-in-Mozart.mid",
+    "American-Folk-(Variation-1).mid",
+    "caledonia-celtic-thunder-kar_gc9.mid",
+    "LVB_Sonate_02no1_2.mid",
+    "LVB_Sonate_02no1_3.mid",
+    "Tchaikovsky Lake Of The Swans Act 1 2mov.mid"
+   ],
+   "abs_curve": [
+    17.38,
+    21.44,
+    23.88,
+    26.44,
+    25.0
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

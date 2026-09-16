@@ -1312,7 +1312,41 @@
     "why": "BPM 132.4（差 4.4，0.85）· 打击感 0.60 vs 目标 0.35（0.49）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -8.06,
+   0.0,
+   0.04,
+   -0.48,
+   1.71,
+   -0.16,
+   1.37
+  ],
+  "density_meta": {
+   "n": 10,
+   "files": [
+    "The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
+    "Animal Crossing - Load Game.mid",
+    "Composition - The Anime Medley.mid",
+    "ABBA.Name of the game K.mid",
+    "I-Was-Country-When-Country-Wasn't-Cool.mid",
+    "A.JACKSON.Gone country.mid",
+    "Acid-Folk.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid"
+   ],
+   "abs_curve": [
+    28.12,
+    71.14,
+    71.46,
+    67.31,
+    86.66,
+    69.87,
+    83.25
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

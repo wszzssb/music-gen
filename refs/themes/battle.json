@@ -995,7 +995,41 @@
     "why": "BPM 150.0（差 11.0，0.63）· 打击感 0.66 vs 目标 0.75（0.81）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -1.31,
+   -0.46,
+   0.0,
+   0.05,
+   -0.68,
+   -0.3,
+   0.27,
+   0.8
+  ],
+  "density_meta": {
+   "n": 8,
+   "files": [
+    "7thsaga_town3-1.mid",
+    "7thsaga_cave.mid",
+    "7thsaga_bt1.mid",
+    "7thsaga_bt2_w.mid",
+    "ClassicXG.mid",
+    "T_AVGFighterMAX_YukaThemeGM.mid",
+    "50's-Rock.mid",
+    "A-Hard-Day's-Night-4.mid"
+   ],
+   "abs_curve": [
+    46.38,
+    51.11,
+    53.91,
+    54.25,
+    49.87,
+    52.05,
+    55.59,
+    59.12
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

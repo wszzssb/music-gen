@@ -1291,7 +1291,33 @@
     "why": "BPM 123.0（差 13.0，0.57）· 打击感 0.45 vs 目标 0.45（0.99）· 调式 minor（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   0.0,
+   0.69,
+   -0.58,
+   0.94,
+   -1.13
+  ],
+  "density_meta": {
+   "n": 6,
+   "files": [
+    "Handel in the Strand.mid",
+    "Variations and Fugue on theme by Handel op24.mid",
+    "chopin-sonata11.mid",
+    "chopin-ballade1.mid",
+    "MentreDormi.mid",
+    "LVB_Sonate_02no1_1.mid"
+   ],
+   "abs_curve": [
+    34.88,
+    37.75,
+    32.62,
+    38.88,
+    30.62
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

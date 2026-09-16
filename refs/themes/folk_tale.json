@@ -1320,7 +1320,37 @@
     "why": "BPM 123.0（差 0.0，1.00）· 打击感 0.45 vs 目标 0.35（0.81）· 调式 minor≠主题（0.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -5.24,
+   -0.76,
+   0.12,
+   0.0,
+   0.2
+  ],
+  "density_meta": {
+   "n": 10,
+   "files": [
+    "ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+    "A-Love-Song.mid",
+    "A-Very-Special-Love-Song.mid",
+    "After-Dinner-Blues.mid",
+    "Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid",
+    "A.JACKSON.Mercury blues K.mid",
+    "Boogie-Woogie-Demo.mid",
+    "I-Was-Country-When-Country-Wasn't-Cool.mid",
+    "A.JACKSON.Gone country.mid",
+    "Acid-Folk.mid"
+   ],
+   "abs_curve": [
+    29.25,
+    49.0,
+    54.25,
+    53.5,
+    54.75
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

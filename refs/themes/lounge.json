@@ -1330,7 +1330,43 @@
     "why": "BPM 132.4（差 0.4，0.99）· 打击感 0.60 vs 目标 0.35（0.49）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -2.66,
+   0.22,
+   0.0,
+   -0.45,
+   0.11,
+   1.08,
+   0.0,
+   -1.11
+  ],
+  "density_meta": {
+   "n": 10,
+   "files": [
+    "After-Dinner-Blues.mid",
+    "Boogie-Woogie.mid",
+    "Boogie-Woogie-Demo.mid",
+    "Cowboy Bebop - ELM.mid",
+    "Cowboy Bebop - Goodnight Julia.mid",
+    "Cowboy Bebop - Cat Blues.mid",
+    "Alexander's-Ragtime-Band.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid"
+   ],
+   "abs_curve": [
+    29.25,
+    40.75,
+    39.75,
+    37.75,
+    40.25,
+    45.02,
+    39.75,
+    35.0
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }
