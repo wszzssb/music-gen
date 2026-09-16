@@ -70,7 +70,7 @@ LIMITS = {
     #   与 `song_density.py` + `inject_density_curve.py`（段间密度曲线）。三者合并成两行。
     # +80（同日）：登记 `groove_probe.py`（微时序/swing，实测原曲是直拍）
     #   与 `section_gain.py`（逐段响度对齐，默认不接链 —— 实测会压平 variation）。
-    'README.md（工具链总索引）': 7040,
+    'README.md（工具链总索引）': 7100,
     # +100：`theme` / `basis` / `mix_target` 三个字段的口径
     'docs/SONG-FORMAT.md（写歌时才读）': 2100,
     # **新增一类**：主题→模板→包→混音目标→段间曲线的完整口径（判据表/守卫表/A-B 实测/边界）。
