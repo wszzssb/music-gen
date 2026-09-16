@@ -1120,29 +1120,38 @@ def build_events(d):
                     bucket['Strings'].append((t0 + b, dd, m, v))
             if arr.get('glock'):
                 _gf = int(arr.get('glock_from_bar') or 0)
-                # **极安静段的"疏而亮"层**（`glock_starved`，opt-in）：
-                # 实测 S13/S17 这类极安静段是"前 2 小节满格、后面整段没鼓"，
-                # 于是那几块的频谱质心崩到 2353/1769（原曲 3326/3068/3147），
-                # `variation`（比"块间质心差分的标准差"）从 84.6 掉到 **36.0**。
-                # 原曲的安静段**不是"又疏又暗"**，还留着一层细碎高频。
-                # 这里每 2 小节补**一个很轻的长音**（力度 40）撑住高频骨架。
-                # 给了 `glock_starved` 的段**整段只出这一层**（不再走 `glock_part` 的
-                # 短点），避免"点 + 空"的高频。
-                if arr.get('glock_starved'):
-                    # **每小节**一个长音：隔小节出一层会让"块内"忽亮忽暗 ——
-                    # `variation` 比的正是块间（8 小节）质心差分的标准差，
-                    # 块内不均匀会把差分方差顶上去（实测每 2 小节一个 → variation 40.9；
-                    # 原曲的安静段是**一直**有一层细碎高频，不是隔一下）。
-                    _t = ch[1][-1] + 24
-                    while _t < 63:
-                        _t += 12
-                    if _t <= 115:
-                        bucket['Glock'].append((t0, B - 0.1, _t, 42))
-                        # 再补一个五度上方的低力度音，让这一层是"宽"的而不是"一个点"
-                        _t2 = _t + 7
-                        if _t2 <= 115:
-                            bucket['Glock'].append((t0 + B / 2, B / 2 - 0.1, _t2, 36))
-                elif i >= _gf:
+            # **本小节的鼓型网格**（放在小节循环最前面：钟琴段与鼓段都要用）
+            # ⚠ 用**独立变量名** `_secs` 保存逐段列表：下面 `_dg` 会被改写成"本小节的网格"，
+            #   若把列表本身也叫 `_ps` 再 `_ps = _ps[i]`，第二段起 `_ps` 已是**单段字典**，
+            #   `_ps[i]` 就退化成"取该段第 i 小节"→ 全曲被锁死在第一段（实测踩到）。
+            _dgrid = pat.get('drum_grid')
+            _secs = (_dgrid or {}).get('per_section')
+            _pbars = (_dgrid or {}).get('per_bar')     # 推荐：全曲扁平，按绝对小节索引
+            if _pbars is not None:
+                _dg = _pbars[bar0 + i] if 0 <= bar0 + i < len(_pbars) else {}
+            elif _secs is not None:
+                _dg = _secs[i] if i < len(_secs) else {}
+            else:
+                _dg = None
+            # **安静小节的高频骨架**（`glock_starved`，opt-in）——按**小节**判断，不按段：
+            # 实测毁掉 `variation` 的只有两类块：① 极安静段（块 26/13）**高频占比只有
+            # 原曲的 0.24~0.67×**（块 26：我 0.063 vs 原曲 0.260）→ 质心崩到 1125/2352
+            # （原曲 3147/3326）；② 满编段反而亮 1.2~1.3×。
+            # 段级判断不够（S13 是满编段，但后面 6 个小节鼓点稀疏 → 那 6 小节的高频塌了）。
+            _dgn = 0
+            for _n in ('kick', 'snare', 'hat'):
+                _v = (_dg or {}).get(_n) or []
+                if _v and isinstance(_v[0], list) and _v[0] and isinstance(_v[0][0], list):
+                    _dgn += len(_v[i]) if i < len(_v) else 0
+                else:
+                    _dgn += len(_v)
+            _sparse = (_dg is not None) and _dgn < 3
+            if arr.get('glock') and _sparse:
+                for _t in [x + 24 for x in ch[1][:2] if x + 24 <= 108]:
+                    bucket['Glock'].append((t0, B - 0.1, _t, 50))
+                for _t in [x + 36 for x in ch[1][:1] if x + 36 <= 112]:
+                    bucket['Glock'].append((t0 + B / 2, B / 2 - 0.1, _t, 44))
+            elif arr.get('glock') and i >= _gf:
                     for (b, dd, m, v) in glock_part(
                             ch, i, B, dyn_vel(54, _barn, 2, _dv, pitch=ch[1][-1]) if _dv else None):
                         bucket['Glock'].append((t0 + b, dd, m, v))
@@ -1212,17 +1221,6 @@ def build_events(d):
             #   若把段内 8 小节**平均**成一节模板，每小节都变成"全段并集"= 一直在 fill，
             #   听感"很满、控制不住"。给了逐小节列表就按当前小节取用。
             #   兼容：没有 `per_section` 时仍按单套网格走（老曲字节不变）。
-            _dg = pat.get('drum_grid')
-            # ⚠ 用**独立变量名** `_secs` 保存逐段列表：下面 `_dg` 会被改写成"本段的网格"，
-            #   若把列表本身也叫 `_ps` 再 `_ps = _ps[i]`，第二段起 `_ps` 已是**单段字典**，
-            #   `_ps[i]` 就退化成"取该段第 i 小节"→ 全曲被锁死在第一段（实测踩到）。
-            _secs = (_dg or {}).get('per_section')
-            _pbars = (_dg or {}).get('per_bar')     # 推荐：全曲扁平，按绝对小节索引
-            if _pbars is not None:
-                _dg = _pbars[bar0 + i] if 0 <= bar0 + i < len(_pbars) else {}
-            elif _secs is not None:
-                _dg = _secs[i] if i < len(_secs) else {}
-
             # ⚠ `i` 必须用**默认参数固化**：若写成闭包直接引用 `i`，调用时 `i` 已被
             #   本段后面那些小节循环改掉 → 每段都只读到最后一个小节的网格
             #   （实测：全曲变成"每段 8 小节都同一套"的假象，鼓型根本没在段内变化）。
@@ -1321,6 +1319,7 @@ def build_events(d):
             # 高八度钟琴：同理，越界丢弃而不是夹断
             if (arr.get('glock') and (arr.get('glock_all') or b % 2 == 0)
                     and b >= int(arr.get('glock_from_bar') or 0)
+                    and not arr.get('glock_starved')      # starved 段只出那一层
                     and m + 12 <= 127):
                 bucket['Glock'].append((t, dur * 0.9, m + 12, 54))
         # 副旋律/加厚层（opt-in）：给旋律音配一个**和弦内的低三度**（保证协和），
