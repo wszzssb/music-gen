@@ -759,18 +759,44 @@ def ep_part(ch, i, B=4.0, thin=False, dense=True):
     return out
 
 
-def pad_part(ch, B=4.0):
+def dyn_vel(base, bar, lane=0, amt=8.0, period=4, pitch=0):
+    """长音层的**逐小节力度**（确定式，同输入同输出）。
+
+    为什么要有：`pad_part` / `strings_part` / `glock_part` 原来把力度写成常量
+    （Pad 52 / Strings 50 / Glock 54~60），实测成品里 **Pad 与 Strings 各只有 1 种力度**、
+    Glock 3 种。而原曲对应声部（Demucs `other` 轨）**长音也有 83 种取值、σ 25.7**
+    （`b35_midi_vel.py` 口径）—— 全平的长音层听感"呆、像风琴持续音"。
+    用户口径："不只是音源的问题，**MIDI 就不像了**"；`audit.py` 演奏层查这一项。
+
+    ⚠ 只用"按小节的正弦"不够：实测整曲 208 小节但长音层大多只出现在 26 个小节里，
+    正弦取不到几种值 → 成品仍然只有 **3~4 种力度**。所以叠一层
+    **按 (小节, 音高, lane) 的确定式哈希抖动**：取值多、又完全可复现
+    （不用随机数，跑两次结果一致）。
+    """
+    import math
+    ph = 2.0 * math.pi * (bar % max(1, int(period))) / float(max(1, int(period)))
+    slow = amt * math.cos(ph + lane * 0.9)
+    h = (int(bar) * 73856093) ^ (int(pitch) * 19349663) ^ (int(lane) * 83492791)
+    h = (h ^ (h >> 13)) & 0x7FFFFFFF
+    jit = amt * (h / float(0x7FFFFFFF) * 2.0 - 1.0)
+    return base + 0.6 * slow + 0.8 * jit
+
+
+def pad_part(ch, B=4.0, vel=None):
     _, tones = ch
-    return [(0.0, B + 0.1, m, 52) for m in tones[:2]]
+    v = 52 if vel is None else max(1, min(127, int(round(vel))))
+    return [(0.0, B + 0.1, m, v) for m in tones[:2]]
 
 
-def strings_part(ch, B=4.0):
+def strings_part(ch, B=4.0, vel=None):
     _, tones = ch
-    return [(0.0, B + 0.1, m + 12, 50) for m in tones[:3]]
+    v = 50 if vel is None else max(1, min(127, int(round(vel))))
+    return [(0.0, B + 0.1, m + 12, v) for m in tones[:3]]
 
 
-def glock_part(ch, i, B=4.0):
+def glock_part(ch, i, B=4.0, vel=None):
     _, tones = ch
+    _sh = 0 if vel is None else max(-14, min(14, int(round(vel - 54))))
 
     def _hi(k, dur, vel):
         """取和弦音 +24；⚠ `tone(tones, k)` 在**索引越界时会退回最低的和弦音**
@@ -783,10 +809,10 @@ def glock_part(ch, i, B=4.0):
         return m, dur, vel
 
     if i % 4 == 2:
-        a, b = _hi(3, 0.4, 58), _hi(2, 0.4, 54)
+        a, b = _hi(3, 0.4, 58 + _sh), _hi(2, 0.4, 54 + _sh)
         return [(B - 2.5, a[1], a[0], a[2]), (B - 1.0, b[1], b[0], b[2])]
     if i % 4 == 3:
-        c = _hi(4, 0.4, 60)
+        c = _hi(4, 0.4, 60 + _sh)
         return [(0.0, c[1], c[0], c[2])]
     return []
 
@@ -1062,14 +1088,24 @@ def build_events(d):
                         _pev = _pev[:1]          # 极简：一小节只留一个钢琴长音
                     for (b, dd, m, v) in _pev:
                         bucket[tr].append((t0 + b, dd * sc, m, v))
+            # **长音层的逐小节力度**（`patterns.dyn_vel`，opt-in；缺省 = 老行为逐字节不变）：
+            # 原来 Pad/Strings/Glock 的力度是常量，实测成品里 Pad/Strings **各只有 1 种力度**，
+            # 而原曲同声部（Demucs `other`）**长音也有 83 种取值、σ 25.7** —— 听感"呆"。
+            # 用户："不只是音源的问题，MIDI 就不像了"；`audit.py` 的"演奏层"会查这一项。
+            _dv = pat.get('dyn_vel')
+            _dv = 8.0 if _dv is True else (0.0 if _dv is None else float(_dv))
+            _barn = bar0 + i
             if arr.get('pad'):
-                for (b, dd, m, v) in pad_part(ch, B):
+                for (b, dd, m, v) in pad_part(
+                        ch, B, dyn_vel(52, _barn, 0, _dv, pitch=ch[1][0]) if _dv else None):
                     bucket['Pad'].append((t0 + b, dd, m, v))
             if arr.get('strings'):
-                for (b, dd, m, v) in strings_part(ch, B):
+                for (b, dd, m, v) in strings_part(
+                        ch, B, dyn_vel(50, _barn, 1, _dv, pitch=ch[1][0]) if _dv else None):
                     bucket['Strings'].append((t0 + b, dd, m, v))
             if arr.get('glock'):
-                for (b, dd, m, v) in glock_part(ch, i, B):
+                for (b, dd, m, v) in glock_part(
+                        ch, i, B, dyn_vel(54, _barn, 2, _dv, pitch=ch[1][-1]) if _dv else None):
                     bucket['Glock'].append((t0 + b, dd, m, v))
             if arr.get('arp'):
                 # **按小节轮换落点**（与 guitar_arpeggio(Hook) / perc_part 同一套）：
