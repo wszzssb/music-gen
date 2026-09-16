@@ -953,10 +953,19 @@ async function mediaPlay() {
   if (!el) return false;
   try {
     el.currentTime = Math.max(0, S.posBeat * SPB());
-    await el.play();
+    /* ⚠ 超时保护（2026-09-16，用户实测"整首一点声音都没有"）：
+     * `el.play()` 返回的 promise 在**音频源损坏 / 服务端返回半截文件 / 缓冲卡住**时
+     * 可能**永不 settle** —— 于是这里 `await` 永久挂起，`togglePlay()` 再也走不到
+     * `S.playing = true`：播放头不动、合成音也不会兜底，表现就是"整首完全没声音"。
+     * 4 秒不回来就判失败，回退合成音（至少让用户听到东西，而不是静默卡死）。 */
+    await Promise.race([
+      el.play(),
+      new Promise((_, rej) => setTimeout(
+        () => rej(new Error('真音源 4 秒内没起来（文件损坏或缓冲卡住）')), 4000)),
+    ]);
   } catch (e) {
     S.audioMode = 'synth';
-    log('浏览器拦住了音频播放（需要一次点击）→ 先用合成音播放；再点一次「▶ 播放」即可用真音源');
+    log('真音源播不出来（' + ((e && e.message) || e) + '）→ 改用合成音播放');
     updateAudioInfo();
     return false;
   }

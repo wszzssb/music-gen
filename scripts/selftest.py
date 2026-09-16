@@ -4595,6 +4595,58 @@ def t_midi_file_editor_roundtrip():
 
 
 @check
+def t_midi_export_noteoff_first():
+    """**导出的 MIDI：同一 tick 上松键必须排在按键之前**（否则同音高的接续音被吞）。
+
+    为什么单列一条（真实代价）：`export_midi` 的两个排序权重曾写反（on 在 off 前），
+    而**往返判据一条都抓不到** —— 导入端按先入先出配对，on-before-off 也能配出同样的
+    音符表，`t_midi_file_editor_roundtrip` 照样报"一致"。但只要拿去渲染，音源的处理是
+    "先起音、紧接着被同一 tick 的 off 关掉"（note-off 只带音高、不带 id），**同音高的
+    接续长音整段消失**：实测 e01_remake（每 2 小节一个同音高长音）raw 渲染
+    RMS −27.6dBFS（正常 −22.5dBFS），逐段从 −17dB 衰减到 −80dB，听感"每段头两小节有声、
+    后面没了"。判据（充要、快、可证伪）：
+      ① 合成的"同音高首尾相接"模型 → 导出（fmt 1 与 fmt 0）后**零违规**；
+      ② `refs/midi2` 抽样 + `songs/` 最大几首真实 MIDI → 导入→导出后同样**零违规**
+         （我们恒排序，所以任何违规都是自己写出来的）。
+    变异：把 `midi_file.W_ON` 改小到 off 之前 → ①② 必须报警。
+    """
+    import midi_file as mfi
+    import midi_probe as mp
+
+    def viol(path, tag):
+        v = mp.noteoff_first_violations(path)
+        assert not v, ('%s：同一 tick 上按键写在同音高松键之前（音源会吞掉这个接续音）—— '
+                       '轨%d tick%d 音高%s，共 %d 处'
+                       % (tag, v[0][0], v[0][1], mp.note_name(v[0][2]), len(v)))
+        return len(v)
+
+    model = {'format': 1, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+             'end_beat': 16.0, 'title': 'noteoff_first',
+             'tracks': [{'index': 0, 'name': 'Drone', 'channel': 0, 'program': 48,
+                         # ①②号音同音高首尾相接（tick 1920 上 off(48) 与 on(48) 撞在一起）
+                         'notes': [[0.0, 4.0, 48, 80], [4.0, 4.0, 48, 80],
+                                   [8.0, 4.0, 55, 80], [12.0, 4.0, 55, 80]],
+                         'ccs': [], 'program_changes': [], 'markers': []}]}
+    for fmt in (1, 0):
+        p = os.path.join(TMP, 'noteoff_first_f%d.mid' % fmt)
+        mfi.export_midi(model, p, fmt=fmt)
+        viol(p, '同音高接续夹具 fmt=%d' % fmt)
+
+    files = sorted(glob.glob(os.path.join(ROOT, 'refs', 'midi2', '*', '*.mid')))[:200:29][:4]
+    files += sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*.mid')),
+                    key=os.path.getsize, reverse=True)[:4]
+    assert files, '没有可用的真实 MIDI 夹具 —— 这条检查会空转'
+    n = 0
+    for src in files:
+        rt = os.path.join(TMP, 'rt_noteoff.mid')
+        mfi.export_midi(mfi.import_midi(src), rt, fmt=1)
+        viol(rt, '往返 %s' % os.path.basename(src))
+        n += sum(len(t['notes']) for t in mfi.import_midi(rt)['tracks'])
+    print('        同音高接续夹具（fmt 1/0）+ %d 首真实 MIDI 往返共 %d 音：无"按键先于松键"'
+          % (len(files), n))
+
+
+@check
 def t_midi_ops_semantics():
     """**编辑操作的口径**（量化/移调/力度/增删/复制粘贴/轨道管理）—— 机制级判据。
 

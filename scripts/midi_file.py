@@ -37,6 +37,14 @@ import midi_probe as mp
 BEAT = 1.0                       # 内部时间单位：四分音符（拍）
 DRUM_CH = 9                      # GM 鼓组通道（0-based 的 10 号通道）
 
+# **同一 tick 上的事件排序权重**（`chunk()` 按 (tick, 权重) 升序写出）：
+# 元事件(0) → 标记(1) → program/CC(2) → **松键(3) → 按键(4)**。
+# ⚠ `W_OFF < W_ON` 是硬要求，不是风格问题：同音高首尾相接的两个音（长音 drone 的常态）
+# 会让 off 与 on 落在同一个 tick 上，on 若先写就会被紧随其后的 off 关掉 → **音被吞**
+# （详见 `track_events` 的 docstring 与 PITFALLS 161）。
+# 提成模块级常量是为了**可被变异测试注入**（`mutation_check` 把 W_ON 改小 → 自检必须报警）。
+W_META, W_MARK, W_PROG, W_OFF, W_ON = 0, 1, 2, 3, 4
+
 
 def _beat(tick, div, nd=6):
     """tick → 拍。取到 1e-6 拍（= 480ppq 下 1/2000 tick）——纯为显示与 JSON 可读，
@@ -122,26 +130,36 @@ def export_midi(model, path, fmt=None):
         return int(round(float(beat) * div))
 
     def track_events(t, ch, with_meta_head):
-        """→ [(tick, 排序权重, payload)]（权重保证同 tick 上"元事件→CC→按键→松键"的顺序）"""
+        """→ [(tick, 排序权重, payload)]（权重保证同 tick 上"元事件→CC→**松键→按键**"的顺序）
+
+        ⚠ **松键（note-off）必须排在按键（note-on）前面** —— 这是 SMF 的通行惯例，也是
+        本模块踩过的坑：同一轨里**同音高首尾相接**的音（前音终点 == 后音起点，长音 drone /
+        持续低音很常见），两个事件落在同一个 tick 上。若按键先写，音源的处理是"先起音、
+        紧接着被这个 tick 上的松键关掉" → **新音被吞**（MIDI 的 note-off 只带音高、不带 id，
+        它关的是这个音高上**所有**正在响的 voice）。实测后果不是"少一个音"而是**整段逐次衰减**：
+        e01_remake（每 2 小节一个同音高长音）经编辑器导出后渲染，段内接续音全被吞，
+        只剩混响残响，逐段从 −17dB 掉到 −80dB（`raw` 渲染 RMS −27.6dBFS vs 正常 −22.5dBFS）。
+        只在段界（音高改变，C↔Bb）不冲突，所以听感是"每段头两小节有声、后面没了"。
+        """
         ev = []
         if with_meta_head:
             nm = (t.get('name') or '').encode('utf-8')[:120]
-            ev.append((0, 0, _meta(0x03, nm)))
-            ev.append((0, 0, _meta(0x51, int(60_000_000 / max(1.0, bpm)).to_bytes(3, 'big'))))
+            ev.append((0, W_META, _meta(0x03, nm)))
+            ev.append((0, W_META, _meta(0x51, int(60_000_000 / max(1.0, bpm)).to_bytes(3, 'big'))))
             clocks = max(1, int(round(24.0 * 4.0 / int(den))))
-            ev.append((0, 0, _meta(0x58, bytes([int(num) & 0xFF, den_exp, clocks, 8]))))
+            ev.append((0, W_META, _meta(0x58, bytes([int(num) & 0xFF, den_exp, clocks, 8]))))
         elif t.get('name'):
-            ev.append((0, 0, _meta(0x03, (t.get('name') or '').encode('utf-8')[:120])))
+            ev.append((0, W_META, _meta(0x03, (t.get('name') or '').encode('utf-8')[:120])))
         prog = t.get('program')
         for (bt, p) in (t.get('program_changes') or []):
-            ev.append((tick(bt), 2, bytes([0xC0 | ch, int(p) & 0x7F])))
+            ev.append((tick(bt), W_PROG, bytes([0xC0 | ch, int(p) & 0x7F])))
         if prog is not None and not (t.get('program_changes') or []):
-            ev.append((0, 2, bytes([0xC0 | ch, int(prog) & 0x7F])))
+            ev.append((0, W_PROG, bytes([0xC0 | ch, int(prog) & 0x7F])))
         for (bt, cc, val) in (t.get('ccs') or []):
-            ev.append((tick(bt), 2, bytes([0xB0 | ch, int(cc) & 0x7F,
-                                           max(0, min(127, int(val)))])))
+            ev.append((tick(bt), W_PROG, bytes([0xB0 | ch, int(cc) & 0x7F,
+                                                max(0, min(127, int(val)))])))
         for (bt, txt) in (t.get('markers') or []):
-            ev.append((tick(bt), 1, _meta(0x06, str(txt).encode('utf-8')[:120])))
+            ev.append((tick(bt), W_MARK, _meta(0x06, str(txt).encode('utf-8')[:120])))
         for n in (t.get('notes') or []):
             a, d, p, v = (float(n[0]), float(n[1]), int(n[2]), int(n[3]))
             if not 0 <= p <= 127:
@@ -151,8 +169,8 @@ def export_midi(model, path, fmt=None):
                 raise SystemExit('力度越界：%s（轨 %s）' % (v, t.get('name')))
             if a < 0 or d <= 0:
                 raise SystemExit('时值异常：start=%s dur=%s（轨 %s）' % (a, d, t.get('name')))
-            ev.append((tick(a), 3, bytes([0x90 | ch, p, v])))
-            ev.append((tick(a + d), 4, bytes([0x80 | ch, p, 0])))
+            ev.append((tick(a + d), W_OFF, bytes([0x80 | ch, p, 0])))
+            ev.append((tick(a), W_ON, bytes([0x90 | ch, p, v])))
         return ev
 
     def chunk(ev):

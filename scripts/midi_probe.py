@@ -155,6 +155,101 @@ def parse_full(path):
     return res
 
 
+def raw_events(path):
+    """→ [(track, tick, status, d1, d2)]：**严格保留文件内事件顺序**的原始事件流。
+
+    为什么单独开一个口子：`parse_full` 交出来的是**配对后的音符表**，一旦配上对，
+    "这个 tick 上先写的谁"就没了 —— 而有些判据只能看原始顺序。已经被坑过一次：
+    `midi_file.export_midi` 把同一 tick 上的 note-on 排在 note-off 之前时，
+    音源的处理是"先起音、紧接着被同 tick 的 off 关掉"（MIDI 的 note-off 只带音高、
+    不带 id，关的是该音高上所有正在响的 voice）→ **同音高的接续长音整段被吞**
+    （见 PITFALLS 161 与自检 `midi_export_noteoff_first`）。
+
+    `d2` 对 2 字节消息（0x8n/0x9n/0xAn/0xBn/0xEn）是第二个数据字节，1 字节消息
+    （0xCn/0xDn）为 None；meta 事件的 `status=0xFF`、`d1=`meta 类型、`d2=None`。
+    """
+    data = open(path, 'rb').read()
+    if data[:4] != b'MThd':
+        raise SystemExit('不是标准 MIDI 文件（缺 MThd）：%s' % path)
+    _fmt, ntrk, _div = struct.unpack('>HHH', data[8:14])
+    pos = 14
+    out = []
+    for t in range(ntrk):
+        if data[pos:pos + 4] != b'MTrk':
+            break
+        ln = struct.unpack('>I', data[pos + 4:pos + 8])[0]
+        body = data[pos + 8:pos + 8 + ln]
+        pos += 8 + ln
+        i, tick, last_st = 0, 0, None
+        while i < len(body):
+            d, i = _read_vlq(body, i)
+            if d is None:
+                break
+            tick += d
+            if i >= len(body):
+                break
+            st = body[i]
+            if st < 0x80 and last_st is not None:
+                st = last_st              # running status
+            else:
+                i += 1
+                last_st = st
+            hi = st & 0xF0
+            if st == 0xFF:
+                meta = body[i]
+                i += 1
+                l, i = _read_vlq(body, i)
+                if l is None:
+                    break
+                i += l
+                out.append((t, tick, 0xFF, meta, None))
+            elif st in (0xF0, 0xF7):
+                l, i = _read_vlq(body, i)
+                if l is None:
+                    break
+                i += l
+                out.append((t, tick, st, None, None))
+            elif hi in (0x80, 0x90, 0xA0, 0xB0, 0xE0):
+                if i + 1 >= len(body):
+                    break
+                out.append((t, tick, st, body[i], body[i + 1]))
+                i += 2
+            elif hi in (0xC0, 0xD0):
+                if i >= len(body):
+                    break
+                out.append((t, tick, st, body[i], None))
+                i += 1
+            else:
+                break
+    return out
+
+
+def noteoff_first_violations(path):
+    """→ [(轨, tick, 音高)]：**同一 tick 上 note-on 排在同音高 note-off 之前**的位置。
+
+    这是"吞音"的充要文件层特征（见 `raw_events` 的说明）。空列表 = 这个文件干净。
+    """
+    bad = []
+    by = {}
+    for (ti, tk, st, d1, d2) in raw_events(path):
+        hi = st & 0xF0
+        if hi == 0x80 or (hi == 0x90 and not d2):
+            kind = 'off'
+        elif hi == 0x90:
+            kind = 'on'
+        else:
+            continue
+        by.setdefault((ti, tk), []).append((kind, d1))
+    for (ti, tk), evs in sorted(by.items()):
+        started = set()
+        for kind, p in evs:
+            if kind == 'on':
+                started.add(p)
+            elif p in started:            # 该音高在本 tick 已经先起音了 → 会被这个 off 关掉
+                bad.append((ti, tk, p))
+    return bad
+
+
 def parse(path, quiet=False):
     """解析 SMF。返回结构化结果（轨/音符/元事件），quiet=True 时不打印。
     结构: {format, division, bpm, timesig, tracks:[{name, channel, program,

@@ -1342,6 +1342,15 @@ def main():
                         'midi_chords_detect',
                         lambda: Mut(_mc, '_slice_notes', _slice_tail)))
 
+    # ㉑ 导出的 MIDI 把 note-on 排在 note-off 之前（同一 tick 上同音高的接续音被音源吞掉）→
+    #    `midi_export_noteoff_first` 必须抓到。变异只动**排序权重常量**（真实 bug 就是这两个
+    #    值写反）：往返判据一条都抓不到它，它会一路混到渲染，表现为"整段逐次衰减到 −80dB"
+    #    （见 PITFALLS 161）。
+    import midi_file as _mfi
+    results.append(case('导出把按键排在松键之前（吞接续音）',
+                        'midi_export_noteoff_first',
+                        lambda: Mut(_mfi, 'W_ON', 2)))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')
