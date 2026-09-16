@@ -7,8 +7,32 @@
 const fs = require('fs'), path = require('path'), vm = require('vm'), http = require('http');
 const ROOT = path.join(__dirname, '..');
 const PORT = process.env.ED_PORT || 8791;
-const SRC_MID = process.env.ED_MID ||
-  path.join(ROOT, '..', 'songs', '38_d132_full', 'd132_full.mid');
+
+// 测试用的 MIDI：优先 `ED_MID`；否则**自动挑一个可用的**。
+// ⚠ 原来硬编码 `songs/38_d132_full/d132_full.mid`（2026-09-16 修）——
+//   那首歌被删掉之后，这条回归脚本直接 ENOENT 崩在导入那一步，
+//   等于"回归测试自己坏了"（和 `selftest` 里同类硬编码是同一个坑）。
+function pickMidi() {
+  if (process.env.ED_MID) return process.env.ED_MID;
+  const fixed = path.join(ROOT, '..', 'songs', '38_d132_full', 'd132_full.mid');
+  if (fs.existsSync(fixed)) return fixed;
+  const cands = [];
+  const songsDir = path.join(ROOT, '..', 'songs');
+  try {
+    for (const d of fs.readdirSync(songsDir)) {
+      const dir = path.join(songsDir, d);
+      if (!fs.statSync(dir).isDirectory()) continue;
+      for (const f of fs.readdirSync(dir)) {
+        if (f.toLowerCase().endsWith('.mid')) cands.push(path.join(dir, f));
+      }
+    }
+  } catch (e) { /* songs 目录不存在也不致命 */ }
+  // 挑最大的那个（音符多 = 覆盖的编辑路径更全）
+  cands.sort((a, b) => fs.statSync(b).size - fs.statSync(a).size);
+  if (cands.length) return cands[0];
+  throw new Error('找不到可用的 .mid：请用 ED_MID=<路径> 指定');
+}
+const SRC_MID = pickMidi();
 
 const bad = [], good = [];
 function chk(c, msg) { (c ? good : bad).push(msg); console.log((c ? '  OK   ' : '  FAIL ') + msg); }
@@ -265,7 +289,17 @@ const S = vm.runInContext('S', sandbox);
   chk(S.chords[0] && S.chords[0].chord && S.chords[0].chord !== '-',
       '第 1 小节和弦 = ' + (S.chords[0] && S.chords[0].chord) +
       '（命中 ' + (S.chords[0] && S.chords[0].hit) + '）');
-  chk(/第1小节/.test(els.get('chordList').innerHTML), '和弦列表渲染到侧栏');
+  // ⚠ 这里**不能硬要 `第1小节`**（2026-09-16 修）：`renderChords` 只在"起止落在
+  //   **同一个**小节"时才写 `第N小节`，跨小节写成 `3–4` 这种区间形式 ——
+  //   拿真实曲目跑时第 1 段常常是跨小节的，于是这条断言假失败
+  //   （紧邻的上一条已经证明"识别正确"，所以是**测试的假设错了**，不是渲染坏了）。
+  //   改成验证"列表确实渲染出了和弦内容"：命中数 > 0，且至少有一个和弦名出现在侧栏。
+  const _chHtml = els.get('chordList').innerHTML;
+  const _chNames = [...new Set(S.chords.map(c => c.chord).filter(x => x && x !== '-'))];
+  chk(_chHtml.length > 0 && /class="chord/.test(_chHtml) &&
+      _chNames.some(n => _chHtml.indexOf('<b>' + n + '</b>') >= 0),
+      '和弦列表渲染到侧栏（' + _chNames.length + ' 个和弦名，'
+      + (_chHtml.match(/class="chord/g) || []).length + ' 项）');
   const tracksBefore = S.model.tracks.length;
   await sandbox.detectChords(true);
   chk(S.model.tracks.length === tracksBefore + 1,
