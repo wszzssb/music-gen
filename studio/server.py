@@ -62,6 +62,10 @@ TOOLCHAIN = os.path.abspath(os.path.join(HERE, '..'))
 ROOT = TOOLCHAIN                       # 兼容旧环境变量/旧脚本的读法（= 工具链根）
 # 曲库根：优先 `--lib`（main 里赋给 LIB）→ env → 默认在工具链下的 songs/
 LIB = os.environ.get('BGM_STUDIO_LIB') or TOOLCHAIN
+# **曲库根的持久化**（2026-09-16 增，用户："要能更改目录"）：
+# 面板里改过曲库后写一行文本，**重启仍生效**（否则每次换库都要改启动参数）。
+# 放在 studio/ 下而不是曲库里 —— 它是"这台机器的偏好"，跟着工具链走。
+LIB_FILE = os.path.join(HERE, '.libpath')
 # 编辑器的解析/操作/读写都在 scripts/ 里（`midi_file` / `midi_ops` / `midi_probe`），
 # 服务器进程要能 import 它们 —— 加一次 sys.path（与 `run_py` 子进程的口径一致）。
 _SCRIPTS = os.path.join(TOOLCHAIN, 'scripts')
@@ -837,6 +841,31 @@ class Handler(BaseHTTPRequestHandler):
         q = urllib.parse.parse_qs(u.query)
         sid = (q.get('id') or [''])[0]
         try:
+            if u.path == '/api/lib':
+                # **切换曲库根**（用户："要能更改目录"）：校验目录里有 songs/ 再切，并持久化。
+                global LIB, EXPORT_DIR, TMP_AUDIO
+                body = self._body()
+                raw = str(body.get('path') or '').strip().strip('"').strip("'")
+                if not raw:
+                    return self._err('请给出曲库目录（含 songs/ 的目录）')
+                p = os.path.abspath(os.path.expanduser(raw))
+                if not os.path.isdir(p):
+                    return self._err('目录不存在：%s' % p)
+                if not os.path.isdir(os.path.join(p, 'songs')):
+                    return self._err('这个目录里没有 songs/ —— 曲库根应当是**含 songs/ 的父目录**：%s' % p)
+                LIB = p
+                EXPORT_DIR = os.path.join(LIB, 'export')
+                try:
+                    os.makedirs(EXPORT_DIR, exist_ok=True)
+                except OSError:
+                    pass
+                try:
+                    with open(LIB_FILE, 'w', encoding='utf-8') as f:
+                        f.write(LIB)
+                except OSError:
+                    pass
+                return self._json({'ok': True, 'lib': LIB, 'songs': len(songs_list()),
+                                   'saved': LIB_FILE})
             if u.path == '/api/song':
                 body = self._body()
                 song = body.get('song') or body
@@ -987,7 +1016,20 @@ def main():
                     help='不清理音频缓存（默认启动时按预算清，见 prune_tmp_audio）')
     a = ap.parse_args()
     ROOT = os.path.abspath(a.root)
-    LIB = os.path.abspath(a.lib) if a.lib else (os.environ.get('BGM_STUDIO_LIB') or ROOT)
+    # 曲库根优先级：**显式 `--lib` > 环境变量 > 面板里改过的持久化值 > 工具链默认**
+    # （持久化值最低不能盖过命令行 —— 否则 `--lib` 会被上一次的面板操作"吃掉"）
+    if a.lib:
+        LIB = os.path.abspath(a.lib)
+    elif os.environ.get('BGM_STUDIO_LIB'):
+        LIB = os.path.abspath(os.environ['BGM_STUDIO_LIB'])
+    elif os.path.isfile(LIB_FILE):
+        try:
+            _p = open(LIB_FILE, encoding='utf-8').read().strip()
+        except OSError:
+            _p = ''
+        LIB = os.path.abspath(_p) if _p and os.path.isdir(_p) else ROOT
+    else:
+        LIB = ROOT
     EXPORT_DIR = os.path.abspath(a.export_dir) if a.export_dir else os.path.join(LIB, 'export')
     if not os.path.isdir(os.path.join(ROOT, 'scripts')):
         raise SystemExit('--root 指向的目录里没有 scripts/：%s\n'

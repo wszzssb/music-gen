@@ -26,6 +26,7 @@ const fmt=(x,n=1)=> (x===null||x===undefined)?'-':Number(x).toFixed(n);
 async function loadSongs(){
   const d = await api('/api/songs');
   S.songs = d.songs||[];
+  S.lib = d.lib || '';
   const sel = $('songSel'); sel.innerHTML='';
   for(const s of S.songs){
     const o=document.createElement('option'); o.value=s.id;
@@ -35,8 +36,22 @@ async function loadSongs(){
   if(!S.sid && S.songs.length) S.sid = S.songs[0].id;
   sel.value = S.sid||'';
   sel.onchange = ()=>{S.sid=sel.value; loadSong();};
-  $('filesHint').textContent = 'root: '+d.root;
+  $('filesHint').textContent = '曲库: '+S.lib;
+  if($('btnLib')) $('btnLib').title = '更改曲库目录（当前：'+S.lib+'）\n＝含 songs/ 的父目录；改完记住，重启仍生效';
   if(S.sid) await loadSong();
+}
+/* **换曲库目录**（用户："要能更改目录"）：改完由服务端持久化到 studio/.libpath。
+   路径用 prompt 输入（浏览器拿不到本地目录选择器的真实路径），支持粘贴。 */
+async function changeLib(){
+  const cur = S.lib || '';
+  const p = prompt('曲库目录 = 含 songs/ 的父目录\n（例如 D:\\test\\llm_direct\\studio_lib）\n当前：'+cur, cur);
+  if(p===null) return;
+  const d = await api('/api/lib', {method:'POST',
+    headers:{'Content-Type':'application/json'}, body:JSON.stringify({path:p})});
+  if(!d.ok){ alert('换不了：'+(d.error||'未知错误')); return; }
+  S.lib = d.lib; S.sid = null;
+  log('曲库已切换 → '+d.lib+'（'+d.songs+' 首）');
+  await loadSongs();
 }
 async function loadSong(){
   let d;
@@ -747,6 +762,7 @@ async function loadFiles(){
 
 /* ---------------- 事件绑定 ---------------- */
 function bind(){
+  $('btnLib').onclick=()=>changeLib();
   $('btnSave').onclick=()=>saveSong();
   $('btnCheck').onclick=async()=>{ if(S.dirty) await saveSong(true);
     const d=await api('/api/check?id='+encodeURIComponent(S.sid),{method:'POST'});

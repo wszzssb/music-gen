@@ -46,6 +46,9 @@ songs/_*/
 # 验收产物（每次跑 studio\tools\browser_check.js 都会覆盖，不进仓库）
 studio/tools/_browser_check.png
 
+# 面板里改过的**曲库根**（每台机器的目录不同，只是本机偏好，不入库）
+studio/.libpath
+
 # ---- ⑤ 编辑器 / 系统 ----
 .vscode/
 .idea/
