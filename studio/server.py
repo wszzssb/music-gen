@@ -47,15 +47,28 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 WEB = os.path.join(HERE, 'web')
 BRIDGE = os.path.join(HERE, 'bridge.py')
-# 路径**相对化**：面板就在工具链目录下（studio/），root 默认取父目录；可用 --root / env 覆盖
-ROOT = os.environ.get('BGM_STUDIO_ROOT') or os.path.abspath(os.path.join(HERE, '..'))
+# 路径**相对化**：面板就在工具链目录下（studio/），工具链根默认取父目录；可用 env 覆盖。
+#
+# ⚠ 2026-09-16 拆分 `ROOT` 与 `LIB`（踩过）：
+#   原来一个 `ROOT` 同时当"工具链根"和"曲库根"用（`ROOT/scripts` 找工具、`ROOT/songs` 找曲目），
+#   于是把 `--root` 指到**外置曲库**时，连 `scripts/render_midi.py` 都找不到了：
+#       RuntimeError: 渲染失败（rc=2）
+#       can't open file 'D:\...\b35_studio\scripts\render_midi.py'
+#   现在：
+#     · `TOOLCHAIN` = 工具链根（**永远**用来找 scripts/、传给 bridge 子进程）—— 不受 --lib 影响
+#     · `LIB`       = 曲库根（`songs/` 与 `export/` 的父目录）—— 可用 `--lib` 指到别的盘/目录
+#   这样"曲库外置"与"工具链在原地"两件事互不干扰。
+TOOLCHAIN = os.path.abspath(os.path.join(HERE, '..'))
+ROOT = TOOLCHAIN                       # 兼容旧环境变量/旧脚本的读法（= 工具链根）
+# 曲库根：优先 `--lib`（main 里赋给 LIB）→ env → 默认在工具链下的 songs/
+LIB = os.environ.get('BGM_STUDIO_LIB') or TOOLCHAIN
 # 编辑器的解析/操作/读写都在 scripts/ 里（`midi_file` / `midi_ops` / `midi_probe`），
 # 服务器进程要能 import 它们 —— 加一次 sys.path（与 `run_py` 子进程的口径一致）。
-_SCRIPTS = os.path.join(ROOT, 'scripts')
+_SCRIPTS = os.path.join(TOOLCHAIN, 'scripts')
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 PY = None                     # 由 main() 设定：music-gen 的 .venv python
-EXPORT_DIR = os.path.join(ROOT, 'export')       # 交付物也留在同一个文件夹里
+EXPORT_DIR = os.path.join(LIB, 'export')        # 交付物跟着**曲库**走
 TMP_AUDIO = os.path.join(os.environ.get('TEMP', HERE), 'bgm-studio-audio')
 STEM_CACHE = None            # main() 里设为 %TEMP%\bgm-studio-audio\stems
 JOBS = {}
@@ -167,7 +180,7 @@ def run_py(args, timeout=900, cwd=None):
 
 
 def song_dir(sid):
-    d = os.path.join(ROOT, 'songs', sid)
+    d = os.path.join(LIB, 'songs', sid)      # ⚠ 用 LIB（曲库根），不是 ROOT（工具链根）
     if not os.path.isfile(os.path.join(d, 'song.json')):
         raise FileNotFoundError('找不到曲目: %s' % sid)
     return d
@@ -225,7 +238,7 @@ def first_ref():
 
 
 def songs_list():
-    base = os.path.join(ROOT, 'songs')
+    base = os.path.join(LIB, 'songs')        # ⚠ 同上：曲库根
     out = []
     for name in sorted(os.listdir(base)) if os.path.isdir(base) else []:
         d = os.path.join(base, name)
@@ -695,8 +708,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self._err('路径越界', 400)
                 return self._file(p)
             if u.path == '/api/songs':
-                return self._json({'ok': True, 'root': ROOT, 'songs': songs_list(),
-                                   'python': py_exe()})
+                return self._json({'ok': True, 'root': ROOT, 'lib': LIB,
+                                   'songs': songs_list(), 'python': py_exe()})
             if u.path == '/api/song':
                 d = song_dir(sid)
                 rc, ev = run_py(['scripts/song_events.py', os.path.join(d, 'song.json'), '--json'])
@@ -960,16 +973,25 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    global ROOT, PY, EXPORT_DIR, TMP_AUDIO
+    global ROOT, LIB, PY, EXPORT_DIR, TMP_AUDIO
     ap = argparse.ArgumentParser()
     ap.add_argument('--port', type=int, default=8765)
-    ap.add_argument('--root', default=ROOT, help='music-gen 目录')
-    ap.add_argument('--export-dir', default=EXPORT_DIR)
+    ap.add_argument('--root', default=ROOT,
+                    help='工具链根目录（含 scripts/、studio/）—— 找工具用，通常不用改')
+    ap.add_argument('--lib', default=None,
+                    help='**曲库根**（含 songs/ 的目录）。想让曲库放到别处就指它 —— '
+                         '此时工具链仍在原地，脚本照常能跑（2026-09-16 拆分，见文件头注释）')
+    ap.add_argument('--export-dir', default=None)
     ap.add_argument('--open', action='store_true', help='启动后打开浏览器')
     ap.add_argument('--keep-tmp-audio', action='store_true',
                     help='不清理音频缓存（默认启动时按预算清，见 prune_tmp_audio）')
     a = ap.parse_args()
-    ROOT, EXPORT_DIR = os.path.abspath(a.root), os.path.abspath(a.export_dir)
+    ROOT = os.path.abspath(a.root)
+    LIB = os.path.abspath(a.lib) if a.lib else (os.environ.get('BGM_STUDIO_LIB') or ROOT)
+    EXPORT_DIR = os.path.abspath(a.export_dir) if a.export_dir else os.path.join(LIB, 'export')
+    if not os.path.isdir(os.path.join(ROOT, 'scripts')):
+        raise SystemExit('--root 指向的目录里没有 scripts/：%s\n'
+                         '（--root 是**工具链根**；曲库外置请用 --lib）' % ROOT)
     os.makedirs(EXPORT_DIR, exist_ok=True)
     os.makedirs(TMP_AUDIO, exist_ok=True)
     global STEM_CACHE

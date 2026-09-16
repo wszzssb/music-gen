@@ -38,6 +38,36 @@
 studio\start.cmd            # 已在跑则只开浏览器
 http://127.0.0.1:8765/editor
 ```
+
+### ⚠ `--root` vs `--lib`（2026-09-16 拆开，踩过）
+
+| 参数 | 含义 | 何时改 |
+|---|---|---|
+| `--root` | **工具链根**（含 `scripts/`、`studio/`、`refs/`） | 基本不用改 |
+| `--lib` | **曲库根**（含 `songs/`；`export/` 跟着它走） | 想把曲库放别处时用它 |
+
+**为什么拆**：原来一个 `ROOT` 同时当"工具链根"和"曲库根"
+（`ROOT/scripts` 找工具、`ROOT/songs` 找曲目）。把 `--root` 指到**外置曲库**后，
+连 `scripts/render_midi.py` 都找不到 —— 用户实测报错：
+
+```
+!! 渲染失败：RuntimeError: 渲染失败（rc=2）
+can't open file 'D:\test\llm_direct\b35_studio\scripts\render_midi.py'
+```
+
+现在"工具链在原地、曲库外置"互不干扰（`--root` 指错会**立刻报错退出**，不再拖到渲染才炸）：
+
+```powershell
+# 曲库外置（实验曲不进仓库曲库，避免污染 selftest 的验收信号）
+python studio\server.py --port 8765 --lib D:\test\llm_direct\b35_studio
+```
+
+**另外两个坑**：
+- `edit_import_path` **只允许导入工具链目录内的文件**（安全设计）。导外部 `.mid`
+  要用**字节上传** `{name, data_b64}`（浏览器里就是"选文件"）。
+- 编辑器渲染 API 的参数位置不同：`POST /api/ed/render-audio?eid=<eid>`
+  （`eid` 在 **query**，body 放 `model`/`force`），轮询 `GET /api/ed/render-status?t=<task>`
+  （用响应里的 **task**）。放错会得到 `非法会话 id` / 404。
 - 导入任意 `.mid`（Type 0/1）→ 全轨卷帘 → **同屏对比两版**
 - 默认**只读**（🔒），点右上角切 `✏️ 编辑中` 才能改
 - 「🎵 按小节识别和弦」（带置信度）—— 比 `analyze_chords.py` 多一个"看得见的置信度"
