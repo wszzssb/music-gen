@@ -174,8 +174,16 @@ def song_dir(sid):
 
 
 def read_json(p, default=None):
+    """读 JSON；**容忍 UTF-8 BOM**。
+
+    ⚠ 踩过：用外部工具生成 `render.json`（比如 PowerShell 的
+    `Set-Content -Encoding UTF8`，它**默认写 BOM**）时，`json.load` 抛
+    `Unexpected UTF-8 BOM`，于是面板里那首歌 `has_ogg=False / ref=''` ——
+    看起来像"面板不认我的 ogg"，实际是**文件带 BOM**。
+    用 `utf-8-sig` 打开即可（无 BOM 时与 `utf-8` 行为一致）。
+    """
     try:
-        with open(p, encoding='utf-8') as f:
+        with open(p, encoding='utf-8-sig') as f:
             return json.load(f)
     except Exception:
         return default
