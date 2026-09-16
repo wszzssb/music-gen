@@ -820,14 +820,21 @@ function scheduleWindow(fromBeat, toBeat, baseTime) {
 function playTone(w, at, dur, pitch, vel, drum, key, trackIdx) {  /* 并发控制（**这里踩过大坑**）：原来只做一个全局上限 `S.live.size > 48` 就 return，
    * 而 `S.live` 靠 `onended` / `setTimeout` 回收 —— 调度提前量 1.5 秒时，被拒的音
    * 会**一直累积**，实测十几秒后每个新音都被丢掉 → 用户听感"只有开始一秒有声音"。
-   * 现在：① 上限放宽到 96；② 按轨限额（每轨 ≤24），超了就**丢力度最小的那个**而不是
-   * 直接丢新音（新音更靠前、更该被听见）；③ 回收时间用真实时长算，不再依赖窗口提前量。 */
+   * 现在：① 上限**按振荡器预算算**（见下）；② 按轨限额，超了就**丢力度最小的那个**
+   * 而不是直接丢新音（新音更靠前、更该被听见）；③ 回收时间用真实时长算。
+   *
+   * ⚠ 2026-09-16 再修（用户："听 midi 感觉声音怪怪的一些还卡卡的"）：
+   *   旧上限是"96 个音"，但**每个音要 2~4 个振荡器**（`FAMILIES[*].harm`）——
+   *   最坏 **384 个振荡器**同时活着，浏览器音频线程直接过载 → 卡顿/爆音/音符错位。
+   *   用户那首是 9 轨编配（每轨上限 24 音 = 216 音 × 平均 3 振荡器 ≈ 650 个）。
+   *   现在改成按**振荡器预算**限流：全局 160 个振荡器、每轨 40 个。
+   *   换算成音数大约"全局 ~55 音 / 每轨 ~13 音"，与真实回放需求相当。 */
   const want = Math.max(0.05, Math.min(3, dur));
+  const OSC_BUDGET = 160;        // 全局振荡器预算（不是音数）
+  const OSC_PER_TRACK = 40;      // 每轨预算
   // **并发保护**（不是"拒绝新音"）：到上限时**停掉最弱/最老的**再发新的。
-  // 第一版是 `if (S.live.size > 48) return;` —— 直接丢掉新音，而 `S.live` 靠回调回收，
-  // 一旦回收不及时就**永久静音**（用户听感"只有开始一秒有声音"）。
   let guard = 0;
-  while (S.live.size >= 96 && guard++ < 8) {
+  while ((S.liveOsc || 0) >= OSC_BUDGET && guard++ < 8) {
     let victim = null;
     for (const [k, v] of S.live) {
       if (!victim || v.v <= victim[1].v) victim = [k, v];
@@ -835,6 +842,23 @@ function playTone(w, at, dur, pitch, vel, drum, key, trackIdx) {  /* 并发控�
     if (!victim) break;
     try { victim[1].stop(); } catch (e) { /* 已停 */ }
     S.live.delete(victim[0]);
+    S.liveOsc = Math.max(0, (S.liveOsc || 0) - (victim[1].osc || 0));
+  }
+  // 同轨也限一次（避免某一轨（比如鼓）把全局预算吃光）
+  if (trackIdx != null) {
+    let tOsc = 0;
+    for (const [, v] of S.live) if (v.t === trackIdx) tOsc += (v.osc || 0);
+    if (tOsc >= OSC_PER_TRACK) {
+      let victim = null;
+      for (const [k, v] of S.live) {
+        if (v.t === trackIdx && (!victim || v.v <= victim[1].v)) victim = [k, v];
+      }
+      if (victim) {
+        try { victim[1].stop(); } catch (e) { /* 已停 */ }
+        S.live.delete(victim[0]);
+        S.liveOsc = Math.max(0, (S.liveOsc || 0) - (victim[1].osc || 0));
+      }
+    }
   }
   // 发声：鼓走鼓组合成，其余走向乐器族（多振荡器 + 滤波 + ADSR + 混响）
   const prog = (trackIdx != null && S.model.tracks[trackIdx])
@@ -849,10 +873,22 @@ function playTone(w, at, dur, pitch, vel, drum, key, trackIdx) {  /* 并发控�
   if (drum) S.pt.drum++;
   if (guard > 0) S.pt.guard++;
   try { window.__PT = S.pt; } catch (e) { /* 无 window 环境 */ }
-  const entry = { t: trackIdx == null ? -1 : trackIdx, v: vel,
-                  stop: () => { try { v.stop(); } catch (e) { /* 已停 */ } } };
+  // ⚠ 振荡器计数必须在**所有**回收路径上减掉（`victim.stop()` / 兜底 setTimeout /
+  //   正常播放结束），否则 `S.liveOsc` 会只增不减 → 后面每个音都被预算拦掉（"只有开头有声音"）。
+  const oscN = (v && v.made) || 1;
+  const drop = () => {
+    if (S.live.get(key) === entry) {
+      S.live.delete(key);
+      S.liveOsc = Math.max(0, (S.liveOsc || 0) - oscN);
+    }
+  };
+  const entry = { t: trackIdx == null ? -1 : trackIdx, v: vel, osc: oscN,
+                  stop: () => {
+                    try { v.stop(); } catch (e) { /* 已停 */ }
+                    drop();
+                  } };
   S.live.set(key, entry);
-  const drop = () => S.live.delete(key);
+  S.liveOsc = (S.liveOsc || 0) + oscN;
   setTimeout(drop, Math.max(200, (want + 1.2) * 1000));   // 兜底回收（留出包络释放时间）
 }
 /* --- 播放时钟：两种音源共用一个抽象 -----------------------------------------
