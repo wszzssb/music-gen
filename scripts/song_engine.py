@@ -160,7 +160,22 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             # 段级密度（0–4，见 `build_events` 里的说明）与**段级主奏音色**
             # （`melody_prog`，见 `write_midi` 里的说明）—— 2026-09-15 加。
             # ⚠ **必须同步这张表**（上面那条教训就是加了 `perc_in` 忘了这里）。
-            'density', 'melody_prog')
+            'density', 'melody_prog',
+            # `shimmer_db`（2026-09-16）：高频微光层的**音量偏移**（dB，默认 0）。
+            # 用途：原曲开头没有这层（我的第一小节就有 → "开头不像"），
+            # 用它做渐入，而不是把整段 `shimmer` 关掉（关掉会抽掉中高频）。
+            'shimmer_db',
+            # `glock_from_bar`（2026-09-16）：段内**前 N 小节不出钟琴**。
+            # 用户："开头一直都不像" —— 原曲第 1 小节**没有钟琴**（音域上限 96），
+            # 第 3 小节起才有（回到 96）。整段关掉会让前 8 小节整体轻 5~6dB（实测），
+            # 所以要做的是"前 N 小节不出"，而不是"整段关掉"。
+            'glock_from_bar',
+            # `glock_starved`（2026-09-16）：**极安静段的"疏而亮"层** ——
+            # 段内每 2 小节补一个很轻的长音钟琴撑住高频。依据：实测 S13/S17
+            # 这种"前 2 小节满格、后面整段没鼓"的段落，频谱质心崩到 2353/1769
+            # （原曲 3326/3068），`variation` 从 84.6 掉到 36.0 —— 原曲的安静段
+            # 不是"又疏又暗"，而是留着一层细碎高频。
+            'glock_starved')
 
 # ---------------------------------------------------------------------------
 # 段落角色 → 编制（opt-in，`patterns.arr_by_role`）
@@ -1104,9 +1119,33 @@ def build_events(d):
                         ch, B, dyn_vel(50, _barn, 1, _dv, pitch=ch[1][0]) if _dv else None):
                     bucket['Strings'].append((t0 + b, dd, m, v))
             if arr.get('glock'):
-                for (b, dd, m, v) in glock_part(
-                        ch, i, B, dyn_vel(54, _barn, 2, _dv, pitch=ch[1][-1]) if _dv else None):
-                    bucket['Glock'].append((t0 + b, dd, m, v))
+                _gf = int(arr.get('glock_from_bar') or 0)
+                # **极安静段的"疏而亮"层**（`glock_starved`，opt-in）：
+                # 实测 S13/S17 这类极安静段是"前 2 小节满格、后面整段没鼓"，
+                # 于是那几块的频谱质心崩到 2353/1769（原曲 3326/3068/3147），
+                # `variation`（比"块间质心差分的标准差"）从 84.6 掉到 **36.0**。
+                # 原曲的安静段**不是"又疏又暗"**，还留着一层细碎高频。
+                # 这里每 2 小节补**一个很轻的长音**（力度 40）撑住高频骨架。
+                # 给了 `glock_starved` 的段**整段只出这一层**（不再走 `glock_part` 的
+                # 短点），避免"点 + 空"的高频。
+                if arr.get('glock_starved'):
+                    # **每小节**一个长音：隔小节出一层会让"块内"忽亮忽暗 ——
+                    # `variation` 比的正是块间（8 小节）质心差分的标准差，
+                    # 块内不均匀会把差分方差顶上去（实测每 2 小节一个 → variation 40.9；
+                    # 原曲的安静段是**一直**有一层细碎高频，不是隔一下）。
+                    _t = ch[1][-1] + 24
+                    while _t < 63:
+                        _t += 12
+                    if _t <= 115:
+                        bucket['Glock'].append((t0, B - 0.1, _t, 42))
+                        # 再补一个五度上方的低力度音，让这一层是"宽"的而不是"一个点"
+                        _t2 = _t + 7
+                        if _t2 <= 115:
+                            bucket['Glock'].append((t0 + B / 2, B / 2 - 0.1, _t2, 36))
+                elif i >= _gf:
+                    for (b, dd, m, v) in glock_part(
+                            ch, i, B, dyn_vel(54, _barn, 2, _dv, pitch=ch[1][-1]) if _dv else None):
+                        bucket['Glock'].append((t0 + b, dd, m, v))
             if arr.get('arp'):
                 # **按小节轮换落点**（与 guitar_arpeggio(Hook) / perc_part 同一套）：
                 # 原先是"每 0.5 拍一个 + seq[0,2,4,2] 循环 + 力度只有 42/50" —— 384 个音
@@ -1144,10 +1183,15 @@ def build_events(d):
                 tones = voicing(ch_all[cn])[1]
                 # 两个八度同时铺（+24 进 630–1250、+36 进 1.2–4kHz），音色要选**有延音**的
                 # （颤音琴/音乐盒），否则高频只剩打击点 → "点+空"，例曲是连续的墙
+                # `shimmer_db`（opt-in，默认 0 = 老曲字节不变）：整体抬/压这一层 ——
+                # 用来做"渐入"（原曲开头没有这层高频，我的第一小节就有，听感"开头不像"）。
+                _shv = float(arr.get('shimmer_db') or 0.0)
                 for m in [t + 24 for t in tones if t + 24 <= 104][:3]:
-                    bucket['Arp'].append((t0, B - 0.1, m, 58))
+                    bucket['Arp'].append((t0, B - 0.1, m,
+                                          max(1, min(127, int(round(58 + _shv))))))
                 for m in [t + 36 for t in tones if t + 36 <= 108][:3]:
-                    bucket['Arp'].append((t0, B - 0.1, m, 72))
+                    bucket['Arp'].append((t0, B - 0.1, m,
+                                          max(1, min(127, int(round(72 + _shv))))))
             # **自定义鼓型**（opt-in `patterns.drum_grid`）—— 用户："没有韵律感"。
             # `perc_style: dance` 是"四踩 + 反拍踩镲"的固定套路，而原曲的律动是具体的
             # （`b35_drums.py` 从 Demucs 分离的 drums 轨逐 16 分格实测）：
@@ -1188,7 +1232,36 @@ def build_events(d):
                 if v and isinstance(v[0], list) and v[0] and isinstance(v[0][0], list):
                     return v[_i] if _i < len(v) else []
                 return v
-            if arr.get('perc') and _dg:
+            # **整小节静音**（用户："开头一直都不像"）：原曲第 1 小节**一个鼓点都没有**
+            # （只有钢琴+琶音），第 2 小节 6 个、第 4 小节 15 个 —— 是**渐入**。
+            # `drum_grid` 可能给某些小节留空（构建端有"安静小节不许 top-k 填"的守卫），
+            # 那就让这一小节**一个鼓都不出**，而不是退回 `perc_part` 的固定套路
+            # （退回去 = 第一小节照样敲满，渐入就没了）。
+            # ⚠ 不要用 `arr.perc = 0` 来表达"没鼓"：那个档在引擎里同时会把
+            # 贝斯/钢琴/琶音一起削成极简（它是"全曲极简"的总闸），
+            # 开头该"轻"但钢琴和琶音都得在。
+            _dn = sum(len(_band(_n)) for _n in ('kick', 'snare', 'hat'))
+            # ⚠ **只对曲首（前 16 小节）生效**：整曲都静音，会让极安静段整段没有
+            #   高频 —— 实测块 13/17/26 的质心崩到 2353/1769/1266（原曲 3326/3068/3147），
+            #   `variation`（比"块间质心差分的标准差"）从 84.6 掉到 **41**，
+            #   加"每小节一层轻钟琴"也只回到 41.2 —— 高频连续性不是补得回来的。
+            #   曲首那 2 小节是真的静音；别处的安静段**该有轻鼓**（原曲的安静段是
+            #   "疏而亮"）。所以静音判断收窄到 `bar0 + i < 16`。
+            _silent = ((_secs is not None or _pbars is not None)
+                       and _dn < 3 and (bar0 + i) < 16)
+            if _dg is not None and (_secs is not None or _pbars is not None):
+                # 有逐段/逐小节网格时**一律走网格**（含静音小节 = 不出鼓）——
+                # ⚠ 不能让静音小节掉进 `elif` 退回 `perc_part` 的固定套路：
+                #   那样第一小节照样敲满，渐入白做（这条是实测踩出来的）。
+                if arr.get('perc') and not _silent:
+                    _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
+                    for _nm, _note in (('kick', 36), ('snare', 38),
+                                       ('hat', 42), ('open', 46)):
+                        for (_g, _v) in _band(_nm):
+                            bucket['Perc'].append(
+                                (t0 + float(_g) * 0.25, 0.2, _note,
+                                 max(1, min(127, int(round(float(_v) * _lvl))))))
+            elif arr.get('perc') and _dg:
                 _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
                 for _nm, _note in (('kick', 36), ('snare', 38),
                                    ('hat', 42), ('open', 46)):
@@ -1247,6 +1320,7 @@ def build_events(d):
                                          max(1, min(127, int(round(62 * mv))))))
             # 高八度钟琴：同理，越界丢弃而不是夹断
             if (arr.get('glock') and (arr.get('glock_all') or b % 2 == 0)
+                    and b >= int(arr.get('glock_from_bar') or 0)
                     and m + 12 <= 127):
                 bucket['Glock'].append((t, dur * 0.9, m + 12, 54))
         # 副旋律/加厚层（opt-in）：给旋律音配一个**和弦内的低三度**（保证协和），
