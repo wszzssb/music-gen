@@ -175,7 +175,12 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             # 这种"前 2 小节满格、后面整段没鼓"的段落，频谱质心崩到 2353/1769
             # （原曲 3326/3068），`variation` 从 84.6 掉到 36.0 —— 原曲的安静段
             # 不是"又疏又暗"，而是留着一层细碎高频。
-            'glock_starved')
+            'glock_starved',
+            # `perc_target`（2026-09-16）：**逐段鼓点目标**（格/小节）。
+            # 用户"按原曲逐段对齐编配" —— 原曲每段鼓点数在 0.1~28 格之间，
+            # 而我的网格每小节最多 28 格 → 鼓比原曲多。给了目标就按
+            # "每小节 ≤ 目标×1.5"均匀抽稀（`build_events` 的鼓段）。
+            'perc_target')
 
 # ---------------------------------------------------------------------------
 # 段落角色 → 编制（opt-in，`patterns.arr_by_role`）
@@ -1253,9 +1258,21 @@ def build_events(d):
                 #   那样第一小节照样敲满，渐入白做（这条是实测踩出来的）。
                 if arr.get('perc') and not _silent:
                     _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
+                    # **逐段鼓点目标**（`arr.perc_target`，opt-in）：用户"按原曲逐段对齐" ——
+                    # 原曲每段鼓点数 0.1~28 格（S26 只有 0.1、S03 有 28），
+                    # 而我的网格给每小节最多 28 格、段内还带 fill → 鼓反而比原曲多。
+                    # 给了目标就按"每小节不超过 round(目标×1.5)"均匀抽稀。
+                    _pt = arr.get('perc_target')
                     for _nm, _note in (('kick', 36), ('snare', 38),
                                        ('hat', 42), ('open', 46)):
-                        for (_g, _v) in _band(_nm):
+                        _seq = _band(_nm)
+                        if _pt is not None and _seq:
+                            _lim = max(1, int(round(float(_pt) * 1.5)))
+                            if len(_seq) > _lim:
+                                _st = (len(_seq) - 1) / float(_lim - 1) if _lim > 1 else 0
+                                _seq = [_seq[min(len(_seq) - 1, int(round(k * _st)))]
+                                        for k in range(_lim)]
+                        for (_g, _v) in _seq:
                             bucket['Perc'].append(
                                 (t0 + float(_g) * 0.25, 0.2, _note,
                                  max(1, min(127, int(round(float(_v) * _lvl))))))
@@ -1501,9 +1518,9 @@ def build_events(d):
                 if len(_flat) <= _want:
                     _keep.extend(_flat)
                     continue
-                _step = (len(_flat) - 1) / float(_want - 1)
+                _step = (len(_flat) - 1) / float(_want - 1) if _want > 1 else 0.0
                 _keep.extend(_flat[min(len(_flat) - 1, int(round(k * _step)))]
-                             for k in range(_want))
+                             for k in range(max(1, _want)))
             ev[_tr] = sorted((float(_x[0]) * 4.0 + float(_x[1]),
                               max(0.05, float(_x[2])),
                               int(max(0, min(127, _x[3]))), _vel_of(_x))
