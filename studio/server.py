@@ -183,10 +183,42 @@ def run_py(args, timeout=900, cwd=None):
     return p.returncode, (p.stdout or '') + (p.stderr or '')
 
 
+def probe_lib(p):
+    """探测一个目录**能当曲库根**的哪种布局 → (mode, base)。
+
+    ⚠ 为什么要有这个（用户报的 bug）：旧实现写死 `LIB/songs/<id>/song.json`，
+    于是想把曲库指到 `D:\\test\\llm_direct\\b35_remake`（**单曲目录**：里面直接是
+    `song.json` / `.mid` / `.ogg`，没有 `songs/` 这一层）时被自己的校验挡住 ——
+    **曲库根的判据应当是"这里能找到 song.json"，而不是"必须有个叫 songs/ 的子目录"**。
+      · nested  `LIB/songs/<id>/song.json`  —— 工具链标准布局
+      · flat    `LIB/<id>/song.json`         —— 一层子目录（导出目录、归档目录都长这样）
+      · single  `LIB/song.json`              —— 目录本身就是一首曲子
+    """
+    p = os.path.abspath(p or '')
+    if not os.path.isdir(p):
+        return 'missing', p
+    if os.path.isdir(os.path.join(p, 'songs')):
+        return 'nested', os.path.join(p, 'songs')
+    if os.path.isfile(os.path.join(p, 'song.json')):
+        return 'single', p
+    for name in sorted(os.listdir(p)):
+        if os.path.isfile(os.path.join(p, name, 'song.json')):
+            return 'flat', p
+    return 'none', p
+
+
+def lib_base():
+    """当前曲库根 → (mode, base)；base 是"里面直接放各曲目目录"的那一层"""
+    return probe_lib(LIB)
+
+
 def song_dir(sid):
-    d = os.path.join(LIB, 'songs', sid)      # ⚠ 用 LIB（曲库根），不是 ROOT（工具链根）
+    mode, base = lib_base()
+    if mode == 'missing' or mode == 'none':
+        raise FileNotFoundError('曲库根里找不到任何 song.json：%s（当前曲库 %s）' % (sid, LIB))
+    d = base if mode == 'single' else os.path.join(base, sid)
     if not os.path.isfile(os.path.join(d, 'song.json')):
-        raise FileNotFoundError('找不到曲目: %s' % sid)
+        raise FileNotFoundError('找不到曲目: %s（曲库 %s）' % (sid, LIB))
     return d
 
 
@@ -242,13 +274,20 @@ def first_ref():
 
 
 def songs_list():
-    base = os.path.join(LIB, 'songs')        # ⚠ 同上：曲库根
+    mode, base = lib_base()
+    if mode in ('missing', 'none'):
+        return []
+    if mode == 'single':
+        # 目录本身就是一首曲子（用户直接把曲库指向 `...\b35_remake` 这种目录）：
+        # id 取**目录名**，这样下拉里显示的是 `b35_remake` 而不是空串。
+        pairs = [(os.path.basename(os.path.abspath(base)), base)]
+    else:
+        pairs = [(name, os.path.join(base, name))
+                 for name in sorted(os.listdir(base))
+                 if os.path.isfile(os.path.join(base, name, 'song.json'))]
     out = []
-    for name in sorted(os.listdir(base)) if os.path.isdir(base) else []:
-        d = os.path.join(base, name)
+    for name, d in pairs:
         sj = os.path.join(d, 'song.json')
-        if not os.path.isfile(sj):
-            continue
         s = read_json(sj) or {}
         r = read_json(os.path.join(d, 'render.json')) or {}
         bars = sum(sec.get('bars', 0) for sec in s.get('sections', []))
@@ -460,11 +499,18 @@ def edit_render_audio(eid, model=None, force=False):
 
 
 def edit_import_path(path):
-    """从服务器本机路径导入（**只能在 ROOT 之内**：面板不该读任意文件）"""
+    """从服务器本机路径导入 .mid —— **限定在「工具链目录」或「当前曲库」之内**。
+
+    约束的用意是"面板不该读任意文件"，而不是"只能读工具链"：
+    ⚠ 用户口径（2026-09-16）："要能更改目录" —— 曲库可以被指到工具链**外面**
+    （如 `D:\\test\\llm_direct\\b35_remake`），那里面的 .mid 当然要能导入。
+    所以允许范围跟着**当前曲库**一起走，两者取并。
+    """
     p = os.path.abspath(path)
-    root = os.path.abspath(ROOT)
-    if not p.startswith(root):
-        raise ValueError('只允许导入工具链目录内的文件')
+    allowed = [os.path.abspath(ROOT), os.path.abspath(LIB)]
+    if not any(p == a or p.startswith(a + os.sep) for a in allowed):
+        raise ValueError('只允许导入**工具链目录或当前曲库**内的文件\n'
+                         '  工具链：%s\n  当前曲库：%s' % (ROOT, LIB))
     if not os.path.isfile(p):
         raise FileNotFoundError(path)
     with open(p, 'rb') as f:
@@ -851,8 +897,14 @@ class Handler(BaseHTTPRequestHandler):
                 p = os.path.abspath(os.path.expanduser(raw))
                 if not os.path.isdir(p):
                     return self._err('目录不存在：%s' % p)
-                if not os.path.isdir(os.path.join(p, 'songs')):
-                    return self._err('这个目录里没有 songs/ —— 曲库根应当是**含 songs/ 的父目录**：%s' % p)
+                _m, _b = probe_lib(p)
+                if _m in ('missing', 'none'):
+                    return self._err(
+                        '这个目录里找不到任何 song.json：%s\n'
+                        '曲库根可以是下面任一种（面板会自动认）：\n'
+                        '  · 含 songs/<曲目>/song.json 的目录  ← 工具链标准\n'
+                        '  · 含 <曲目>/song.json 的目录         ← 一层子目录\n'
+                        '  · 本身就是一首曲子（目录里直接有 song.json）' % p)
                 LIB = p
                 EXPORT_DIR = os.path.join(LIB, 'export')
                 try:
