@@ -189,7 +189,15 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             # ⚠ **点状音色不该给长音**：原来写 `B - 0.1`（= 3.9 拍），实测我方 Glock
             # 时值中位 **3.900 拍** —— 高频区长鸣非常刺耳，用户听 MIDI 说"声音怪怪的"。
             # 钟琴靠衰减自然收尾，MIDI 只需给"起音长度"。
-            'glock_dur')
+            'glock_dur',
+            # `glock_oct`（2026-09-17）：**钟琴八度**（半音，默认 24 = 老行为）。
+            # 为什么加：拿用户认可的 `BGM35 (1).mid` 当基准量了一次 —— 我方
+            # **C7 及以上占 11.1%，参考曲只有 0.6%（19 倍）**，其中 Glock 独占
+            # 全曲高音事件的 39.4%；而八度写死在 `+24`（`glock_starved` 还有一层
+            # `+36` = 和弦音加三个八度，C4 直接变 C7）—— 这就是"电音感"的机器。
+            # 用户历史两次抱怨（"不流畅"/"声音怪怪的"）当时只修了时值、**没修八度**。
+            # 设 12 = 整体降一个八度；`glock_starved` 的第二层同步变 `+glock_oct+12`。
+            'glock_oct')
 
 # ---------------------------------------------------------------------------
 # 段落角色 → 编制（opt-in，`patterns.arr_by_role`）
@@ -823,16 +831,18 @@ def strings_part(ch, B=4.0, vel=None):
     return [(0.0, B + 0.1, m + 12, v) for m in tones[:3]]
 
 
-def glock_part(ch, i, B=4.0, vel=None):
+def glock_part(ch, i, B=4.0, vel=None, oct=24):
+    """`oct`（opt-in，默认 24 = 逐字节老行为）：钟琴相对和弦音的八度偏移。
+    见 `ARR_KEYS` 里 `glock_oct` 的说明（C7+ 超标 19 倍的主要来源）。"""
     _, tones = ch
     _sh = 0 if vel is None else max(-14, min(14, int(round(vel - 54))))
 
     def _hi(k, dur, vel):
-        """取和弦音 +24；⚠ `tone(tones, k)` 在**索引越界时会退回最低的和弦音**
+        """取和弦音 + `oct`；⚠ `tone(tones, k)` 在**索引越界时会退回最低的和弦音**
         （常在 C2 附近，如 36）—— +24 之后只有 60，低于钟琴合理下界 63
         （`TR_RANGE['Glock'] = (63, 115)`）。实测 `50_density_test` 的 Glock 掉到 60-96，
-        被 `track_ranges_musical` 抓到。这里夹到 ≥63。"""
-        m = tone(tones, k) + 24
+        被 `track_ranges_musical` 抓到。这里夹到 ≥63（降八度后同样兜住）。"""
+        m = tone(tones, k) + oct
         while m < 63:
             m += 12
         return m, dur, vel
@@ -1159,10 +1169,13 @@ def build_events(d):
             #   钟琴/颤音琴这类音色靠"衰减"自然收尾，MIDI 只需给个起音长度，
             #   给长音反而会让音源把它当持续音拉平（"怪"的直接来源之一）。
             _gd = float(arr.get('glock_dur') or 0.5)      # 秒/拍 → 这里单位是拍
+            # 钟琴八度（见 `ARR_KEYS.glock_oct`，默认 24 = 老行为）。
+            # 第二层固定为 `_goct + 12`：默认下 = 36，与老代码逐字节一致。
+            _goct = int(arr.get('glock_oct') if arr.get('glock_oct') is not None else 24)
             if arr.get('glock') and arr.get('glock_starved'):
-                for _t in [x + 24 for x in ch[1][:2] if x + 24 <= 108]:
+                for _t in [x + _goct for x in ch[1][:2] if x + _goct <= 108]:
                     bucket['Glock'].append((t0, _gd, _t, 50))
-                for _t in [x + 36 for x in ch[1][:1] if x + 36 <= 112]:
+                for _t in [x + _goct + 12 for x in ch[1][:1] if x + _goct + 12 <= 112]:
                     bucket['Glock'].append((t0 + B / 2, _gd, _t, 44))
             elif arr.get('glock') and i >= _gf:
                     # ⚠ `density == 0` 的**极安静段**不补钟琴（2026-09-16）：原曲这种段落
@@ -1171,7 +1184,8 @@ def build_events(d):
                     _dv0 = int(arr.get('density') if arr.get('density') is not None else 2)
                     if _dv0 > 0:
                         for (b, dd, m, v) in glock_part(
-                                ch, i, B, dyn_vel(54, _barn, 2, _dv, pitch=ch[1][-1]) if _dv else None):
+                                ch, i, B, dyn_vel(54, _barn, 2, _dv, pitch=ch[1][-1]) if _dv else None,
+                                oct=_goct):
                             bucket['Glock'].append((t0 + b, dd, m, v))
             if arr.get('arp'):
                 # **按小节轮换落点**（与 guitar_arpeggio(Hook) / perc_part 同一套）：
