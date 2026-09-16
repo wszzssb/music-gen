@@ -1654,6 +1654,31 @@ def mel_dyn_env(bar, beat, dur, opt):
 
 
 def write_midi(d, ev, path):
+    # **去重叠**（opt-in `patterns.legato_trim`，默认关 = 全库逐字节不变）：
+    # 同轨同音高、前音还没松键又按下 → **部分 GM 音源会吞掉后一个音**，
+    # 听感就是"断断续续/点状"（`b35_midi_feel.py` 早列为"声音怪/卡"的三大来源之一）。
+    # 实测 BGM35 有 **340 处**（Bass 单次最长 1.00 拍、Arp/Hook/Piano 0.88 拍；
+    # Pad 因 `B+0.1` 时值 vs 4.0 拍小节而必然叠 0.1 拍）。
+    # 做法：把**前一个音的松键提前**到后音按下之前 1ms ——
+    # **不改任何起音时刻、不删音、不改力度**，所以节奏与音符表完全不变。
+    # ⚠ 同 tick 重复（`t1 == t0`）无解，只能保留（实测剩 15 处，均为 0.00 拍）。
+    if (d.get('patterns') or {}).get('legato_trim'):
+        _n = 0
+        for _lst in ev.values():
+            _by = {}
+            for _i, (_t, _dd, _m, _v) in enumerate(_lst):
+                _by.setdefault(_m, []).append(_i)
+            for _idxs in _by.values():
+                _idxs.sort(key=lambda i: _lst[i][0])
+                for _j in range(len(_idxs) - 1):
+                    _i0, _i1 = _idxs[_j], _idxs[_j + 1]
+                    _t0, _d0, _m0, _v0 = _lst[_i0]
+                    _t1 = _lst[_i1][0]
+                    if _t0 + _d0 > _t1:
+                        _lst[_i0] = (_t0, max(0.05, _t1 - _t0 - 1e-3), _m0, _v0)
+                        _n += 1
+        if _n:
+            print('  去重叠（legato_trim）：提前松键 %d 处' % _n)
     tracks = []
     skipped = []
     # 段落级混音自动化（opt-in）：`sections[i].arr.mix = {"Strings": 74, ...}`
