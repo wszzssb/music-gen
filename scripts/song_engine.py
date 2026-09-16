@@ -1114,12 +1114,43 @@ def build_events(d):
             #   hat   8 分格为主、格 7/15 重音
             # 格式：{'kick': [[格, 力度], ...], 'snare': [...], 'hat': [...], 'open': [...]}
             # 给了它就**完全替代** `perc_part`（不再走固定套路）。
+            # ⚠ 2026-09-16 **逐段鼓型**（`drum_grid.per_section`，opt-in）——
+            #   用户（BGM35 还原）："乐器有点乱，没有像原曲一样很好控制"。
+            #   固定网格 = **全曲一套平均律动**，于是连原曲几乎无声的收尾段也铺满鼓
+            #   （实测原曲鼓活跃度在 **2.2~26.5 格/小节**之间波动，而我恒定 29 格）
+            #   → 段落之间没有"呼吸"，听起来就是"一直很满、控制不住"。
+            #   `per_section` 每段一套 16 格型，段与段之间自然疏密交替。
+            #   ⚠ 再进一步（同日）：每段可以是**逐小节的 16 格型列表**
+            #   （`per_section[i][band] = [[[格,力度],...] × nbars]`）——
+            #   原曲的鼓在段内也在变（前 4 小节基本型、后 4 小节 fill），
+            #   若把段内 8 小节**平均**成一节模板，每小节都变成"全段并集"= 一直在 fill，
+            #   听感"很满、控制不住"。给了逐小节列表就按当前小节取用。
+            #   兼容：没有 `per_section` 时仍按单套网格走（老曲字节不变）。
             _dg = pat.get('drum_grid')
+            # ⚠ 用**独立变量名** `_secs` 保存逐段列表：下面 `_dg` 会被改写成"本段的网格"，
+            #   若把列表本身也叫 `_ps` 再 `_ps = _ps[i]`，第二段起 `_ps` 已是**单段字典**，
+            #   `_ps[i]` 就退化成"取该段第 i 小节"→ 全曲被锁死在第一段（实测踩到）。
+            _secs = (_dg or {}).get('per_section')
+            _pbars = (_dg or {}).get('per_bar')     # 推荐：全曲扁平，按绝对小节索引
+            if _pbars is not None:
+                _dg = _pbars[bar0 + i] if 0 <= bar0 + i < len(_pbars) else {}
+            elif _secs is not None:
+                _dg = _secs[i] if i < len(_secs) else {}
+
+            # ⚠ `i` 必须用**默认参数固化**：若写成闭包直接引用 `i`，调用时 `i` 已被
+            #   本段后面那些小节循环改掉 → 每段都只读到最后一个小节的网格
+            #   （实测：全曲变成"每段 8 小节都同一套"的假象，鼓型根本没在段内变化）。
+            def _band(name, _i=i):
+                """取当前小节该鼓件的 [[格,力度], ...]（兼容"每段一套"与"逐小节"）"""
+                v = (_dg or {}).get(name) or []
+                if v and isinstance(v[0], list) and v[0] and isinstance(v[0][0], list):
+                    return v[_i] if _i < len(v) else []
+                return v
             if arr.get('perc') and _dg:
                 _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
                 for _nm, _note in (('kick', 36), ('snare', 38),
                                    ('hat', 42), ('open', 46)):
-                    for (_g, _v) in (_dg.get(_nm) or []):
+                    for (_g, _v) in _band(_nm):
                         bucket['Perc'].append(
                             (t0 + float(_g) * 0.25, 0.2, _note,
                              max(1, min(127, int(round(float(_v) * _lvl))))))
@@ -1291,9 +1322,47 @@ def build_events(d):
     for _tr, _ns in _extra.items():
         if _tr not in ev or not _ns:
             continue
+        # `notes_extra` 可以写成 `{'notes': [...], 'target': [每段目标音数, ...]}` ——
+        # 扒带还原时用来**按段对齐密度**：扒谱（CQT 峰值 / CREPE）天然过采样
+        # （实测 BGM35 还原 43.6 音/小节 vs 原曲 27.3，**1.60×**），而
+        # `arr.density` 的固定上限压不住它，段间起伏反而被放大（σ 9.3 vs 4.4）。
+        # 给了 target 就按该段的音符总数**等间隔抽样**到目标值，且**从小到大均匀铺开**
+        # （不是每小节砍一刀 —— 那样会在小节边界留下规律的"缺口"）。
+        _tgt = None
+        if isinstance(_ns, dict):
+            _tgt = _ns.get('target')
+            _ns = _ns.get('notes') or []
+        if not _ns:
+            continue
         _by_bar = {}
         for _x in _ns:
             _by_bar.setdefault(int(_x[0]), []).append(_x)
+        if _tgt:
+            # 段 → 小节区间
+            _sbar, _acc = [], 0
+            for _s in (d.get('sections') or []):
+                _nb = int(_s.get('bars') or 0)
+                _sbar.append((_acc, _acc + _nb))
+                _acc += _nb
+            _keep = []
+            for _si, (_b0, _b1) in enumerate(_sbar):
+                _want = int(_tgt[_si]) if _si < len(_tgt) else None
+                _bars = sorted(b for b in _by_bar if _b0 <= b < _b1)
+                if _want is None or _want <= 0 or not _bars:
+                    for _b in _bars:
+                        _keep.extend(_by_bar[_b])
+                    continue
+                _flat = [_x for _b in _bars for _x in _by_bar[_b]]
+                if len(_flat) <= _want:
+                    _keep.extend(_flat)
+                    continue
+                _step = (len(_flat) - 1) / float(_want - 1)
+                _keep.extend(_flat[min(len(_flat) - 1, int(round(k * _step)))]
+                             for k in range(_want))
+            ev[_tr] = sorted((float(b) * 4.0 + float(bt), max(0.05, float(dd)),
+                              int(max(0, min(127, p))), 84)
+                             for (b, bt, dd, p) in _keep)
+            continue
         _keep = []
         for _b, _lst in _by_bar.items():
             _lim = _sec_cap[_b] if 0 <= _b < len(_sec_cap) else 12
