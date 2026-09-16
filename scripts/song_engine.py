@@ -1515,6 +1515,37 @@ def build_events(d):
                 return _default
         return _default
 
+    def _pick_onset(_items, _want):
+        """按**起音时刻**等间隔抽样：同一 onset 的音（= 一个和弦）整组保留。
+
+        ⚠ **这是 bug 修复**（2026-09-16，用户报"有 6 个时间段不像"）：
+        原来按"单个音符"等间隔抽 `_flat`，会把和弦**逐个拆散**。实测 BGM35 第 1 小节
+        1.00 拍处有 6 个音（F4+C2+G4+G3+C3+A#4），抽样后只剩第 5 个 **G4** ——
+        钢琴扒得很准（与原曲 CQT 逐音吻合），但内声部 C3/G3/D4 全被抽走，
+        听感上"和声没了、只剩零星单音"，正是用户说的"不像"。
+        用户报的 6 个时间段（bar 0 / 7-9 / 12-21 / 38-46 / 60-69 / 76-78）
+        正是全曲音高集合与参考吻合度最低的一批（Jaccard **0.13~0.33**，全曲均值 0.32），
+        且偏差有统一方向：**缺的全是低音/中声部（27~60）、多的全是高音（60~96）**。
+
+        `_want` 仍按**音符数**解释（向后兼容）：先按平均组大小换算成组数，再对组等间隔取。
+        """
+        _grp = {}
+        for _x in _items:
+            _grp.setdefault(round(float(_x[0]) * 4.0 + float(_x[1]), 3), []).append(_x)
+        _on = sorted(_grp)
+        _n = len(_on)
+        if _n <= 1 or _want >= len(_items):
+            return list(_items)
+        _avg = len(_items) / float(_n)
+        _ng = max(1, min(_n, int(round(_want / max(_avg, 1.0)))))
+        if _ng >= _n:
+            return list(_items)
+        _step = (_n - 1) / float(_ng - 1) if _ng > 1 else 0.0
+        _out = []
+        for _k in range(_ng):
+            _out.extend(_grp[_on[min(_n - 1, int(round(_k * _step)))]])
+        return _out
+
     for _tr, _ns in _extra.items():
         if _tr not in ev or not _ns:
             continue
@@ -1552,9 +1583,8 @@ def build_events(d):
                 if len(_flat) <= _want:
                     _keep.extend(_flat)
                     continue
-                _step = (len(_flat) - 1) / float(_want - 1) if _want > 1 else 0.0
-                _keep.extend(_flat[min(len(_flat) - 1, int(round(k * _step)))]
-                             for k in range(max(1, _want)))
+                # ⚠ 按**起音时刻**整组抽（见 `_pick_onset`）——和弦不能被拆散
+                _keep.extend(_pick_onset(_flat, _want))
             ev[_tr] = sorted((float(_x[0]) * 4.0 + float(_x[1]),
                               max(0.05, float(_x[2])),
                               int(max(0, min(127, _x[3]))), _vel_of(_x))
@@ -1566,9 +1596,8 @@ def build_events(d):
             if len(_lst) <= _lim or _lim <= 1:
                 _keep.extend(_lst)
                 continue
-            _step = (len(_lst) - 1) / float(_lim - 1)
-            _keep.extend(_lst[min(len(_lst) - 1, int(round(i * _step)))]
-                         for i in range(_lim))
+            # ⚠ 同样按**起音时刻**整组抽（见 `_pick_onset`）
+            _keep.extend(_pick_onset(_lst, _lim))
         ev[_tr] = sorted((float(_x[0]) * 4.0 + float(_x[1]), max(0.05, float(_x[2])),
                           int(max(0, min(127, _x[3]))), _vel_of(_x))
                          for _x in _keep)
