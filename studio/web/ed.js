@@ -1067,6 +1067,24 @@ async function doImport(file) {
       (r.summary.bpm || 0).toFixed(1) + ' BPM / ' + (r.summary.timesig || []).join('/'));
   setStatus('已导入 ' + file.name);
 }
+/* **按服务端路径导入**（用户口径"希望主面板像编辑器那样"）：
+   与 doImport 的区别只有一处 —— **不上传文件内容**，直接把路径交给服务端读（限工具链/曲库内），
+   其余后处理完全一致。主面板的「📂 打开」用它把任意 .mid 交过来；也支持直链 `/editor?import=<路径>`。 */
+async function doImportPath(path) {
+  const r = await post('/api/ed/import', { path: path });
+  if (!r || r.ok === false || !r.eid) throw new Error((r && r.error) || '导入失败');
+  S.eid = r.eid; S.model = r.model; S.summary = r.summary;
+  S.selTracks.clear(); S.selNotes = []; S.undo = []; S.redo = [];
+  S.lowPitch = 36; S.highPitch = 84; S.x0 = 0; S.posBeat = 0; S.dirty = false;
+  S.scheduled.clear();
+  const ps = allNotes().map(n => n[2]);
+  if (ps.length) { S.lowPitch = Math.max(0, Math.min(...ps) - 2); S.highPitch = Math.min(127, Math.max(...ps) + 2); }
+  renderAll(); updateUndoUI();
+  const nm = path.split(/[\\/]/).pop();
+  log('导入 ' + path + '：' + r.summary.tracks.length + ' 轨 / ' + r.summary.stats.notes + ' 音符 / ' +
+      (r.summary.bpm || 0).toFixed(1) + ' BPM');
+  setStatus('已导入 ' + nm);
+}
 async function doExport(fmt) {
   if (!S.model) return log('先导入文件');
   setStatus('导出中…');
@@ -1308,3 +1326,11 @@ renderAll();
 updateUndoUI();
 setEditMode(false);        // 默认只读（导入别人的 .mid 时不会一碰就被改）
 log('就绪：点「⬆ 导入 MIDI」选一个 .mid（文件不上传，只在本地解析）；改音符前先点右上「🔒 只读」解锁');
+
+/* **直链带路径进来**：`/editor?import=<路径>` —— 主面板的「📂 打开」用它把 .mid 交过来。 */
+(function () {
+  let p = null;
+  try { p = new URLSearchParams(location.search).get('import'); } catch (e) { p = null; }
+  if (!p) return;
+  doImportPath(p).catch(e => log('!! 按路径导入失败：' + (e && e.message ? e.message : e)));
+})();

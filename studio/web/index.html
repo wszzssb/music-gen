@@ -10,7 +10,7 @@
   <span class="brand">🎛 BGM Studio</span>
   <a id="lnkEditor" href="/editor" title="MIDI 编辑器：导入任意 .mid → 钢琴卷帘/量化/移调/力度 → 导出" style="color:#4c9aff;text-decoration:none">🎹 MIDI 编辑器</a>
   <select id="songSel" title="选择曲目"></select>
-  <button id="btnLib" title="更改曲库目录（＝含 songs/ 的父目录）；改完记住，重启仍生效">📁 曲库</button>
+  <button id="btnLib" title="打开目录或 MIDI：目录→当曲库（含 songs/、或 &lt;曲目&gt;/song.json、或本身就是一首）；.mid→在编辑器里打开">📂 打开</button>
   <span id="songInfo" class="dim"></span>
   <span class="spacer"></span>
   <button id="btnSave" title="写回 song.json（规范格式）">💾 保存</button>
@@ -119,7 +119,7 @@
      从不 play()，且用户点过 ⏹ 后它是 null，`S.player.src=` 会抛异常）。
      试听/播放统一走 WebAudio 引擎（`engine.js`），所以删掉了。 -->
 <script src="/engine.js?v=14"></script>
-<script src="/app.js?v=15"></script>
+<script src="/app.js?v=16"></script>
 <script>
 /* 启动自检：把"跑的是哪一版 + 有没有早期报错"直接写进日志区。
  * 为什么要它（实测踩过）：用户报"卷帘是空的"，我改了代码让他刷新，结果他跑的还是旧 JS，

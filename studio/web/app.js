@@ -40,15 +40,24 @@ async function loadSongs(){
   if($('btnLib')) $('btnLib').title = '更改曲库目录（当前：'+S.lib+'）\n＝含 songs/ 的父目录；改完记住，重启仍生效';
   if(S.sid) await loadSong();
 }
-/* **换曲库目录**（用户："要能更改目录"）：改完由服务端持久化到 studio/.libpath。
-   路径用 prompt 输入（浏览器拿不到本地目录选择器的真实路径），支持粘贴。 */
-async function changeLib(){
+/* **打开任意目录或 .mid**（用户："希望主面板像编辑器那样" —— 编辑器能直接吃一个路径，主面板原来只能从曲库里选）：
+   · 目录 → 当曲库（复用 /api/lib；含 songs/、或 <曲目>/song.json、或本身就是一首，面板自动认）
+   · .mid/.midi/.kar → 交给 MIDI 编辑器按路径打开（`/editor?import=`） */
+async function openPath(){
   const cur = S.lib || '';
-  const p = prompt('曲库目录 = 含 songs/ 的父目录\n（例如 D:\\test\\llm_direct\\studio_lib）\n当前：'+cur, cur);
+  const p = prompt('打开目录或 MIDI 文件：\n'
+    + '· 目录 → 当曲库（含 songs/、或 <曲目>/song.json、或本身就是一首曲子）\n'
+    + '· .mid / .midi → 在 MIDI 编辑器里打开\n\n当前曲库：'+cur, cur);
   if(p===null) return;
+  const v = p.trim().replace(/^"|"$/g,'');
+  if(!v) return;
+  if(/\.(mid|midi|kar)$/i.test(v)){
+    location.href = '/editor?import='+encodeURIComponent(v);
+    return;
+  }
   const d = await api('/api/lib', {method:'POST',
-    headers:{'Content-Type':'application/json'}, body:JSON.stringify({path:p})});
-  if(!d.ok){ alert('换不了：'+(d.error||'未知错误')); return; }
+    headers:{'Content-Type':'application/json'}, body:JSON.stringify({path:v})});
+  if(!d.ok){ alert('打不开：'+(d.error||'未知错误')); return; }
   S.lib = d.lib; S.sid = null;
   log('曲库已切换 → '+d.lib+'（'+d.songs+' 首）');
   await loadSongs();
@@ -762,7 +771,7 @@ async function loadFiles(){
 
 /* ---------------- 事件绑定 ---------------- */
 function bind(){
-  $('btnLib').onclick=()=>changeLib();
+  $('btnLib').onclick=()=>openPath();
   $('btnSave').onclick=()=>saveSong();
   $('btnCheck').onclick=async()=>{ if(S.dirty) await saveSong(true);
     const d=await api('/api/check?id='+encodeURIComponent(S.sid),{method:'POST'});
