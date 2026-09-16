@@ -1138,28 +1138,26 @@ def build_events(d):
                 _dg = _secs[i] if i < len(_secs) else {}
             else:
                 _dg = None
-            # **安静小节的高频骨架**（`glock_starved`，opt-in）——按**小节**判断，不按段：
-            # 实测毁掉 `variation` 的只有两类块：① 极安静段（块 26/13）**高频占比只有
-            # 原曲的 0.24~0.67×**（块 26：我 0.063 vs 原曲 0.260）→ 质心崩到 1125/2352
-            # （原曲 3147/3326）；② 满编段反而亮 1.2~1.3×。
-            # 段级判断不够（S13 是满编段，但后面 6 个小节鼓点稀疏 → 那 6 小节的高频塌了）。
-            _dgn = 0
-            for _n in ('kick', 'snare', 'hat'):
-                _v = (_dg or {}).get(_n) or []
-                if _v and isinstance(_v[0], list) and _v[0] and isinstance(_v[0][0], list):
-                    _dgn += len(_v[i]) if i < len(_v) else 0
-                else:
-                    _dgn += len(_v)
-            _sparse = (_dg is not None) and _dgn < 3
-            if arr.get('glock') and _sparse:
+            # **安静小节的"疏而亮"层**（`glock_starved`，opt-in）——**只在段被标记时**补。
+            # ⚠ 判据踩过一次：第一版按"**本小节**鼓点稀疏"（`_dgn < 3`）补，
+            #   结果**几乎所有小节**都满足（网格每小节常只有 0~2 个鼓点），
+            #   于是全曲被塞进了大量"一个点的钟琴"——用户听 MIDI 直接说"不流畅"。
+            #   钟琴是**点状**音色，逐小节撒点 = 不连贯；只有极安静段才需要它撑高频。
+            #   所以判据回到**段级标记**（`b35_extra.py` 只给 density ≤1 且非开头的段打标）。
+            if arr.get('glock') and arr.get('glock_starved'):
                 for _t in [x + 24 for x in ch[1][:2] if x + 24 <= 108]:
                     bucket['Glock'].append((t0, B - 0.1, _t, 50))
                 for _t in [x + 36 for x in ch[1][:1] if x + 36 <= 112]:
                     bucket['Glock'].append((t0 + B / 2, B / 2 - 0.1, _t, 44))
             elif arr.get('glock') and i >= _gf:
-                    for (b, dd, m, v) in glock_part(
-                            ch, i, B, dyn_vel(54, _barn, 2, _dv, pitch=ch[1][-1]) if _dv else None):
-                        bucket['Glock'].append((t0 + b, dd, m, v))
+                    # ⚠ `density == 0` 的**极安静段**不补钟琴（2026-09-16）：原曲这种段落
+                    #   连钟琴都没有（第 1 小节实测 **0 个** Glock 事件），而我们是"每个
+                    #   旋律音都叠一个 +12 的高八度"→ 听 MIDI 就是"到处在叮"，不连贯。
+                    _dv0 = int(arr.get('density') if arr.get('density') is not None else 2)
+                    if _dv0 > 0:
+                        for (b, dd, m, v) in glock_part(
+                                ch, i, B, dyn_vel(54, _barn, 2, _dv, pitch=ch[1][-1]) if _dv else None):
+                            bucket['Glock'].append((t0 + b, dd, m, v))
             if arr.get('arp'):
                 # **按小节轮换落点**（与 guitar_arpeggio(Hook) / perc_part 同一套）：
                 # 原先是"每 0.5 拍一个 + seq[0,2,4,2] 循环 + 力度只有 42/50" —— 384 个音
@@ -1250,8 +1248,16 @@ def build_events(d):
             #   加"每小节一层轻钟琴"也只回到 41.2 —— 高频连续性不是补得回来的。
             #   曲首那 2 小节是真的静音；别处的安静段**该有轻鼓**（原曲的安静段是
             #   "疏而亮"）。所以静音判断收窄到 `bar0 + i < 16`。
+            # 阈值分两档（**不是**一个统一阈值）：
+            #   · 曲首 **前 2 小节**：原曲第 1 小节 0 个鼓点、第 2 小节 6 个（几乎听不见）
+            #     → 一律强制静音（`_dn < 8` 就够挡住我们的 5 个 hat）。
+            #   · 其余小节：只用"真的没鼓"的判据（`_dn < 3`）。
+            # ⚠ 用统一阈值 8 会把第 5/7 小节（各 5 个点、原曲 7~9 个）也误静音，
+            #   听感变成"奇数小节有鼓、偶数小节没有"的规律性空洞（实测前 12 小节
+            #   鼓点变成 `[0,0,0,11,0,11,0,11]`，原曲是 `[0,6,10,15,7,14,9,15]`）。
+            _n0 = bar0 + i
             _silent = ((_secs is not None or _pbars is not None)
-                       and _dn < 3 and (bar0 + i) < 16)
+                       and ((_n0 < 2 and _dn < 8) or (_n0 < 16 and _dn < 3)))
             if _dg is not None and (_secs is not None or _pbars is not None):
                 # 有逐段/逐小节网格时**一律走网格**（含静音小节 = 不出鼓）——
                 # ⚠ 不能让静音小节掉进 `elif` 退回 `perc_part` 的固定套路：
@@ -1337,6 +1343,10 @@ def build_events(d):
             if (arr.get('glock') and (arr.get('glock_all') or b % 2 == 0)
                     and b >= int(arr.get('glock_from_bar') or 0)
                     and not arr.get('glock_starved')      # starved 段只出那一层
+                    # 极安静段（`density == 0`）**不叠旋律高八度钟琴**：
+                    # 原曲这种段落连钟琴都没有（第 1 小节实测 0 个 Glock 事件），
+                    # 而这条路径会给**每个旋律音**加一个 +12 —— 听 MIDI 是"到处在叮"。
+                    and int(arr.get('density') if arr.get('density') is not None else 2) > 0
                     and m + 12 <= 127):
                 bucket['Glock'].append((t, dur * 0.9, m + 12, 54))
         # 副旋律/加厚层（opt-in）：给旋律音配一个**和弦内的低三度**（保证协和），
