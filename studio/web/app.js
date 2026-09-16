@@ -35,7 +35,8 @@ async function loadSongs(){
   }
   if(!S.sid && S.songs.length) S.sid = S.songs[0].id;
   sel.value = S.sid||'';
-  sel.onchange = ()=>{S.sid=sel.value; loadSong();};
+  sel.onchange = ()=>{S.sid=sel.value; fillMids(); loadSong();};
+  fillMids();
   $('filesHint').textContent = '曲库: '+S.lib;
   if($('btnLib')) $('btnLib').title = '更改曲库目录（当前：'+S.lib+'）\n＝含 songs/ 的父目录；改完记住，重启仍生效';
   if(S.sid) await loadSong();
@@ -61,6 +62,23 @@ async function openPath(){
   S.lib = d.lib; S.sid = null;
   log('曲库已切换 → '+d.lib+'（'+d.songs+' 首）');
   await loadSongs();
+}
+/* **同目录的 .mid**（含中间产物）填进 `#midSel`：面板的"曲目"只认 song.json，
+   但一个工作目录里往往还有一堆 MIDI —— 用户口径"怎么只有一个"就是它们被藏起来了。
+   选中即跳编辑器按路径打开（复用 `/editor?import=`）。 */
+function fillMids(){
+  const ms = $('midSel');
+  if(!ms) return;
+  const cur = (S.songs||[]).find(x=>x.id===S.sid) || (S.songs||[])[0] || {};
+  ms.innerHTML = '<option value="">🎹 MIDI…</option>';
+  for(const f of (cur.mids||[])){
+    const o = document.createElement('option');
+    o.value = (cur.dir||'').replace(/[\\/]$/,'') + '\\' + f;
+    o.textContent = f;
+    ms.appendChild(o);
+  }
+  ms.value = '';
+  ms.onchange = ()=>{ if(ms.value) location.href = '/editor?import='+encodeURIComponent(ms.value); };
 }
 async function loadSong(){
   let d;

@@ -292,8 +292,15 @@ def songs_list():
         r = read_json(os.path.join(d, 'render.json')) or {}
         bars = sum(sec.get('bars', 0) for sec in s.get('sections', []))
         bpm = s.get('bpm') or 120
+        # 同目录里的 .mid（面板的"曲目"只认 song.json，但一个工作目录里往往还有一堆
+        # 中间产物 MIDI —— 它们该能直接点开进编辑器，否则用户会觉得"怎么只有一个"）
+        try:
+            _mids = sorted(f for f in os.listdir(d)
+                           if f.lower().endswith(('.mid', '.midi')))
+        except OSError:
+            _mids = []
         out.append({'id': name, 'name': s.get('name') or name, 'style': s.get('style', ''),
-                    'bpm': bpm, 'bars': bars,
+                    'bpm': bpm, 'bars': bars, 'dir': d, 'mids': _mids,
                     'seconds': round(bars * 4 * 60.0 / bpm, 1) if bars else 0,
                     'ref': r.get('ref', ''), 'tracks': len(s.get('sections', [])),
                     'has_ogg': os.path.isfile(os.path.join(d, (r.get('out') or '') + '.ogg')),
