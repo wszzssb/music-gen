@@ -33,12 +33,21 @@ PIVOT = '80-160'                 # 相对基准带（低中频，两条曲都稳
 
 
 def _resample(x, sr_from, sr_to):
+    """重采样（优先 scipy；没有 scipy 时退化为线性插值 —— 主 venv 就没装 scipy，
+    而 band_match 里也是同一套退化路径，两边口径必须一致）。"""
     if sr_from == sr_to:
         return x
     from math import gcd
-    from scipy.signal import resample_poly
     g = gcd(int(sr_from), int(sr_to))
-    return resample_poly(x, int(sr_to // g), int(sr_from // g), axis=0)
+    try:
+        from scipy.signal import resample_poly
+        return resample_poly(x, int(sr_to // g), int(sr_from // g), axis=0)
+    except Exception:
+        idx = np.arange(0, len(x), float(sr_from) / sr_to)
+        i0 = np.floor(idx).astype(np.int64)
+        i1 = np.minimum(i0 + 1, len(x) - 1)
+        frac = (idx - i0)[:, None] if x.ndim > 1 else (idx - i0)
+        return x[i0] * (1 - frac) + x[i1] * frac
 
 
 def load44(path):
