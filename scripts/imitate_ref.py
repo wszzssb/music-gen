@@ -65,6 +65,32 @@ def have(path):
     return os.path.exists(path)
 
 
+def low_strategy(ref):
+    """按**参考曲自己的低频含量**决定 (高通频率, 是否加 sub 层, 依据读数)。
+
+    为什么必须自适应（实测翻车）：不同曲子的 20-40Hz 含量能差 **18 dB** ——
+        BGM29 参考：20-40 比 80-160 只低 **7.9 dB**（有 sub，低音是"面"）
+        BGM35 参考：低 **18.2 dB**（母带基本把 sub 切了）
+    用 BGM29 调出来的"hp 0 + 加 sub"直接套到 BGM35 上 → 20-40 相对参考 **+10.95 dB**
+    （平均相对带差 0.82 → **6.46 dB**，全线崩）。所以这套参数**必须从参考曲推**。
+
+    判据用"20-40 相对本曲 80-160 的 dB"（与采样率无关的相对量）。
+    """
+    import band_grade as G
+    b, _mono, _x, _rms = G.bands44(ref)
+    piv = b[G.NAMES.index('80-160')]
+    rel = b[G.NAMES.index('20-40')] - piv
+    if rel < -15:
+        hp, sub = 36.0, False
+    elif rel < -10:
+        hp, sub = 28.0, False
+    elif rel < -6:
+        hp, sub = 18.0, False
+    else:
+        hp, sub = 0.0, True
+    return hp, sub, rel
+
+
 def main():
     ap = argparse.ArgumentParser(description='参考曲模仿流水线')
     ap.add_argument('ref', help='参考音频（ogg/wav/flac/mp3）')
@@ -77,7 +103,10 @@ def main():
     ap.add_argument('--rms', type=float, default=-16.10, help='成品 RMS 目标')
     ap.add_argument('--width', type=float, default=None, help='成品宽度（默认对齐参考曲）')
     ap.add_argument('--thr', type=float, default=0.90, help='低音集成阈值')
-    ap.add_argument('--no-sub', action='store_true', help='不做低八度 sub 层')
+    ap.add_argument('--no-sub', action='store_true', help='强制不做低八度 sub 层')
+    ap.add_argument('--sub', action='store_true', help='强制做 sub 层（覆盖自适应判断）')
+    ap.add_argument('--hp', type=float, default=None,
+                    help='渲染高通频率（缺省 = 按参考曲低频含量自适应）')
     ap.add_argument('--bsz', type=int, default=32)
     a = ap.parse_args()
 
@@ -159,9 +188,19 @@ def main():
             print('\n[4/9] Basic Pitch —— 已存在，跳过')
 
     # ── 5 低音专项集成（+ sub 层）───────────────────────────────────────────
+    hp_hz, sub_on, rel2040 = low_strategy(ref)
+    if a.hp is not None:
+        hp_hz = a.hp
+    if a.no_sub:
+        sub_on = False
+    if a.sub:
+        sub_on = True
+    print('\n  低频策略（按参考曲推）：参考 20-40 比 80-160 低 %.1f dB → 高通 %.0fHz · sub 层 %s'
+          % (rel2040, hp_hz, '开' if sub_on else '关'))
+
     song = os.path.join(P, 'song.mid')
     if stage(4, 'bass') and stale(song, 'bass'):
-        print('\n[5/9] 低音专项集成（三源交叉验证%s）' % ('' if a.no_sub else ' + sub 层'))
+        print('\n[5/9] 低音专项集成（三源交叉验证%s）' % (' + sub 层' if sub_on else '，不加 sub'))
         cmd = [PY_ML, os.path.join(HERE, 'bass_ensemble.py'),
                '--base', ymt_mid, '--out', song, '--layer', 'Bass', '--thr', str(a.thr)]
         if have(yb_mid):
@@ -170,18 +209,18 @@ def main():
             p = os.path.join(bpdir, 'bp_%s.mid' % tag)
             if have(p):
                 cmd += ['--source', '%s=%s|24|60' % (tag, p)]
-        if not a.no_sub:
+        if sub_on:
             cmd += ['--sub']
         sh(cmd, 'bass')
     else:
         print('\n[5/9] 低音集成 —— 已存在，跳过')
 
-    # ── 6 渲染（hp 0 = 不切 20-40Hz）────────────────────────────────────────
+    # ── 6 渲染（高通频率由参考曲低频含量决定）──────────────────────────────
     raw = os.path.join(P, 'render.wav')
     if stage(5, 'render') and stale(raw, 'render'):
-        print('\n[6/9] 渲染（hp 0，不切低频）')
+        print('\n[6/9] 渲染（高通 %.0fHz）' % hp_hz)
         sh([PY_MAIN, os.path.join(HERE, 'render_midi.py'), song, os.path.join(P, 'render'),
-            '--width', '1.4', '--rms', '-16.0', '--shelf', '6.0', '--hp', '0',
+            '--width', '1.4', '--rms', '-16.0', '--shelf', '6.0', '--hp', '%g' % hp_hz,
             '--low', '2.0', '--drive', '1.2', '--mid', '4.0'], 'render')
     else:
         print('\n[6/9] 渲染 —— 已存在，跳过')
