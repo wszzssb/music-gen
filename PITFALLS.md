@@ -519,3 +519,24 @@
 
      **纪律**：凡是"在某首曲子上调出来的参数"，进通用流程前必须**问它依赖参考曲的哪个可观测量**；
      推不出依赖关系的参数，一律先跑第二首曲子验证，再决定要不要固化。
+
+
+176. **studio 面板的"曲目"只认 `song.json`；而 `/api/audio?kind=mix` 只认 `render.json.out`**
+     —— 转录取的成品放进去"看不见、听不到"就是这个原因（2026-09-17）。
+     用户报："`99_bgm29_remake` 里的四个版本怎么没找到"。查下来是**三个原因叠在一起**：
+
+     ① **面板进程的曲库指向错了**：`--lib` 被设成了**单个曲目目录**
+        （`...\studio_lib\songs\99_b35_remake`）而不是曲库根（`...\studio_lib\songs`），
+        于是下拉里只有一首。
+     ② **新面板静默失败**：端口被旧进程占着 → 新起的那个 `exit 1`，而**旧进程还在服务**
+        （所以你以为重启了，其实页面还是旧的）。→ 重启前先 `netstat` 看 8765 上是谁，
+        必要时先 `Stop-Process`。旧 `--lib` 还会持久化在 `studio/.libpath` 里。
+     ③ **目录里没有 `song.json`**：`songs_list()` 只把"子目录里有 song.json"的算作曲目
+        （`probe_lib` 的三种布局都以此为准据）。转录/还原类产物默认只有 .ogg/.mid，
+        **必须先补一个最小 song.json**（name/bpm/meter/style/desc/sections 即可）。
+     ④ 顺带：`kind=mix` 找的是 `<曲目目录>/<render.json.out>.ogg`（再退 .wav），
+        所以**一个目录只能"代表"一个成品**；要让多个候选都能在下拉里选、都能播，
+        就得**每个版本一个目录**（各自 song.json + render.json(out=version) + version.ogg）。
+
+     **成品**：`studio_lib/songs/99_bgm29_remake`（定版）+ `99_bgm29_old` / `99_bgm29_leadEP` /
+     `99_bgm29_leadVib` + `99_b35_v5` / `99_b35_pipeline` —— 六个都能在面板里直接选、直接播。
