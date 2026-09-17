@@ -1654,6 +1654,39 @@ def mel_dyn_env(bar, beat, dur, opt):
 
 
 def write_midi(d, ev, path):
+    # **音区修正 + 弱起音修正**（opt-in `patterns.range_fix`，默认关 = 全库逐字节不变）。
+    # 为什么需要：引擎自检 `track_ranges_musical` 只**报警**不修，而实测 BGM35 的
+    # v17 版本有 **382 个音**落在 `TR_RANGE` 之外（Arp 低到 F1=29 / Hook 高到 B6=95 /
+    # Piano 低到 A#0=22）—— 这些是从转录（`notes_extra`）带进来的超低/超高音，
+    # 而 Arp 轨是 87 Lead 8 合成主音，在 F1 弹必然"怪"。
+    # 另有 **12 个弱起音**（velocity<20）：GM 音源在这个力度几乎不出声。
+    # 修法：**移八度**回区间（不改音级、不改和声；起音/时值/力度/音符数全不变）
+    #       + 弱起音提到 26。
+    # ⚠ 必须用**引擎自己的 `TR_RANGE`**（按库里成品实测包络定），不要另抄一张表 ——
+    #   第一版我自造了 "Arp 40-100 / Hook 40-100"，结果既漏修 258 个又多修 49 个
+    #   （Hook 的 34-39 在 `TR_RANGE['Hook']=(32,91)` 里本来就合法）。
+    #   CONVENTION 第 1 条：定义紧贴实现，抄一份 = 埋一处漂移。
+    # ⚠ 必须放在 `legato_trim` **之前**：后者按音高给同音高音分组，先改音高会打乱它。
+    if (d.get('patterns') or {}).get('range_fix'):
+        _n_oct = _n_vel = 0
+        for _k, _lst in ev.items():
+            _rg = TR_RANGE.get(_k)
+            for _i, (_t, _dd, _m, _v) in enumerate(_lst):
+                _m2, _v2 = _m, _v
+                if _rg:
+                    while _m2 < _rg[0]:
+                        _m2 += 12
+                    while _m2 > _rg[1]:
+                        _m2 -= 12
+                    if _m2 != _m:
+                        _n_oct += 1
+                if 0 < _v2 < 20:
+                    _v2 = 26
+                    _n_vel += 1
+                if (_m2, _v2) != (_m, _v):
+                    _lst[_i] = (_t, _dd, _m2, _v2)
+        if _n_oct or _n_vel:
+            print('  音区修正（range_fix）：移八度 %d 个 · 弱起音 %d 个' % (_n_oct, _n_vel))
     # **去重叠**（opt-in `patterns.legato_trim`，默认关 = 全库逐字节不变）：
     # 同轨同音高、前音还没松键又按下 → **部分 GM 音源会吞掉后一个音**，
     # 听感就是"断断续续/点状"（`b35_midi_feel.py` 早列为"声音怪/卡"的三大来源之一）。
