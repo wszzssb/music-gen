@@ -226,4 +226,9 @@ def main():
 
 
 if __name__ == "__main__":
+    try:
+        import cli_utf8 as _cu
+        _cu.setup()
+    except Exception:
+        pass
     main()

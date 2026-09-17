@@ -15,13 +15,22 @@ import time
 
 import numpy as np
 import soundfile as sf
-import torch
-import torchaudio
-from demucs.apply import apply_model
-from demucs.pretrained import get_model
+
+
+def _libs():
+    """**惰性**导入重依赖：工具链主 venv（.venv）里没有 torch/demucs，
+    而自检的 `import_all` 会 import 本目录每个脚本 —— 顶层 import 会直接判 FAIL
+    （实测踩过：`import_all → stem_split: No module named 'torch'`）。
+    本脚本必须用 .venv-ml 跑，导入推迟到真正用时即可。"""
+    import torch
+    import torchaudio
+    from demucs.apply import apply_model
+    from demucs.pretrained import get_model
+    return torch, torchaudio, apply_model, get_model
 
 
 def load_stereo(path, sr_target):
+    torch, torchaudio, _am, _gm = _libs()
     y, s = sf.read(path, dtype="float32", always_2d=True)      # (n, ch)
     wav = torch.from_numpy(np.ascontiguousarray(y.T))          # (ch, n)
     if s != sr_target:
@@ -30,6 +39,7 @@ def load_stereo(path, sr_target):
 
 
 def split_one(model_name, audio, outroot):
+    torch, _ta, apply_model, get_model = _libs()
     model = get_model(model_name)
     model.eval()
     sr = model.samplerate
@@ -68,4 +78,9 @@ def main():
 
 
 if __name__ == "__main__":
+    try:
+        import cli_utf8 as _cu
+        _cu.setup()
+    except Exception:
+        pass
     main()

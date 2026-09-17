@@ -430,3 +430,49 @@
      `could not convert string to float: '/test/.../Acoustic Piano.wav'`，同一个原因。
      **规则**：CLI 里凡是"名字 + 路径 + 若干参数"打包成一个字符串的，分隔符一律避开 `:`（用 `|` 或 `,`）。
      顺带：路径里可能含**空格**（如 `Acoustic Piano.wav`），shell 侧要加引号。
+
+
+171. **OGG 不能当"逐字节相同"的判据 —— ffmpeg 的 ogg 封装每次写不同的随机 serial**（2026-09-17）。
+     场景：把渲染链里四个频域滤波合并成一次 FFT 后验证等价性，看到
+     `old.ogg` 与 `new.ogg` 的 SHA256 不同（B2F29EA1… vs 50CA861A…），
+     差点当成"改动引入了差异"去回滚。
+     实测证伪：**同一个 WAV 连编两次**，两次 ogg 的 SHA256 也不同
+     （58b230C4… vs 9BE10111…），但**解码回来的 PCM 逐位相同**。
+     根因：ogg 页头带随机 bitstream serial number，与音频内容无关。
+     **规则**：① 等价性/可复现性验收一律比 **WAV 或解码后的 PCM**，不比 ogg 字节；
+     ② 本次最终判据 = 合并前后 WAV **逐字节相同**（SHA256 同为 E1BE6E3C…，逐样本最大差 0.000e+00）。
+
+
+172. **"原地改数组"的函数 + "跑两遍对比/计时"写在同一段里 → 自检假 PASS、差异假 FAIL**（2026-09-17）。
+     场景：新写的 `apply_chain_np()` 沿用旧滤波函数**原地写回**的语义（返回值就是入参），
+     而验证脚本写成：
+     ```python
+     a = old_path(x, **case)              # a 是副本
+     b = R.apply_chain_np(x, **case)      # b is x —— x 已被原地改过
+     b2 = R.apply_chain_np(x, **case)     # 同一个对象再滤一遍
+     det = np.array_equal(b, b2)          # 恒 True（b、b2 是同一个数组）
+     d = np.max(np.abs(a - b))            # 此时 b 已是"滤了两遍"的值！
+     ```
+     结果：自检报"两遍一致=True"（假），差异报 **0.447**（假 —— 差了两级滤波的量级），
+     而单级/两级分开测的真实差异只有 **5e-16**。
+     **规则**：① 比对前先 `.copy()`；② "同函数跑两遍一致性"必须用**两个独立副本**；
+     ③ 看到"等价性突然差 0.4"这种大数，先怀疑**验证脚本**，再怀疑实现。
+
+
+173. **工具链脚本顶层 import 重依赖（torch/demucs）→ 主 venv 的自检 `import_all` 直接 FAIL**（2026-09-17）。
+     场景：新增 `stem_split.py` 顶部 `import torch`，而自检跑在工具链主 venv（**没有 torch**，
+     torch 只装在 `.venv-ml`）→ `FAIL import_all: stem_split: No module named 'torch'`。
+     同一条自检还挂着 `console_encoding_safe`：**每个带 `if __name__` 的脚本都必须调 `cli_utf8.setup()`**
+     —— 新增的 `mix_stems.py / stem_split.py / timbre_candidates.py / transcribe_ymt3.py` 都没做。
+     **规则**：① 只在某个 venv 里装得上的依赖（torch/lightning/demucs/librosa…）一律**函数内惰性 import**；
+     ② 新脚本照抄这个收尾：
+     ```python
+     if __name__ == "__main__":
+         try:
+             import cli_utf8 as _cu; _cu.setup()
+         except Exception:
+             pass
+         main()
+     ```
+     ③ 惰性 import 不能只是"把 FAIL 藏起来"—— 还要在**正确的 venv 里真调一次**求证
+     （本次实测 `.venv-ml` 下 `torch 2.11.0+cu128`、`apply_model`、`get_model` 都取得到）。
