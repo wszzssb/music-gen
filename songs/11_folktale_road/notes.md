@@ -6,7 +6,7 @@
 | 主题→风格 | folk/blues/ballad（引擎预设 ballad） |
 | 速度·调式 | 123 BPM · C major（模板中位） |
 | 和声 | Cmaj7 Fm6 Am7 Am7（来源 window4） |
-| 曲式 | 10 段 × 8 小节 = 72 小节 |
+| 曲式 | 7 段 × 8 小节 = 48 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）
 

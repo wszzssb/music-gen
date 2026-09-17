@@ -6,7 +6,7 @@
 | 主题→风格 | ballad/romantic/pop（引擎预设 ballad） |
 | 速度·调式 | 120 BPM · A major（模板中位） |
 | 和声 | B7 Esus4 Am7 Am（来源 window4） |
-| 曲式 | 10 段 × 8 小节 = 72 小节 |
+| 曲式 | 6 段 × 8 小节 = 40 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）
 

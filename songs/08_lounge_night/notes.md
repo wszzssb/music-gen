@@ -6,7 +6,7 @@
 | 主题→风格 | jazz/blues/pop（引擎预设 acoustic） |
 | 速度·调式 | 132 BPM · C major（模板中位） |
 | 和声 | Csus4 E7 C7 Fm6（来源 window4） |
-| 曲式 | 10 段 × 8 小节 = 72 小节 |
+| 曲式 | 5 段 × 8 小节 = 32 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）
 

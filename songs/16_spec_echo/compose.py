@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""daily_morning —— 编配数据在 song.json，本文件只负责调用引擎"""
+"""spec_echo —— 编配数据在 song.json，本文件只负责调用引擎"""
 import os
 import sys
 

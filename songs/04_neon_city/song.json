@@ -13,11 +13,12 @@
   "guitar_beats": [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
   "guitar_vary": true,
   "space": true,
-  "section_gap": 2.0
+  "section_gap": 1.0,
+  "dyn_vel": 8.0
  },
  "chords": {
-  "Gm6": [31, [55, 58, 62, 64]],
-  "D7": [38, [62, 66, 69, 72]]
+  "D7": [38, [62, 66, 69, 72]],
+  "Gm6": [31, [55, 58, 62, 64]]
  },
  "melody": {
   "A": [
@@ -33,11 +34,13 @@
    [0, 1.25, 0.75, 79], [0, 2.0, 1.0, 79], [0, 3.0, 1.25, 76],
    [1, 0.25, 2.0, 78], [1, 3.0, 2.0, 78],
    [2, 1.5, 1.0, 79], [2, 2.5, 0.75, 79], [2, 3.25, 0.75, 76],
-   [3, 0.0, 2.75, 86],
-   [4, 1.5, 1.0, 84], [4, 2.5, 0.75, 82], [4, 3.25, 1.5, 79],
-   [5, 1.25, 0.75, 81], [5, 2.0, 1.0, 78], [5, 3.0, 1.5, 77],
-   [6, 1.0, 1.0, 78], [6, 2.0, 0.75, 81], [6, 2.75, 1.5, 78],
-   [7, 0.25, 2.25, 79]
+   [3, 0.0, 2.75, 86]
+  ],
+  "B_tag": [
+   [0, 1.5, 1.0, 84], [0, 2.5, 0.75, 82], [0, 3.25, 1.5, 79],
+   [1, 1.25, 0.75, 81], [1, 2.0, 1.0, 78], [1, 3.0, 1.5, 77],
+   [2, 1.0, 1.0, 78], [2, 2.0, 0.75, 81], [2, 2.75, 1.5, 78],
+   [3, 0.25, 2.25, 79]
   ]
  },
  "sections": [
@@ -58,18 +61,19 @@
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 1,
+    "density": 2,
     "mix": {
-     "Melody": 96,
-     "Hook": 76,
-     "Piano": 72,
-     "Arp": 57,
-     "Pad": 65,
-     "Strings": 61,
-     "Bass": 94,
-     "Glock": 57,
-     "Perc": 82
-    }
+     "Melody": 92,
+     "Hook": 73,
+     "Piano": 69,
+     "Arp": 54,
+     "Pad": 62,
+     "Strings": 58,
+     "Bass": 90,
+     "Glock": 54,
+     "Perc": 78
+    },
+    "hook": false
    }
   },
   {
@@ -81,26 +85,27 @@
     "bass": true,
     "perc": 2,
     "piano": true,
-    "uku": true,
+    "uku": false,
     "arp": true,
     "pad": false,
     "strings": false,
-    "glock": true,
-    "ep": false,
+    "glock": false,
+    "ep": true,
     "glock_all": false,
     "shimmer": false,
-    "density": 4,
+    "density": 3,
     "mix": {
-     "Melody": 99,
-     "Hook": 79,
-     "Piano": 75,
-     "Arp": 59,
-     "Pad": 67,
-     "Strings": 63,
-     "Bass": 97,
-     "Glock": 59,
-     "Perc": 85
-    }
+     "Melody": 97,
+     "Hook": 77,
+     "Piano": 73,
+     "Arp": 58,
+     "Pad": 66,
+     "Strings": 62,
+     "Bass": 95,
+     "Glock": 58,
+     "Perc": 83
+    },
+    "hook": false
    }
   },
   {
@@ -112,26 +117,27 @@
     "bass": true,
     "perc": 1,
     "piano": true,
-    "uku": true,
+    "uku": false,
     "arp": false,
     "pad": false,
-    "strings": true,
-    "glock": false,
-    "glock_all": false,
+    "strings": false,
+    "glock": true,
     "ep": false,
+    "glock_all": false,
     "shimmer": false,
-    "density": 1,
+    "density": 2,
     "mix": {
-     "Melody": 97,
-     "Hook": 77,
-     "Piano": 73,
-     "Arp": 58,
-     "Pad": 66,
-     "Strings": 62,
-     "Bass": 95,
-     "Glock": 58,
-     "Perc": 83
-    }
+     "Melody": 102,
+     "Hook": 81,
+     "Piano": 77,
+     "Arp": 60,
+     "Pad": 69,
+     "Strings": 65,
+     "Bass": 100,
+     "Glock": 60,
+     "Perc": 88
+    },
+    "hook": false
    }
   },
   {
@@ -141,28 +147,29 @@
    "melody": "B",
    "arr": {
     "bass": true,
-    "perc": 2,
+    "perc": 0,
     "piano": true,
-    "uku": true,
-    "arp": true,
-    "pad": false,
-    "strings": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
     "glock": false,
     "ep": false,
     "glock_all": false,
-    "shimmer": true,
+    "shimmer": false,
     "density": 0,
     "mix": {
-     "Melody": 103,
-     "Hook": 82,
-     "Piano": 78,
-     "Arp": 61,
-     "Pad": 70,
-     "Strings": 65,
-     "Bass": 101,
-     "Glock": 61,
-     "Perc": 89
-    }
+     "Melody": 57,
+     "Hook": 45,
+     "Piano": 43,
+     "Arp": 34,
+     "Pad": 38,
+     "Strings": 36,
+     "Bass": 56,
+     "Glock": 34,
+     "Perc": 49
+    },
+    "hook": false
    }
   },
   {
@@ -174,26 +181,91 @@
     "bass": true,
     "perc": 1,
     "piano": true,
-    "uku": true,
+    "uku": false,
     "arp": false,
     "pad": false,
     "strings": false,
-    "glock": true,
-    "glock_all": false,
+    "glock": false,
     "ep": true,
+    "glock_all": false,
     "shimmer": false,
-    "density": 1,
+    "density": 2,
     "mix": {
-     "Melody": 96,
-     "Hook": 76,
-     "Piano": 72,
-     "Arp": 57,
-     "Pad": 65,
-     "Strings": 61,
-     "Bass": 94,
-     "Glock": 57,
-     "Perc": 82
-    }
+     "Melody": 103,
+     "Hook": 82,
+     "Piano": 78,
+     "Arp": 61,
+     "Pad": 70,
+     "Strings": 65,
+     "Bass": 101,
+     "Glock": 61,
+     "Perc": 89
+    },
+    "hook": false
+   }
+  },
+  {
+   "name": "B3",
+   "bars": 4,
+   "chords": ["Gm6", "D7", "Gm6", "D7"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": false,
+    "arp": true,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 3,
+    "mix": {
+     "Melody": 86,
+     "Hook": 69,
+     "Piano": 65,
+     "Arp": 51,
+     "Pad": 58,
+     "Strings": 55,
+     "Bass": 84,
+     "Glock": 51,
+     "Perc": 74
+    },
+    "hook": true
+   }
+  },
+  {
+   "name": "Tag",
+   "bars": 4,
+   "chords": ["Gm6", "D7", "D7", "Gm6"],
+   "melody": "B_tag",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 0,
+    "mix": {
+     "Melody": 43,
+     "Hook": 34,
+     "Piano": 32,
+     "Arp": 26,
+     "Pad": 29,
+     "Strings": 28,
+     "Bass": 42,
+     "Glock": 26,
+     "Perc": 37
+    },
+    "hook": false
    }
   }
  ],
@@ -209,7 +281,7 @@
   },
   "primary_source": "window2",
   "mix_target": "neon_mix",
-  "energy_curve_db": [-1.12, -0.34, -0.12, 0.21, 0.88, 0.88, 0.88, 0.88, 0.21, -2.12],
+  "energy_curve_db": [-1.12, -0.12, 0.68, 0.88, 0.88, -2.12],
   "energy_gain": 1.0,
   "templates": ["chiptune/1943boss.mid", "chiptune/1943-lev3.mid", "chiptune/1943boss1.mid", "chiptune/1943won.mid", "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "electronic/Arrow - Back In The House (U Can See It).mid", "electronic/Benny Benassi - Techno Cocain.mid", "game32/ClassicXG.mid", "game32/bonusstagecredits.mid", "game32/T_AVGFighterMAX_YukaThemeGM.mid"],
   "melody_profile": "refs/melody/fine_BGM09_melody.json",

@@ -13,49 +13,102 @@
   "guitar_beats": [0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75],
   "guitar_vary": true,
   "space": true,
-  "section_gap": 2.0
+  "section_gap": 1.0,
+  "dyn_vel": 8.0
  },
  "chords": {
   "E7": [28, [64, 68, 71, 74]],
   "A6": [33, [57, 61, 64, 66]],
-  "Bm7": [35, [59, 62, 66, 69]],
-  "E6": [28, [64, 68, 71, 73]],
-  "Dmaj7": [38, [62, 66, 69, 73]],
-  "C#m7": [37, [61, 64, 68, 71]]
+  "Bm7": [35, [59, 62, 66, 69]]
  },
  "melody": {
+  "intro": [
+   [0, 1.0, 1.0, 76], [0, 2.0, 1.0, 74], [0, 3.0, 1.0, 76],
+   [1, 1.5, 1.0, 73], [1, 2.75, 0.75, 73], [1, 3.5, 1.75, 71],
+   [2, 2.0, 0.75, 73], [2, 3.0, 2.0, 76],
+   [3, 2.25, 1.25, 71],
+   [4, 1.0, 1.0, 71], [4, 2.0, 1.0, 68], [4, 3.0, 1.0, 71],
+   [5, 1.5, 1.0, 69], [5, 2.75, 0.75, 71], [5, 3.5, 1.75, 76],
+   [6, 1.5, 0.5, 74], [6, 2.0, 0.75, 76], [6, 2.75, 0.75, 76], [6, 3.5, 0.75, 78],
+   [7, 2.25, 1.25, 76]
+  ],
   "A": [
-   [0, 0.25, 1.25, 83], [0, 1.5, 0.75, 85], [0, 3.0, 1.0, 86],
-   [1, 0.75, 0.75, 84], [1, 2.0, 0.75, 86], [1, 2.75, 0.75, 88], [1, 3.5, 0.75, 88],
-   [2, 0.75, 0.75, 86], [2, 2.0, 1.5, 88], [2, 3.5, 1.0, 88],
-   [3, 0.5, 2.5, 81],
-   [4, 0.75, 0.75, 83], [4, 2.0, 1.5, 86], [4, 3.5, 1.0, 83],
-   [5, 0.5, 1.25, 81], [5, 1.75, 0.75, 83], [5, 3.25, 1.0, 81],
-   [6, 0.75, 0.75, 76], [6, 2.0, 0.75, 80], [6, 2.75, 0.75, 78], [6, 3.5, 0.75, 76],
-   [7, 0.5, 2.5, 81]
+   [0, 0.75, 0.5, 83], [0, 1.25, 0.75, 88], [0, 2.75, 1.25, 88],
+   [1, 1.25, 0.75, 86], [1, 2.0, 0.5, 88], [1, 2.5, 0.75, 86], [1, 3.25, 0.75, 88],
+   [2, 1.5, 0.5, 86], [2, 2.0, 1.0, 88], [2, 3.5, 1.0, 88],
+   [3, 0.5, 2.0, 88],
+   [4, 0.0, 1.5, 83], [4, 1.5, 2.0, 88],
+   [5, 0.75, 0.5, 88], [5, 1.25, 0.75, 86], [5, 2.75, 1.25, 88],
+   [6, 1.5, 0.5, 86], [6, 2.0, 1.0, 88], [6, 3.5, 1.0, 88],
+   [7, 0.5, 2.0, 88]
   ],
   "B": [
-   [0, 0.0, 0.75, 76], [0, 1.75, 1.25, 78], [0, 3.0, 1.0, 83],
-   [1, 2.25, 0.75, 81],
-   [2, 0.75, 0.75, 83], [2, 1.5, 0.75, 85], [2, 2.25, 1.0, 88], [2, 3.5, 1.0, 88],
-   [3, 0.5, 1.5, 86], [3, 2.0, 1.25, 88], [3, 3.25, 0.75, 86],
-   [4, 0.0, 0.75, 88], [4, 1.75, 1.25, 86], [4, 3.0, 1.0, 88],
-   [5, 2.25, 0.75, 81],
-   [6, 0.5, 1.5, 86], [6, 2.0, 1.25, 83], [6, 3.25, 2.0, 83],
-   [7, 2.25, 1.25, 81]
+   [0, 1.5, 0.5, 76], [0, 2.0, 1.25, 71], [0, 3.25, 1.75, 71],
+   [1, 1.0, 0.75, 73], [1, 1.75, 0.75, 71], [1, 2.75, 1.25, 73],
+   [2, 1.5, 0.5, 73], [2, 2.0, 0.75, 76], [2, 2.75, 0.5, 73], [2, 3.25, 1.5, 71],
+   [3, 0.75, 2.0, 71],
+   [4, 1.25, 0.75, 72], [4, 2.0, 0.75, 71], [4, 3.0, 1.0, 71],
+   [5, 1.5, 0.75, 69], [5, 2.25, 0.5, 71], [5, 2.75, 0.5, 73], [5, 3.25, 0.75, 69],
+   [6, 0.0, 1.0, 68], [6, 1.0, 2.0, 71],
+   [7, 0.75, 1.75, 69]
   ],
   "C": [
-   [0, 1.0, 1.0, 71], [0, 2.0, 0.5, 68], [0, 2.5, 1.0, 71], [0, 3.5, 1.25, 69],
-   [1, 0.75, 1.5, 71], [1, 2.25, 1.0, 71], [1, 3.25, 1.25, 69],
-   [2, 0.5, 0.75, 71], [2, 2.0, 0.75, 73], [2, 3.0, 1.0, 73],
-   [3, 0.0, 3.0, 69],
-   [4, 0.5, 0.75, 76], [4, 2.0, 0.75, 74], [4, 3.0, 1.0, 76],
-   [5, 0.75, 1.5, 74], [5, 2.25, 1.0, 73], [5, 3.25, 1.75, 76],
-   [6, 1.0, 1.5, 74], [6, 2.5, 1.0, 74], [6, 3.5, 0.5, 71],
-   [7, 0.0, 3.0, 69]
+   [0, 1.25, 0.5, 80], [0, 1.75, 0.75, 83], [0, 2.5, 0.75, 81], [0, 3.25, 1.0, 83],
+   [1, 0.75, 1.0, 85], [1, 2.0, 0.75, 88], [1, 2.75, 2.0, 86],
+   [2, 1.0, 1.0, 88], [2, 2.0, 1.0, 85], [2, 3.0, 1.75, 87],
+   [3, 0.75, 2.25, 83],
+   [4, 1.25, 1.0, 80], [4, 2.5, 0.75, 80], [4, 3.25, 1.0, 82],
+   [5, 1.25, 0.75, 81], [5, 2.0, 0.5, 81], [5, 2.5, 0.75, 83], [5, 3.25, 1.0, 78],
+   [6, 0.75, 1.0, 80], [6, 2.0, 0.75, 83], [6, 2.75, 2.0, 80],
+   [7, 0.75, 1.75, 76]
+  ],
+  "outro": [
+   [0, 1.0, 0.75, 76], [0, 2.5, 0.75, 78], [0, 3.25, 0.75, 83],
+   [1, 1.25, 0.75, 81], [1, 2.0, 0.75, 78], [1, 2.75, 0.75, 76], [1, 3.5, 0.75, 81],
+   [2, 0.75, 1.25, 79], [2, 2.0, 1.0, 81], [2, 3.0, 1.5, 78],
+   [3, 0.5, 2.25, 83]
+  ],
+  "outro_tag": [
+   [0, 0.75, 1.25, 80], [0, 2.0, 1.0, 83], [0, 3.0, 1.5, 81],
+   [1, 0.5, 2.0, 76], [1, 2.75, 1.25, 78],
+   [2, 0.75, 1.25, 76], [2, 2.0, 1.0, 74], [2, 3.0, 1.5, 76],
+   [3, 0.5, 2.25, 76]
   ]
  },
  "sections": [
+  {
+   "name": "Intro",
+   "bars": 8,
+   "chords": ["E7", "A6", "A6", "Bm7", "E7", "A6", "E7", "A6"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 1,
+    "perc_in": 2,
+    "mix": {
+     "Melody": 99,
+     "Hook": 59,
+     "Piano": 53,
+     "Arp": 72,
+     "Pad": 46,
+     "Strings": 57,
+     "Bass": 99,
+     "Glock": 90,
+     "Perc": 82
+    },
+    "hook": false
+   }
+  },
   {
    "name": "A",
    "bars": 8,
@@ -67,7 +120,7 @@
     "piano": true,
     "uku": true,
     "arp": false,
-    "pad": true,
+    "pad": false,
     "strings": false,
     "glock": false,
     "ep": false,
@@ -84,69 +137,40 @@
      "Bass": 99,
      "Glock": 90,
      "Perc": 82
-    }
+    },
+    "hook": false
    }
   },
   {
    "name": "B",
    "bars": 8,
-   "chords": ["E6", "A6", "Dmaj7", "E6", "E6", "A6", "E7", "A6"],
+   "chords": ["E7", "A6", "A6", "Bm7", "E7", "A6", "E7", "A6"],
    "melody": "B",
    "arr": {
     "bass": true,
     "perc": 2,
     "piano": true,
-    "uku": true,
+    "uku": false,
     "arp": true,
-    "pad": true,
-    "strings": true,
-    "glock": true,
-    "ep": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": true,
     "glock_all": false,
     "shimmer": false,
-    "density": 4,
+    "density": 3,
     "mix": {
-     "Melody": 101,
+     "Melody": 100,
      "Hook": 60,
      "Piano": 54,
-     "Arp": 74,
-     "Pad": 47,
+     "Arp": 73,
+     "Pad": 46,
      "Strings": 58,
-     "Bass": 101,
-     "Glock": 91,
-     "Perc": 84
-    }
-   }
-  },
-  {
-   "name": "C",
-   "bars": 8,
-   "chords": ["E7", "E6", "C#m7", "A6", "E7", "E6", "E7", "A6"],
-   "melody": "C",
-   "arr": {
-    "bass": true,
-    "perc": 2,
-    "piano": true,
-    "uku": true,
-    "arp": true,
-    "pad": true,
-    "strings": true,
-    "glock": true,
-    "ep": false,
-    "glock_all": false,
-    "shimmer": false,
-    "density": 4,
-    "mix": {
-     "Melody": 105,
-     "Hook": 63,
-     "Piano": 57,
-     "Arp": 77,
-     "Pad": 49,
-     "Strings": 61,
-     "Bass": 105,
-     "Glock": 95,
-     "Perc": 87
-    }
+     "Bass": 100,
+     "Glock": 90,
+     "Perc": 83
+    },
+    "hook": false
    }
   },
   {
@@ -158,77 +182,79 @@
     "bass": true,
     "perc": 1,
     "piano": true,
-    "uku": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 103,
+     "Hook": 62,
+     "Piano": 56,
+     "Arp": 76,
+     "Pad": 48,
+     "Strings": 60,
+     "Bass": 103,
+     "Glock": 93,
+     "Perc": 86
+    },
+    "hook": false
+   }
+  },
+  {
+   "name": "C",
+   "bars": 8,
+   "chords": ["E7", "A6", "A6", "Bm7", "E7", "A6", "E7", "A6"],
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
     "arp": false,
     "pad": true,
-    "strings": true,
+    "strings": false,
     "glock": false,
     "ep": false,
     "glock_all": false,
     "shimmer": false,
-    "density": 3,
+    "density": 0,
     "mix": {
-     "Melody": 99,
-     "Hook": 59,
-     "Piano": 53,
-     "Arp": 72,
-     "Pad": 46,
-     "Strings": 57,
-     "Bass": 99,
-     "Glock": 90,
-     "Perc": 82
-    }
+     "Melody": 58,
+     "Hook": 35,
+     "Piano": 31,
+     "Arp": 42,
+     "Pad": 27,
+     "Strings": 34,
+     "Bass": 58,
+     "Glock": 52,
+     "Perc": 48
+    },
+    "hook": false
    }
   },
   {
    "name": "B2",
    "bars": 8,
-   "chords": ["E6", "A6", "Dmaj7", "E6", "E6", "A6", "E7", "A6"],
+   "chords": ["E7", "A6", "A6", "Bm7", "E7", "A6", "E7", "A6"],
    "melody": "B",
    "arr": {
     "bass": true,
     "perc": 2,
     "piano": true,
     "uku": true,
-    "arp": true,
-    "pad": true,
-    "strings": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
     "glock": false,
     "ep": true,
     "glock_all": false,
-    "shimmer": true,
-    "density": 4,
-    "mix": {
-     "Melody": 106,
-     "Hook": 63,
-     "Piano": 57,
-     "Arp": 77,
-     "Pad": 49,
-     "Strings": 61,
-     "Bass": 106,
-     "Glock": 96,
-     "Perc": 88
-    }
-   }
-  },
-  {
-   "name": "C2",
-   "bars": 8,
-   "chords": ["E7", "E6", "C#m7", "A6", "E7", "E6", "E7", "A6"],
-   "melody": "C",
-   "arr": {
-    "bass": true,
-    "perc": 2,
-    "piano": true,
-    "uku": true,
-    "arp": true,
-    "pad": true,
-    "strings": true,
-    "glock": true,
-    "ep": false,
-    "glock_all": false,
     "shimmer": false,
-    "density": 0,
+    "density": 3,
     "mix": {
      "Melody": 105,
      "Hook": 63,
@@ -239,7 +265,104 @@
      "Bass": 105,
      "Glock": 95,
      "Perc": 87
-    }
+    },
+    "hook": false
+   }
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["Bm7", "E7", "A6", "A6", "Bm7", "E7", "E7", "A6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 108,
+     "Hook": 64,
+     "Piano": 58,
+     "Arp": 79,
+     "Pad": 50,
+     "Strings": 62,
+     "Bass": 108,
+     "Glock": 98,
+     "Perc": 89
+    },
+    "hook": true
+   }
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": ["E7", "A6", "A6", "Bm7"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 1,
+    "mix": {
+     "Melody": 112,
+     "Hook": 67,
+     "Piano": 60,
+     "Arp": 82,
+     "Pad": 52,
+     "Strings": 65,
+     "Bass": 112,
+     "Glock": 101,
+     "Perc": 92
+    },
+    "hook": false
+   }
+  },
+  {
+   "name": "Tag",
+   "bars": 4,
+   "chords": ["E7", "A6", "E7", "A6"],
+   "melody": "outro_tag",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 0,
+    "mix": {
+     "Melody": 56,
+     "Hook": 34,
+     "Piano": 30,
+     "Arp": 41,
+     "Pad": 26,
+     "Strings": 32,
+     "Bass": 56,
+     "Glock": 50,
+     "Perc": 46
+    },
+    "hook": false
    }
   }
  ],
@@ -254,7 +377,7 @@
   },
   "primary_source": "window4",
   "mix_target": "gorgeous_mix",
-  "energy_curve_db": [-0.8, -0.8, -0.8, -0.47, -0.02, 0.2, 0.2, 0.31, 0.76, 1.2],
+  "energy_curve_db": [-0.8, -0.8, -0.66, -0.09, 0.2, 0.2, 0.63, 1.2],
   "energy_gain": 1.0,
   "templates": ["baroque/Handel in the Strand.mid", "baroque/Variations and Fugue on theme by Handel op24.mid", "film/batman-movie-theme_en.mid", "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid", "film/Metal Gear Solid - Enclosure (Soundtrack).mid", "film/doctorwho-movie.mid", "romantic/Liszt Bach Prelude Transcription.mid", "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid", "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid", "romantic/brahms.mid"],
   "melody_profile": "refs/melody/hitorigohan_new_F_melody.json",
