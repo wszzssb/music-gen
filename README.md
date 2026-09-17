@@ -29,16 +29,13 @@ BGM 制作与分析的完整管线。**任何新对话（或新的人）从这�
 ```
 music-gen\
 ├── README.md            本文件（总索引，**按顶部地图按需读**）
-├── PITFALLS.md          踩坑 1–58（出症状时按编号查）
+├── PITFALLS.md          踩坑台账（出症状时按编号查；旧条目在 PITFALLS-ARCHIVE.md）
 ├── HISTORY.md           开发经过 + 修过的全部 bug（写代码/排查才看）
-├── migrate_layout.py    一次性迁移脚本（已执行，幂等）
-├── .venv\               依赖环境：numpy + soundfile + imageio-ffmpeg
-├── vendor\              外部二进制：fluidsynth.exe + GeneralUser GS v1.471.sf2
-├── refs\                参考曲画像缓存（41 个主画像 + melody/ sections/ 子目录）——对比时不必再读参考曲
-├── scripts\             47 个脚本：引擎 + 分析/体检/渲染 + 自检/预演/变异/成本审计
-└── songs\               每首歌一个文件夹：song.json + spec.json + compose.py + MIDI + notes.md
-    ├── 质量分级「很好」的曲目\               带成品音频（MIDI + OGG），开箱可听
-    └── 其余曲目\                             只带谱面与文档（音频体积大，跑 make_song.py 即出）
+├── .venv\               依赖环境（numpy + soundfile + imageio-ffmpeg）
+├── vendor\              外部二进制：fluidsynth.exe + GeneralUser GS 音源
+├── refs\                参考曲画像缓存（对比时不必再读参考曲）
+├── scripts\             引擎 + 分析/体检/渲染 + 自检/预演/变异/成本审计
+└── songs\               每首歌一个文件夹（song.json + MIDI + 成品音频 + notes.md）
 ```
 
 **每曲的 `notes.md` 写了调性/速度/结构/复现命令/实测对比**，接手先读它。
