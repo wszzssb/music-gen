@@ -1731,6 +1731,49 @@ def write_midi(d, ev, path):
                         _n += 1
         if _n:
             print('  去重叠（legato_trim）：提前松键 %d 处' % _n)
+    # **段界力度平滑**（opt-in `patterns.seg_fade`，默认关 = 全库逐字节不变）。
+    # 为什么需要：实测 BGM35 的 v17 有 **16 处**「段界力度突变」（段末 0.5 拍均力度
+    # 与段首 0.5 拍均力度差 > 25），最明显的是 **Perc**（段 2/3 界：段末均 21 vs
+    # 段首均 68/72 —— 鼓在段界突然变响）与段 9 界 Arp（96 vs 49）。
+    # 用户早就要求过"有转变可以，但要过渡自然"（AGENTS.md 首要标准：和谐、不突兀）。
+    # 修法：在段界前后各 `SEG_FADE`（默认 0.5 拍）内，把力度**线性过渡**到对侧均值：
+    #   段末 v *= lerp(1, head_mean/tail_mean, 进度)   段首 v *= lerp(tail_mean/head_mean, 1, 进度)
+    # 只改力度，不动音高/时刻/时值/音符数。
+    if (d.get('patterns') or {}).get('seg_fade'):
+        _B = float(d.get('bar_beats') or 4.0)
+        _FADE = 0.5
+        _n = 0
+        for _k, _lst in ev.items():
+            _ends = []
+            _b0 = 0
+            for _s in d.get('sections', []):
+                _b0 += int(_s.get('bars') or 8)
+                _ends.append(_b0 * _B)
+            _ends = _ends[:-1]                      # 最后一个段末就是曲尾，不用平滑
+            for _e in _ends:
+                _tail = [x for x in _lst if _e - _FADE <= x[0] < _e]
+                _head = [x for x in _lst if _e <= x[0] < _e + _FADE]
+                if not _tail or not _head:
+                    continue
+                _tm = sum(x[3] for x in _tail) / len(_tail)
+                _hm = sum(x[3] for x in _head) / len(_head)
+                if abs(_tm - _hm) <= 25 or _tm <= 0 or _hm <= 0:
+                    continue
+                _rt = _hm / _tm
+                _rh = _tm / _hm
+                for _i, (_t, _dd, _m, _v) in enumerate(_lst):
+                    if _e - _FADE <= _t < _e:
+                        _p = (_t - (_e - _FADE)) / _FADE          # 0→1
+                        _nv = int(round(_v * (1.0 + (_rt - 1.0) * _p)))
+                    elif _e <= _t < _e + _FADE:
+                        _p = (_t - _e) / _FADE
+                        _nv = int(round(_v * (_rh + (1.0 - _rh) * _p)))
+                    else:
+                        continue
+                    _lst[_i] = (_t, _dd, _m, max(1, min(127, _nv)))
+                    _n += 1
+        if _n:
+            print('  段界力度平滑（seg_fade）：调整 %d 个音' % _n)
     tracks = []
     skipped = []
     # 段落级混音自动化（opt-in）：`sections[i].arr.mix = {"Strings": 74, ...}`
