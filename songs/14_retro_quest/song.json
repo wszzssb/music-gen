@@ -62,12 +62,12 @@
    [7, 0.0, 2.0, 67]
   ],
   "outro": [
-   [0, 0.0, 1.5, 76], [0, 1.5, 1.5, 72], [0, 3.0, 1.25, 70],
-   [1, 0.25, 0.75, 74], [1, 1.0, 2.0, 74]
+   [0, 0.0, 1.5, 76], [0, 1.5, 1.5, 72], [0, 3.0, 1.25, 71],
+   [1, 0.25, 2.0, 76]
   ],
   "outro_tag": [
-   [0, 0.75, 1.25, 72], [0, 2.0, 0.75, 69], [0, 2.75, 0.75, 72], [0, 3.5, 0.75, 69],
-   [1, 0.25, 2.0, 67]
+   [0, 0.75, 0.75, 72], [0, 1.5, 1.25, 73], [0, 2.75, 1.25, 72],
+   [1, 0.0, 2.0, 67]
   ]
  },
  "sections": [
@@ -91,7 +91,8 @@
     "density": 1,
     "perc_in": 2,
     "hook": false
-   }
+   },
+   "mode": "major"
   },
   {
    "name": "A",
@@ -112,7 +113,8 @@
     "shimmer": false,
     "density": 2,
     "hook": false
-   }
+   },
+   "mode": "major"
   },
   {
    "name": "B",
@@ -133,7 +135,8 @@
     "shimmer": false,
     "density": 3,
     "hook": false
-   }
+   },
+   "mode": "major"
   },
   {
    "name": "C",
@@ -151,10 +154,11 @@
     "glock": true,
     "ep": false,
     "glock_all": false,
-    "shimmer": false,
+    "shimmer": true,
     "density": 3,
-    "hook": true
-   }
+    "hook": false
+   },
+   "mode": "major"
   },
   {
    "name": "A2",
@@ -163,17 +167,17 @@
    "melody": "A",
    "arr": {
     "bass": true,
-    "perc": 0,
+    "perc": 1,
     "piano": true,
     "uku": false,
     "arp": false,
-    "pad": true,
-    "strings": false,
+    "pad": false,
+    "strings": true,
     "glock": false,
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 0,
+    "density": 2,
     "hook": false,
     "mix": {
      "Perc": 45,
@@ -181,7 +185,8 @@
      "Piano": 45,
      "Strings": 45
     }
-   }
+   },
+   "mode": "major"
   },
   {
    "name": "B2",
@@ -192,8 +197,8 @@
     "bass": true,
     "perc": 2,
     "piano": true,
-    "uku": true,
-    "arp": false,
+    "uku": false,
+    "arp": true,
     "pad": false,
     "strings": false,
     "glock": false,
@@ -202,7 +207,8 @@
     "shimmer": false,
     "density": 3,
     "hook": false
-   }
+   },
+   "mode": "major"
   },
   {
    "name": "C2",
@@ -214,16 +220,17 @@
     "perc": 2,
     "piano": true,
     "uku": false,
-    "arp": true,
+    "arp": false,
     "pad": false,
     "strings": false,
-    "glock": false,
+    "glock": true,
     "ep": false,
     "glock_all": false,
-    "shimmer": false,
+    "shimmer": true,
     "density": 3,
-    "hook": true
-   }
+    "hook": false
+   },
+   "mode": "major"
   },
   {
    "name": "Outro",
@@ -244,7 +251,8 @@
     "shimmer": false,
     "density": 1,
     "hook": false
-   }
+   },
+   "mode": "major"
   },
   {
    "name": "Tag",
@@ -263,14 +271,15 @@
     "ep": false,
     "glock_all": false,
     "shimmer": false,
-    "density": 0,
+    "density": 1,
     "hook": false,
     "mix": {
      "Perc": 25,
      "Bass": 25,
      "Piano": 25
     }
-   }
+   },
+   "mode": "major"
   }
  ],
  "theme": {

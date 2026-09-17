@@ -4056,8 +4056,12 @@ def t_accompaniment_harmony():
     import bisect
     import song_engine as SE
     off = {k: v for k, v in SE.TR_SHIFT.items() if v % 12}
-    assert not off, ('TR_SHIFT 只允许纯八度（12 的倍数）—— 非八度移调会改变音级、'
-                     '把整条伴奏轨移到和弦外：%s' % off)
+    # ⚠ **判据从"形式"改成"效果"**（用户 2026-09-18："TR_SHIFT 只许纯八度，主要是能流畅
+    #   不一定只许纯八度"）：原来断言"每项必须是 12 的倍数"，那是形式判据；真正要保证的
+    #   是**贴合 + 流畅** —— 非八度移调只要音的 pc 仍落在当小节和弦音集里、且不与旋律
+    #   打架就该允许。移调量现在只做留痕打印，由下面 ①贴合 ②音区分离 ③半音冲突 把关。
+    if off:
+        print('        TR_SHIFT 含非八度移调 %s —— 按效果判据核（不再按形式拦）' % off)
     ACC = ('Hook', 'Piano', 'Arp', 'Strings', 'Pad')
     fit, sep, checked = [], [], 0
     for d in songs_or_fail():
@@ -4088,7 +4092,7 @@ def t_accompaniment_harmony():
             ok = sum(1 for (t, _dd, m, _v) in notes if m % 12 in tset(t // B))
             fit.append((os.path.basename(d), tr, ok / len(notes)))
         # ③ 音区分离：旋律音 − 同拍（±0.125 拍）伴奏最高音
-        acc, _m = [], {}
+        acc, _m, clash = [], {}, 0
         for tr in ACC:
             for (t, _dd, m, _v) in ev.get(tr, []):
                 if _v > 0:
@@ -4099,7 +4103,10 @@ def t_accompaniment_harmony():
             i = bisect.bisect_left(aks, t - 0.125)
             hi = None
             while i < len(aks) and aks[i] <= t + 0.125:
-                hi = acc[i][1] if hi is None else max(hi, acc[i][1])
+                _mm = acc[i][1]
+                hi = _mm if hi is None else max(hi, _mm)
+                if abs(m - _mm) == 1:          # ③ 半音冲突（差 1 个半音最刺耳）
+                    clash += 1
                 i += 1
             if hi is not None:
                 sep.append(m - hi)
@@ -4117,8 +4124,14 @@ def t_accompaniment_harmony():
     low = sum(1 for x in sep if x < 0) / len(sep)
     if low > 0.15:
         bad.append('旋律有 %.0f%% 的音落在伴奏最高音之下（真实 1%%）' % (low * 100))
+    # ③ **半音冲突率**（用户口径"主要是能流畅"的量化；真实曲目 6%）
+    clash_pct = 100.0 * clash / max(1, len(sep))
+    if clash_pct > 10:
+        bad.append('半音冲突 %.0f%%（门 10%%，真实 6%%）—— 旋律与同拍伴奏差 1 个半音，最刺耳'
+                   % clash_pct)
     print('        伴奏和弦贴合最低 %.0f%%（%d 轨）· 音区分离中位 %+d 半音 · 旋律在下 %.0f%%'
-          % (fmin * 100, len(fit), sep_med, low * 100))
+          ' · 半音冲突 %.0f%%'
+          % (fmin * 100, len(fit), sep_med, low * 100, clash_pct))
     # **判据自证**：换回旧的半音偏移 → 贴合率必须崩（旧表实测 15~43%）
     _old = SE.TR_SHIFT
     try:
