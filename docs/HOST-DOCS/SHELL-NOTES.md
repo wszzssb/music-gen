@@ -11,6 +11,37 @@
 > （实测是带 BOM 的正确 UTF-8，内容没坏）—— 见下表第 2 行。
 > **教训：写进文档的"实测"必须当场跑一遍，转述会失真。**
 
+## 我实际犯过的错（写下来防再犯）
+
+**2026-09-17，同一天里的第二次**：刚把"多步操作一律落文件"写进 AGENTS.md，
+转头就在 `pwsh` 里**内联**了一段带 heredoc 的长命令：
+
+```powershell
+& 'D:\software\Git\bin\bash.exe' -lc 'cd /d/software/skill && export PYTHONIOENCODING=utf-8 && python - <<PYEOF
+...
+PYEOF'
+```
+
+后果：**引号被吞 + heredoc 失效** ——
+`warning: here-document at line 1 delimited by end-of-file (wanted 'PYEOF')`，
+python 收到的是被拆碎的参数、直接 SyntaxError。**正是本文件第 1 节写的坑。**
+
+**为什么又犯**：图快 —— 觉得"就这一次、就几行"，省掉"先写个 .sh"那一步。
+
+**所以规矩必须写成"可自查"的形状**（软措辞拦不住，例如"只留最简单的调用"这种，
+每次都能给自己找到"这次算简单"的理由）：
+
+> `pwsh` 命令里**出现 `&&` `|` `>` `<<` `"` `$` 任何一个 → 停下，改成 `.sh` 脚本。**
+
+正确调用**永远只有一个形状**：
+
+```powershell
+& 'D:\software\Git\bin\bash.exe' 'D:\test\llm_direct\shells\xxx.sh'
+```
+
+（`pwsh` 工具本身**躲不掉** —— bash.exe 也要由它启动。要禁的不是这个工具，
+而是"在它里面内联多步逻辑"。）
+
 ## 为什么不能用 pwsh 工具
 
 这台机器上 `pwsh` 工具**实际执行的是 Windows PowerShell 5.1**（`$PSVersionTable` ≈ `5.1.26100.8655`，
