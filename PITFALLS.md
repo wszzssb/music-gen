@@ -420,3 +420,13 @@
 
 
 
+
+
+170. **`--xxx name=path:opt` 这类参数别用 `:` 当字段分隔符 —— Windows 路径自带 `D:`**（2026-09-17，本仓库犯两次）。
+     第一次在 `ensemble_transcribe.py`：`--source 名字=文件:低:高:类别`，
+     实测报 `invalid literal for int() with base 10: '\\test\\llm_direct\\...'` —— 盘符被切开了；
+     改成 `|` 后正常。
+     第二次在 `mix_stems.py`：`--track 名字:文件:份额`，报
+     `could not convert string to float: '/test/.../Acoustic Piano.wav'`，同一个原因。
+     **规则**：CLI 里凡是"名字 + 路径 + 若干参数"打包成一个字符串的，分隔符一律避开 `:`（用 `|` 或 `,`）。
+     顺带：路径里可能含**空格**（如 `Acoustic Piano.wav`），shell 侧要加引号。
