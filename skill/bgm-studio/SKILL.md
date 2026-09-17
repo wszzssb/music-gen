@@ -17,6 +17,7 @@ description: 写歌 / BGM 制作工具链——作曲、扒谱扒和弦、仿照
 | 全貌：目录、工具清单、验证状态、产物 | `README.md` | ≈5.5k |
 | 出症状（杂音/错音/调参不收敛/占用率对不上） | `PITFALLS.md` 按编号查 | 别整读 |
 | **要新增内容**（往哪写、动哪些守卫） | `docs/CONVENTION.md` | ≈1.1k |
+| **扒谱·分轨·多乐器转录·母带匹配**（`.venv-ml`：Demucs / `transcribe_ymt3.py` / matchering） | `ML.md` | ≈3k |
 | **写歌时开可视化面板** | `studio/README.md`；启动 `studio\start.cmd` → http://127.0.0.1:8765 | ≈1.4k |
 
 ## 0. 环境（必须）
