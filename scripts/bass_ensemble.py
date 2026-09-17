@@ -126,10 +126,21 @@ def main():
     print('  阈值 %.2f → 保留 %d 音' % (a.thr, kept))
     for p, lst in by_pitch.items():                 # 同音高截断，避免重叠
         lst.sort()
-        for i in range(len(lst) - 1):
-            gap = lst[i + 1][0] - lst[i][0]
-            if lst[i][1] > gap - 0.01:
-                lst[i][1] = max(0.05, gap - 0.01)
+        out = []
+        for j, cur in enumerate(lst):
+            nxt = lst[j + 1][0] if j + 1 < len(lst) else None
+            if nxt is not None:
+                gap = nxt - cur[0]
+                # ⚠ 间隔 < 20ms 的同音高重复：**直接丢掉前一个**。
+                #   原来是 `d = max(0.05, gap - 0.01)` —— gap < 60ms 时下限 0.05 反而
+                #   **大于** gap，于是照样重叠（实测全曲 Bass 37 处、Sub 27 处）。
+                #   同音高重叠会被音源吞音（note-off 只带音高不带 id）→ 听感"这个音没响"。
+                if gap < 0.02:
+                    continue
+                if cur[1] > gap - 0.005:
+                    cur[1] = max(0.01, gap - 0.005)
+            out.append(cur)
+        lst[:] = out
 
     base = midi_file.import_midi(a.base)
     spb = 60.0 / float(base.get('bpm') or 120.0)

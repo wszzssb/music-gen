@@ -75,19 +75,26 @@ def low_strategy(ref):
     （平均相对带差 0.82 → **6.46 dB**，全线崩）。所以这套参数**必须从参考曲推**。
 
     判据用"20-40 相对本曲 80-160 的 dB"（与采样率无关的相对量）。
+
+    ⚠ **别用硬分档**：第一版写的是
+        `rel < −15 → hp36 · < −10 → hp28 · < −6 → hp18 · 否则 hp0+sub`，
+        把 BGM29 的 **−7.9 dB** 判进了"hp18 且不加 sub"——
+        它自己的实测最优是 "hp0 + 加 sub"（0.82 dB），照这个档位跑出来 **2.71 dB**
+        （20-40 塌 5.8 dB、630Hz 以上全线掉 2.5~3 dB）。
+        当时只顾着"BGM35 从 6.46 回到 1.60"，**没回头复验 BGM29**，于是把好曲子改坏了。
+
+    现在只有两个**实测锚点**，就老老实实线性插值（别假装有更多知识）：
+        BGM29  rel = **−7.9 dB** → hp 0   + 加 sub   → 实测 0.82 dB
+        BGM35  rel = **−18.2 dB** → hp 36 + 不加 sub → 实测 1.60 dB
+        hp = 0 if rel ≥ −8 else min(36, (−rel − 8) × 36/7)；sub 只在 rel ≥ −10 时开。
+    **第三首曲子必须复验这两个锚点**（只有两点定的线，外推没有证据）。
     """
     import band_grade as G
     b, _mono, _x, _rms = G.bands44(ref)
     piv = b[G.NAMES.index('80-160')]
     rel = b[G.NAMES.index('20-40')] - piv
-    if rel < -15:
-        hp, sub = 36.0, False
-    elif rel < -10:
-        hp, sub = 28.0, False
-    elif rel < -6:
-        hp, sub = 18.0, False
-    else:
-        hp, sub = 0.0, True
+    hp = 0.0 if rel >= -8.0 else min(36.0, (-rel - 8.0) * 36.0 / 7.0)
+    sub = rel >= -10.0
     return hp, sub, rel
 
 
