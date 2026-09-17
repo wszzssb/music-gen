@@ -131,37 +131,6 @@
    }
   },
   {
-   "name": "A2",
-   "bars": 8,
-   "chords": ["E7", "C7", "E7", "C7", "E7", "C7", "G7", "Cmaj7"],
-   "melody": "A",
-   "arr": {
-    "bass": true,
-    "perc": 1,
-    "piano": true,
-    "uku": true,
-    "arp": false,
-    "pad": false,
-    "strings": false,
-    "glock": false,
-    "glock_all": false,
-    "ep": false,
-    "shimmer": false,
-    "density": 2,
-    "mix": {
-     "Melody": 97,
-     "Hook": 77,
-     "Piano": 73,
-     "Arp": 58,
-     "Pad": 66,
-     "Strings": 62,
-     "Bass": 95,
-     "Glock": 58,
-     "Perc": 83
-    }
-   }
-  },
-  {
    "name": "B",
    "bars": 8,
    "chords": ["C#m7b5", "Cmaj7", "B6", "D7", "C#m7b5", "Cmaj7", "G7", "Cmaj7"],
@@ -189,37 +158,6 @@
      "Bass": 97,
      "Glock": 59,
      "Perc": 85
-    }
-   }
-  },
-  {
-   "name": "A3",
-   "bars": 8,
-   "chords": ["E7", "C7", "E7", "C7", "E7", "C7", "G7", "Cmaj7"],
-   "melody": "A",
-   "arr": {
-    "bass": true,
-    "perc": 1,
-    "piano": true,
-    "uku": true,
-    "arp": false,
-    "pad": false,
-    "strings": false,
-    "glock": false,
-    "ep": false,
-    "glock_all": false,
-    "shimmer": false,
-    "density": 2,
-    "mix": {
-     "Melody": 103,
-     "Hook": 82,
-     "Piano": 78,
-     "Arp": 61,
-     "Pad": 70,
-     "Strings": 65,
-     "Bass": 101,
-     "Glock": 61,
-     "Perc": 89
     }
    }
   },
@@ -255,7 +193,7 @@
    }
   },
   {
-   "name": "A4",
+   "name": "A2",
    "bars": 8,
    "chords": ["E7", "C7", "E7", "C7", "E7", "C7", "G7", "Cmaj7"],
    "melody": "A",
@@ -268,20 +206,20 @@
     "pad": false,
     "strings": false,
     "glock": false,
-    "ep": false,
     "glock_all": false,
+    "ep": false,
     "shimmer": false,
     "density": 2,
     "mix": {
-     "Melody": 103,
-     "Hook": 82,
-     "Piano": 78,
-     "Arp": 61,
-     "Pad": 70,
-     "Strings": 65,
-     "Bass": 101,
-     "Glock": 61,
-     "Perc": 89
+     "Melody": 97,
+     "Hook": 77,
+     "Piano": 73,
+     "Arp": 58,
+     "Pad": 66,
+     "Strings": 62,
+     "Bass": 95,
+     "Glock": 58,
+     "Perc": 83
     }
    }
   },
@@ -317,7 +255,38 @@
    }
   },
   {
-   "name": "A5",
+   "name": "C2",
+   "bars": 8,
+   "chords": ["C#m7b5", "Cmaj7", "B6", "D7", "C#m7b5", "Cmaj7", "G7", "Cmaj7"],
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": false,
+    "strings": false,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 4,
+    "mix": {
+     "Melody": 103,
+     "Hook": 82,
+     "Piano": 78,
+     "Arp": 61,
+     "Pad": 70,
+     "Strings": 65,
+     "Bass": 101,
+     "Glock": 61,
+     "Perc": 89
+    }
+   }
+  },
+  {
+   "name": "A3",
    "bars": 8,
    "chords": ["E7", "C7", "E7", "C7", "E7", "C7", "G7", "Cmaj7"],
    "melody": "A",
@@ -335,15 +304,15 @@
     "shimmer": false,
     "density": 2,
     "mix": {
-     "Melody": 99,
-     "Hook": 79,
-     "Piano": 75,
-     "Arp": 59,
-     "Pad": 67,
-     "Strings": 63,
-     "Bass": 97,
-     "Glock": 59,
-     "Perc": 85
+     "Melody": 103,
+     "Hook": 82,
+     "Piano": 78,
+     "Arp": 61,
+     "Pad": 70,
+     "Strings": 65,
+     "Bass": 101,
+     "Glock": 61,
+     "Perc": 89
     }
    }
   },

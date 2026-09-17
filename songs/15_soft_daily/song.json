@@ -108,26 +108,6 @@
    }
   },
   {
-   "name": "A2",
-   "bars": 8,
-   "chords": ["C6", "D7", "G7", "G7", "C6", "D7", "G7", "C7"],
-   "melody": "A",
-   "arr": {
-    "bass": true,
-    "perc": 1,
-    "piano": true,
-    "uku": true,
-    "arp": false,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "glock_all": false,
-    "ep": false,
-    "shimmer": false,
-    "density": 2
-   }
-  },
-  {
    "name": "B",
    "bars": 8,
    "chords": ["G7", "G7", "C7", "D7", "G7", "G7", "G7", "C7"],
@@ -148,7 +128,7 @@
    }
   },
   {
-   "name": "A3",
+   "name": "A2",
    "bars": 8,
    "chords": ["C6", "D7", "G7", "G7", "C6", "D7", "G7", "C7"],
    "melody": "A",
@@ -188,26 +168,6 @@
    }
   },
   {
-   "name": "A4",
-   "bars": 8,
-   "chords": ["C6", "D7", "G7", "G7", "C6", "D7", "G7", "C7"],
-   "melody": "A",
-   "arr": {
-    "bass": true,
-    "perc": 1,
-    "piano": true,
-    "uku": true,
-    "arp": false,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "glock_all": false,
-    "ep": false,
-    "shimmer": false,
-    "density": 3
-   }
-  },
-  {
    "name": "B2",
    "bars": 8,
    "chords": ["G7", "G7", "C7", "D7", "G7", "G7", "G7", "C7"],
@@ -228,7 +188,7 @@
    }
   },
   {
-   "name": "A5",
+   "name": "A3",
    "bars": 8,
    "chords": ["C6", "D7", "G7", "G7", "C6", "D7", "G7", "C7"],
    "melody": "A",

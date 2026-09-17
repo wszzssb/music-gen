@@ -51,16 +51,6 @@
    [6, 2.0, 0.75, 67], [6, 2.75, 0.75, 69], [6, 3.5, 1.75, 70],
    [7, 1.25, 1.75, 77]
   ],
-  "C": [
-   [0, 0.0, 1.25, 77], [0, 1.25, 0.75, 75], [0, 2.75, 2.0, 77],
-   [1, 0.75, 0.75, 79], [1, 1.5, 1.5, 76], [1, 3.0, 1.0, 74],
-   [2, 1.0, 1.0, 77], [2, 2.0, 0.5, 74], [2, 2.5, 0.75, 77], [2, 3.25, 1.0, 77],
-   [3, 0.25, 2.75, 77],
-   [4, 1.0, 0.75, 79], [4, 1.75, 1.5, 77], [4, 3.25, 1.0, 79],
-   [5, 1.25, 0.75, 79], [5, 2.0, 1.25, 76], [5, 3.5, 1.0, 79],
-   [6, 1.0, 1.0, 81], [6, 2.0, 1.25, 79], [6, 3.25, 1.0, 74],
-   [7, 0.25, 2.25, 77]
-  ],
   "outro": [
    [0, 0.5, 1.5, 84], [0, 2.0, 1.25, 86], [0, 3.25, 0.75, 84],
    [1, 0.0, 1.5, 84], [1, 1.5, 1.25, 85], [1, 2.75, 1.25, 84],
@@ -226,10 +216,10 @@
    }
   },
   {
-   "name": "C",
+   "name": "B2",
    "bars": 8,
-   "chords": ["F7", "C7", "A#7", "F6", "F7", "C7", "Csus4", "F6"],
-   "melody": "C",
+   "chords": ["Am7", "F6", "A#maj7", "A#m6", "Am7", "F6", "Csus4", "F6"],
+   "melody": "B",
    "arr": {
     "bass": true,
     "perc": 2,
@@ -238,10 +228,10 @@
     "arp": true,
     "pad": true,
     "strings": true,
-    "glock": true,
-    "ep": false,
+    "glock": false,
+    "ep": true,
     "glock_all": false,
-    "shimmer": false,
+    "shimmer": true,
     "density": 4,
     "mix": {
      "Melody": 100,
@@ -284,68 +274,6 @@
      "Bass": 90,
      "Glock": 86,
      "Perc": 80
-    }
-   }
-  },
-  {
-   "name": "B2",
-   "bars": 8,
-   "chords": ["Am7", "F6", "A#maj7", "A#m6", "Am7", "F6", "Csus4", "F6"],
-   "melody": "B",
-   "arr": {
-    "bass": true,
-    "perc": 2,
-    "piano": true,
-    "uku": true,
-    "arp": true,
-    "pad": true,
-    "strings": true,
-    "glock": false,
-    "ep": true,
-    "glock_all": false,
-    "shimmer": true,
-    "density": 4,
-    "mix": {
-     "Melody": 100,
-     "Hook": 82,
-     "Piano": 80,
-     "Arp": 51,
-     "Pad": 68,
-     "Strings": 72,
-     "Bass": 90,
-     "Glock": 86,
-     "Perc": 80
-    }
-   }
-  },
-  {
-   "name": "A5",
-   "bars": 8,
-   "chords": ["A#6", "F6", "F7", "C7", "A#6", "F6", "Csus4", "F6"],
-   "melody": "A",
-   "arr": {
-    "bass": true,
-    "perc": 1,
-    "piano": true,
-    "uku": true,
-    "arp": false,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "glock_all": false,
-    "ep": false,
-    "shimmer": false,
-    "density": 2,
-    "mix": {
-     "Melody": 98,
-     "Hook": 80,
-     "Piano": 78,
-     "Arp": 50,
-     "Pad": 66,
-     "Strings": 70,
-     "Bass": 88,
-     "Glock": 84,
-     "Perc": 78
     }
    }
   },

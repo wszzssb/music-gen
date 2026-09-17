@@ -30,12 +30,6 @@
   "Cm6": [36, [60, 63, 67, 69]]
  },
  "melody": {
-  "intro": [
-   [0, 0.75, 0.75, 80], [0, 1.5, 0.5, 78], [0, 2.0, 0.75, 83], [0, 2.75, 1.25, 81],
-   [1, 0.25, 2.0, 82],
-   [2, 0.75, 0.75, 83], [2, 1.5, 0.5, 83], [2, 2.0, 0.75, 79], [2, 2.75, 1.25, 81],
-   [3, 0.25, 2.0, 76]
-  ],
   "A": [
    [0, 0.5, 1.5, 81], [0, 2.0, 1.25, 79], [0, 3.25, 2.0, 81],
    [1, 1.75, 0.75, 76],
@@ -74,27 +68,6 @@
   ]
  },
  "sections": [
-  {
-   "name": "Intro",
-   "bars": 4,
-   "chords": ["E7", "C7", "G6", "C7"],
-   "melody": "intro",
-   "arr": {
-    "bass": true,
-    "perc": 1,
-    "piano": true,
-    "uku": false,
-    "arp": false,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "ep": false,
-    "glock_all": false,
-    "shimmer": false,
-    "density": 0,
-    "perc_in": 2
-   }
-  },
   {
    "name": "A",
    "bars": 8,
@@ -213,46 +186,6 @@
     "ep": false,
     "shimmer": false,
     "density": 3
-   }
-  },
-  {
-   "name": "B2",
-   "bars": 8,
-   "chords": ["Gm7", "Fm7", "F7", "C7", "Gm7", "Fm7", "G6", "C7"],
-   "melody": "B",
-   "arr": {
-    "bass": true,
-    "perc": 2,
-    "piano": true,
-    "uku": true,
-    "arp": true,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "ep": true,
-    "glock_all": false,
-    "shimmer": true,
-    "density": 4
-   }
-  },
-  {
-   "name": "A5",
-   "bars": 8,
-   "chords": ["Csus4", "E7", "C7", "Fm6", "Csus4", "E7", "G6", "C7"],
-   "melody": "A",
-   "arr": {
-    "bass": true,
-    "perc": 1,
-    "piano": true,
-    "uku": true,
-    "arp": false,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "glock_all": false,
-    "ep": false,
-    "shimmer": false,
-    "density": 2
    }
   },
   {

@@ -194,37 +194,6 @@
    }
   },
   {
-   "name": "A3",
-   "bars": 8,
-   "chords": ["C6", "Dm7", "G6", "G6", "C6", "Dm7", "Dm7", "G6"],
-   "melody": "A",
-   "arr": {
-    "bass": true,
-    "perc": 1,
-    "piano": true,
-    "uku": true,
-    "arp": false,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "glock_all": false,
-    "ep": false,
-    "shimmer": false,
-    "density": 2,
-    "mix": {
-     "Melody": 100,
-     "Hook": 76,
-     "Piano": 74,
-     "Arp": 48,
-     "Pad": 68,
-     "Strings": 74,
-     "Bass": 90,
-     "Glock": 70,
-     "Perc": 70
-    }
-   }
-  },
-  {
    "name": "C",
    "bars": 8,
    "chords": ["Dsus4", "Gm7", "Gm7", "A7", "Dsus4", "Gm7", "Dm7", "G6"],
@@ -256,7 +225,7 @@
    }
   },
   {
-   "name": "A4",
+   "name": "A3",
    "bars": 8,
    "chords": ["C6", "Dm7", "G6", "G6", "C6", "Dm7", "Dm7", "G6"],
    "melody": "A",
@@ -267,22 +236,22 @@
     "uku": true,
     "arp": false,
     "pad": true,
-    "strings": true,
+    "strings": false,
     "glock": false,
-    "ep": false,
     "glock_all": false,
+    "ep": false,
     "shimmer": false,
-    "density": 3,
+    "density": 2,
     "mix": {
-     "Melody": 104,
-     "Hook": 79,
-     "Piano": 77,
-     "Arp": 50,
-     "Pad": 71,
-     "Strings": 77,
-     "Bass": 94,
-     "Glock": 73,
-     "Perc": 73
+     "Melody": 100,
+     "Hook": 76,
+     "Piano": 74,
+     "Arp": 48,
+     "Pad": 68,
+     "Strings": 74,
+     "Bass": 90,
+     "Glock": 70,
+     "Perc": 70
     }
    }
   },
@@ -318,7 +287,7 @@
    }
   },
   {
-   "name": "A5",
+   "name": "A4",
    "bars": 8,
    "chords": ["C6", "Dm7", "G6", "G6", "C6", "Dm7", "Dm7", "G6"],
    "melody": "A",
@@ -336,15 +305,15 @@
     "shimmer": false,
     "density": 3,
     "mix": {
-     "Melody": 103,
-     "Hook": 78,
-     "Piano": 76,
-     "Arp": 49,
-     "Pad": 70,
-     "Strings": 76,
-     "Bass": 92,
-     "Glock": 72,
-     "Perc": 72
+     "Melody": 104,
+     "Hook": 79,
+     "Piano": 77,
+     "Arp": 50,
+     "Pad": 71,
+     "Strings": 77,
+     "Bass": 94,
+     "Glock": 73,
+     "Perc": 73
     }
    }
   },
