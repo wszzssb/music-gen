@@ -183,26 +183,47 @@ def run_py(args, timeout=900, cwd=None):
     return p.returncode, (p.stdout or '') + (p.stderr or '')
 
 
+AUDIO_EXT = ('.ogg', '.wav', '.mp3', '.flac', '.m4a')
+
+
+def has_audio(d):
+    """目录里有音频文件吗？
+
+    ⚠ 为什么曲目判据要认它（用户 2026-09-17 报的）：**A/B 试听目录天然没有 song.json**
+    （就是几个版本各一个 ogg 摆在一起），旧判据"必须是含 song.json 的目录"逼得用户
+    去伪造一份借来的 song.json —— 那份 json 与目录内容毫无关系，点"数据契约检查"必炸，
+    显示的还是"找不到曲目"。试听这类只读用途，判据应当是"这里有能播的东西"。
+    """
+    try:
+        return any(f.lower().endswith(AUDIO_EXT) and os.path.isfile(os.path.join(d, f))
+                   for f in os.listdir(d))
+    except OSError:
+        return False
+
+
 def probe_lib(p):
     """探测一个目录**能当曲库根**的哪种布局 → (mode, base)。
 
     ⚠ 为什么要有这个（用户报的 bug）：旧实现写死 `LIB/songs/<id>/song.json`，
     于是想把曲库指到 `D:\\test\\llm_direct\\b35_remake`（**单曲目录**：里面直接是
     `song.json` / `.mid` / `.ogg`，没有 `songs/` 这一层）时被自己的校验挡住 ——
-    **曲库根的判据应当是"这里能找到 song.json"，而不是"必须有个叫 songs/ 的子目录"**。
+    **曲库根的判据应当是"这里能找到曲子"，而不是"必须有个叫 songs/ 的子目录"**。
       · nested  `LIB/songs/<id>/song.json`  —— 工具链标准布局
       · flat    `LIB/<id>/song.json`         —— 一层子目录（导出目录、归档目录都长这样）
       · single  `LIB/song.json`              —— 目录本身就是一首曲子
+    判据里的"曲子"= **有 song.json 或有音频**（后者见 `has_audio`：纯试听目录也算）。
     """
     p = os.path.abspath(p or '')
     if not os.path.isdir(p):
         return 'missing', p
     if os.path.isdir(os.path.join(p, 'songs')):
         return 'nested', os.path.join(p, 'songs')
-    if os.path.isfile(os.path.join(p, 'song.json')):
+    if os.path.isfile(os.path.join(p, 'song.json')) or has_audio(p):
         return 'single', p
     for name in sorted(os.listdir(p)):
-        if os.path.isfile(os.path.join(p, name, 'song.json')):
+        sub = os.path.join(p, name)
+        if os.path.isdir(sub) and (os.path.isfile(os.path.join(sub, 'song.json'))
+                                   or has_audio(sub)):
             return 'flat', p
     return 'none', p
 
@@ -212,13 +233,21 @@ def lib_base():
     return probe_lib(LIB)
 
 
-def song_dir(sid):
+def song_dir(sid, need_json=True):
+    """曲目目录。`need_json=False` 时**纯音频目录也放行**（试听/取文件用：
+    `/api/files`、`/api/dl`、`/api/audio?kind=mix` 都不需要 song.json）。"""
     mode, base = lib_base()
-    if mode == 'missing' or mode == 'none':
-        raise FileNotFoundError('曲库根里找不到任何 song.json：%s（当前曲库 %s）' % (sid, LIB))
+    if mode == 'missing':
+        raise FileNotFoundError('曲库目录不存在：%s' % LIB)
+    if mode == 'none':
+        raise FileNotFoundError('曲库根里找不到任何曲子（song.json 或音频文件）：%s' % LIB)
     d = base if mode == 'single' else os.path.join(base, sid)
-    if not os.path.isfile(os.path.join(d, 'song.json')):
+    if not os.path.isdir(d):
         raise FileNotFoundError('找不到曲目: %s（曲库 %s）' % (sid, LIB))
+    if need_json and not os.path.isfile(os.path.join(d, 'song.json')):
+        raise FileNotFoundError(
+            '曲目 %s 是**纯音频目录**（里面只有音频、没有 song.json）——'
+            '可以试听/下载，但作曲、渲染、数据契约检查这些需要 song.json 的操作不能用。' % sid)
     return d
 
 
@@ -282,13 +311,18 @@ def songs_list():
         # id 取**目录名**，这样下拉里显示的是 `b35_remake` 而不是空串。
         pairs = [(os.path.basename(os.path.abspath(base)), base)]
     else:
-        pairs = [(name, os.path.join(base, name))
-                 for name in sorted(os.listdir(base))
-                 if os.path.isfile(os.path.join(base, name, 'song.json'))]
+        pairs = []
+        for name in sorted(os.listdir(base)):
+            sub = os.path.join(base, name)
+            if not os.path.isdir(sub):
+                continue
+            if os.path.isfile(os.path.join(sub, 'song.json')) or has_audio(sub):
+                pairs.append((name, sub))
     out = []
     for name, d in pairs:
         sj = os.path.join(d, 'song.json')
-        s = read_json(sj) or {}
+        has_json = os.path.isfile(sj)
+        s = (read_json(sj) or {}) if has_json else {}
         r = read_json(os.path.join(d, 'render.json')) or {}
         bars = sum(sec.get('bars', 0) for sec in s.get('sections', []))
         bpm = s.get('bpm') or 120
@@ -299,12 +333,21 @@ def songs_list():
                            if f.lower().endswith(('.mid', '.midi')))
         except OSError:
             _mids = []
+        # 纯音频目录（A/B 试听用）：没有 song.json，只有几个音频文件 —— 也要列出来
+        _aud = []
+        if not has_json:
+            try:
+                _aud = sorted(f for f in os.listdir(d) if f.lower().endswith(AUDIO_EXT))
+            except OSError:
+                _aud = []
         out.append({'id': name, 'name': s.get('name') or name, 'style': s.get('style', ''),
                     'bpm': bpm, 'bars': bars, 'dir': d, 'mids': _mids,
                     'seconds': round(bars * 4 * 60.0 / bpm, 1) if bars else 0,
                     'ref': r.get('ref', ''), 'tracks': len(s.get('sections', [])),
-                    'has_ogg': os.path.isfile(os.path.join(d, (r.get('out') or '') + '.ogg')),
-                    'mtime': os.path.getmtime(sj)})
+                    'has_ogg': os.path.isfile(os.path.join(d, (r.get('out') or '') + '.ogg'))
+                               or bool(_aud),
+                    'audio_only': not has_json, 'n_audio': len(_aud),
+                    'mtime': os.path.getmtime(sj) if has_json else os.path.getmtime(d)})
     return out
 
 
@@ -672,15 +715,32 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------- 基础
     def _json(self, obj, code=200):
+        """写 JSON 响应。
+
+        ⚠ **客户端断连必须吞掉、不能让异常逃出去**（2026-09-17，面板真的被它拖垮过）：
+        `/api/metrics` 这类接口要先跑子进程（几秒），用户等不及刷新/关标签页时连接就断了；
+        此时 `end_headers()` / `wfile.write()` 抛
+        `ConnectionAbortedError: [WinError 10053] 你的主机中的软件中止了一个已建立的连接`。
+        原来的写法让异常一路逃到 `do_GET` 的兜底 `except` → 兜底里又调 `self._err()` 再写一次
+        → **再抛一次** → 栈里出现三层 "During handling of the above exception"，
+        日志被刷满、异常逸出请求处理线程。**客户端已经走了，写不进去是正常的**，
+        正确做法就是静默收场。
+        """
         body = json.dumps(obj, ensure_ascii=False).encode('utf-8')
-        self.send_response(code)
-        self.send_header('content-type', 'application/json; charset=utf-8')
-        self.send_header('content-length', str(len(body)))
-        self.send_header('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
-        self.send_header('pragma', 'no-cache')
-        self.send_header('expires', '0')
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(code)
+            self.send_header('content-type', 'application/json; charset=utf-8')
+            self.send_header('content-length', str(len(body)))
+            self.send_header('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
+            self.send_header('pragma', 'no-cache')
+            self.send_header('expires', '0')
+            self.end_headers()
+            self.wfile.write(body)
+        except (ConnectionError, BrokenPipeError, OSError) as e:
+            # WinError 10053/10054 都归 ConnectionError 家族；OSError 兜住 socket 已关
+            if isinstance(e, OSError) and not isinstance(e, ConnectionError):
+                sys.stderr.write('[studio] 写响应失败（客户端多半已断开）：%s\n' % e)
+            self.close_connection = True
 
     def _err(self, msg, code=400):
         self._json({'ok': False, 'error': str(msg)}, code)
@@ -726,28 +786,36 @@ class Handler(BaseHTTPRequestHandler):
                 if m.group(2):
                     end = min(int(m.group(2)), size - 1)
                 code = 206
-        self.send_response(code)
-        self.send_header('content-type', ctype)
-        self.send_header('accept-ranges', 'bytes')
-        self.send_header('content-length', str(end - start + 1))
-        self.send_header('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
-        self.send_header('pragma', 'no-cache')
-        self.send_header('expires', '0')
-        if download:
-            self.send_header('content-disposition',
-                             'attachment; filename="%s"' % os.path.basename(path))
-        if code == 206:
-            self.send_header('content-range', 'bytes %d-%d/%d' % (start, end, size))
-        self.end_headers()
-        with open(path, 'rb') as f:
-            f.seek(start)
-            left = end - start + 1
-            while left > 0:
-                chunk = f.read(min(262144, left))
-                if not chunk:
-                    break
-                self.wfile.write(chunk)
-                left -= len(chunk)
+        # ⚠ 音频/大文件是最容易"客户端中途断开"的路径（拖进度条、切歌、关标签页）：
+        #   写 socket 抛 ConnectionAborted / BrokenPipe 是**正常现象**，必须静默收场 ——
+        #   让异常逃出去会刷满日志并逸出请求线程（见 `_json` 的注释）。
+        try:
+            self.send_response(code)
+            self.send_header('content-type', ctype)
+            self.send_header('accept-ranges', 'bytes')
+            self.send_header('content-length', str(end - start + 1))
+            self.send_header('cache-control', 'no-store, no-cache, must-revalidate, max-age=0')
+            self.send_header('pragma', 'no-cache')
+            self.send_header('expires', '0')
+            if download:
+                self.send_header('content-disposition',
+                                 'attachment; filename="%s"' % os.path.basename(path))
+            if code == 206:
+                self.send_header('content-range', 'bytes %d-%d/%d' % (start, end, size))
+            self.end_headers()
+            with open(path, 'rb') as f:
+                f.seek(start)
+                left = end - start + 1
+                while left > 0:
+                    chunk = f.read(min(262144, left))
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    left -= len(chunk)
+        except (ConnectionError, BrokenPipeError) as e:
+            sys.stderr.write('[studio] %s 传输中断（客户端断开）：%s\n'
+                             % (os.path.basename(path), e))
+            self.close_connection = True
 
     # ---------- 路由
     def do_GET(self):
@@ -787,12 +855,27 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == '/api/audio':
                 kind = (q.get('kind') or ['mix'])[0]
                 if kind == 'mix':
-                    d = song_dir(sid)
+                    d = song_dir(sid, need_json=False)
+                    fn = (q.get('f') or [''])[0]
+                    if fn:
+                        # 指定文件名：纯音频 A/B 目录里逐个试听用（前端"▶ 试听"按钮）
+                        p = os.path.abspath(os.path.join(d, fn))
+                        if not p.startswith(os.path.abspath(d)) or not os.path.isfile(p):
+                            return self._err('文件不存在：%s' % fn, 404)
+                        return self._file(p)
                     r = read_json(os.path.join(d, 'render.json')) or {}
                     for ext in ('.ogg', '.wav'):
                         p = os.path.join(d, (r.get('out') or '') + ext)
                         if os.path.isfile(p):
                             return self._file(p)
+                    # 纯音频目录（没有 render.json）：把目录里第一个音频当作"主混音"
+                    try:
+                        aud = sorted(f for f in os.listdir(d)
+                                     if f.lower().endswith(AUDIO_EXT))
+                    except OSError:
+                        aud = []
+                    if aud:
+                        return self._file(os.path.join(d, aud[0]))
                     return self._err('还没渲染', 404)
                 if kind == 'solo':
                     tr = re.sub(r'\W+', '', (q.get('track') or [''])[0])
@@ -839,7 +922,7 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception:
                     return self._json({'ok': False, 'error': out[-600:]})
             if u.path == '/api/files':
-                d = song_dir(sid)
+                d = song_dir(sid, need_json=False)
                 fs = []
                 for fn in sorted(os.listdir(d)):
                     p = os.path.join(d, fn)
@@ -850,8 +933,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({'ok': True, 'dir': d, 'files': fs})
             if u.path == '/api/dl':
                 fn = (q.get('f') or [''])[0]
-                p = os.path.abspath(os.path.join(song_dir(sid), fn))
-                if not p.startswith(os.path.abspath(song_dir(sid))):
+                d = song_dir(sid, need_json=False)
+                p = os.path.abspath(os.path.join(d, fn))
+                if not p.startswith(os.path.abspath(d)):
                     return self._err('路径越界', 400)
                 return self._file(p, download=True)
             # ---------------- MIDI 编辑器 ----------------
@@ -963,6 +1047,14 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == '/api/stop':
                 return self._stop_job((q.get('id') or [''])[0])
             if u.path == '/api/check':
+                # 先自己解析一次：纯音频目录在这里会被说清"没有 song.json，检查不了"，
+                # 否则用户点"数据契约检查"只会得到 check_song.py 那句含糊的"找不到曲目"
+                # （而且它后面还跟一长串"可选: …"，看起来像曲目丢了）。
+                try:
+                    song_dir(sid)
+                except FileNotFoundError as e:
+                    return self._json({'ok': False, 'rc': 1, 'log': str(e),
+                                       'fails': [], 'other': 0, 'audio_only': True})
                 rc, out = run_py(['scripts/check_song.py', sid])
                 ok = '数据契约没问题' in out
                 # 沙箱里那份清单含"交付物/跨曲目"类噪声，只把 **[数据契约]** 的报出来
