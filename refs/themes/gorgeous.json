@@ -22,7 +22,7 @@
  "key": {
   "tonic": "A",
   "pc": 9,
-  "mode": "minor",
+  "mode": "major",
   "confidence": 0.3,
   "scale_degree_weight": [
    1377961.6,
@@ -186,10 +186,10 @@
  },
  "harmony": {
   "primary": [
-   "Bm7",
-   "E7",
+   "E6",
+   "E6",
    "A6",
-   "A6"
+   "Dmaj7"
   ],
   "primary_source": "window4",
   "progressions": [
@@ -352,10 +352,10 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "Bm7",
-     "E7",
+     "E6",
+     "E6",
      "A6",
-     "A6"
+     "Dmaj7"
     ],
     "usable": true
    },
@@ -380,8 +380,8 @@
     "template_share": 0.2,
     "symbols": [
      "E6",
-     "E6",
      "A6",
+     "Dmaj7",
      "Dmaj7"
     ],
     "usable": true
@@ -406,10 +406,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "A6",
+     "Bm7",
      "E7",
-     "E6",
-     "C#m7"
+     "A6",
+     "A6"
     ],
     "usable": true
    },
@@ -492,7 +492,9 @@
     "template_share": 0.8,
     "symbols": [
      "A6",
-     "E6"
+     "E7",
+     "E6",
+     "C#m7"
     ],
     "usable": true
    },
@@ -622,10 +624,10 @@
    }
   ],
   "pool_progression": [
+   "E6",
+   "C#m7",
    "A6",
-   "A7",
-   "Am6",
-   "Cm7b5"
+   "E7"
   ],
   "pool_progression_romans": [
    "I",

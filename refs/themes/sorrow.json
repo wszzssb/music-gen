@@ -22,8 +22,8 @@
  "key": {
   "tonic": "G",
   "pc": 7,
-  "mode": "major",
-  "confidence": 0.2,
+  "mode": "minor",
+  "confidence": 0.3,
   "scale_degree_weight": [
    1217869.24,
    155776.76,
@@ -37,7 +37,8 @@
    611772.52,
    336039.6,
    336532.96
-  ]
+  ],
+  "mode_source": "human: CASE-BGM35 三条共性（原统计 confidence 仅 0.3）"
  },
  "templates": [
   {
@@ -186,10 +187,10 @@
  },
  "harmony": {
   "primary": [
-   "C6",
-   "Dm7",
-   "G6",
-   "G6"
+   "A7",
+   "Dsus4",
+   "Gm7",
+   "Gm7"
   ],
   "primary_source": "window4",
   "progressions": [
@@ -352,10 +353,10 @@
     ],
     "template_share": 0.3,
     "symbols": [
+     "Am6",
+     "Em7",
      "C6",
-     "Dm7",
-     "G6",
-     "G6"
+     "Bm7"
     ],
     "usable": true
    },
@@ -379,10 +380,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "G6",
-     "G6",
+     "Am6",
+     "Em7",
      "C6",
-     "Dm7"
+     "Bm7"
     ],
     "usable": true
    },
@@ -406,10 +407,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "A7",
-     "Dsus4",
-     "Gm7",
-     "Gm7"
+     "Am6",
+     "Em7",
+     "C6",
+     "Bm7"
     ],
     "usable": true
    },
@@ -491,8 +492,10 @@
     ],
     "template_share": 0.8,
     "symbols": [
-     "D7",
-     "G6"
+     "Am6",
+     "Em7",
+     "C6",
+     "Bm7"
     ],
     "usable": true
    },
@@ -625,10 +628,10 @@
    }
   ],
   "pool_progression": [
-   "G7",
-   "D6",
+   "Am6",
    "Em7",
-   "C6"
+   "C6",
+   "Bm7"
   ],
   "pool_progression_romans": [
    "I",

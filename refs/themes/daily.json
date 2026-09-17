@@ -186,10 +186,10 @@
  },
  "harmony": {
   "primary": [
-   "C6",
-   "D7",
+   "Em7",
+   "G6",
    "G7",
-   "G7"
+   "C6"
   ],
   "primary_source": "window4",
   "progressions": [
@@ -376,10 +376,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
+     "C6",
      "D7",
      "G7",
-     "G7",
-     "C7"
+     "G7"
     ],
     "usable": true
    },
@@ -403,10 +403,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "Bm7",
-     "Bm7",
-     "G6",
-     "Csus4"
+     "D7",
+     "G7",
+     "G7",
+     "C7"
     ],
     "usable": true
    },
@@ -486,8 +486,10 @@
     ],
     "template_share": 0.7,
     "symbols": [
-     "Gsus4",
-     "C"
+     "Bm7",
+     "Bm7",
+     "G6",
+     "Csus4"
     ],
     "usable": true
    },
@@ -612,10 +614,10 @@
    }
   ],
   "pool_progression": [
-   "C",
-   "Csus4",
-   "C6",
-   "Cmaj7"
+   "F6",
+   "Cmaj7",
+   "Fm6",
+   "Am7"
   ],
   "pool_progression_romans": [
    "I",

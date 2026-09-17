@@ -5,7 +5,7 @@
 | 模板依据 | **10 首同主题模板聚合**（`refs/themes/daily.json`） |
 | 主题→风格 | pop/folk/anime（引擎预设 daily） |
 | 速度·调式 | 128 BPM · C major（模板中位） |
-| 和声 | C6 D7 G7 G7（来源 window4） |
+| 和声 | Em7 G6 G7 C6（来源 window4） |
 | 曲式 | 5 段 × 8 小节 = 40 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）

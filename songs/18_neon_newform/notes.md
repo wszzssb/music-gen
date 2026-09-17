@@ -5,7 +5,7 @@
 | 模板依据 | **10 首同主题模板聚合**（`refs/themes/neon.json`） |
 | 主题→风格 | electronic/chiptune/game32（引擎预设 dance） |
 | 速度·调式 | 140 BPM · G major（模板中位） |
-| 和声 | D7 Gm6 D7 Gm6（来源 window2） |
+| 和声 | F6 C7 Em7 D6（来源 window2） |
 | 曲式 | 6 段 × 8 小节 = 48 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）

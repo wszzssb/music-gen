@@ -4,8 +4,8 @@
 |---|---|
 | 模板依据 | **10 首同主题模板聚合**（`refs/themes/night.json`） |
 | 主题→风格 | newage/jazz/electronic（引擎预设 daily） |
-| 速度·调式 | 140 BPM · F major（模板中位） |
-| 和声 | A#6 F6 F7 C7（来源 window4） |
+| 速度·调式 | 140 BPM · F minor（模板中位） |
+| 和声 | F7 C7 A#7 Fm7（来源 window4） |
 | 曲式 | 6 段 × 8 小节 = 40 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）

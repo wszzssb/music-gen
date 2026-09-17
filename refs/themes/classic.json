@@ -384,10 +384,10 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "C6",
-     "D6",
      "D7",
-     "G6"
+     "Dm7",
+     "Gm6",
+     "Cm7"
     ],
     "usable": true
    },
@@ -412,10 +412,10 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "Dmaj7",
-     "G6",
-     "Cm7",
-     "Cmaj7"
+     "D7",
+     "Dm7",
+     "Gm6",
+     "Cm7"
     ],
     "usable": true
    },
@@ -499,8 +499,10 @@
     ],
     "template_share": 0.9,
     "symbols": [
-     "D6",
-     "G6"
+     "D7",
+     "Dm7",
+     "Gm6",
+     "Cm7"
     ],
     "usable": true
    },
@@ -630,10 +632,10 @@
    }
   ],
   "pool_progression": [
-   "G6",
-   "Bm7",
    "D7",
-   "G6"
+   "Dm7",
+   "Gm6",
+   "Cm7"
   ],
   "pool_progression_romans": [
    "I",

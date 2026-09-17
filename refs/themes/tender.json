@@ -22,7 +22,7 @@
  "key": {
   "tonic": "A",
   "pc": 9,
-  "mode": "major",
+  "mode": "minor",
   "confidence": 0.4,
   "scale_degree_weight": [
    2167757.88,
@@ -349,10 +349,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "B7",
-     "Esus4",
-     "Am7",
-     "Am"
+     "Bm6",
+     "F#m7",
+     "D6",
+     "C#m7"
     ],
     "usable": true
    },
@@ -376,10 +376,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
+     "Bm6",
+     "F#m7",
      "D6",
-     "Em7",
-     "A6",
-     "A6"
+     "C#m7"
     ],
     "usable": true
    },
@@ -485,8 +485,10 @@
     ],
     "template_share": 0.6,
     "symbols": [
-     "Asus4",
-     "Em7b5"
+     "Bm6",
+     "F#m7",
+     "D6",
+     "C#m7"
     ],
     "usable": true
    },
@@ -605,10 +607,10 @@
    }
   ],
   "pool_progression": [
-   "A",
-   "A7",
-   "A6",
-   "Bm7"
+   "Bm6",
+   "F#m7",
+   "D6",
+   "C#m7"
   ],
   "pool_progression_romans": [
    "I",

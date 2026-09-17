@@ -4,7 +4,7 @@
 |---|---|
 | 模板依据 | **10 首同主题模板聚合**（`refs/themes/mystery.json`） |
 | 主题→风格 | film/newage/classical（引擎预设 gorgeous） |
-| 速度·调式 | 120 BPM · D# major（模板中位） |
+| 速度·调式 | 120 BPM · D# minor（模板中位） |
 | 和声 | G#m7 A#7 D#m6 D#sus4（来源 window4） |
 | 曲式 | 7 段 × 8 小节 = 56 小节 |
 

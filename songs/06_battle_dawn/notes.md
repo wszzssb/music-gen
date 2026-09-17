@@ -4,8 +4,8 @@
 |---|---|
 | 模板依据 | **10 首同主题模板聚合**（`refs/themes/battle.json`） |
 | 主题→风格 | rock/game16/game32（引擎预设 dance） |
-| 速度·调式 | 139 BPM · C major（模板中位） |
-| 和声 | Csus4 Gm7 Csus4 Gm7（来源 window2） |
+| 速度·调式 | 139 BPM · C minor（模板中位） |
+| 和声 | A#6 F7 Am7 G6（来源 window2） |
 | 曲式 | 8 段 × 8 小节 = 56 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）

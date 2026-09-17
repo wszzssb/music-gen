@@ -4,8 +4,8 @@
 |---|---|
 | 模板依据 | **10 首同主题模板聚合**（`refs/themes/sorrow.json`） |
 | 主题→风格 | ballad/romantic/classical（引擎预设 ballad） |
-| 速度·调式 | 110 BPM · G major（模板中位） |
-| 和声 | C6 Dm7 G6 G6（来源 window4） |
+| 速度·调式 | 110 BPM · G minor（模板中位） |
+| 和声 | A7 Dsus4 Gm7 Gm7（来源 window4） |
 | 曲式 | 7 段 × 8 小节 = 56 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）

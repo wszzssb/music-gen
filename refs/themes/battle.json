@@ -22,7 +22,7 @@
  "key": {
   "tonic": "C",
   "pc": 0,
-  "mode": "major",
+  "mode": "minor",
   "confidence": 0.3,
   "scale_degree_weight": [
    2327488.35,
@@ -187,10 +187,10 @@
  },
  "harmony": {
   "primary": [
-   "Csus4",
-   "Gm7",
-   "Csus4",
-   "Gm7"
+   "A#6",
+   "F7",
+   "Am7",
+   "G6"
   ],
   "primary_source": "window2",
   "progressions": [

@@ -5,7 +5,7 @@
 | 模板依据 | **10 首同主题模板聚合**（`refs/themes/cheerful.json`） |
 | 主题→风格 | pop/latin/rock（引擎预设 dance） |
 | 速度·调式 | 132 BPM · C major（模板中位） |
-| 和声 | E7 C7 E7 C7（来源 window2） |
+| 和声 | Am6 B7 Gmaj7 B7（来源 window2） |
 | 曲式 | 6 段 × 8 小节 = 40 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）

@@ -22,8 +22,8 @@
  "key": {
   "tonic": "D#",
   "pc": 3,
-  "mode": "major",
-  "confidence": 0.2,
+  "mode": "minor",
+  "confidence": 0.3,
   "scale_degree_weight": [
    1337673.44,
    134562.4,
@@ -37,7 +37,8 @@
    407666.28,
    387535.92,
    286868.49
-  ]
+  ],
+  "mode_source": "human: CASE-BGM35 三条共性（原统计 confidence 仅 0.3）"
  },
  "templates": [
   {

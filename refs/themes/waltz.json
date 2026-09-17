@@ -190,9 +190,9 @@
  "harmony": {
   "primary": [
    "C7",
-   "Fdim",
-   "Fdim",
-   "A#m"
+   "Gm7",
+   "Fmaj7",
+   "Fmaj7"
   ],
   "primary_source": "window4",
   "progressions": [
@@ -358,9 +358,9 @@
     "template_share": 0.3,
     "symbols": [
      "C7",
-     "Fdim",
-     "Fdim",
-     "A#m"
+     "Gm7",
+     "Fmaj7",
+     "Fmaj7"
     ],
     "usable": true
    },
@@ -385,10 +385,10 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "C7",
-     "Gm7",
-     "Fmaj7",
-     "Fmaj7"
+     "A#6",
+     "A#7",
+     "F6",
+     "Cm6"
     ],
     "usable": true
    },
@@ -413,10 +413,10 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "Csus4",
-     "Fm",
-     "Fm",
-     "C#6"
+     "A#7",
+     "F6",
+     "Cm6",
+     "Cm7"
     ],
     "usable": true
    },
@@ -499,8 +499,10 @@
     ],
     "template_share": 0.9,
     "symbols": [
-     "C7",
-     "Fm"
+     "Csus4",
+     "Fm",
+     "Fm",
+     "C#6"
     ],
     "usable": true
    },
@@ -636,9 +638,10 @@
    }
   ],
   "pool_progression": [
-   "Fm",
-   "Dm",
-   "Dsus4"
+   "C7",
+   "Fdim",
+   "Fdim",
+   "A#m"
   ],
   "pool_progression_romans": [
    "I",

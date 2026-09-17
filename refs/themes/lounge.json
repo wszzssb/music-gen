@@ -22,8 +22,8 @@
  "key": {
   "tonic": "C",
   "pc": 0,
-  "mode": "major",
-  "confidence": 0.2,
+  "mode": "minor",
+  "confidence": 0.3,
   "scale_degree_weight": [
    2578554.16,
    139358.24,
@@ -37,7 +37,8 @@
    863167.88,
    586032.12,
    437478.2
-  ]
+  ],
+  "mode_source": "human: CASE-BGM35 三条共性（原统计 confidence 仅 0.3）"
  },
  "templates": [
   {
@@ -186,10 +187,10 @@
  },
  "harmony": {
   "primary": [
-   "Csus4",
-   "E7",
    "C7",
-   "Fm6"
+   "Gm7",
+   "Fm7",
+   "F7"
   ],
   "primary_source": "window4",
   "progressions": [
@@ -349,10 +350,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "Csus4",
-     "E7",
-     "C7",
-     "Fm6"
+     "Am7",
+     "Dm7b5",
+     "Dm7b5",
+     "Cm7b5"
     ],
     "usable": true
    },
@@ -376,10 +377,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "C7",
-     "Gm7",
-     "Fm7",
-     "F7"
+     "Am7",
+     "Dm7b5",
+     "Dm7b5",
+     "Cm7b5"
     ],
     "usable": true
    },
@@ -403,10 +404,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "Cm6",
-     "C6",
-     "G7",
-     "F6"
+     "Am7",
+     "Dm7b5",
+     "Dm7b5",
+     "Cm7b5"
     ],
     "usable": true
    },
@@ -486,8 +487,10 @@
     ],
     "template_share": 0.7,
     "symbols": [
-     "Csus4",
-     "Fm6"
+     "Am7",
+     "Dm7b5",
+     "Dm7b5",
+     "Cm7b5"
     ],
     "usable": true
    },
@@ -608,10 +611,10 @@
    }
   ],
   "pool_progression": [
-   "Csus4",
-   "Csus4",
-   "Cm7",
-   "Gm7"
+   "Am7",
+   "Dm7b5",
+   "Dm7b5",
+   "Cm7b5"
   ],
   "pool_progression_romans": [
    "I",

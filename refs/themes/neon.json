@@ -187,10 +187,10 @@
  },
  "harmony": {
   "primary": [
-   "D7",
-   "Gm6",
-   "D7",
-   "Gm6"
+   "F6",
+   "C7",
+   "Em7",
+   "D6"
   ],
   "primary_source": "window2",
   "progressions": [
@@ -268,8 +268,10 @@
     ],
     "template_share": 0.4,
     "symbols": [
+     "F6",
      "C7",
-     "D7"
+     "Em7",
+     "D6"
     ],
     "usable": true
    },
@@ -386,8 +388,10 @@
    }
   ],
   "pool_progression": [
-   "D7",
-   "Dsus4"
+   "F6",
+   "C7",
+   "Em7",
+   "D6"
   ],
   "pool_progression_romans": [
    "V7",

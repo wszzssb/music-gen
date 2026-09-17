@@ -4,8 +4,8 @@
 |---|---|
 | 模板依据 | **10 首同主题模板聚合**（`refs/themes/gorgeous.json`） |
 | 主题→风格 | film/romantic/baroque（引擎预设 gorgeous） |
-| 速度·调式 | 108 BPM · A minor（模板中位） |
-| 和声 | Bm7 E7 A6 A6（来源 window4） |
+| 速度·调式 | 108 BPM · A major（模板中位） |
+| 和声 | E6 E6 A6 Dmaj7（来源 window4） |
 | 曲式 | 8 段 × 8 小节 = 64 小节 |
 
 ## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）

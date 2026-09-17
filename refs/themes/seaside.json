@@ -378,6 +378,8 @@
     ],
     "template_share": 0.7,
     "symbols": [
+     "C#m7",
+     "A6",
      "D6",
      "Amaj7"
     ],
@@ -510,10 +512,10 @@
    }
   ],
   "pool_progression": [
-   "Amaj7",
-   "Dm6",
-   "Amaj7",
-   "Dm6"
+   "C#m7",
+   "A6",
+   "D6",
+   "Amaj7"
   ],
   "pool_progression_romans": [
    "I",

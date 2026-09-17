@@ -22,7 +22,7 @@
  "key": {
   "tonic": "F",
   "pc": 5,
-  "mode": "major",
+  "mode": "minor",
   "confidence": 0.3,
   "scale_degree_weight": [
    4037065.11,
@@ -186,10 +186,10 @@
  },
  "harmony": {
   "primary": [
-   "A#6",
-   "F6",
    "F7",
-   "C7"
+   "C7",
+   "A#7",
+   "Fm7"
   ],
   "primary_source": "window4",
   "progressions": [
@@ -349,10 +349,10 @@
     ],
     "template_share": 0.2,
     "symbols": [
-     "A#6",
+     "A#m6",
+     "Am7",
      "F6",
-     "F7",
-     "C7"
+     "A#maj7"
     ],
     "usable": true
    },
