@@ -521,22 +521,33 @@
      推不出依赖关系的参数，一律先跑第二首曲子验证，再决定要不要固化。
 
 
-176. **studio 面板的"曲目"只认 `song.json`；而 `/api/audio?kind=mix` 只认 `render.json.out`**
-     —— 转录取的成品放进去"看不见、听不到"就是这个原因（2026-09-17）。
-     用户报："`99_bgm29_remake` 里的四个版本怎么没找到"。查下来是**三个原因叠在一起**：
+176. **往 studio 面板里放"转录取的成品"，要过三道门；缺任何一道的表现都是"卷帘空白 + 一行 TypeError"**
+     （2026-09-17，用户报"`99_bgm29_remake` 里的四个版本怎么没找到"，随后又报"怎么回事"。
+     **我第一次归因错了**——以为是"缺 song.json"，其实那只是第一道门；真正的崩因在第三道。）
 
-     ① **面板进程的曲库指向错了**：`--lib` 被设成了**单个曲目目录**
-        （`...\studio_lib\songs\99_b35_remake`）而不是曲库根（`...\studio_lib\songs`），
-        于是下拉里只有一首。
-     ② **新面板静默失败**：端口被旧进程占着 → 新起的那个 `exit 1`，而**旧进程还在服务**
-        （所以你以为重启了，其实页面还是旧的）。→ 重启前先 `netstat` 看 8765 上是谁，
-        必要时先 `Stop-Process`。旧 `--lib` 还会持久化在 `studio/.libpath` 里。
-     ③ **目录里没有 `song.json`**：`songs_list()` 只把"子目录里有 song.json"的算作曲目
-        （`probe_lib` 的三种布局都以此为准据）。转录/还原类产物默认只有 .ogg/.mid，
-        **必须先补一个最小 song.json**（name/bpm/meter/style/desc/sections 即可）。
-     ④ 顺带：`kind=mix` 找的是 `<曲目目录>/<render.json.out>.ogg`（再退 .wav），
-        所以**一个目录只能"代表"一个成品**；要让多个候选都能在下拉里选、都能播，
-        就得**每个版本一个目录**（各自 song.json + render.json(out=version) + version.ogg）。
+     ① **曲目 = 有 `song.json` 的子目录**：`songs_list()` 只认这个
+        （`probe_lib` 的 nested/flat/single 三种布局都以此为准据）。
+        转录/还原类产物默认只有 .ogg/.mid → 面板里**根本不出现**。
+     ② **面板进程得真的换掉**：`--lib` 指成了单个曲目目录（`...\songs\99_b35_remake`）时下拉里只有一首；
+        而且**端口被旧进程占着 → 新进程 `exit 1` 静默失败，旧进程继续服务**
+        （你以为重启了，其实页面还是旧的）。→ 先 `netstat` 看 8765 上是谁，必要时 `Stop-Process`；
+        旧 `--lib` 还会持久化在 `studio/.libpath`。
+     ③ **`song.json` 必须能被 `scripts/song_events.py` 跑通**，否则 `/api/song` 的 `events = None`
+        → 前端读 `undefined.ref` → `TypeError: Cannot read properties of undefined (reading 'ref')`
+        → 卷帘只剩一行"绘制错误"。**实测的真正根因**：
+        `song_engine.build_events` 是**按小节索引取和弦**的（`song_engine.py:1068`
+        `nn = sec['chords'][i + 1]`），**`len(sections[i].chords)` 必须 ≥ `bars`**。
+        我拿引擎曲目的 song.json 当模板，把"8 小节 / 8 个和弦"的段落直接改成"133 小节" →
+        `IndexError: list index out of range` → events=None。修法：把和弦列表**循环铺满 bars 个**。
+        另外 `arr`/`melody` 可以为空（实测 `fill=empty` 也能生成 events、卷帘显示 0 音符，
+        这恰恰正确 —— 转录曲目本来就没有引擎编配内容）。
+     ④ 附带：`/api/audio?kind=mix` 只认 `<曲目目录>/<render.json.out>.ogg`（再退 .wav），
+        所以**一个目录只能代表一个成品**；多版本必须**各自建目录**
+        （song.json + render.json(out=version) + version.ogg + render.json.mid 指向的 .mid）。
+
+     **诊断顺序（别猜前端）**：`curl '/api/song?id=<曲目>'` 看 `events` 是否为 null →
+     是就直接 `python scripts/song_events.py <曲目>/song.json --json` 看真实异常栈。
 
      **成品**：`studio_lib/songs/99_bgm29_remake`（定版）+ `99_bgm29_old` / `99_bgm29_leadEP` /
-     `99_bgm29_leadVib` + `99_b35_v5` / `99_b35_pipeline` —— 六个都能在面板里直接选、直接播。
+     `99_bgm29_leadVib` + `99_b35_v5` / `99_b35_pipeline` —— 六个都能在面板里直接选、直接播
+     （各自 events 正常：BGM29 四轨 / BGM35 九轨）。
