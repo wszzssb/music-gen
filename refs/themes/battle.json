@@ -584,7 +584,7 @@
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 72,
+  "total_bars": 56,
   "plan": [
    {
     "name": "Intro",
@@ -597,27 +597,12 @@
     "prog": 0
    },
    {
-    "name": "A2",
-    "bars": 8,
-    "prog": 0
-   },
-   {
     "name": "B",
     "bars": 8,
     "prog": 0
    },
    {
-    "name": "A3",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "C",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "A4",
+    "name": "A2",
     "bars": 8,
     "prog": 0
    },
@@ -627,7 +612,12 @@
     "prog": 0
    },
    {
-    "name": "A5",
+    "name": "C",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A3",
     "bars": 8,
     "prog": 0
    },
