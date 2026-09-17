@@ -44,7 +44,11 @@ async function loadSongs(){
   const sel = $('songSel'); sel.innerHTML='';
   for(const s of S.songs){
     const o=document.createElement('option'); o.value=s.id;
-    o.textContent = s.id+'  · '+s.bpm+'BPM · '+s.bars+'小节 · '+(s.has_ogg?'有成品':'未渲染');
+    /* 纯音频目录（没有 song.json 的 A/B 试听目录）：没有 BPM/小节可言，就报有几个文件。
+       判据放宽的缘由见 server.py 的 has_audio 注释（用户 2026-09-17 报"只认 song.json"）。 */
+    o.textContent = s.audio_only
+      ? s.id+'  · 纯音频 · '+(s.n_audio||0)+' 个文件可试听'
+      : s.id+'  · '+s.bpm+'BPM · '+s.bars+'小节 · '+(s.has_ogg?'有成品':'未渲染');
     sel.appendChild(o);
   }
   if(!S.sid && S.songs.length) S.sid = S.songs[0].id;
@@ -101,12 +105,16 @@ async function loadSong(){
   } catch (e) {
     S.loadErr = '请求失败（' + (e && e.message ? e.message : e) + '）';
     log('!! 读曲目失败：' + S.loadErr);
+    loadFiles();                        // 读不到 song.json 也可能有产物/音频可听
     renderRoll();                       // 让卷帘把失败原因画出来（而不是空着）
     return;
   }
   if(!d.ok){
     S.loadErr = d.error || '未知错误';
     log('!! 读不到曲目：' + S.loadErr);
+    /* 纯音频目录（只有 ogg、没有 song.json）走的就是这条路：作曲/渲染/卷帘都没有，
+       但**产物清单要出来**，用户才能逐个试听 A/B（见 loadFiles 的 ▶ 试听）。 */
+    loadFiles();
     renderRoll();
     return;
   }
@@ -805,12 +813,19 @@ async function saveSong(quiet){
   S.dirty=false; if(!quiet)$('log').textContent=d.log||'已保存';
   return true;
 }
+const AUD_RE=/\.(ogg|wav|mp3|flac|m4a)$/i;
 async function loadFiles(){
   const d=await api('/api/files?id='+encodeURIComponent(S.sid));
   if(!d.ok)return;
   let h='<table class="mini"><tr><th>产物</th><th>大小</th><th></th></tr>';
-  for(const f of d.files) h+=`<tr><td>${f.name}</td><td>${(f.size/1048576).toFixed(2)}MB</td>
-    <td><a href="${f.url}">下载</a></td></tr>`;
+  for(const f of d.files){
+    /* 音频各给一个 ▶ 试听：**纯音频 A/B 目录（没有 song.json）里这是唯一的听法** ——
+       点它把主播放器切到该文件（`/api/audio?kind=mix&f=<名>`，server 端有路径越界校验）。 */
+    const play=AUD_RE.test(f.name)
+      ? `<a href="#" data-play="${encodeURIComponent(f.name)}">▶ 试听</a> · ` : '';
+    h+=`<tr><td>${f.name}</td><td>${(f.size/1048576).toFixed(2)}MB</td>
+    <td>${play}<a href="${f.url}">下载</a></td></tr>`;
+  }
   $('files').innerHTML=h+'</table>';
 }
 
@@ -821,6 +836,18 @@ function bind(){
    *   全部失效，表现是"好多按钮都没反应"。这类"某个元素缺失 → 半个面板失灵"
    *   必须逐个兜住，不能靠"元素一定在"。 */
   const _b=(id,fn)=>{ const e=$(id); if(e) e.onclick=fn; else console.warn('[bind] 缺元素 #'+id); };
+  /* 产物清单里的 ▶ 试听（用事件委托：清单是 innerHTML 重建的，逐个绑会随重建丢失） */
+  const _files=$('files');
+  if(_files) _files.addEventListener('click', async (ev)=>{
+    const a=ev.target.closest('[data-play]'); if(!a) return;
+    ev.preventDefault();
+    const nm=a.dataset.play;
+    try{
+      await ENG.loadMaster('/api/audio?id='+encodeURIComponent(S.sid)
+        +'&kind=mix&f='+nm+'&t='+Date.now());
+      log('试听：'+decodeURIComponent(nm));
+    }catch(e){ log('!! 试听失败：'+(e&&e.message?e.message:e)); }
+  });
   _b('btnLib',()=>openPath());
   _b('btnSave',()=>saveSong());
   $('btnCheck').onclick=async()=>{ if(S.dirty) await saveSong(true);
