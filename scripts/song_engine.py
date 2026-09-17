@@ -1687,6 +1687,25 @@ def write_midi(d, ev, path):
                     _lst[_i] = (_t, _dd, _m2, _v2)
         if _n_oct or _n_vel:
             print('  音区修正（range_fix）：移八度 %d 个 · 弱起音 %d 个' % (_n_oct, _n_vel))
+        # ⚠ **移八度会制造同刻同音高重复**：`while m < lo: m += 12` 之下，
+        #   原本不同的音高会并到同一个（32→44 而 44→44）—— 音源遇到同刻同音高会**吞音**。
+        #   实测未修 15 个 → 移八度后 **56 个**（Arp 10→44、Hook 2→9）。
+        #   所以移完必须去重：同轨、同 tick、同音高只留**力度最大**的那个。
+        _n_dup = 0
+        for _k, _lst in list(ev.items()):
+            _seen = {}
+            for _i, (_t, _dd, _m, _v) in enumerate(_lst):
+                _key = (round(_t, 3), _m)
+                if _key in _seen:
+                    _n_dup += 1
+                    if _v > _lst[_seen[_key]][3]:
+                        _seen[_key] = _i
+                else:
+                    _seen[_key] = _i
+            if _n_dup:
+                ev[_k] = [_lst[_i] for _i in sorted(_seen.values())]
+        if _n_dup:
+            print('  音区修正：同刻同音高去重 %d 个' % _n_dup)
     # **去重叠**（opt-in `patterns.legato_trim`，默认关 = 全库逐字节不变）：
     # 同轨同音高、前音还没松键又按下 → **部分 GM 音源会吞掉后一个音**，
     # 听感就是"断断续续/点状"（`b35_midi_feel.py` 早列为"声音怪/卡"的三大来源之一）。
