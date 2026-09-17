@@ -114,26 +114,6 @@
    }
   },
   {
-   "name": "A2",
-   "bars": 8,
-   "chords": ["B7", "Esus4", "Am7", "Am", "B7", "Esus4", "Esus4", "Am7"],
-   "melody": "A",
-   "arr": {
-    "bass": true,
-    "perc": 1,
-    "piano": true,
-    "uku": true,
-    "arp": false,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "glock_all": false,
-    "ep": false,
-    "shimmer": false,
-    "density": 1
-   }
-  },
-  {
    "name": "B",
    "bars": 8,
    "chords": ["Em7", "A6", "A6", "D6", "Em7", "A6", "Esus4", "Am7"],
@@ -174,6 +154,26 @@
    }
   },
   {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["B7", "Esus4", "Am7", "Am", "B7", "Esus4", "Esus4", "Am7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1
+   }
+  },
+  {
    "name": "B2",
    "bars": 8,
    "chords": ["Em7", "A6", "A6", "D6", "Em7", "A6", "Esus4", "Am7"],
@@ -185,32 +185,12 @@
     "uku": true,
     "arp": true,
     "pad": true,
-    "strings": false,
+    "strings": true,
     "glock": false,
     "ep": true,
     "glock_all": false,
     "shimmer": true,
     "density": 4
-   }
-  },
-  {
-   "name": "A3",
-   "bars": 8,
-   "chords": ["B7", "Esus4", "Am7", "Am", "B7", "Esus4", "Esus4", "Am7"],
-   "melody": "A",
-   "arr": {
-    "bass": true,
-    "perc": 1,
-    "piano": true,
-    "uku": true,
-    "arp": false,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "glock_all": false,
-    "ep": false,
-    "shimmer": false,
-    "density": 2
    }
   },
   {
