@@ -1,0 +1,306 @@
+{
+ "name": "lounge_night",
+ "bpm": 132.0,
+ "meter": [4, 4],
+ "desc": "酒馆爵士（依据主题模板包 lounge：10 首同主题模板）",
+ "style": "acoustic",
+ "patterns": {
+  "bass_style": "simple",
+  "perc_style": "light",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 2, 4, 5, 4, 2, 3],
+  "guitar_beats": [0.0, 0.5, 1.0, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 3.75],
+  "guitar_vary": true,
+  "space": true,
+  "section_gap": 2.0
+ },
+ "chords": {
+  "E7": [28, [64, 68, 71, 74]],
+  "C7": [36, [60, 64, 67, 70]],
+  "G6": [31, [55, 59, 62, 64]],
+  "Csus4": [36, [60, 65, 67]],
+  "Fm6": [29, [65, 68, 72, 74]],
+  "Gm7": [31, [55, 58, 62, 65]],
+  "Fm7": [29, [65, 68, 72, 75]],
+  "F7": [29, [65, 69, 72, 75]],
+  "C6": [36, [60, 64, 67, 69]],
+  "G7": [31, [55, 59, 62, 65]],
+  "F6": [29, [65, 69, 72, 74]],
+  "Cm6": [36, [60, 63, 67, 69]]
+ },
+ "melody": {
+  "intro": [
+   [0, 0.75, 0.75, 80], [0, 1.5, 0.5, 78], [0, 2.0, 0.75, 83], [0, 2.75, 1.25, 81],
+   [1, 0.25, 2.0, 82],
+   [2, 0.75, 0.75, 83], [2, 1.5, 0.5, 83], [2, 2.0, 0.75, 79], [2, 2.75, 1.25, 81],
+   [3, 0.25, 2.0, 76]
+  ],
+  "A": [
+   [0, 0.5, 1.5, 81], [0, 2.0, 1.25, 79], [0, 3.25, 2.0, 81],
+   [1, 1.75, 0.75, 76],
+   [2, 0.5, 1.5, 78], [2, 2.0, 1.25, 79], [2, 3.25, 0.5, 82], [2, 3.75, 1.25, 82],
+   [3, 1.0, 1.5, 80], [3, 2.5, 1.0, 84], [3, 3.5, 1.25, 84],
+   [4, 0.75, 1.25, 81], [4, 2.0, 2.0, 79],
+   [5, 1.75, 1.25, 76],
+   [6, 0.0, 1.5, 76], [6, 1.5, 1.5, 78], [6, 3.0, 2.0, 76],
+   [7, 1.75, 1.25, 76]
+  ],
+  "B": [
+   [0, 1.25, 1.5, 79], [0, 2.75, 0.5, 77], [0, 3.25, 1.5, 82],
+   [1, 0.75, 1.25, 80], [1, 2.0, 0.75, 77], [1, 2.75, 1.25, 80],
+   [2, 0.0, 2.0, 81], [2, 2.75, 1.25, 77],
+   [3, 0.25, 2.25, 76],
+   [4, 1.25, 1.5, 82], [4, 2.75, 0.5, 77], [4, 3.25, 0.75, 79],
+   [5, 0.0, 2.5, 80],
+   [6, 0.5, 0.75, 81], [6, 2.0, 0.5, 76], [6, 2.5, 1.5, 78],
+   [7, 0.25, 2.25, 76]
+  ],
+  "C": [
+   [0, 1.5, 0.5, 81], [0, 2.0, 0.75, 79], [0, 2.75, 0.75, 76], [0, 3.5, 1.25, 78],
+   [1, 0.75, 2.0, 81],
+   [2, 1.5, 1.25, 81], [2, 2.75, 0.75, 79], [2, 3.5, 2.0, 77],
+   [3, 1.5, 0.5, 81], [3, 2.0, 0.75, 79], [3, 2.75, 0.75, 79], [3, 3.5, 1.5, 81],
+   [4, 1.0, 1.0, 79], [4, 2.0, 1.0, 81], [4, 3.0, 1.75, 76],
+   [5, 0.75, 2.0, 81],
+   [6, 1.25, 0.75, 81], [6, 2.0, 1.25, 83], [6, 3.25, 0.75, 76],
+   [7, 0.75, 2.0, 76]
+  ],
+  "outro": [
+   [0, 0.0, 1.25, 80], [0, 1.25, 1.25, 83], [0, 2.5, 2.0, 78],
+   [1, 0.75, 0.5, 80], [1, 1.25, 2.0, 82],
+   [2, 0.0, 1.25, 83], [2, 1.25, 1.25, 81], [2, 2.5, 2.0, 76],
+   [3, 0.75, 2.0, 76]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 4,
+   "chords": ["E7", "C7", "G6", "C7"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 0,
+    "perc_in": 2
+   }
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["Csus4", "E7", "C7", "Fm6", "Csus4", "E7", "G6", "C7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2
+   }
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["Csus4", "E7", "C7", "Fm6", "Csus4", "E7", "G6", "C7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2
+   }
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["Gm7", "Fm7", "F7", "C7", "Gm7", "Fm7", "G6", "C7"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": true,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 4
+   }
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["Csus4", "E7", "C7", "Fm6", "Csus4", "E7", "G6", "C7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2
+   }
+  },
+  {
+   "name": "C",
+   "bars": 8,
+   "chords": ["C6", "G7", "F6", "Cm6", "C6", "G7", "G6", "C7"],
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": true,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 4
+   }
+  },
+  {
+   "name": "A4",
+   "bars": 8,
+   "chords": ["Csus4", "E7", "C7", "Fm6", "Csus4", "E7", "G6", "C7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 3
+   }
+  },
+  {
+   "name": "B2",
+   "bars": 8,
+   "chords": ["Gm7", "Fm7", "F7", "C7", "Gm7", "Fm7", "G6", "C7"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": true,
+    "glock_all": false,
+    "shimmer": true,
+    "density": 4
+   }
+  },
+  {
+   "name": "A5",
+   "bars": 8,
+   "chords": ["Csus4", "E7", "C7", "Fm6", "Csus4", "E7", "G6", "C7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2
+   }
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": ["E7", "C7", "G6", "C7"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 0
+   }
+  }
+ ],
+ "theme": {
+  "name": "lounge",
+  "label": "酒馆爵士",
+  "pack": "refs/themes/lounge.json",
+  "template_count": 10,
+  "styles": ["jazz", "blues", "pop"],
+  "source_kinds": {
+   "bitmidi": 10
+  },
+  "primary_source": "window4",
+  "mix_target": "lounge_mix",
+  "energy_curve_db": [],
+  "energy_gain": 1.0,
+  "templates": ["blues/After-Dinner-Blues.mid", "blues/Boogie-Woogie.mid", "blues/Boogie-Woogie-Demo.mid", "jazz/Cowboy Bebop - ELM.mid", "jazz/Cowboy Bebop - Goodnight Julia.mid", "jazz/Cowboy Bebop - Cat Blues.mid", "jazz/Alexander's-Ragtime-Band.mid", "pop/IGGY POP.Louie Louie.mid", "pop/Disco Citizens - Footprint.mid", "pop/Disco-Fans.mid"],
+  "melody_profile": "refs/melody/psg_BGM13_melody.json",
+  "seed": 7,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "psg_BGM13",
+  "seed": 8,
+  "dens": 2.0,
+  "candidates": 8,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0
+ }
+}

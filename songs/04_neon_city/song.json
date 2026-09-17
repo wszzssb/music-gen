@@ -1,0 +1,407 @@
+{
+ "name": "neon_city",
+ "bpm": 140.0,
+ "meter": [4, 4],
+ "desc": "霓虹电子（依据主题模板包 neon：10 首同主题模板）",
+ "style": "dance",
+ "patterns": {
+  "bass_style": "sixteenth",
+  "perc_style": "dance",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 2, 3, 4, 3, 2, 4],
+  "guitar_beats": [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
+  "guitar_vary": true,
+  "space": true,
+  "section_gap": 2.0
+ },
+ "chords": {
+  "Gm6": [31, [55, 58, 62, 64]],
+  "D7": [38, [62, 66, 69, 72]]
+ },
+ "melody": {
+  "intro": [
+   [0, 1.25, 0.75, 79], [0, 2.0, 0.75, 79], [0, 3.25, 1.0, 77],
+   [1, 0.25, 0.75, 74], [1, 1.0, 1.25, 73], [1, 2.25, 2.0, 72],
+   [2, 0.5, 0.75, 73], [2, 1.25, 1.25, 74], [2, 2.5, 1.5, 72],
+   [3, 2.0, 1.5, 79]
+  ],
+  "A": [
+   [0, 1.25, 1.25, 81], [0, 2.5, 0.5, 80], [0, 3.0, 1.0, 81],
+   [1, 0.0, 2.0, 82],
+   [2, 1.0, 1.25, 84], [2, 2.25, 0.5, 81], [2, 2.75, 1.25, 84],
+   [3, 0.0, 2.0, 79],
+   [4, 1.0, 1.25, 81], [4, 2.25, 0.5, 81], [4, 2.75, 1.25, 79],
+   [5, 0.0, 2.0, 79],
+   [6, 1.5, 1.25, 74], [6, 2.75, 0.5, 75], [6, 3.25, 0.75, 74],
+   [7, 0.0, 2.0, 79]
+  ],
+  "B": [
+   [0, 1.25, 0.75, 72], [0, 2.0, 0.75, 70], [0, 2.75, 0.75, 68],
+   [1, 1.25, 1.0, 72], [1, 2.25, 0.5, 69], [1, 2.75, 2.0, 72],
+   [2, 1.25, 0.5, 79], [2, 1.75, 0.5, 77], [2, 2.25, 0.5, 74], [2, 2.75, 1.25, 74],
+   [3, 0.0, 2.75, 74],
+   [4, 1.5, 1.0, 72], [4, 2.5, 0.5, 70], [4, 3.0, 1.5, 67],
+   [5, 1.0, 1.0, 69], [5, 2.0, 0.5, 72], [5, 2.5, 2.0, 70],
+   [6, 1.5, 1.0, 69], [6, 2.5, 0.5, 68], [6, 3.0, 1.0, 69],
+   [7, 0.0, 2.75, 67]
+  ],
+  "C": [
+   [0, 0.0, 0.75, 74], [0, 0.75, 0.75, 72], [0, 1.5, 1.5, 67], [0, 3.0, 2.0, 70],
+   [1, 1.5, 2.0, 74],
+   [2, 1.25, 1.5, 79], [2, 2.75, 0.75, 79], [2, 3.5, 1.5, 77],
+   [3, 1.0, 1.0, 81], [3, 2.0, 1.75, 84], [3, 3.75, 1.5, 81],
+   [4, 1.25, 1.5, 86], [4, 2.75, 2.0, 84],
+   [5, 2.0, 1.0, 86],
+   [6, 1.0, 1.0, 84], [6, 2.0, 2.0, 86],
+   [7, 1.5, 1.5, 79]
+  ],
+  "outro": [
+   [0, 1.0, 0.75, 74], [0, 2.0, 0.75, 67],
+   [1, 2.25, 0.75, 74],
+   [2, 0.0, 1.0, 72], [2, 1.25, 1.25, 69], [2, 2.5, 1.5, 67],
+   [3, 2.25, 1.25, 67]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 4,
+   "chords": ["Gm6", "D7", "D7", "Gm6"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 0,
+    "perc_in": 2,
+    "mix": {
+     "Melody": 92,
+     "Hook": 73,
+     "Piano": 69,
+     "Arp": 54,
+     "Pad": 62,
+     "Strings": 58,
+     "Bass": 90,
+     "Glock": 54,
+     "Perc": 78
+    }
+   }
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["D7", "Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1,
+    "mix": {
+     "Melody": 96,
+     "Hook": 76,
+     "Piano": 72,
+     "Arp": 57,
+     "Pad": 65,
+     "Strings": 61,
+     "Bass": 94,
+     "Glock": 57,
+     "Perc": 82
+    }
+   }
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["D7", "Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1,
+    "mix": {
+     "Melody": 97,
+     "Hook": 77,
+     "Piano": 73,
+     "Arp": 58,
+     "Pad": 66,
+     "Strings": 62,
+     "Bass": 95,
+     "Glock": 58,
+     "Perc": 83
+    }
+   }
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "D7", "Gm6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": false,
+    "strings": false,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 4,
+    "mix": {
+     "Melody": 99,
+     "Hook": 79,
+     "Piano": 75,
+     "Arp": 59,
+     "Pad": 67,
+     "Strings": 63,
+     "Bass": 97,
+     "Glock": 59,
+     "Perc": 85
+    }
+   }
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["D7", "Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 103,
+     "Hook": 82,
+     "Piano": 78,
+     "Arp": 61,
+     "Pad": 70,
+     "Strings": 65,
+     "Bass": 101,
+     "Glock": 61,
+     "Perc": 89
+    }
+   }
+  },
+  {
+   "name": "C",
+   "bars": 8,
+   "chords": ["Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "D7", "Gm6"],
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": false,
+    "strings": false,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 4,
+    "mix": {
+     "Melody": 103,
+     "Hook": 82,
+     "Piano": 78,
+     "Arp": 61,
+     "Pad": 70,
+     "Strings": 65,
+     "Bass": 101,
+     "Glock": 61,
+     "Perc": 89
+    }
+   }
+  },
+  {
+   "name": "A4",
+   "bars": 8,
+   "chords": ["D7", "Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 3,
+    "mix": {
+     "Melody": 103,
+     "Hook": 82,
+     "Piano": 78,
+     "Arp": 61,
+     "Pad": 70,
+     "Strings": 65,
+     "Bass": 101,
+     "Glock": 61,
+     "Perc": 89
+    }
+   }
+  },
+  {
+   "name": "B2",
+   "bars": 8,
+   "chords": ["Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "D7", "Gm6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": true,
+    "density": 4,
+    "mix": {
+     "Melody": 103,
+     "Hook": 82,
+     "Piano": 78,
+     "Arp": 61,
+     "Pad": 70,
+     "Strings": 65,
+     "Bass": 101,
+     "Glock": 61,
+     "Perc": 89
+    }
+   }
+  },
+  {
+   "name": "A5",
+   "bars": 8,
+   "chords": ["D7", "Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 3,
+    "mix": {
+     "Melody": 99,
+     "Hook": 79,
+     "Piano": 75,
+     "Arp": 59,
+     "Pad": 67,
+     "Strings": 63,
+     "Bass": 97,
+     "Glock": 59,
+     "Perc": 85
+    }
+   }
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": ["Gm6", "D7", "D7", "Gm6"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 0,
+    "mix": {
+     "Melody": 86,
+     "Hook": 69,
+     "Piano": 65,
+     "Arp": 51,
+     "Pad": 58,
+     "Strings": 55,
+     "Bass": 84,
+     "Glock": 51,
+     "Perc": 74
+    }
+   }
+  }
+ ],
+ "theme": {
+  "name": "neon",
+  "label": "霓虹电子",
+  "pack": "refs/themes/neon.json",
+  "template_count": 10,
+  "styles": ["electronic", "chiptune", "game32"],
+  "source_kinds": {
+   "vgmusic": 7,
+   "bitmidi": 3
+  },
+  "primary_source": "window2",
+  "mix_target": "neon_mix",
+  "energy_curve_db": [-1.12, -0.34, -0.12, 0.21, 0.88, 0.88, 0.88, 0.88, 0.21, -2.12],
+  "energy_gain": 1.0,
+  "templates": ["chiptune/1943boss.mid", "chiptune/1943-lev3.mid", "chiptune/1943boss1.mid", "chiptune/1943won.mid", "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "electronic/Arrow - Back In The House (U Can See It).mid", "electronic/Benny Benassi - Techno Cocain.mid", "game32/ClassicXG.mid", "game32/bonusstagecredits.mid", "game32/T_AVGFighterMAX_YukaThemeGM.mid"],
+  "melody_profile": "refs/melody/fine_BGM09_melody.json",
+  "seed": 7,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "fine_BGM09",
+  "seed": 4,
+  "dens": 2.0,
+  "candidates": 8,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0
+ }
+}

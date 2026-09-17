@@ -1,0 +1,296 @@
+{
+ "name": "retro_quest",
+ "bpm": 140.0,
+ "meter": [4, 4],
+ "desc": "复古游戏（依据主题模板包 retro：10 首同主题模板）",
+ "style": "dance",
+ "patterns": {
+  "bass_style": "sixteenth",
+  "perc_style": "dance",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 2, 4, 5, 4, 2, 3],
+  "guitar_beats": [0.0, 0.5, 1.0, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5],
+  "guitar_vary": true,
+  "space": true,
+  "section_gap": 2.0
+ },
+ "chords": {
+  "D7": [38, [62, 66, 69, 72]],
+  "Gm6": [31, [55, 58, 62, 64]]
+ },
+ "melody": {
+  "intro": [
+   [0, 0.0, 1.5, 78], [0, 1.5, 1.5, 81], [0, 3.0, 1.5, 79],
+   [1, 0.5, 1.5, 81], [1, 2.0, 1.5, 82], [1, 3.5, 0.75, 83],
+   [2, 0.25, 1.5, 81], [2, 1.75, 1.5, 82], [2, 3.25, 1.75, 81],
+   [3, 2.0, 1.5, 79]
+  ],
+  "A": [
+   [0, 1.25, 0.75, 76], [0, 2.0, 1.5, 76], [0, 3.5, 1.25, 78],
+   [1, 0.75, 0.75, 80], [1, 1.5, 1.5, 81], [1, 3.0, 1.75, 79],
+   [2, 1.0, 1.0, 79], [2, 2.0, 1.25, 76], [2, 3.25, 1.0, 79],
+   [3, 0.25, 2.75, 74],
+   [4, 1.25, 0.75, 76], [4, 2.0, 0.75, 76], [4, 2.75, 0.75, 78], [4, 3.5, 1.75, 79],
+   [5, 1.25, 0.75, 78], [5, 2.0, 1.5, 81], [5, 3.5, 1.5, 79],
+   [6, 1.0, 1.0, 78], [6, 2.0, 1.25, 81], [6, 3.25, 1.0, 83],
+   [7, 0.25, 2.75, 79]
+  ],
+  "B": [
+   [0, 0.75, 1.25, 74], [0, 2.0, 1.0, 74], [0, 3.0, 2.0, 81],
+   [1, 1.25, 1.25, 76], [1, 2.5, 1.0, 79], [1, 3.5, 1.5, 81],
+   [2, 1.0, 1.0, 78], [2, 2.0, 1.25, 81], [2, 3.25, 2.0, 82],
+   [3, 2.25, 0.75, 74],
+   [4, 0.75, 1.25, 81], [4, 2.0, 1.0, 81], [4, 3.0, 2.0, 86],
+   [5, 1.0, 1.25, 86], [5, 2.25, 1.0, 84], [5, 3.25, 2.0, 86],
+   [6, 1.25, 0.75, 81], [6, 2.0, 0.5, 86], [6, 2.5, 1.0, 85], [6, 3.5, 1.75, 86],
+   [7, 2.25, 1.25, 79]
+  ],
+  "C": [
+   [0, 0.75, 1.5, 74], [0, 2.25, 1.25, 74], [0, 3.5, 2.0, 76],
+   [1, 2.0, 1.0, 74],
+   [2, 0.25, 1.5, 76], [2, 1.75, 1.25, 76], [2, 3.0, 1.5, 78],
+   [3, 0.5, 1.5, 74], [3, 2.0, 1.25, 76], [3, 3.25, 1.0, 79],
+   [4, 0.25, 1.5, 74], [4, 1.75, 1.25, 76], [4, 3.0, 2.0, 81],
+   [5, 2.0, 1.0, 79],
+   [6, 0.75, 1.5, 78], [6, 2.25, 1.25, 81], [6, 3.5, 2.0, 81],
+   [7, 2.0, 1.0, 79]
+  ],
+  "outro": [
+   [0, 0.5, 1.5, 81], [0, 2.0, 1.0, 78], [0, 3.0, 2.0, 76],
+   [1, 1.0, 1.25, 78], [1, 2.25, 1.25, 76], [1, 3.5, 1.0, 74],
+   [2, 0.5, 1.5, 75], [2, 2.0, 1.0, 74], [2, 3.0, 2.0, 75],
+   [3, 1.25, 1.75, 74]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 4,
+   "chords": ["D7", "Gm6", "D7", "Gm6"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 0,
+    "perc_in": 2
+   }
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "D7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1
+   }
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "D7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1
+   }
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["D7", "Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "Gm6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": false,
+    "strings": false,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 4
+   }
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "D7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2
+   }
+  },
+  {
+   "name": "C",
+   "bars": 8,
+   "chords": ["D7", "Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "Gm6"],
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": false,
+    "strings": false,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 4
+   }
+  },
+  {
+   "name": "A4",
+   "bars": 8,
+   "chords": ["Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "D7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2
+   }
+  },
+  {
+   "name": "B2",
+   "bars": 8,
+   "chords": ["D7", "Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "Gm6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": true,
+    "density": 4
+   }
+  },
+  {
+   "name": "A5",
+   "bars": 8,
+   "chords": ["Gm6", "D7", "Gm6", "D7", "Gm6", "D7", "D7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 3
+   }
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": ["D7", "Gm6", "D7", "Gm6"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 0
+   }
+  }
+ ],
+ "theme": {
+  "name": "retro",
+  "label": "复古游戏",
+  "pack": "refs/themes/retro.json",
+  "template_count": 10,
+  "styles": ["chiptune", "game16", "game32"],
+  "source_kinds": {
+   "vgmusic": 10
+  },
+  "primary_source": "window2",
+  "mix_target": "retro_mix",
+  "energy_curve_db": [],
+  "energy_gain": 1.0,
+  "templates": ["chiptune/1943boss.mid", "chiptune/1943-lev3.mid", "chiptune/1943boss1.mid", "chiptune/1943won.mid", "game16/7thsaga_town3-1.mid", "game16/7thsaga_bt2.mid", "game16/7thsaga_bt2_w.mid", "game32/ClassicXG.mid", "game32/bonusstagecredits.mid", "game32/T_AVGFighterMAX_YukaThemeGM.mid"],
+  "melody_profile": "refs/melody/BGM33_other_melody.json",
+  "seed": 7,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "BGM33_other",
+  "seed": 14,
+  "dens": 2.0,
+  "candidates": 8,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0
+ }
+}
