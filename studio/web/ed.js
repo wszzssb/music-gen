@@ -655,6 +655,22 @@ function familyOf(program, drum) {
 }
 
 /* 一个音：多振荡器 + 低通 + ADSR（力度同时影响音量与亮度，真实乐器就是这样） */
+/* 快速淡出后再停 —— 直接 `stop()` 是**瞬断**，听感是"咔哒/爆音"。
+ * 编辑器在密集段会频繁触发振荡器预算限流（见 `playTone` 的 OSC_BUDGET），
+ * 每次硬停都是一次咔哒；用户报"听 midi 有些地方卡卡的/怪怪的"就有这一份。
+ * `fade<=0` 时保持旧行为（真正停止播放时不需要淡出，master 那边会一起收）。 */
+function fadeStop(w, g, parts, fade) {
+  const t = (w && w.currentTime) || 0;
+  if (fade > 0 && g && g.gain) {
+    try {
+      g.gain.cancelScheduledValues(t);
+      g.gain.setTargetAtTime(0.0001, t, Math.max(0.001, fade / 3));
+    } catch (e) { /* 节点已断开 */ }
+    for (const p of parts) { try { p.stop(t + fade * 3 + 0.02); } catch (e) { /* 已停 */ } }
+  } else {
+    for (const p of parts) { try { p.stop(); } catch (e) { /* 已停 */ } }
+  }
+}
 function voice(w, at, want, freq, vel, fam) {
   const spec = FAMILIES[fam] || FAMILIES.clean;
   const g = w.createGain();
@@ -701,7 +717,7 @@ function voice(w, at, want, freq, vel, fam) {
     lfo.start(at); lfo.stop(relAt + r + 0.06);
     oscs.push(lfo);
   }
-  return { stop: () => { for (const o of oscs) { try { o.stop(); } catch (e) { /* 已停 */ } } },
+  return { stop: (fade) => fadeStop(w, g, oscs, fade),
            made: made, skipped: skipped, fam: fam, harmLen: spec.harm.length,
            nHarm: spec.harm.length, fs: freq };
 }
@@ -743,7 +759,7 @@ function drumVoice(w, at, want, pitch, vel) {
     g.gain.exponentialRampToValueAtTime(0.0001, at + dd);
     parts.push(src);
   }
-  return { stop: () => { for (const p of parts) { try { p.stop(); } catch (e) { /* 已停 */ } } } };
+  return { stop: (fade) => fadeStop(w, g, parts, fade) };
 }
 let NOISE = null;
 function noiseBuf(w) {
@@ -802,9 +818,22 @@ function scheduleWindow(fromBeat, toBeat, baseTime) {
   S.schedCalls = (S.schedCalls || 0) + 1;
   const spb = 60 / (S.model.bpm || 120);
   if (!S.index || S.indexDirty) buildIndex();
+  /* ⚠ **去重游标**（2026-09-17 修，用户报"编辑器播放 9 秒有问题"）：
+   *   调用方 `tickPlay` **每帧**都发 `scheduleWindow(posBeat, posBeat + 1.5, …)`
+   *   —— 提前量 1.5 秒的**滑动窗口**；而窗口内每个音在这里都会被重新 `playTone` 一次
+   *   （`S.live` 的 key 是自增序号，天然不去重）。
+   *   于是一个音从"进入窗口"到"真正响起"会被调度 ≈ 1.5s / 16.7ms ≈ **90 次**，
+   *   90 个振荡器压在同一时刻的同一个音上 → 密集段直接糊成一团/爆音。
+   *   BGM29 第 9 秒附近 3.5 秒内有 107 个音，正好是最严重的地方。
+   *   现在：只调度"上次之后新进入窗口"的那一段；**跳转/回退自动重置游标**
+   *   （`fromBeat < schedUpTo` 说明 seek 或循环回跳了）。 */
+  if (S.schedUpTo == null || fromBeat < S.schedUpTo - 0.05) S.schedUpTo = fromBeat;
+  const from = Math.max(fromBeat, S.schedUpTo);
+  S.schedDup = (S.schedDup || 0) + 0;
+  if (toBeat <= from) { S.schedStat = { from: from, to: toBeat, inWin: 0, late: 0, lo: -1 }; return; }
   const arr = S.index.notes;
   let lo = 0, hi = arr.length;
-  while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m].b < fromBeat) lo = m + 1; else hi = m; }
+  while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m].b < from) lo = m + 1; else hi = m; }
   const now = w.currentTime;
   let inWin = 0, late = 0;
   for (let i = lo; i < arr.length; i++) {
@@ -815,7 +844,8 @@ function scheduleWindow(fromBeat, toBeat, baseTime) {
     if (at < now - 0.01) { late++; continue; }
     playTone(w, at, Math.max(0.05, n.d * spb), n.p, n.v, n.drum, 'k' + (S.seq++), n.t);
   }
-  S.schedStat = { from: fromBeat, to: toBeat, inWin: inWin, late: late, lo: lo };
+  S.schedUpTo = toBeat;
+  S.schedStat = { from: from, to: toBeat, inWin: inWin, late: late, lo: lo };
 }
 function playTone(w, at, dur, pitch, vel, drum, key, trackIdx) {  /* 并发控制（**这里踩过大坑**）：原来只做一个全局上限 `S.live.size > 48` 就 return，
    * 而 `S.live` 靠 `onended` / `setTimeout` 回收 —— 调度提前量 1.5 秒时，被拒的音
@@ -840,7 +870,7 @@ function playTone(w, at, dur, pitch, vel, drum, key, trackIdx) {  /* 并发控�
       if (!victim || v.v <= victim[1].v) victim = [k, v];
     }
     if (!victim) break;
-    try { victim[1].stop(); } catch (e) { /* 已停 */ }
+    try { victim[1].stop(0.006); } catch (e) { /* 已停 */ }   // 6ms 淡出，别瞬断（会咔哒）
     S.live.delete(victim[0]);
     S.liveOsc = Math.max(0, (S.liveOsc || 0) - (victim[1].osc || 0));
   }
@@ -854,7 +884,7 @@ function playTone(w, at, dur, pitch, vel, drum, key, trackIdx) {  /* 并发控�
         if (v.t === trackIdx && (!victim || v.v <= victim[1].v)) victim = [k, v];
       }
       if (victim) {
-        try { victim[1].stop(); } catch (e) { /* 已停 */ }
+        try { victim[1].stop(0.006); } catch (e) { /* 已停 */ }   // 同上：淡出，不瞬断
         S.live.delete(victim[0]);
         S.liveOsc = Math.max(0, (S.liveOsc || 0) - (victim[1].osc || 0));
       }
@@ -883,8 +913,8 @@ function playTone(w, at, dur, pitch, vel, drum, key, trackIdx) {  /* 并发控�
     }
   };
   const entry = { t: trackIdx == null ? -1 : trackIdx, v: vel, osc: oscN,
-                  stop: () => {
-                    try { v.stop(); } catch (e) { /* 已停 */ }
+                  stop: (fade) => {
+                    try { v.stop(fade); } catch (e) { /* 已停 */ }
                     drop();
                   } };
   S.live.set(key, entry);
@@ -1035,6 +1065,15 @@ function stopPlay() {
   if (S.raf) { cancelAnimationFrame(S.raf); S.raf = null; }
   if (S.mediaEl) { try { S.mediaEl.pause(); } catch (e) { /* 没在播 */ } }
   if (S.scratch) { try { S.scratch.pause(); } catch (e) { /* 没在播 */ } }
+  /* ⚠ **停止必须清空"已经排进时间轴"的音**（2026-09-17 修）：
+   *   振荡器一旦 `start(at)` 就由音频线程按自己的时钟发声，`stopPlay` 不管它们的话，
+   *   按下停止后还会继续响最多 ~1.2 秒（提前量 + 释放），而且这些 entry 还一直占着
+   *   `S.live` 的振荡器预算 → **再按播放时开头一串音会被限流杀掉**（听起来"开头没声"）。
+   *   先 10ms 淡出再清账，避免瞬断咔哒。 */
+  for (const [, e] of (S.live || new Map())) { try { e.stop(0.01); } catch (_e) { /* 已停 */ } }
+  S.live = new Map();
+  S.liveOsc = 0;
+  S.schedUpTo = null;              // 下次播放重新从头调度
   setStatus('');
   renderRoll(); renderVel(); updateSeekUI();
 }
