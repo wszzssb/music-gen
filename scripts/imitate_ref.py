@@ -218,6 +218,11 @@ def main():
                 cmd += ['--source', '%s=%s|24|60' % (tag, p)]
         if sub_on:
             cmd += ['--sub']
+        # 八度校正：拿**参考曲的 bass 分轨**跑 pyin 提基频，修"差一个八度"的系统性转录错误。
+        # 实测 BGM29 全曲 bass 只有 48.5% 的帧音高一致、**25.3% 差整八度**；
+        # 这类错误多模型集成修不掉（YMT3/BP4/BP6 犯的是同一个错）。
+        if os.path.isfile(bass_wav):
+            cmd += ['--octave-ref', bass_wav]
         sh(cmd, 'bass')
     else:
         print('\n[5/9] 低音集成 —— 已存在，跳过')
@@ -252,8 +257,17 @@ def main():
     else:
         print('\n[8/9] 收尾 —— 已存在，跳过')
 
-    # ── 9 体检 ──────────────────────────────────────────────────────────────
-    print('\n[9/9] 逐带体检（统一 44.1kHz）')
+    # ── 9 体检：**先报识别精度，再报混音平衡**（用户 2026-09-17 定的规矩）────────
+    # 顺序不能反：识别错一个八度时，带差/EQ 这些指标照样能"变好"，
+    # 于是会一路认真地加工一个错东西（BGM29 实测：低音补到 1416 音后带差 2.61→0.83dB，
+    # 而那 1416 个音里有 25% 是错八度）。
+    print('\n[9/9] ① 识别体检（转录 vs 参考分轨，先看这个）')
+    if os.path.isfile(bass_wav):
+        sh([PY_ML, os.path.join(HERE, 'transcribe_audit.py'), bass_wav, song,
+            '--tracks', 'Bass', '--fmin', '40', '--fmax', '300'], 'audit')
+    else:
+        print('   （没有 bass 分轨，跳过识别体检）')
+    print('\n[9/9] ② 逐带体检（统一 44.1kHz）')
     sh([PY_ML, os.path.join(HERE, 'band_grade.py'), ref, os.path.join(P, '%s.wav' % name)], 'report')
     print('\n== 完成 ==\n   成品 %s\n   面板：python studio/server.py --port 8765 --lib <项目父目录>'
           % out_ogg)

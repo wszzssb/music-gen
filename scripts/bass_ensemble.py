@@ -28,6 +28,8 @@ import os
 import sys
 from collections import defaultdict
 
+import numpy as np
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
@@ -70,6 +72,13 @@ def main():
     ap.add_argument('--max-dur', type=float, default=1.6, help='单音最长时值（秒）')
     ap.add_argument('--program', type=int, default=None, help='替换后该轨的 GM 音色号')
     ap.add_argument('--sub', action='store_true', help='额外生成低八度 sub 层（补 20-40Hz）')
+    ap.add_argument('--octave-ref', default=None,
+                    help='参考**低音分轨音频**：用它跑 pyin 提基频，修正"差一个八度"的转录错误。'
+                         '实测 BGM29 全曲 bass 只有 48.5%% 的帧音高一致、**25.3%% 差整八度**，'
+                         '而这类系统性错误多模型集成修不掉（三个模型犯同一个错）。')
+    ap.add_argument('--min-prob', type=float, default=0.20,
+                    help='pyin 置信度下限。实测扫描（BGM29 bass 全曲一致率）：'
+                         '0.35→64.9%% · **0.20→69.9%%** · 0.12→70.1%%（拐点在 0.20，再放宽没收益）')
     a = ap.parse_args()
 
     srcs = {}
@@ -124,23 +133,73 @@ def main():
         by_pitch[p].append([t, min(d, a.max_dur), v])
         kept += 1
     print('  阈值 %.2f → 保留 %d 音' % (a.thr, kept))
-    for p, lst in by_pitch.items():                 # 同音高截断，避免重叠
-        lst.sort()
-        out = []
-        for j, cur in enumerate(lst):
-            nxt = lst[j + 1][0] if j + 1 < len(lst) else None
-            if nxt is not None:
-                gap = nxt - cur[0]
-                # ⚠ 间隔 < 20ms 的同音高重复：**直接丢掉前一个**。
-                #   原来是 `d = max(0.05, gap - 0.01)` —— gap < 60ms 时下限 0.05 反而
-                #   **大于** gap，于是照样重叠（实测全曲 Bass 37 处、Sub 27 处）。
-                #   同音高重叠会被音源吞音（note-off 只带音高不带 id）→ 听感"这个音没响"。
-                if gap < 0.02:
-                    continue
-                if cur[1] > gap - 0.005:
-                    cur[1] = max(0.01, gap - 0.005)
-            out.append(cur)
-        lst[:] = out
+
+    def dedup(byp):
+        """同音高截断，避免重叠（重叠会被音源吞音：note-off 只带音高不带 id）"""
+        for p, lst in byp.items():
+            lst.sort()
+            out = []
+            for j, cur in enumerate(lst):
+                nxt = lst[j + 1][0] if j + 1 < len(lst) else None
+                if nxt is not None:
+                    gap = nxt - cur[0]
+                    # ⚠ 间隔 < 20ms 的同音高重复：**直接丢掉前一个**。
+                    #   原来是 `d = max(0.05, gap - 0.01)` —— gap < 60ms 时下限 0.05 反而
+                    #   **大于** gap，于是照样重叠（实测全曲 Bass 37 处、Sub 27 处）。
+                    if gap < 0.02:
+                        continue
+                    if cur[1] > gap - 0.005:
+                        cur[1] = max(0.01, gap - 0.005)
+                out.append(cur)
+            lst[:] = out
+
+    dedup(by_pitch)
+
+    # ── 八度校正（opt-in，--octave-ref 给了才做）────────────────────────────
+    # 依据：pyin 在参考低音分轨上提的基频是**独立方法**，三方（YMT3/BP4/BP6）都错才会同时错；
+    # 而实测"差一个八度"占 25.3% —— 这是集成的盲区（三个模型犯同一个错）。
+    # 只改**正好 ±12/±24** 的音，别的音程一律不动（可能是和弦内音，或 pyin 自己错）。
+    if a.octave_ref:
+        import soundfile as sf
+        sys.path.insert(0, r'D:\software\skill\.venv-ml\Lib\site-packages')
+        import librosa
+        y, sr0 = sf.read(a.octave_ref, dtype='float32', always_2d=True)
+        y = y.mean(axis=1)
+        if sr0 != 22050:
+            y = librosa.resample(y, orig_sr=sr0, target_sr=22050)
+        f0, _vf, vprob = librosa.pyin(y, fmin=40.0, fmax=300.0, sr=22050,
+                                      frame_length=2048, hop_length=512)
+        buckets = defaultdict(list)
+        for i, v in enumerate(f0):
+            if np.isfinite(v) and vprob[i] >= a.min_prob:
+                buckets[int(i * 512 / 22050 / GRID)].append(
+                    int(round(69 + 12 * np.log2(v / 440.0))))
+        # 桶里只要有 1 帧可靠就给参考（原来要求 ≥2 帧，实测把 717/1416 个音判成"无参考"，
+        # 覆盖率不够 → 只修掉一半八度错误）。放宽后仍以**一致率**为判据复核，见 tr_check。
+        ref = {k: int(np.median(v)) for k, v in buckets.items() if len(v) >= 1}
+        stat = defaultdict(int)
+        flat = []
+        for p, lst in by_pitch.items():
+            for (t, d, v) in lst:
+                g0, g1 = int(t / GRID), int((t + max(d, 0.05)) / GRID)
+                cand = [ref[g] for g in range(g0, g1 + 1) if g in ref]
+                if not cand:
+                    stat['无参考'] += 1
+                    flat.append([t, d, p, v]); continue
+                rp = int(np.median(cand))
+                dd = p - rp
+                if dd in (12, -12, 24, -24) and 12 <= p - dd <= 108:
+                    flat.append([t, d, p - dd, v])
+                    stat['修正八度'] += 1
+                else:
+                    flat.append([t, d, p, v])
+                    stat['本来就对' if dd == 0 else '非八度差异'] += 1
+        by_pitch = defaultdict(list)
+        for (t, d, p, v) in flat:
+            by_pitch[p].append([t, d, v])
+        dedup(by_pitch)          # 移调后可能撞出新的同音高重叠，再截一次
+        print('  八度校正：%s' % dict(stat))
+        print('  可靠参考格 %d 个（pyin 置信度 ≥ %.2f）' % (len(ref), a.min_prob))
 
     base = midi_file.import_midi(a.base)
     spb = 60.0 / float(base.get('bpm') or 120.0)
