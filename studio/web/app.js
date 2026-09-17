@@ -481,12 +481,19 @@ function rollGeom(){
    *   此时 `c.width = c.clientWidth * dpr = 0` → 画得再对也**看不见**（用户报"卷帘是空的"，
    *   而左侧音轨卡与波形都正常，就是这个：canvas 尺寸被置 0 了）。
    *   另外**只在尺寸真的变了才重设**（每帧改写 canvas 尺寸会清空画布 + 掉帧）。 */
-  const cssW = Math.max(320, c.clientWidth || (c.parentElement && c.parentElement.clientWidth) || 1200);
+  /* ⚠ 宽度来源必须是**父容器**，而且**绝不能写内联 `style.width`**：
+   *   一旦写了，下一帧 `c.clientWidth` 就等于那个内联值 —— **自我锁定**，
+   *   之后窗口再拉宽，卷帘也不跟着变；而波形的 CSS `width:100%` 会跟着变，
+   *   用户看到的就是"波形比卷帘长一截"（实测截图 1210px vs 1005px，用户报"长度怎么不一样"）。
+   *   现在：只设**像素缓冲**，显示宽度交给 CSS 的 `#roll{width:100%}`；
+   *   `#rollWrap` 是普通 block，宽度由布局决定，不受 canvas 内联值影响。 */
+  const host = c.parentElement;
+  const cssW = Math.max(320, (host && host.clientWidth) || c.clientWidth || 1200);
   const cssH = 360;
   const dpr = devicePixelRatio || 1;
   const wantW = Math.round(cssW * dpr), wantH = Math.round(cssH * dpr);
-  if (c.width !== wantW) { c.width = wantW; c.style.width = cssW + 'px'; }
-  if (c.height !== wantH) { c.height = wantH; c.style.height = cssH + 'px'; }
+  if (c.width !== wantW) c.width = wantW;
+  if (c.height !== wantH) c.height = wantH;
   const W = c.width, H = c.height;
   const notes=allNotes();
   let lo=48,hi=88;
@@ -520,14 +527,13 @@ function renderRoll(){
     if (rollPainted(g.c, g.W, g.H) !== 0 || tries >= 3) break;
     // 画了但画布是空的 → 强制按布局重置尺寸再试（尺寸为 0/被改小是常见根因）
     const dpr = devicePixelRatio || 1;
-    const cssW = Math.max(320, g.c.clientWidth ||
-                          (g.c.parentElement && g.c.parentElement.clientWidth) || 1200);
+    const host = g.c.parentElement;
+    const cssW = Math.max(320, (host && host.clientWidth) || g.c.clientWidth || 1200);
     S.rollEmptyWhy = '画布尺寸 ' + g.c.width + '×' + g.c.height + '（clientWidth ' +
                      g.c.clientWidth + '）绘制后为空，已第 ' + (tries + 1) + ' 次重置重画';
     g.c.width = Math.round(cssW * dpr);
     g.c.height = Math.round(360 * dpr);
-    g.c.style.width = cssW + 'px';
-    g.c.style.height = '360px';
+    // 这里**不写内联 style.width**（会自我锁定，见 rollGeom 的注释）——显示宽度交给 CSS
     tries++;
   }
   if (tries === 0) { S.rollEmptyWhy = null; window.__rollWhy = null; }
@@ -881,10 +887,15 @@ function rAF(){
     const c=$('roll');
     if(c){
       const dpr=devicePixelRatio||1;
-      const cssW=Math.max(320, c.clientWidth || (c.parentElement&&c.parentElement.clientWidth) || 1200);
+      /* ⚠ 宽度来源用**父容器**（不是 `c.clientWidth`）、且**不写内联 `style.width`**：
+       *   写内联 → 下一帧 clientWidth 就是那个值 → 自我维持循环也一起被锁死，
+       *   窗口拉宽后卷帘永远窄一截（波形却跟着变），用户看到"长度不一样"。
+       *   显示宽度交给 CSS `#roll{width:100%}`，这里只管像素缓冲。 */
+      const host=c.parentElement;
+      const cssW=Math.max(320, (host&&host.clientWidth) || c.clientWidth || 1200);
       const wantW=Math.round(cssW*dpr), wantH=Math.round(360*dpr);
       if(c.width!==wantW || c.height!==wantH){
-        c.width=wantW; c.height=wantH; c.style.width=cssW+'px'; c.style.height='360px';
+        c.width=wantW; c.height=wantH;
         try{ renderRoll(); }catch(e){ /* 由 renderAll 的兜底统一报 */ }
       }
     }

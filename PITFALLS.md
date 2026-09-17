@@ -551,3 +551,27 @@
      **成品**：`studio_lib/songs/99_bgm29_remake`（定版）+ `99_bgm29_old` / `99_bgm29_leadEP` /
      `99_bgm29_leadVib` + `99_b35_v5` / `99_b35_pipeline` —— 六个都能在面板里直接选、直接播
      （各自 events 正常：BGM29 四轨 / BGM35 九轨）。
+
+
+177. **canvas 尺寸**永远不要写内联 `style.width`** —— 它会**自我锁定**，表现为"两个元素长度不一样"**
+     （2026-09-17，用户截图问"长度怎么不一样"）。
+     现场：`#wave`（波形）铺满整宽，`#roll`（钢琴卷帘）只到 ~64% 就断了，
+     而底部小节标尺又是铺满的（133 小节）—— 看着像"曲目长度不对"。
+
+     **根因**（三处都在干同一件错事）：
+     ```js
+     const cssW = Math.max(320, c.clientWidth || …);   // ← 读**自己**
+     if (c.width !== wantW) { c.width = wantW; c.style.width = cssW + 'px'; }  // ← 写**内联**
+     ```
+     写了内联之后，**下一帧 `c.clientWidth` 就等于那个内联值** —— 于是：
+     ① 宽度再也不会随窗口变化（`#wave` 用纯 CSS `width:100%`，会跟着变 → 两者不等宽）；
+     ② 连"卷帘自维持"循环（`rAF` 里每帧查尺寸那条）也一起被锁死，因为它读的也是 `c.clientWidth`。
+
+     **修法**：宽度来源一律取**父容器**（`c.parentElement.clientWidth`），并且
+     **只设像素缓冲 `c.width`，不写 `c.style.width`** —— 显示宽度交给 CSS 的 `#roll{width:100%}`。
+     三处都要改：`rollGeom()`、`renderRoll()` 的空画布兜底、`rAF()` 的自维持。
+     改完把 `index.html` 的 `app.js?v=18` 提到 `v=19`（配合 server 已有的
+     `no-store` 双保险）。
+
+     **旁证**：`ed.js` 的卷帘一直是好的 —— 它本来就写 `cv.parentElement.clientWidth - 4`
+     （父容器），所以从没锁死过。**同一个仓库里两种写法，一种有病一种没有，对照就是证据。**
