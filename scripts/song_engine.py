@@ -243,6 +243,26 @@ ARR_PACKS = (
      'pad': True, 'strings': True, 'shimmer': True},
 )
 
+# ⚠ **引擎读 `patterns` 的键必须全在这里**。与 `ARR_KEYS` 同理，但这里原来更危险：
+#   `arr` 的无效键至少有 print 警告，`patterns` **连白名单都没有** —— 键名拼错
+#   完全不吭声、那一项静默失效。
+#   2026-09-18 实测教训：体检脚本用**人工列**的白名单扫 18 首，把引擎**合法使用**的
+#   `voicing_shift` / `sub_dur` / `sub_gain` 全报成"无效键"（18/18 首误报）——
+#   正是 `CONVENTION.md` §1「抄一份 = 埋一处漂移」。所以这张表由**引擎自己声明**，
+#   别在别处再抄一份；键名取自全文件 `pat.get(...)` / `d['patterns'].get(...)` 的实际读取处。
+PAT_KEYS = (
+    # 风格与节奏
+    'bass_style', 'perc_style', 'bass_vel', 'kick_vel', 'voicing_shift',
+    'sub_gain', 'sub_dur', 'arpeggio', 'guitar_beats', 'guitar_vary',
+    # 段落与结构
+    'arr_by_role', 'space', 'section_gap', 'seg_fade', 'density', 'mix',
+    # 旋律与力度
+    'melody_dyn', 'mel_vel', 'mel_vel_center', 'mel_octave', 'melody_prog',
+    'dyn_vel', 'staccato', 'drum_grid', 'perc_layers',
+    # 音域与还原
+    'range_fix', 'legato_trim', 'notes_extra_full',
+)
+
 
 def arr_pack_idx(role, nth=0, tier=1):
     """段落角色 + 第几次出现 → 编制档下标（见 `ARR_PACKS`）
@@ -545,6 +565,15 @@ def load(path):
     _unused = [k for k in d['melody'] if k not in _used]
     if _unused:
         print('  !! 这些旋律键没有任何段落引用（不会发声）：%s' % '、'.join(_unused))
+    # ⚠ **`patterns` 的未知键会被静默忽略** —— 引擎对 patterns 原来连白名单都没有，
+    #   键名拼错 = 那一项完全不生效，而且什么都不打印（最难查的一类问题）。
+    #   实测：体检脚本用人工白名单把 `voicing_shift` 等合法键误报 18 首，
+    #   所以白名单只在引擎里声明一份（`PAT_KEYS`），别处一律引用它。
+    _unk = sorted(set(d.get('patterns') or {}) - set(PAT_KEYS))
+    if _unk:
+        print('  !! patterns 里 %d 个键引擎不认识，会被**静默忽略**：%s'
+              % (len(_unk), _unk))
+        print('     若它本该被支持：加进 song_engine.PAT_KEYS；否则就是拼错了')
     # ⚠ **旋律小节号是"段内"的**：超出该段小节数的音**不会发声**，而且过程静默 ——
     #   只有守卫 `melody_within_sections` 能在自检时抓到。作曲时该当场拦住。
     #   实测（2026-09-18 BGM35 还原）：把 56 小节的旋律挂到 3 小节的 Ending 上，
