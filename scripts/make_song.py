@@ -342,6 +342,14 @@ def main():
         with open(cfg_path, encoding='utf-8') as f:
             cfg = json.load(f)
     composer = cfg.get('composer')
+    # ⚠ **首次跑必然没有 `render.json`**（它由本次渲染写出）→ `composer` 恒为空 →
+    #   打印「[1/3] 跳过作曲」→ 接着报「找不到 MIDI」。而那句提示
+    #   「第一次跑不要加 --no-compose（要先生成 MIDI）」是**误导**：根本没加那个开关。
+    #   实测（2026-09-18 BGM35 还原）：在这上面连卡 4 轮，最后靠手动跑 compose.py 才过。
+    #   修法：没有 `render.json` 时，曲目目录里有 `compose.py` 就默认用它 ——
+    #   与 `songs/*/compose.py` 的既有约定一致（该文件只负责调用引擎）。
+    if not composer and os.path.exists(os.path.join(folder, 'compose.py')):
+        composer = 'compose.py'
     mid = os.path.join(folder, cfg.get('mid', song + '.mid'))
     out = os.path.join(folder, cfg.get('out', song + '_sf'))
     ref_name = cfg.get('ref', 'bgm01c')

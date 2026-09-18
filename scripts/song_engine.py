@@ -334,6 +334,7 @@ def arr_by_role(base, roles, energy=None, tier=1, sparse=False):
         hi = (span >= 0.5)
         mid = sum(energy) / float(len(energy))
     seen = {'B': 0, 'bridge': 0}
+    _ovr = []                                # 被角色编制覆盖掉的**显式**开关（见函数尾）
     for i in range(n):
         role = roles[i] if i < len(roles) else 'A'
         a = out[i]
@@ -344,6 +345,12 @@ def arr_by_role(base, roles, energy=None, tier=1, sparse=False):
         if role in ('B', 'bridge'):
             seen[role] = nth + 1
         for k in ROLE_COLOR + ROLE_LIFT:
+            # **记下被覆盖的显式值**：`a` 是调用方（song.json）那一份的副本，
+            # 所以 `a[k]` 就是**作者手写的值**。实测踩过：手写完 `glock/strings/shimmer`
+            # 打开亮色层，逐带偏差**一位数字都没变** —— 因为这里按角色预设整片覆盖了，
+            # 而且**不吭声**。还原/扒带（`notes_extra`）场景下这种覆盖尤其致命。
+            if k in a and bool(a[k]) != bool(pack.get(k)):
+                _ovr.append('%s段 %s %s→%s' % (role, k, bool(a[k]), bool(pack.get(k))))
             a[k] = bool(pack.get(k))
         for k in ROLE_BASE:                  # 基础层永在（bass 是低频唯一来源、piano 是主奏）
             a[k] = True
@@ -370,6 +377,17 @@ def arr_by_role(base, roles, energy=None, tier=1, sparse=False):
     if not any(a.get('perc') for a in out):   # 兜底：别让全曲没有高频来源
         cand = next((i for i, r in enumerate(roles) if r not in ('intro', 'outro')), 0)
         out[cand]['perc'] = 2
+    if _ovr:
+        # ⚠ **必须吭声**：这些开关被角色编制覆盖了 —— 作者写了却不生效。
+        # ⚠ **注意本函数的调用面**：全仓库只有 `new_song.py` 生成新歌时调它；
+        #   `compose.py` → `song_engine.compose` **不走这里**（作曲读的是 song.json 里
+        #   已经定稿的 `arr`）。所以本警告只在"生成新歌"这条路径生效。
+        # ⚠ **更正（2026-09-18）**：我一度把"手写了 arr 却毫无变化"归因到这里，
+        #   实际根因是 `make_song` 见到已有 MIDI 就**跳过作曲**（改动根本没进 MIDI）。
+        #   别再拿这条当"arr 被覆盖"的证据。
+        print('  !! arr_by_role 覆盖了 %d 处**手写**的编配开关（它们不生效）：%s'
+              % (len(_ovr), '；'.join(_ovr[:6]) + (' 等' if len(_ovr) > 6 else '')))
+        print('     要用手写的值：把 patterns.arr_by_role 设为 false')
     if sparse:                                # 舞曲/欢快类：削薄（实测 happy +72%）
         out = [arr_sparse(a) for a in out]
     return out
@@ -513,6 +531,35 @@ def load(path):
             _rng('旋律 %s 的音高' % mname, it[3])
             if len(it) == 5 and it[4] is not None:
                 _rng('旋律 %s 的力度' % mname, it[4])
+    # ⚠ **旋律键没人引用 = 一个音都不进 MIDI，而且不报错**。
+    #   实测踩过（2026-09-18 BGM35 还原）：`melody` 里 A/B/C/D 四支共 224 个音写得好好，
+    #   但 `sections` 里漏了 `"melody": "A"` 这类字段 → composer 只打印一句
+    #   `(跳过空轨: Melody)`，成品**整轨没有旋律**，而所有校验全绿。
+    #   "写了却不生效"必须当场拦住，不能靠人盯 print。
+    _used = {s.get('melody') for s in d['sections'] if s.get('melody')}
+    if d['melody'] and not _used:
+        raise SystemExit(
+            'song.json 里 melody 有 %d 支旋律（%s），但**没有任何段落引用**：'
+            '每个段落要用 "melody": "<键名>" 指明唱哪一支，'
+            '否则旋律轨整轨为空且不报错。' % (len(d['melody']), '、'.join(d['melody'])))
+    _unused = [k for k in d['melody'] if k not in _used]
+    if _unused:
+        print('  !! 这些旋律键没有任何段落引用（不会发声）：%s' % '、'.join(_unused))
+    # ⚠ **旋律小节号是"段内"的**：超出该段小节数的音**不会发声**，而且过程静默 ——
+    #   只有守卫 `melody_within_sections` 能在自检时抓到。作曲时该当场拦住。
+    #   实测（2026-09-18 BGM35 还原）：把 56 小节的旋律挂到 3 小节的 Ending 上，
+    #   于是 `Ending: 旋律 A 的小节 3–55 超出该段 3 小节` 刷了满屏。
+    for sec in d['sections']:
+        mk = sec.get('melody')
+        if not mk or mk not in d['melody']:
+            continue
+        _n = int(sec.get('bars') or 0)
+        _bad = sorted({int(it[0]) for it in d['melody'][mk] if int(it[0]) >= _n})
+        if _bad:
+            raise SystemExit(
+                '段 %s 引用旋律 "%s"，但有 %d 个音的小节号 ≥ 该段小节数 %d'
+                '（段内小节号从 0 起）—— 旋律的小节号必须是**段内**的，'
+                '写成全局号会导致这些音静默不发声。' % (sec.get('name'), mk, len(_bad), _n))
     for sec in d['sections']:
         for it in (sec.get('melody_extra') or []):
             _rng('段落 %s 的 melody_extra' % sec.get('name', '?'), it[3])
@@ -1523,12 +1570,50 @@ def build_events(d):
     #   **整段删掉**，维持"所有轨都按 density 抽样"。
     #   （⚠ 踩过的坑：改成 `_density_tracks = ()` 想关掉它，但 `_tr not in ()` **恒为 True**，
     #    结果所有轨都走了"全保留"分支、抽样彻底失效，分数掉到 70.2。逻辑开关要用真条件。）
-    _cap = {0: 1, 1: 4, 2: 10, 3: 18, 4: 40}
+    # **还原模式**（`patterns.notes_extra_full: true`）：**不抽样**，逐音照写。
+    # ⚠ 默认抽样是有理由的（让抄来的音符服从 `arr.density` 的段落结构，见下），
+    #   但"还原/扒带"要的是**忠实**：density 上限会把呼吸口压到 1 音/小节，
+    #   23033 个转录音符会被砍掉一大半。给一个显式开关，交给人选
+    #   "服从段落结构" 还是 "忠于原谱" —— 别替人决定。
+    _full = bool((d.get('patterns') or {}).get('notes_extra_full'))
+    _cap = ({0: 10 ** 6, 1: 10 ** 6, 2: 10 ** 6, 3: 10 ** 6, 4: 10 ** 6} if _full
+            else {0: 1, 1: 4, 2: 10, 3: 18, 4: 40})
     _sec_cap = []
     for _s in (d.get('sections') or []):
         _dk = int((_s.get('arr') or {}).get('density') or 2)
         _sec_cap.extend([_cap.get(_dk, 12)] * int(_s.get('bars') or 0))
     _extra = d.get('notes_extra') or {}
+    # ⚠ **按乐器合理音域过滤 / 整轨移八度**（2026-09-18 加）：分轨转录（Demucs + 神经模型）
+    #   会给出**不属于该乐器**的音高 —— 实测 `ymt3_6s_bass` 输出 **28–93**（真贝斯 16–71），
+    #   原样写进 `notes_extra` 就成了"次声波贝斯 + 中音区幽灵"，由守卫
+    #   `track_ranges_musical` 抓到（`Bass 实际 29-93（合理 16-71）`）。
+    #   修正策略取**最小代价**：整轨移一个/两个八度能进范围就移（保持音程关系），
+    #   移不进去就**丢掉越界的音** —— 宁缺勿错，一个错音比一个缺音难听得多。
+    for _k in list(_extra.keys()):
+        _rg = TR_RANGE.get(_k)
+        if not _rg or not _extra[_k]:
+            continue
+        _ps = [it[3] for it in _extra[_k] if len(it) >= 4]
+        if not _ps:
+            continue
+        _lo, _hi = _rg
+        if _lo <= min(_ps) and max(_ps) <= _hi:
+            continue
+        _sh = 0
+        for _c in (12, -12, 24, -24):
+            if _lo <= min(_ps) + _c and max(_ps) + _c <= _hi:
+                _sh = _c
+                break
+        if _sh:
+            _extra[_k] = [list(it[:3]) + [it[3] + _sh] + list(it[4:])
+                          for it in _extra[_k]]
+            print('  notes_extra[%s] 音域 %d-%d 越界 → 整轨移 %+d 半音'
+                  % (_k, min(_ps), max(_ps), _sh))
+        else:
+            _keep = [it for it in _extra[_k] if _lo <= it[3] <= _hi]
+            print('  notes_extra[%s] 音域 %d-%d 越界、移八度也装不下 → 丢掉 %d 个越界音'
+                  % (_k, min(_ps), max(_ps), len(_extra[_k]) - len(_keep)))
+            _extra[_k] = _keep
 
     def _vel_of(_x, _default=84):
         """音符的力度：第 5 个元素给了就用它，否则回退固定值。
