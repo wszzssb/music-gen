@@ -29,7 +29,7 @@
 
 | 守卫（自检项） | 抓什么 | 变异用例 |
 |---|---|---|
-| `docs_budget_and_skill_intact` | 文档超预算 / SKILL 丢 frontmatter | — |
+| `docs_budget_and_skill_intact` | 文档超预算 / SKILL 丢 frontmatter / **指针超 catalog 显示预算、顺序倒置、漏触发词** | 34/35/35b/35c |
 | `skill_routes_resolve` | 路由表指向不存在的文档（静默失效：agent 读不到 → 只好整篇读 README） | 第 52 条 |
 | `docs_paths` | 文档引用不存在的 `scripts/*.py`；**文档之间的 `.md` 指针腐烂** | 改名实验已验证 |
 | `docs_host_classification` | **分类与路径不自洽**（仓库文件被标宿主级 → 缺失静默跳过；反之换机器崩） | 第 54 条 |

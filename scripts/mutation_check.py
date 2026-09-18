@@ -528,6 +528,28 @@ def main():
             token_audit.DOCS['SKILL.md（音乐任务加载）'] = self.old
     results.append(case('技能 frontmatter 丢失', 'docs_budget_and_skill_intact', FmMut))
 
+    # 35b/35c. 技能指针（description）的 catalog 显示预算与顺序
+    #   （catalog 是**砍尾**的：超预算时末尾内容直接消失，所以顺序本身就是正确性）
+    class DescMut:
+        """把 SKILL.md 换成 frontmatter 可控的假文件 —— 与真实文件结构解耦，
+        这样用例只测守卫逻辑，不会因为以后改写 description 而失效。"""
+        def __init__(self, desc):
+            self.desc = desc
+        def __enter__(self):
+            self.old = token_audit.DOCS['SKILL.md（音乐任务加载）']
+            p = os.path.join(TMP, 'desc-mut.md')
+            open(p, 'w', encoding='utf-8').write(
+                '---\nname: bgm-studio\ndescription: %s\n---\n\n# x\n' % self.desc)
+            token_audit.DOCS['SKILL.md（音乐任务加载）'] = p
+        def __exit__(self, *a):
+            token_audit.DOCS['SKILL.md（音乐任务加载）'] = self.old
+
+    results.append(case('技能指针超显示预算', 'docs_budget_and_skill_intact',
+                        lambda: DescMut('音乐 四条铁律 触发词' + '填' * 600)))
+    results.append(case('技能指针顺序倒置', 'docs_budget_and_skill_intact',
+                        lambda: DescMut('音乐 触发词 四条铁律 和谐优先 改必须分段 '
+                                        'song.json SHA256 8765 venv')))
+
     # 36. song.json 又被写成"一个数字一行"
     results.append(case('song.json 被写胖', 'song_json_canonical',
                         lambda: Mut(json_io, 'dumps',

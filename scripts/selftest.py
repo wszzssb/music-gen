@@ -2392,6 +2392,44 @@ def t_docs_budget_and_skill_intact():
         assert field in head, 'SKILL.md frontmatter 缺 %s' % field
     assert 'name: bgm-studio' in head, 'SKILL.md 的 name 必须与目录名一致'
 
+    # ③ 指针（description）的 **catalog 显示预算**与顺序。
+    #    实测（2026-09-18，同一份文件三次改动对照）：description 在系统提示的技能目录里
+    #    ≈277 字符完整显示、527 字符被**从尾部砍掉**（止于 `工具链根 = D:\so...`，
+    #    末尾"必须用它的 venv"整句消失）→ 预算是**砍尾**，所以重要的必须写在前面。
+    #    阈值由这两点推出（约 500），未做二分实测。
+    #    踩过：四条铁律加在末尾 → 正好落在预算外被砍，等于没写。
+    DESC_BUDGET = 500
+    text = open(sk, encoding='utf-8').read()
+    m = re.search(r'^description:[ \t]*(.+)$', text, re.M)
+    assert m, 'SKILL.md frontmatter 的 description 必须是单行（多行解析不到，守卫会失效）'
+    desc = m.group(1).strip()
+    assert len(desc) <= DESC_BUDGET, (
+        'description %d 字符，超技能目录显示预算 %d —— 尾部会在 available_skills 里被砍掉。'
+        '改法：先重排把重要的提前，再按 SKILL-LOADING.md 的取舍顺序压缩'
+        % (len(desc), DESC_BUDGET))
+    i_core, i_iron, i_tail = desc.find('音乐'), desc.find('四条铁律'), desc.find('触发词')
+    assert i_core != -1, 'description 丢了核心触发词（音乐/歌/曲子）—— 技能会匹配不上'
+    assert i_iron != -1, 'description 丢了四条铁律'
+    assert i_core < i_iron, 'description 顺序错：核心触发词必须在四条铁律之前'
+    if i_tail != -1:
+        assert i_iron < i_tail, 'description 顺序错：长尾触发词表必须放最后（它是允许被砍的那一段）'
+    for frag in ('四条铁律', '和谐优先', '改必须分段', 'SHA256', '8765', 'venv'):
+        at = desc.find(frag)
+        assert at != -1, 'description 缺关键片段: %s' % frag
+        assert at < DESC_BUDGET, '%s 落在显示预算外，在技能目录里会被砍掉' % frag
+
+    # ④ 触发词覆盖：词表 = "用户可能怎么说"的测试集。
+    #    踩过（2026-09-17）：第一版词表照抄专业说法，漏了最泛的"音乐" ——
+    #    用户说"复刻音乐的midi"，技能就没被认出来。**最泛的上位词必须在内**。
+    MUST_TRIGGERS = ('音乐', '歌', '曲子', 'song', 'music', '写歌', '作曲', '来一首',
+                     '做一个', 'BGM', '配乐', '主题曲', '插入曲', '音轨', '伴奏',
+                     '扒谱', '扒和弦', '扒成 MIDI', '音频转 MIDI', '转录', '照着某首做',
+                     '仿照某曲', '音色对齐', '太电音', '有杂音', '太闷', '不够宽',
+                     '不够欢快', '不像原曲', '复刻', '还原')
+    missing = [w for w in MUST_TRIGGERS if w not in desc]
+    assert not missing, ('description 漏了触发词（技能会匹配不上）: %s；'
+                         '新说法照抄用户的原文补进来' % ' / '.join(missing))
+
 
 @check
 def t_read_audio_format_fallback():
