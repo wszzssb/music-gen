@@ -359,7 +359,11 @@
   ],
   "guitar_vary": true,
   "space": true,
-  "section_gap": 1.0
+  "section_gap": 2.0,
+  "seg_fade": true,
+  "range_fix": true,
+  "legato_trim": true,
+  "dyn_vel": 8.0
  },
  "chords_used": [
   "C6",
