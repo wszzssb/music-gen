@@ -1,0 +1,263 @@
+{
+ "name": "hidden_door",
+ "bpm": 120.0,
+ "meter": [4, 4],
+ "desc": "神秘（依据主题模板包 mystery：10 首同主题模板）",
+ "style": "gorgeous",
+ "programs": {
+  "Melody": [69, 0],
+  "Piano": [0, 2],
+  "Strings": [47, 5],
+  "Pad": [95, 4],
+  "Glock": [14, 7],
+  "Bass": [35, 6]
+ },
+ "patterns": {
+  "bass_style": "sixteenth",
+  "perc_style": "orchestral",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 1, 3, 2],
+  "guitar_beats": [0.0, 0.25, 0.5, 1.0, 1.5, 1.75, 2.0, 2.5, 3.0, 3.25, 3.5],
+  "guitar_vary": true,
+  "space": true,
+  "section_gap": 3.0,
+  "seg_fade": true,
+  "range_fix": true,
+  "legato_trim": true,
+  "dyn_vel": 8.0
+ },
+ "chords": {
+  "A#7": [34, [58, 62, 65, 68]],
+  "D#m6": [39, [63, 66, 70, 72]],
+  "D#sus4": [39, [63, 68, 70]],
+  "G#m7": [32, [56, 59, 63, 66]]
+ },
+ "melody": {
+  "intro": [
+   [0, 0.0, 0.5, 53], [0, 1.5, 0.75, 51], [0, 3.0, 1.0, 53],
+   [1, 0.5, 0.5, 54], [1, 1.75, 1.5, 51], [1, 3.25, 1.5, 51],
+   [2, 0.75, 1.25, 56], [2, 2.0, 0.25, 51], [2, 2.75, 0.25, 53], [2, 3.5, 0.5, 53],
+   [3, 0.0, 1.5, 56],
+   [4, 0.75, 1.25, 54], [4, 2.0, 0.25, 53], [4, 2.75, 0.25, 56], [4, 3.5, 0.5, 54],
+   [5, 0.0, 1.0, 54], [5, 1.0, 1.5, 56],
+   [6, 0.75, 0.5, 53], [6, 2.0, 0.75, 53], [6, 3.5, 0.5, 51],
+   [7, 0.0, 1.5, 51]
+  ],
+  "A": [
+   [0, 1.25, 0.5, 75], [0, 2.25, 0.5, 78], [0, 3.5, 0.5, 78],
+   [1, 0.0, 2.25, 82],
+   [2, 0.5, 0.5, 82], [2, 1.5, 1.25, 80], [2, 2.75, 1.25, 82],
+   [3, 1.25, 0.5, 80], [3, 2.0, 0.5, 82], [3, 3.5, 0.5, 81],
+   [4, 1.0, 0.5, 80], [4, 2.0, 1.25, 80], [4, 3.25, 0.75, 82],
+   [5, 0.0, 2.25, 82],
+   [6, 1.25, 0.5, 80], [6, 2.25, 0.5, 82], [6, 3.5, 0.5, 80],
+   [7, 0.0, 2.25, 75]
+  ],
+  "B": [
+   [0, 0.25, 0.5, 58], [0, 1.25, 0.5, 57], [0, 2.25, 1.5, 58],
+   [1, 0.0, 0.5, 54], [1, 1.0, 1.0, 56], [1, 2.0, 1.5, 58],
+   [2, 0.0, 0.25, 58], [2, 0.5, 0.25, 61], [2, 1.0, 0.5, 61], [2, 2.0, 1.5, 63],
+   [3, 1.0, 1.5, 56],
+   [4, 0.0, 0.5, 58], [4, 1.25, 0.5, 58], [4, 2.25, 1.5, 56],
+   [5, 0.5, 1.0, 54], [5, 1.5, 0.5, 51], [5, 2.5, 1.5, 54],
+   [6, 0.0, 0.25, 53], [6, 0.5, 0.25, 51], [6, 1.0, 0.5, 56], [6, 2.0, 1.5, 53],
+   [7, 1.0, 2.25, 51]
+  ],
+  "outro": [
+   [0, 1.0, 0.5, 68], [0, 2.0, 0.5, 70], [0, 3.0, 1.0, 62],
+   [1, 0.75, 0.5, 63], [1, 1.75, 0.5, 61], [1, 2.75, 1.25, 56],
+   [2, 1.0, 0.25, 57], [2, 1.5, 0.25, 58], [2, 2.0, 0.5, 56], [2, 3.0, 1.5, 58],
+   [3, 2.0, 1.0, 56],
+   [4, 2.0, 0.5, 58], [4, 2.5, 1.5, 58],
+   [5, 1.25, 0.5, 60], [5, 2.25, 0.5, 58], [5, 3.25, 0.75, 54],
+   [6, 1.0, 0.5, 53], [6, 2.0, 0.5, 50], [6, 3.0, 1.0, 46],
+   [7, 2.0, 1.0, 51]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 8,
+   "chords": ["A#7", "D#m6", "D#sus4", "G#m7", "A#7", "D#m6", "A#7", "D#m6"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 1,
+    "perc_in": 2,
+    "melody_prog": 69
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["G#m7", "A#7", "D#m6", "D#sus4", "G#m7", "A#7", "A#7", "D#m6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1,
+    "melody_prog": 0
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["A#7", "D#m6", "D#sus4", "G#m7", "A#7", "D#m6", "A#7", "D#m6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 0,
+    "melody_prog": 13
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["G#m7", "A#7", "D#m6", "D#sus4", "G#m7", "A#7", "A#7", "D#m6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "melody_prog": 0
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "B2",
+   "bars": 8,
+   "chords": ["A#7", "D#m6", "D#sus4", "G#m7", "A#7", "D#m6", "A#7", "D#m6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": true,
+    "glock_all": false,
+    "shimmer": true,
+    "density": 2,
+    "melody_prog": 13
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["G#m7", "A#7", "D#m6", "D#sus4", "G#m7", "A#7", "A#7", "D#m6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 3,
+    "melody_prog": 0
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "Outro",
+   "bars": 8,
+   "chords": ["A#7", "D#m6", "D#sus4", "G#m7", "A#7", "D#m6", "A#7", "D#m6"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 3,
+    "ending_fade": 3,
+    "melody_prog": 8
+   },
+   "mode": "minor"
+  }
+ ],
+ "theme": {
+  "name": "mystery",
+  "label": "神秘",
+  "pack": "refs/themes/mystery.json",
+  "template_count": 10,
+  "styles": ["film", "newage", "classical"],
+  "source_kinds": {
+   "bitmidi": 10
+  },
+  "primary_source": "window4",
+  "mix_target": "mystery_mix",
+  "energy_curve_db": [],
+  "energy_gain": 1.0,
+  "templates": ["classical/Bach-1.mid", "classical/chopin-pol53.mid", "classical/chopin-ballade1.mid", "film/batman-movie-theme_en.mid", "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid", "film/Metal Gear Solid - Enclosure (Soundtrack).mid", "film/doctorwho-movie.mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "newage/Accadia - Blind Visions (Accadia Ambient Mix).mid", "newage/EarthBound - New Age Retro Hippie.mid"],
+  "melody_profile": "refs/themes/mystery_melody.json",
+  "seed": 7,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "mystery",
+  "seed": 7,
+  "dens": 2.6,
+  "candidates": 4,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0
+ }
+}

@@ -64,7 +64,29 @@ import song_engine  # noqa: E402
 SCALE_MINOR = [0, 2, 3, 5, 7, 8, 10]          # 自然小调
 SCALE_MAJOR = [0, 2, 4, 5, 7, 9, 11]          # 自然大调
 SCALE_DORIAN = [0, 2, 3, 5, 7, 9, 10]         # 多利亚（B 段色彩）
-SPB = 4.0                                     # 只支持 4/4：一小节 4 拍、16 个十六分格
+SPB = 4.0                                     # 一小节的四分音符数（本项目的"拍"口径）
+# ⚠ `SPB` 由 `set_meter()` 按曲子拍号设置：4/4→4.0 · 3/4→3.0 · 6/8→3.0 · 2/2→4.0。
+# 用**模块全局**是有意的：本文件引用它 33 处，语义只有一个 —— "一小节几拍"
+# （强拍位置 `o % SPB`、小节起点 `int(t // SPB)`、句长 `bars * SPB`、十六分格→拍 `off/4.0`）。
+# 改成参数贯穿要动 33 处、漏一处就会静默把音撒到小节外；前提是**串行调用**
+# （本项目是 CLI，一次一曲），`main()` 的拍号守卫里已接上。
+
+
+def set_meter(meter):
+    """按拍号设置"一小节几拍"（`SPB`），返回新的 SPB。
+
+    `meter` 为 `[拍数, 音符单位]`；引擎的"拍"**一律是四分音符**（`bpm` 也是四分音符速度），
+    所以一小节几个四分音符 = `拍数 * 4 / 单位`（同 `song_engine._norm_meter` 的口径）。
+    """
+    global SPB
+    n, d = int(meter[0]), int(meter[1])
+    SPB = float(n) * 4.0 / float(d)
+    # ⚠ 默认参数在**函数定义时**就绑定了旧 SPB（`def form_stats(..., bar_beats=SPB)`）——
+    # 不重绑的话这两个统计函数在 3/4 下仍按 4 拍切小节，守卫会拿错基准（静默给错答案）。
+    # 它们定义在本函数之后，而调用发生在模块加载完毕的 `main()` 里，所以这里引用得到。
+    for _fn in (form_stats, small_step_pct):
+        _fn.__defaults__ = (SPB,)
+    return SPB
 DENS_MAX = 2.6                                # 密度上限（音/小节，用户口径，见 main() 里 dens）
 
 
@@ -1417,14 +1439,18 @@ def main():
         if '--step-bias' in sys.argv else 0.0
     prof = json.load(open(prof_path, encoding='utf-8'))
     d = json.load(open(song, encoding='utf-8'))
-    # **拍号守卫**：落点/时值/拱形全是按"一小节 4 拍、16 个十六分格"写的 ——
-    # 非 4/4 时会静默把音撒到小节外。宁可拒绝，也不给错旋律。
+    # **拍号**：落点/时值/拱形全是按"一小节几拍、每拍 4 个十六分格"写的 —— 所以进生成前
+    # 必须按本曲拍号把 `SPB`（一小节拍数）设对，否则会静默把音撒到小节外。
+    # 2026-09-18 前这里**直接拒绝非 4/4**（"宁可拒绝，也不给错旋律"）。现在 3/4 放开
+    # （用户要求：waltz 主题的 10 首模板全是 3/4）；**其余拍号仍拒绝** —— 强拍位置、
+    # 句法都还没在那些拍号上量过，宁可拒绝也不给没验过的答案。
     meter = song_engine._norm_meter(d.get('meter'))
-    if meter != [4, 4]:
-        print('melody_gen 目前只支持 4/4（本曲 meter=%s）。'
-              '引擎侧已支持非 4/4 编配，但**旋律生成器还没适配** —— '
-              '请手写 melody，或先把 meter 改成 [4,4]。' % meter)
+    if meter not in ([4, 4], [3, 4]):
+        print('melody_gen 目前只支持 4/4 与 3/4（本曲 meter=%s）。'
+              '其余拍号请手写 melody，或先用 3/4 试。' % meter)
         return 1
+    set_meter(meter)
+    print('  拍号 %s → 一小节 %.2f 拍' % (meter, SPB))
     chords = d['chords']
     names = list(d['melody'].keys())
     if '--tonic' in sys.argv:

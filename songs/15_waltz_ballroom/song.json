@@ -1,0 +1,342 @@
+{
+ "name": "waltz_ballroom",
+ "bpm": 72.0,
+ "meter": [3, 4],
+ "desc": "三拍圆舞（依据主题模板包 waltz：10 首同主题模板）",
+ "style": "gorgeous",
+ "programs": {
+  "Melody": [73, 0],
+  "Hook": [25, 1],
+  "Piano": [0, 2],
+  "Strings": [48, 5],
+  "Pad": [94, 4]
+ },
+ "patterns": {
+  "bass_style": "waltz",
+  "perc_style": "waltz",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 1, 3, 2],
+  "guitar_beats": [0.0, 0.667, 1.333, 2.0, 2.667, 3.333],
+  "guitar_vary": true,
+  "space": true,
+  "section_gap": 3.0,
+  "seg_fade": true,
+  "range_fix": true,
+  "legato_trim": true,
+  "dyn_vel": 8.0
+ },
+ "chords": {
+  "Gm7": [31, [55, 58, 62, 65]],
+  "Fmaj7": [29, [65, 69, 72, 76]],
+  "Csus4": [36, [60, 65, 67]],
+  "Fm": [29, [65, 68, 72]],
+  "C7": [36, [60, 64, 67, 70]]
+ },
+ "melody": {
+  "intro": [
+   [0, 0.75, 0.25, 77], [0, 1.5, 0.5, 82], [0, 2.5, 0.5, 80],
+   [1, 0.0, 2.0, 81],
+   [2, 1.25, 0.25, 77], [2, 2.0, 1.0, 79],
+   [3, 0.0, 1.5, 77]
+  ],
+  "A": [
+   [0, 1.0, 0.5, 70], [0, 2.0, 1.0, 67],
+   [1, 0.0, 0.5, 65], [1, 0.5, 0.5, 67], [1, 1.0, 0.5, 69], [1, 2.5, 1.25, 65],
+   [2, 0.75, 1.25, 64], [2, 2.0, 0.75, 65],
+   [3, 0.25, 1.5, 67],
+   [4, 0.0, 1.0, 64], [4, 1.0, 0.75, 66], [4, 2.5, 0.5, 67],
+   [5, 0.5, 1.0, 65], [5, 1.5, 1.5, 67],
+   [6, 0.0, 1.0, 65], [6, 1.0, 0.75, 67], [6, 2.5, 0.5, 69]
+  ],
+  "B": [
+   [0, 1.0, 0.25, 70], [0, 1.5, 0.5, 67], [0, 2.25, 0.25, 65],
+   [1, 0.0, 0.5, 72], [1, 0.5, 0.5, 69], [1, 1.75, 0.5, 69], [1, 2.5, 1.0, 67],
+   [2, 0.75, 0.5, 72], [2, 2.0, 1.0, 69],
+   [3, 0.0, 2.0, 72],
+   [4, 0.75, 0.5, 70], [4, 2.0, 0.75, 67], [4, 2.75, 0.75, 65],
+   [5, 0.5, 1.0, 67], [5, 1.75, 0.5, 67], [5, 2.5, 0.5, 65],
+   [6, 1.25, 1.0, 67], [6, 2.5, 0.25, 65],
+   [7, 0.0, 2.0, 65]
+  ],
+  "C": [
+   [0, 1.5, 0.25, 82], [0, 2.0, 0.5, 79],
+   [1, 0.25, 1.5, 79],
+   [2, 1.5, 0.25, 81], [2, 2.25, 0.5, 84],
+   [3, 0.25, 1.0, 82], [3, 1.25, 0.75, 79], [3, 2.0, 0.5, 82], [3, 2.5, 0.5, 80],
+   [4, 0.0, 0.25, 82], [4, 1.5, 0.5, 82], [4, 2.25, 0.25, 84],
+   [5, 0.25, 1.5, 79],
+   [6, 1.5, 0.25, 81], [6, 2.0, 0.5, 72],
+   [7, 0.25, 1.5, 77]
+  ],
+  "outro": [
+   [0, 1.0, 0.25, 70], [0, 1.75, 0.5, 68],
+   [1, 0.0, 0.25, 69], [1, 1.5, 0.75, 67], [1, 2.25, 0.5, 65],
+   [2, 0.5, 0.25, 65], [2, 1.0, 0.5, 64], [2, 1.75, 1.0, 65],
+   [3, 0.0, 1.5, 65]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 4,
+   "chords": ["Gm7", "Fmaj7", "Csus4", "Fm"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1,
+    "perc_in": 2,
+    "mix": {
+     "Melody": 99,
+     "Hook": 59,
+     "Piano": 53,
+     "Arp": 72,
+     "Pad": 46,
+     "Strings": 57,
+     "Bass": 99,
+     "Glock": 90,
+     "Perc": 82
+    },
+    "melody_prog": 73
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["C7", "Gm7", "Fmaj7", "Fmaj7", "C7", "Gm7", "Csus4", "Fm"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1,
+    "mix": {
+     "Melody": 99,
+     "Hook": 59,
+     "Piano": 53,
+     "Arp": 72,
+     "Pad": 46,
+     "Strings": 57,
+     "Bass": 99,
+     "Glock": 90,
+     "Perc": 82
+    },
+    "melody_prog": 0
+   },
+   "mode": "major"
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["Gm7", "Fmaj7", "Fmaj7", "C7", "Gm7", "Fmaj7", "Csus4", "Fm"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 0,
+    "mix": {
+     "Melody": 99,
+     "Hook": 59,
+     "Piano": 53,
+     "Arp": 72,
+     "Pad": 46,
+     "Strings": 57,
+     "Bass": 99,
+     "Glock": 90,
+     "Perc": 82
+    },
+    "melody_prog": 13
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["C7", "Gm7", "Fmaj7", "Fmaj7", "C7", "Gm7", "Csus4", "Fm"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 99,
+     "Hook": 59,
+     "Piano": 53,
+     "Arp": 72,
+     "Pad": 46,
+     "Strings": 57,
+     "Bass": 99,
+     "Glock": 90,
+     "Perc": 82
+    },
+    "melody_prog": 0
+   },
+   "mode": "major"
+  },
+  {
+   "name": "C",
+   "bars": 8,
+   "chords": ["Gm7", "Fmaj7", "Fmaj7", "C7", "Gm7", "Fmaj7", "Csus4", "Fm"],
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": true,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 3,
+    "mix": {
+     "Melody": 107,
+     "Hook": 64,
+     "Piano": 58,
+     "Arp": 78,
+     "Pad": 50,
+     "Strings": 62,
+     "Bass": 107,
+     "Glock": 97,
+     "Perc": 89
+    },
+    "melody_prog": 8
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["C7", "Gm7", "Fmaj7", "Fmaj7", "C7", "Gm7", "Csus4", "Fm"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 3,
+    "mix": {
+     "Melody": 112,
+     "Hook": 67,
+     "Piano": 60,
+     "Arp": 82,
+     "Pad": 52,
+     "Strings": 65,
+     "Bass": 112,
+     "Glock": 101,
+     "Perc": 92
+    },
+    "melody_prog": 0
+   },
+   "mode": "major"
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": ["Gm7", "Fmaj7", "Csus4", "Fm"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 112,
+     "Hook": 67,
+     "Piano": 60,
+     "Arp": 82,
+     "Pad": 52,
+     "Strings": 65,
+     "Bass": 112,
+     "Glock": 101,
+     "Perc": 92
+    },
+    "ending_fade": 3,
+    "melody_prog": 4
+   },
+   "mode": "major"
+  }
+ ],
+ "theme": {
+  "name": "waltz",
+  "label": "三拍圆舞",
+  "pack": "refs/themes/waltz.json",
+  "template_count": 10,
+  "styles": ["classical", "baroque", "romantic", "folk", "public_domain"],
+  "source_kinds": {
+   "bitmidi": 8,
+   "mutopiaproject": 2
+  },
+  "primary_source": "window4",
+  "mix_target": "waltz_mix",
+  "energy_curve_db": [-0.8, -0.8, -0.8, -0.8, 0.53, 1.2, 1.2],
+  "energy_gain": 1.0,
+  "templates": ["baroque/handel-ombra-mai-fu.mid", "baroque/Bwv0593 Vivaldi Concerto Arrangement RV522.mid", "classical/Bach-Brandenburg-Menuetto.mid", "classical/Minuet-in-Mozart.mid", "folk/American-Folk-(Variation-1).mid", "folk/caledonia-celtic-thunder-kar_gc9.mid", "public_domain/LVB_Sonate_02no1_2.mid", "public_domain/LVB_Sonate_02no1_3.mid", "romantic/chubert-Liszt Serenade.mid", "romantic/Tchaikovsky Lake Of The Swans Act 1 2mov.mid"],
+  "melody_profile": "refs/themes/waltz_melody.json",
+  "seed": 7,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "waltz",
+  "seed": 7,
+  "dens": 2.6,
+  "candidates": 4,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0
+ }
+}

@@ -712,8 +712,8 @@ def run_melody_gen(song_json, pack, theme, seed, ncand, step_bias=None):
     """
     import theme_pack as tp
     meter = list(pack.get('meter') or [4, 4])
-    if meter != [4, 4]:
-        print('  !! meter=%s：melody_gen 只支持 4/4 → **旋律需手写**'
+    if meter not in ([4, 4], [3, 4]):
+        print('  !! meter=%s：melody_gen 只支持 4/4 与 3/4 → **旋律需手写**'
               '（song.json 骨架已生成，模板依据仍在 theme 字段里）' % meter)
         return False
     import probe_melody_health as MH

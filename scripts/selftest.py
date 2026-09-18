@@ -3591,6 +3591,59 @@ def t_theme_pack_valid():
 
 
 @check
+def t_meter_spb_fits():
+    """**非 4/4 拍号下旋律落点不许越出小节** —— 3/4 支持（2026-09-18）的核心判据。
+
+    `melody_gen` 引用 `SPB`（一小节几拍）**33 处**，4/4 时它是个常量 4.0。放开 3/4 时
+    若忘了按拍号设它，落点会**静默**撒到小节外（第 4 拍落在 3/4 的第 1 拍上 = 整个节奏
+    错位，而且不会报错）。所以这里量三层：
+      ① 换算：`[3,4]`→3.0 · `[4,4]`→4.0 · `[6,8]`→3.0（引擎的"拍"一律是四分音符）
+      ② `set_meter` 必须**同时重绑** `form_stats` / `small_step_pct` 的默认参数 ——
+         `def f(..., bar_beats=SPB)` 的默认值在**定义时**就绑死了，不重绑的话这两个
+         统计函数在 3/4 下仍按 4 拍切小节，守卫会拿错基准（静默给错答案）
+      ③ 库里已有的 3/4 曲子：每个旋律音的 `beat_in_bar` 必须 < SPB（批量重写后才会有，
+         没有就跳过 —— 不空转报错）
+    """
+    import melody_gen as MG
+    old = MG.SPB
+    try:
+        assert MG.set_meter([3, 4]) == 3.0, '3/4 的一小节应是 3 个四分音符'
+        assert MG.set_meter([4, 4]) == 4.0, '4/4 应是 4'
+        assert MG.set_meter([6, 8]) == 3.0, '6/8 应是 3（拍恒为四分音符）'
+        assert MG.set_meter([2, 2]) == 4.0, '2/2 应是 4'
+        MG.set_meter([3, 4])
+        for fn in (MG.form_stats, MG.small_step_pct):
+            assert fn.__defaults__ == (3.0,), \
+                ('%s 的 bar_beats 没跟着 set_meter 重绑（默认参数在定义时就绑死了）：%r'
+                 % (fn.__name__, fn.__defaults__))
+    finally:
+        MG.set_meter([4, 4])
+    n_song = n_note = 0
+    for d in song_dirs():
+        p = os.path.join(d, 'song.json')
+        if not os.path.isfile(p):
+            continue
+        j = json.load(open(p, encoding='utf-8'))
+        m = j.get('meter') or [4, 4]
+        if list(m) != [3, 4]:
+            continue
+        spb = 3.0
+        n_song += 1
+        for _k, notes in (j.get('melody') or {}).items():
+            for it in notes:
+                if not isinstance(it, (list, tuple)) or len(it) < 2:
+                    continue
+                beat = float(it[1])
+                n_note += 1
+                assert 0 <= beat < spb, \
+                    ('%s 的旋律落点越出 3/4 小节：beat=%s（应 <3.0）—— '
+                     'SPB 没按拍号设对' % (os.path.basename(d), beat))
+    assert MG.SPB == 4.0, '这条检查跑完应把 SPB 还原成 4.0（后面的检查依赖它）'
+    print('        拍号换算 4/4·3/4·6/8·2/2 正确 · 默认参数已重绑 · '
+          '库里 3/4 曲目 %d 首 / %d 个落点全在小节内' % (n_song, n_note))
+
+
+@check
 def t_theme_timbre_pool():
     """**主题模板的实际音色必须真的进到生成里** —— "学会了 ≠ 做得出"。
 

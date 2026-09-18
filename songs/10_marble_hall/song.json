@@ -1,0 +1,226 @@
+{
+ "name": "marble_hall",
+ "bpm": 110.0,
+ "meter": [4, 4],
+ "desc": "古典庄重（依据主题模板包 classic：10 首同主题模板）",
+ "style": "gorgeous",
+ "programs": {
+  "Melody": [71, 0],
+  "Piano": [0, 2],
+  "Strings": [48, 5],
+  "Glock": [14, 7]
+ },
+ "patterns": {
+  "bass_style": "simple",
+  "perc_style": "orchestral",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 2, 4, 5, 4, 2, 3],
+  "guitar_beats": [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
+  "guitar_vary": true,
+  "space": true,
+  "section_gap": 3.0,
+  "seg_fade": true,
+  "range_fix": true,
+  "legato_trim": true,
+  "dyn_vel": 8.0
+ },
+ "chords": {
+  "Dm7": [38, [62, 65, 69, 72]],
+  "Gm6": [31, [55, 58, 62, 64]],
+  "Cm7": [36, [60, 63, 67, 70]],
+  "D7": [38, [62, 66, 69, 72]]
+ },
+ "melody": {
+  "intro": [
+   [0, 1.0, 0.75, 65], [0, 2.0, 0.5, 62], [0, 3.0, 1.0, 60],
+   [1, 1.25, 0.75, 67], [1, 2.75, 0.5, 67], [1, 3.25, 0.75, 65],
+   [2, 1.5, 0.75, 72], [2, 2.25, 0.75, 70], [2, 3.0, 0.5, 67], [2, 3.5, 0.5, 69],
+   [3, 0.0, 1.5, 74],
+   [4, 1.5, 0.75, 72], [4, 2.25, 0.75, 69], [4, 3.0, 0.5, 72], [4, 3.5, 0.5, 70],
+   [5, 0.0, 1.0, 70], [5, 1.0, 1.5, 67],
+   [6, 1.5, 0.75, 65], [6, 3.0, 0.5, 62], [6, 3.5, 0.5, 62],
+   [7, 0.0, 1.5, 67]
+  ],
+  "A": [
+   [0, 0.0, 1.5, 69], [0, 2.0, 1.5, 74],
+   [1, 0.5, 0.5, 74], [1, 1.5, 0.5, 77], [1, 2.5, 1.5, 76],
+   [2, 1.0, 0.5, 79], [2, 1.5, 0.25, 77], [2, 2.0, 1.0, 74], [2, 3.0, 1.0, 79],
+   [3, 0.0, 2.0, 79],
+   [4, 1.25, 0.5, 81], [4, 2.0, 0.5, 81], [4, 3.25, 0.75, 78],
+   [5, 0.75, 0.5, 81], [5, 1.75, 0.5, 84], [5, 2.75, 1.25, 84],
+   [6, 1.25, 0.5, 86], [6, 2.25, 0.5, 86], [6, 3.25, 0.75, 82],
+   [7, 0.0, 2.0, 84],
+   [8, 0.0, 1.5, 84], [8, 2.0, 1.5, 81],
+   [9, 0.75, 0.5, 81], [9, 1.75, 0.5, 84], [9, 2.75, 1.25, 79],
+   [10, 0.5, 0.5, 81], [10, 1.5, 0.5, 79], [10, 2.5, 1.5, 77],
+   [11, 0.0, 2.0, 79]
+  ],
+  "B": [
+   [0, 1.25, 0.5, 81], [0, 1.75, 0.75, 83], [0, 3.25, 0.75, 84],
+   [1, 1.5, 0.5, 86], [1, 2.0, 0.75, 86], [1, 3.5, 0.5, 87],
+   [2, 0.0, 1.0, 84], [2, 1.25, 0.75, 87], [2, 2.75, 1.25, 84],
+   [3, 0.75, 1.5, 86],
+   [4, 1.0, 0.5, 84], [4, 1.5, 0.75, 86], [4, 3.0, 1.0, 84],
+   [5, 1.5, 0.5, 86], [5, 2.0, 0.75, 86], [5, 3.5, 0.5, 87],
+   [6, 1.0, 0.5, 87], [6, 1.5, 0.5, 84], [6, 2.0, 0.5, 84], [6, 3.0, 1.0, 87],
+   [7, 0.75, 1.5, 86],
+   [8, 1.0, 0.5, 88], [8, 2.0, 0.75, 86], [8, 3.0, 1.0, 84],
+   [9, 0.75, 0.5, 86], [9, 1.25, 0.75, 84], [9, 2.75, 1.25, 82],
+   [10, 0.0, 0.25, 81], [10, 1.0, 1.5, 84],
+   [11, 0.75, 1.5, 79]
+  ],
+  "outro": [
+   [0, 0.75, 0.5, 77], [0, 2.0, 0.5, 74], [0, 2.75, 1.25, 77],
+   [1, 1.25, 1.0, 79], [1, 2.25, 0.5, 79], [1, 3.25, 0.75, 77],
+   [2, 0.75, 0.5, 82], [2, 1.75, 0.5, 80], [2, 2.75, 1.25, 79],
+   [3, 0.0, 1.5, 86],
+   [4, 0.75, 0.5, 84], [4, 1.75, 0.5, 81], [4, 2.75, 1.25, 84],
+   [5, 1.0, 0.5, 82], [5, 2.0, 1.0, 82], [5, 3.0, 1.0, 81],
+   [6, 1.25, 1.0, 83], [6, 2.25, 0.5, 84], [6, 3.25, 0.75, 81],
+   [7, 0.0, 1.5, 79]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 8,
+   "chords": ["Dm7", "Gm6", "Cm7", "D7", "Dm7", "Gm6", "Dm7", "Gm6"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "perc_in": 2,
+    "melody_prog": 71
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "A",
+   "bars": 12,
+   "chords": ["D7", "Dm7", "Gm6", "Cm7", "D7", "Dm7", "Gm6", "Cm7", "D7", "Dm7", "Dm7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "melody_prog": 0
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "B",
+   "bars": 12,
+   "chords": ["Dm7", "Gm6", "Cm7", "D7", "Dm7", "Gm6", "Cm7", "D7", "Dm7", "Gm6", "Dm7", "Gm6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 0,
+    "melody_prog": 13
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "A2",
+   "bars": 12,
+   "chords": ["D7", "Dm7", "Gm6", "Cm7", "D7", "Dm7", "Gm6", "Cm7", "D7", "Dm7", "Dm7", "Gm6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 3,
+    "melody_prog": 0
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "Outro",
+   "bars": 8,
+   "chords": ["Dm7", "Gm6", "Cm7", "D7", "Dm7", "Gm6", "Dm7", "Gm6"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 1,
+    "ending_fade": 3,
+    "melody_prog": 8
+   },
+   "mode": "minor"
+  }
+ ],
+ "theme": {
+  "name": "classic",
+  "label": "古典庄重",
+  "pack": "refs/themes/classic.json",
+  "template_count": 10,
+  "styles": ["classical", "baroque", "public_domain"],
+  "source_kinds": {
+   "bitmidi": 6,
+   "mutopiaproject": 4
+  },
+  "primary_source": "window4",
+  "mix_target": "classic_mix",
+  "energy_curve_db": [],
+  "energy_gain": 1.0,
+  "templates": ["baroque/Handel in the Strand.mid", "baroque/Variations and Fugue on theme by Handel op24.mid", "classical/Bach-1.mid", "classical/chopin-sonata11.mid", "classical/Arty & Mat Zo - Mozart.mid", "classical/chopin-ballade1.mid", "public_domain/MentreDormi.mid", "public_domain/03-gavotte.mid", "public_domain/k375g.mid", "public_domain/LVB_Sonate_02no1_1.mid"],
+  "melody_profile": "refs/themes/classic_melody.json",
+  "seed": 7,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "classic",
+  "seed": 7,
+  "dens": 2.6,
+  "candidates": 4,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0
+ }
+}

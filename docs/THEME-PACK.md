@@ -83,7 +83,10 @@
 6. **依据留痕**：`song.json` 的 `theme` 字段写 name/pack/template_count/styles/source_kinds/
    primary_source/mix_target/templates（逐首文件名）+ melody_profile
 
-非 4/4 主题（`waltz`）：骨架照出，但 `melody_gen` 只支持 4/4 → **旋律需手写**，工具**非零退出**并说明。
+非 4/4 主题（`waltz`，**3/4**）：**已支持自动生成旋律**（2026-09-18 修 `melody_gen` ——
+`SPB`（一小节几拍）改由 `set_meter()` 按拍号设，守卫 `t_meter_spb_fits` 量落点不越界）。
+实测：48 小节、MIDI `timesig=[3,4]`、`end_beat=144.0`、68 个旋律音最大 beat **2.75**（<3.0）。
+**其余拍号仍拒绝**（强拍位置与句法没在那些拍号上量过，宁可拒绝也不给没验过的答案）。
 
 ## 5. 混音目标层（`mix_target`）
 

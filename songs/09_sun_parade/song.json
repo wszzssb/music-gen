@@ -1,0 +1,299 @@
+{
+ "name": "sun_parade",
+ "bpm": 132.0,
+ "meter": [4, 4],
+ "desc": "欢快（依据主题模板包 cheerful：10 首同主题模板）",
+ "style": "dance",
+ "programs": {
+  "Melody": [77, 0],
+  "Hook": [24, 1],
+  "Piano": [0, 2],
+  "Strings": [44, 5],
+  "Bass": [33, 6]
+ },
+ "patterns": {
+  "bass_style": "sixteenth",
+  "perc_style": "dance",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 2, 3, 4, 3, 2, 4],
+  "guitar_beats": [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
+  "guitar_vary": true,
+  "space": true,
+  "section_gap": 3.0,
+  "seg_fade": true,
+  "range_fix": true,
+  "legato_trim": true,
+  "dyn_vel": 8.0
+ },
+ "chords": {
+  "B7": [35, [59, 63, 66, 69]],
+  "Gmaj7": [31, [55, 59, 62, 66]],
+  "G7": [31, [55, 59, 62, 65]],
+  "C7": [36, [60, 64, 67, 70]],
+  "Am6": [33, [57, 60, 64, 66]]
+ },
+ "melody": {
+  "intro": [
+   [0, 0.5, 0.75, 75], [0, 2.0, 1.5, 78], [0, 3.5, 0.5, 78],
+   [1, 0.5, 0.25, 74], [1, 1.25, 0.5, 76], [1, 2.0, 0.75, 74], [1, 3.5, 0.5, 73],
+   [2, 0.25, 0.75, 71], [2, 1.75, 0.75, 69], [2, 3.25, 0.75, 69],
+   [3, 0.0, 2.25, 72]
+  ],
+  "A": [
+   [0, 1.5, 0.25, 76], [0, 2.0, 0.5, 78], [0, 3.0, 1.0, 76],
+   [1, 1.0, 0.5, 78], [1, 1.5, 0.5, 78], [1, 2.5, 1.5, 76],
+   [2, 1.5, 0.25, 79], [2, 2.0, 0.5, 79], [2, 2.5, 0.5, 76], [2, 3.0, 1.0, 79],
+   [3, 0.0, 2.25, 71],
+   [4, 1.5, 0.25, 72], [4, 2.0, 0.5, 76], [4, 2.5, 0.5, 74], [4, 3.0, 1.0, 76],
+   [5, 0.0, 2.25, 71],
+   [6, 1.0, 0.5, 73], [6, 1.5, 0.5, 77], [6, 2.5, 1.5, 71],
+   [7, 0.0, 2.25, 72]
+  ],
+  "B": [
+   [0, 0.0, 0.75, 71], [0, 1.5, 0.5, 69], [0, 2.75, 1.5, 71],
+   [1, 1.0, 1.5, 79],
+   [2, 0.0, 0.75, 75], [2, 1.75, 0.5, 71], [2, 3.0, 0.5, 71], [2, 3.5, 0.75, 73],
+   [3, 1.0, 0.75, 76], [3, 2.25, 1.5, 74],
+   [4, 0.0, 0.5, 71], [4, 0.75, 0.25, 69], [4, 1.5, 0.75, 71], [4, 2.75, 1.5, 73],
+   [5, 1.0, 1.5, 79],
+   [6, 1.25, 0.75, 77], [6, 2.0, 0.5, 74],
+   [7, 1.0, 2.0, 72]
+  ],
+  "outro": [
+   [0, 0.25, 0.75, 75], [0, 1.75, 0.25, 71], [0, 2.5, 1.5, 71],
+   [1, 0.5, 0.75, 73], [1, 2.0, 0.75, 71], [1, 2.75, 1.0, 69], [1, 3.75, 0.75, 69],
+   [2, 1.25, 0.75, 71], [2, 2.0, 1.5, 74],
+   [3, 1.0, 2.0, 72]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 4,
+   "chords": ["B7", "Gmaj7", "G7", "C7"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1,
+    "perc_in": 2,
+    "mix": {
+     "Melody": 92,
+     "Hook": 73,
+     "Piano": 69,
+     "Arp": 54,
+     "Pad": 62,
+     "Strings": 58,
+     "Bass": 90,
+     "Glock": 54,
+     "Perc": 78
+    },
+    "melody_prog": 77
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["Am6", "B7", "Gmaj7", "B7", "Am6", "B7", "G7", "C7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 97,
+     "Hook": 77,
+     "Piano": 73,
+     "Arp": 58,
+     "Pad": 66,
+     "Strings": 62,
+     "Bass": 95,
+     "Glock": 58,
+     "Perc": 83
+    },
+    "melody_prog": 0
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["Am6", "B7", "Gmaj7", "B7", "Am6", "B7", "G7", "C7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 102,
+     "Hook": 81,
+     "Piano": 77,
+     "Arp": 60,
+     "Pad": 69,
+     "Strings": 65,
+     "Bass": 100,
+     "Glock": 60,
+     "Perc": 88
+    },
+    "melody_prog": 0
+   },
+   "mode": "major"
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["B7", "Gmaj7", "B7", "Am6", "B7", "Gmaj7", "G7", "C7"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 0,
+    "mix": {
+     "Melody": 103,
+     "Hook": 82,
+     "Piano": 78,
+     "Arp": 61,
+     "Pad": 70,
+     "Strings": 65,
+     "Bass": 101,
+     "Glock": 61,
+     "Perc": 89
+    },
+    "melody_prog": 13
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["Am6", "B7", "Gmaj7", "B7", "Am6", "B7", "G7", "C7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 103,
+     "Hook": 82,
+     "Piano": 78,
+     "Arp": 61,
+     "Pad": 70,
+     "Strings": 65,
+     "Bass": 101,
+     "Glock": 61,
+     "Perc": 89
+    },
+    "melody_prog": 0
+   },
+   "mode": "major"
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": ["B7", "Gmaj7", "G7", "C7"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 3,
+    "mix": {
+     "Melody": 86,
+     "Hook": 69,
+     "Piano": 65,
+     "Arp": 51,
+     "Pad": 58,
+     "Strings": 55,
+     "Bass": 84,
+     "Glock": 51,
+     "Perc": 74
+    },
+    "ending_fade": 3,
+    "melody_prog": 8
+   },
+   "mode": "major"
+  }
+ ],
+ "theme": {
+  "name": "cheerful",
+  "label": "欢快",
+  "pack": "refs/themes/cheerful.json",
+  "template_count": 10,
+  "styles": ["pop", "latin", "rock"],
+  "source_kinds": {
+   "bitmidi": 10
+  },
+  "primary_source": "window2",
+  "mix_target": "cheerful_mix",
+  "energy_curve_db": [-1.12, -0.12, 0.68, 0.88, 0.88, -2.12],
+  "energy_gain": 1.0,
+  "templates": ["latin/Blue-Tango.mid", "latin/L.CARLTON.Rio Samba.mid", "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid", "latin/Azure-Bossa-Nova.mid", "pop/IGGY POP.Louie Louie.mid", "pop/Disco Citizens - Footprint.mid", "pop/Disco-Fans.mid", "rock/50's-Rock.mid", "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid", "rock/A-Hard-Day's-Night-4.mid"],
+  "melody_profile": "refs/themes/cheerful_melody.json",
+  "seed": 7,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "cheerful",
+  "seed": 7,
+  "dens": 2.6,
+  "candidates": 4,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0
+ }
+}

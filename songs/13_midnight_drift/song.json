@@ -1,0 +1,310 @@
+{
+ "name": "midnight_drift",
+ "bpm": 140.0,
+ "meter": [4, 4],
+ "desc": "夜晚（依据主题模板包 night：10 首同主题模板）",
+ "style": "daily",
+ "programs": {
+  "Melody": [81, 0],
+  "Hook": [27, 1],
+  "Piano": [0, 2],
+  "Strings": [48, 5],
+  "Pad": [89, 4],
+  "Bass": [36, 6]
+ },
+ "patterns": {
+  "bass_style": "simple",
+  "perc_style": "light",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 1, 3, 2],
+  "guitar_beats": [0.0, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
+  "guitar_vary": true,
+  "space": true,
+  "section_gap": 3.0,
+  "seg_fade": true,
+  "range_fix": true,
+  "legato_trim": true,
+  "dyn_vel": 8.0
+ },
+ "chords": {
+  "C7": [36, [60, 64, 67, 70]],
+  "A#7": [34, [58, 62, 65, 68]],
+  "Csus4": [36, [60, 65, 67]],
+  "F6": [29, [65, 69, 72, 74]],
+  "F7": [29, [65, 69, 72, 75]],
+  "Fm7": [29, [65, 68, 72, 75]]
+ },
+ "melody": {
+  "intro": [
+   [0, 2.0, 0.75, 58], [0, 3.0, 0.5, 58], [0, 3.5, 1.0, 56],
+   [1, 1.0, 0.75, 58], [1, 2.5, 0.5, 56], [1, 3.0, 1.0, 56],
+   [2, 1.25, 0.75, 55], [2, 2.75, 0.5, 55], [2, 3.25, 0.75, 57],
+   [3, 0.0, 1.5, 65]
+  ],
+  "A": [
+   [0, 0.75, 0.5, 65], [0, 2.0, 0.5, 63], [0, 3.0, 1.0, 67],
+   [1, 0.0, 2.0, 72],
+   [2, 0.75, 0.5, 70], [2, 1.25, 0.5, 68], [2, 2.0, 0.5, 74], [2, 3.0, 1.0, 72],
+   [3, 1.25, 0.5, 77], [3, 2.5, 1.0, 72], [3, 3.5, 0.5, 75],
+   [4, 0.25, 0.5, 77], [4, 1.5, 0.5, 75], [4, 2.5, 1.5, 79],
+   [5, 0.0, 2.0, 72],
+   [6, 0.5, 1.0, 72], [6, 1.75, 1.0, 70], [6, 2.75, 1.25, 70],
+   [7, 0.0, 2.0, 65]
+  ],
+  "B": [
+   [0, 0.0, 1.0, 60], [0, 1.5, 0.25, 60], [0, 2.0, 1.5, 58],
+   [1, 0.0, 0.25, 56], [1, 0.75, 0.25, 58], [1, 1.5, 0.5, 56], [1, 2.0, 1.5, 58],
+   [2, 0.5, 0.75, 65], [2, 2.0, 0.25, 63], [2, 2.5, 1.5, 60],
+   [3, 0.0, 2.0, 65],
+   [4, 0.0, 1.0, 60], [4, 1.5, 0.25, 60], [4, 2.0, 1.5, 58],
+   [5, 0.25, 1.0, 58], [5, 1.75, 0.25, 56], [5, 2.25, 1.5, 58],
+   [6, 0.5, 0.75, 60], [6, 2.0, 0.25, 55], [6, 2.5, 1.5, 57],
+   [7, 0.0, 2.0, 65]
+  ],
+  "C": [
+   [0, 0.0, 1.5, 70], [0, 2.0, 1.5, 72],
+   [1, 0.0, 2.0, 70],
+   [2, 0.25, 0.5, 72], [2, 1.5, 0.75, 77], [2, 2.25, 1.5, 72],
+   [3, 0.0, 1.5, 75], [3, 2.0, 1.5, 77],
+   [4, 0.5, 1.25, 79], [4, 1.75, 0.5, 79], [4, 2.5, 1.5, 78],
+   [5, 0.0, 2.0, 77],
+   [6, 0.0, 1.0, 79], [6, 1.25, 0.5, 77], [6, 2.0, 1.5, 77],
+   [7, 0.0, 2.0, 77]
+  ],
+  "outro": [
+   [0, 0.0, 0.5, 60], [0, 0.5, 0.25, 60], [0, 1.0, 1.0, 62], [0, 2.0, 1.5, 60],
+   [1, 2.75, 0.75, 65],
+   [2, 0.0, 0.5, 60], [2, 1.25, 0.5, 63], [2, 2.25, 1.75, 60]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 4,
+   "chords": ["C7", "A#7", "Csus4", "F6"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1,
+    "perc_in": 2,
+    "mix": {
+     "Melody": 94,
+     "Hook": 77,
+     "Piano": 75,
+     "Arp": 48,
+     "Pad": 64,
+     "Strings": 67,
+     "Bass": 85,
+     "Glock": 81,
+     "Perc": 75
+    },
+    "melody_prog": 81
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["F7", "C7", "A#7", "Fm7", "F7", "C7", "Csus4", "F6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 3,
+    "mix": {
+     "Melody": 100,
+     "Hook": 82,
+     "Piano": 80,
+     "Arp": 51,
+     "Pad": 68,
+     "Strings": 72,
+     "Bass": 90,
+     "Glock": 86,
+     "Perc": 80
+    },
+    "melody_prog": 0
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["F7", "C7", "A#7", "Fm7", "F7", "C7", "Csus4", "F6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": true,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 100,
+     "Hook": 82,
+     "Piano": 80,
+     "Arp": 51,
+     "Pad": 68,
+     "Strings": 72,
+     "Bass": 90,
+     "Glock": 86,
+     "Perc": 80
+    },
+    "melody_prog": 0
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["C7", "A#7", "Fm7", "F7", "C7", "A#7", "Csus4", "F6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 0,
+    "mix": {
+     "Melody": 100,
+     "Hook": 82,
+     "Piano": 80,
+     "Arp": 51,
+     "Pad": 68,
+     "Strings": 72,
+     "Bass": 90,
+     "Glock": 86,
+     "Perc": 80
+    },
+    "melody_prog": 13
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "C",
+   "bars": 8,
+   "chords": ["C7", "A#7", "Fm7", "F7", "C7", "A#7", "Csus4", "F6"],
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": true,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 100,
+     "Hook": 82,
+     "Piano": 80,
+     "Arp": 51,
+     "Pad": 68,
+     "Strings": 72,
+     "Bass": 90,
+     "Glock": 86,
+     "Perc": 80
+    },
+    "melody_prog": 8
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": ["C7", "A#7", "Csus4", "F6"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "mix": {
+     "Melody": 89,
+     "Hook": 73,
+     "Piano": 71,
+     "Arp": 45,
+     "Pad": 60,
+     "Strings": 63,
+     "Bass": 80,
+     "Glock": 76,
+     "Perc": 71
+    },
+    "ending_fade": 3,
+    "melody_prog": 4
+   },
+   "mode": "minor"
+  }
+ ],
+ "theme": {
+  "name": "night",
+  "label": "夜晚",
+  "pack": "refs/themes/night.json",
+  "template_count": 10,
+  "styles": ["newage", "jazz", "electronic"],
+  "source_kinds": {
+   "bitmidi": 10
+  },
+  "primary_source": "window4",
+  "mix_target": "night_mix",
+  "energy_curve_db": [-0.62, 0.38, 0.38, 0.38, 0.38, -1.62],
+  "energy_gain": 1.0,
+  "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "electronic/Arrow - Back In The House (U Can See It).mid", "electronic/Benny Benassi - Techno Cocain.mid", "jazz/Cowboy Bebop - ELM.mid", "jazz/Cowboy Bebop - Goodnight Julia.mid", "jazz/Cowboy Bebop - Cat Blues.mid", "jazz/Alexander's-Ragtime-Band.mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "newage/Accadia - Blind Visions (Accadia Ambient Mix).mid", "newage/EarthBound - New Age Retro Hippie.mid"],
+  "melody_profile": "refs/themes/night_melody.json",
+  "seed": 7,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "night",
+  "seed": 7,
+  "dens": 2.6,
+  "candidates": 4,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0
+ }
+}

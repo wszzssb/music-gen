@@ -1,0 +1,255 @@
+{
+ "name": "wave_walk",
+ "bpm": 130.0,
+ "meter": [4, 4],
+ "desc": "海边（依据主题模板包 seaside：10 首同主题模板）",
+ "style": "acoustic",
+ "programs": {
+  "Melody": [73, 0],
+  "Hook": [25, 1],
+  "Piano": [0, 2],
+  "Strings": [62, 5],
+  "Pad": [94, 4],
+  "Bass": [35, 6]
+ },
+ "patterns": {
+  "bass_style": "simple",
+  "perc_style": "light",
+  "melody_dyn": true,
+  "arr_by_role": true,
+  "arpeggio": [0, 2, 4, 5, 4, 2, 3],
+  "guitar_beats": [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
+  "guitar_vary": true,
+  "space": true,
+  "section_gap": 3.0,
+  "seg_fade": true,
+  "range_fix": true,
+  "legato_trim": true,
+  "dyn_vel": 8.0
+ },
+ "chords": {
+  "A6": [33, [57, 61, 64, 66]],
+  "D6": [38, [62, 66, 69, 71]],
+  "E6": [28, [64, 68, 71, 73]],
+  "C#m7": [37, [61, 64, 68, 71]],
+  "Amaj7": [33, [57, 61, 64, 68]]
+ },
+ "melody": {
+  "intro": [
+   [0, 1.5, 0.5, 66], [0, 2.0, 1.0, 64], [0, 3.5, 0.5, 66],
+   [1, 1.0, 0.5, 67], [1, 1.5, 1.5, 69], [1, 3.0, 1.0, 66],
+   [2, 1.25, 0.5, 61], [2, 1.75, 0.75, 64], [2, 3.25, 0.75, 66],
+   [3, 0.0, 2.25, 69]
+  ],
+  "A": [
+   [0, 0.0, 0.75, 68], [0, 1.5, 0.5, 66], [0, 2.5, 1.5, 71],
+   [1, 0.5, 0.25, 69], [1, 1.25, 0.5, 66], [1, 2.0, 0.5, 66], [1, 3.0, 1.0, 68],
+   [2, 0.75, 0.75, 71], [2, 2.0, 0.5, 69], [2, 3.25, 0.75, 71],
+   [4, 0.0, 0.75, 73], [4, 1.75, 0.5, 71], [4, 2.75, 1.25, 73],
+   [5, 1.0, 0.75, 69], [5, 2.5, 0.5, 66], [5, 3.5, 0.5, 66],
+   [6, 0.0, 0.75, 64], [6, 1.75, 0.5, 64], [6, 2.75, 1.25, 66],
+   [7, 3.0, 0.5, 69]
+  ],
+  "B": [
+   [0, 0.0, 0.75, 69], [0, 1.5, 0.75, 71], [0, 3.0, 1.0, 73],
+   [1, 1.5, 1.5, 74],
+   [2, 0.25, 0.75, 73], [2, 1.75, 0.75, 75], [2, 3.25, 0.75, 78],
+   [3, 0.5, 0.25, 76], [3, 1.25, 0.5, 78], [3, 2.0, 0.75, 76], [3, 3.5, 0.5, 78],
+   [4, 0.0, 0.75, 78], [4, 1.5, 0.75, 76], [4, 3.0, 1.0, 78],
+   [5, 1.5, 1.5, 74],
+   [6, 0.5, 0.75, 76], [6, 2.0, 0.75, 73], [6, 3.5, 0.5, 76],
+   [7, 1.5, 1.0, 69]
+  ],
+  "outro": [
+   [0, 1.25, 0.5, 73], [0, 2.0, 1.25, 76], [0, 3.25, 1.0, 78],
+   [1, 1.0, 1.5, 74],
+   [2, 0.0, 0.5, 73], [2, 1.0, 0.75, 76], [2, 2.5, 1.5, 73],
+   [3, 1.0, 2.0, 69]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 4,
+   "chords": ["A6", "D6", "E6", "A6"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 1,
+    "perc_in": 2,
+    "melody_prog": 73
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["C#m7", "A6", "D6", "Amaj7", "C#m7", "A6", "E6", "A6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "melody_prog": 0
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["C#m7", "A6", "D6", "Amaj7", "C#m7", "A6", "E6", "A6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 3,
+    "melody_prog": 0
+   },
+   "mode": "major"
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["A6", "D6", "Amaj7", "C#m7", "A6", "D6", "E6", "A6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 0,
+    "melody_prog": 13
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["C#m7", "A6", "D6", "Amaj7", "C#m7", "A6", "E6", "A6"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 1,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "melody_prog": 0
+   },
+   "mode": "major"
+  },
+  {
+   "name": "B2",
+   "bars": 8,
+   "chords": ["A6", "D6", "Amaj7", "C#m7", "A6", "D6", "E6", "A6"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": true,
+    "glock_all": false,
+    "shimmer": true,
+    "density": 2,
+    "melody_prog": 13
+   },
+   "mode": "major"
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": ["A6", "D6", "E6", "A6"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": true,
+    "strings": false,
+    "glock": false,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 1,
+    "ending_fade": 3,
+    "melody_prog": 8
+   },
+   "mode": "major"
+  }
+ ],
+ "theme": {
+  "name": "seaside",
+  "label": "海边",
+  "pack": "refs/themes/seaside.json",
+  "template_count": 10,
+  "styles": ["newage", "folk", "pop"],
+  "source_kinds": {
+   "bitmidi": 10
+  },
+  "primary_source": "window4",
+  "mix_target": "seaside_mix",
+  "energy_curve_db": [],
+  "energy_gain": 1.0,
+  "templates": ["folk/I-Was-Country-When-Country-Wasn't-Cool.mid", "folk/A.JACKSON.Gone country.mid", "folk/Acid-Folk.mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "newage/Age of Empires II The Age of Kings - Menu.mid", "newage/Nola, Novelty piano solo.mid", "newage/EarthBound - New Age Retro Hippie.mid", "pop/IGGY POP.Louie Louie.mid", "pop/Disco Citizens - Footprint.mid", "pop/Disco-Fans.mid"],
+  "melody_profile": "refs/themes/seaside_melody.json",
+  "seed": 7,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "seaside",
+  "seed": 7,
+  "dens": 2.6,
+  "candidates": 4,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0
+ }
+}
