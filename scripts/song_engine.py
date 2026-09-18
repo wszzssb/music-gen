@@ -1557,15 +1557,24 @@ def build_events(d):
                         _p = 1.0 - max(0.0, _left_bar) / _ef
                         v = v * max(0.0, (1.0 - _p) ** 2)
                         dd = min(dd, max(0.05, _end - t))
-                # **段首渐入**（2026-09-18）：段开头 `_HEAD` 拍内**只留主奏**，其余轨不进。
-                # 为什么从段首下手、而不是继续加长段末留白：判据要"两端渐弱/渐入 ≥4dB"，
-                # 而**段末那条路被混响堵死** —— 渲染链 room .78，段末即使完全真空，
-                # 混响尾巴在边界前 0.15s 内仍有能量（实测真空 0.115s 时 `fade_out` 只
-                # 1.8dB；把 `section_gap` 从 3.0 加到 5.0 也没用）。段首不同：**混响还没
-                # 积累，压住伴奏就是真低**。听感也更自然 —— 旋律先入、伴奏跟进。
-                _HEAD = float((d.get('patterns') or {}).get('section_gap') or 0.0) * 0.5
-                if _HEAD > 0 and k != 'Melody' and (t - bar0 * B) < _HEAD:
-                    continue
+                # **边界交接：编配逐条进场/退场**（2026-09-18，按仿写实证）。
+                # 依据：量仿写成品 `99_b35_remake`（26 段）的逐边界包络 —— 它段与段之间
+                # **响度差中位只有 0.6dB**（靠 `jump<3` 过 `section_transition`），
+                # 而它的 `fade_out/fade_in` 大多在 ±3dB 内：**它根本没有"留白"，它的起伏
+                # 做在编配上**（9 条轨的加减）。我们的生成曲相反：`jump` 是 10~22dB，
+                # 因为段间的**厚度差在边界那一瞬完成切换** → 听感"硬邦邦地切过去"。
+                # 做法：段首/段末 `_RAMP` 小节内，只让"骨架声部"先上场/后下场 ——
+                # **厚度差保留**（起伏还在），但**爬坡发生在几个小节里**（渐变）。
+                _RAMP = 1.0
+                _ORDER = ('Bass', 'Melody', 'Piano', 'Pad', 'Strings',
+                          'Hook', 'Glock', 'Arp')
+                _bar_in = (t - bar0 * B) / B          # 距段首几小节
+                _bar_out = (_end - t) / B             # 距段末几小节
+                _near = min(_bar_in, _bar_out)
+                if _near < _RAMP and k in _ORDER:
+                    _allow = int(len(_ORDER) * max(0.3, _near / _RAMP)) + 1
+                    if _ORDER.index(k) >= _allow:
+                        continue
                 if _gap > 0:
                     _left = _end - t
                     if _left <= 0:
