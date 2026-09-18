@@ -1358,18 +1358,47 @@ def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0
             - step_bias * stepwise + onset_dist + form_pen)
 
 
-def form_penalty(fs, ms):
+def small_step_pct(melody, sections, bar_beats=SPB):
+    """**小步打转**占比：|音程| ≤ 1（同音或半音级进）的相邻音对比例。
+
+    ⚠ 与 `stepwise_pct`（|iv| ≤ 2，**越高越顺**）是两个方向：
+    `probe_melody_health.SMALL_IV_MAX = 35.0` 把"|iv|≤1 占比过高"判为问题，
+    注释原文 —— **"这是 'd d d d ddd' 的真身"**（用户听到的正是这个）。
+    所以这一项**越低越好**，进 `form_penalty` 时取罚分。
+    """
+    notes = []
+    pos = 0.0
+    for sec in sections:
+        for (b, bt, _du, p) in (melody.get(sec.get('melody')) or []):
+            if 0 <= b < sec['bars']:
+                notes.append((pos + b * bar_beats + bt, p))
+        pos += sec['bars'] * bar_beats
+    notes.sort()
+    ps = [p for (_t, p) in notes]
+    if len(ps) < 2:
+        return 0.0
+    ivs = [abs(ps[i + 1] - ps[i]) for i in range(len(ps) - 1)]
+    return sum(1 for x in ivs if x <= 1) / len(ivs)
+
+
+def form_penalty(fs, ms, small=None, span=None):
     """形态罚分（0 = 全达标）。阈值与守卫同源：`FORM_MIN_LAST8 / FORM_MAX_GAP_MED /
-    FORM_MAX_G0`（见 `selftest`）与跳后反向门 0.50（`melody_motif_rules`）。"""
+    FORM_MAX_G0`（见 `selftest`）、跳后反向门 0.50（`melody_motif_rules`）、
+    小步门 `SMALL_IV_MAX=0.35`、音域门 `FORM_SPAN_MIN=8`（`probe_melody_health` / `form_stats`）。"""
     pen = 0.0
     if fs:
-        pen += max(0.0, 0.65 - fs.get('last8', 1.0)) * 3.0      # 末落点不够靠后
-        pen += max(0.0, fs.get('maxgap_med', 0.0) - 1.70) * 0.8  # 小节内空档过大
-        pen += max(0.0, fs.get('g0', 0.0) - 0.22) * 2.0          # 都砸第 1 拍
+        pen += max(0.0, 0.65 - fs.get('last8', 1.0)) * 3.0       # 末落点不够靠后
+        pen += max(0.0, fs.get('maxgap_med', 0.0) - 1.70) * 0.8   # 小节内空档过大
+        pen += max(0.0, fs.get('g0', 0.0) - 0.22) * 2.0           # 都砸第 1 拍
+        sp = fs.get('span') if fs.get('span') is not None else span
+        if sp is not None and sp < 8:                             # 音域太窄（15 号 7 半音）
+            pen += (8 - sp) * 0.30
     la = (ms or {}).get('leap_after') or 0
     lr = (ms or {}).get('leap_reverse') or 0
     if la:
-        pen += max(0.0, 0.50 - lr / la) * 2.0                    # 跳后不反向
+        pen += max(0.0, 0.50 - lr / la) * 2.0                     # 跳后不反向
+    if small is not None:                                         # 小步打转（"d d d d ddd"）
+        pen += max(0.0, small - 0.35) * 4.0
     return pen
 
 
@@ -1476,11 +1505,12 @@ def main():
             ms = motif_stats(mel, d['sections'], chords, tonic) or {}
         except Exception:                                        # noqa: BLE001
             ms = {}
-        fp = form_penalty(fs, ms)
+        fp = form_penalty(fs, ms, small=small_step_pct(mel, d['sections']),
+                          span=(fs or {}).get('span'))
         print('  候选 %d（seed=%d）：音符 %d  与库里最大形状共享 %.1f%%  语言重合 %.1f%%'
-              '  级进 %.0f%%  落点偏离 %.3f  形态罚 %.2f  强拍复核修正 %d  复用段冲突 %d'
+              '  级进 %.0f%%  小步 %.0f%%  落点偏离 %.3f  形态罚 %.2f  强拍复核修正 %d  复用段冲突 %d'
               % (ci + 1, seed + ci * 1000, len(alln), sc[0] * 100, sc[1] * 100,
-                 sw * 100, ot, fp, nfix, clash))
+                 sw * 100, small_step_pct(mel, d['sections']) * 100, ot, fp, nfix, clash))
         # 越小越好，见 `cand_score`：去重为主，级进/落点分散/形态判据为次（都只对候选间排序）
         score = cand_score(sc[0], sc[1], clash, sw, step_bias, ot, fp)
         # 旧挑法只等于 `score = sc[0]*2 + sc[1] + clash*0.5`（`step_bias=0` 时逐字一致）。

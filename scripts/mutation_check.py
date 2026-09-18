@@ -1007,12 +1007,22 @@ def main():
     # 打分已抽成 `melody_gen.cand_score`，所以能用 mutation 的"改内存"机制注入
     # —— 原先它写在 `main()` 里，只能靠 subprocess 端到端验，注入打不进去。
     import melody_gen as _mg
+    # ⚠ lambda 必须跟着 `cand_score` 的**当前签名**走（`..., onset_dist=0.0, form_pen=0.0`）：
+    #   2026-09-18 给打分加了 `form_pen`（形态罚）后，旧 lambda 只收 5 个位置参数，
+    #   注入时直接 `TypeError` —— 变异用例**照样被判"抓到"**，但抓的是签名不匹配、
+    #   不是"逻辑被反向"，等于**假通过**。这里补上后两个参数的默认值。
     results.append(case('候选打分被反向（级进越高分越高）', 'melody_step_bias',
                         lambda: Mut(_mg, 'cand_score',
-                                    lambda a, b, c, d, e: a * 2.0 + b + c * 0.5 + e * d)))
+                                    lambda a, b, c, d, e, f=0.0, g=0.0:
+                                    a * 2.0 + b + c * 0.5 + e * d + f + g)))
     results.append(case('级进偏好量级过大（盖过去重）', 'melody_step_bias',
                         lambda: Mut(_mg, 'cand_score',
-                                    lambda a, b, c, d, e: a * 2.0 + b + c * 0.5 - 100.0 * e * d)))
+                                    lambda a, b, c, d, e, f=0.0, g=0.0:
+                                    a * 2.0 + b + c * 0.5 - 100.0 * e * d + f + g)))
+    # **形态罚本身**：把它归零（= 回到"只看去重/级进"的旧选择），形态守卫必须重新报警
+    results.append(case('形态罚被归零（选候选重回旧口径）', 'melody_form_rules',
+                        lambda: Mut(_mg, 'form_penalty',
+                                    lambda fs, ms, small=None, span=None: 0.0)))
     # **句末收束门本身**：2026-09-15 从 0.55 降到 **0.25**（旧门会把 **33% 的真实模板**
     # 判成不合格 —— 用同一口径复算 218 首 `refs/midi2` 的实测结果；用户口径"现代音乐也符合"）。
     # 把门改到 0（守卫变瞎）必须被抓到：该检查里"注入旧形态必须破门"的自证会失败。

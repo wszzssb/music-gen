@@ -153,7 +153,6 @@ def run_style(style, ref, bars=4, **kw):
         % (n_notes, len(y) / sr, pk, err_before, err_after, gap_before, gap_after,
            wrote or -1, ref['bpm'], det, time.time() - t0))
     return gap_after
-    return worst
 
 
 def pick_ref(fresh):
