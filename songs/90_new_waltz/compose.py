@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""new_waltz —— 编配数据在 song.json，本文件只负责调用引擎"""
+"""var_waltz_c —— 编配数据在 song.json，本文件只负责调用引擎"""
 import os
 import sys
 

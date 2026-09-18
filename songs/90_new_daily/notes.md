@@ -1,4 +1,4 @@
-# 90_new_daily（主题模板包：daily / 日常）
+# 91_var_daily_a（主题模板包：daily / 日常）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py daily        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 90_new_daily --theme daily --seed 101
-& $py scripts\make_song.py 90_new_daily --check
+& $py scripts\new_song.py 91_var_daily_a --theme daily --seed 201
+& $py scripts\make_song.py 91_var_daily_a --check
 ```
 
 ## 还没验证什么

@@ -1,4 +1,4 @@
-# 90_new_classic（主题模板包：classic / 古典庄重）
+# 91_var_classic_a（主题模板包：classic / 古典庄重）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py classic        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 90_new_classic --theme classic --seed 103
-& $py scripts\make_song.py 90_new_classic --check
+& $py scripts\new_song.py 91_var_classic_a --theme classic --seed 311
+& $py scripts\make_song.py 91_var_classic_a --check
 ```
 
 ## 还没验证什么

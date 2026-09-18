@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""new_classic —— 编配数据在 song.json，本文件只负责调用引擎"""
+"""var_classic_a —— 编配数据在 song.json，本文件只负责调用引擎"""
 import os
 import sys
 

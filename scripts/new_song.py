@@ -262,9 +262,14 @@ HOOK_POOLS = ('uku', 'piano', 'glock', 'ep', 'pad')
 # 兜底值取**多个主题池实际给出过的**音色（有模板证据，不是自造）：
 FALLBACK_PROG = {
     'Bass': 32,      # Acoustic Bass —— battle / neon / daily 的主题池都给这个
-    'Pad': 94,       # Pad Halo —— waltz / daily 的主题池给的
-    'Hook': 0,       # Acoustic Grand —— uku 池筛空时的既有回退（HOOK_POOLS 已覆盖多数情况）
-    'Piano': 0, 'Strings': 48, 'Glock': 11, 'Melody': 73,
+    # ⚠ **只有 Bass 需要兜底**（2026-09-19 实测定的）：其余轨的引擎预设本来就合适
+    #   （Hook→Harp(46)、Glock→Celesta(9)、Piano/Melody→钢琴、Strings→48），
+    #   而且 `Melody` 有**自己的慢起音过滤**、池空时**应该**回落到预设 ——
+    #   守卫 `theme_timbre_pool` 的自证用例正是在守这条（上一版我把 Melody 也写进兜底，
+    #   当场把那条守卫弄红了）。
+    #   真正让人听着"**像打呼噜**"的只有 `Bass = Contrabass(43)`（古典族那套预设的拨弦低音）。
+    #   ⚠ `Pad` 也**不**兜底：实测保留预设的 `Choir Aahs(52)（人声"啊"）` 比换掉更好听
+    #   （用户："classic_a 也好了而且更好听"，而 a 只换了 Bass）。
 }
 
 

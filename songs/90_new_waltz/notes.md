@@ -1,4 +1,4 @@
-# 90_new_waltz（主题模板包：waltz / 三拍圆舞）
+# 91_var_waltz_c（主题模板包：waltz / 三拍圆舞）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py waltz        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 90_new_waltz --theme waltz --seed 105
-& $py scripts\make_song.py 90_new_waltz --check
+& $py scripts\new_song.py 91_var_waltz_c --theme waltz --seed 333
+& $py scripts\make_song.py 91_var_waltz_c --check
 ```
 
 ## 还没验证什么
