@@ -318,6 +318,81 @@ def t_voicing_shift():
     assert outs[1][1] == outs[0][1], 'voicing_shift 不该动 Bass'
 
 
+# ------------------------------------------- 转录 → song.json（2026-09-18 新增三工具）
+@check
+def t_transcribe_to_song_beat_unit():
+    """`transcribe_to_song.read_notes` 的**拍→秒**换算。
+
+    对应 PITFALLS 184①：`notes` 的起始时间是**拍**（四分音符），曾当秒用 ——
+    结果全曲音挤进第 0 格，据此算出的八度错误率**全是错的**。
+    """
+    import midi_file
+    import transcribe_to_song as tts
+    model = {'format': 1, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+             'end_beat': 8.0, 'title': 'unit',
+             'tracks': [{'index': 0, 'name': 'P', 'channel': 0, 'program': 0,
+                         'drum': False, 'mute': False, 'solo': False, 'hidden': False,
+                         'notes': [[4.0, 1.0, 60, 90], [6.0, 2.0, 64, 80]],
+                         'ccs': [], 'program_changes': [], 'markers': []}]}
+    p = os.path.join(TMP, 'tts_unit.mid')
+    midi_file.export_midi(model, p)
+    ns = tts.read_notes(p)
+    assert len(ns) == 2, '读回音符数不对：%d' % len(ns)
+    starts = sorted(s for s, _e, _p in ns)
+    assert abs(starts[0] - 2.0) < 0.03 and abs(starts[1] - 3.0) < 0.03, \
+        ('120bpm 下第 4/6 拍应分别是 2.0/3.0 秒，实得 %s —— 拍/秒换算错了'
+         % [round(x, 3) for x in starts])
+
+
+@check
+def t_transcribe_to_song_parse_chords():
+    """`transcribe_to_song.parse_chords` 能解析 `analyze_chords.py` 的行格式"""
+    import transcribe_to_song as tts
+    p = os.path.join(TMP, 'tts_chords.log')
+    with open(p, 'w', encoding='utf-8') as f:
+        f.write('  1 | A#m7      | i7        |    90  |   -14.7\n')
+        f.write('  2 | F7        | V7        |    83  |   -14.5\n')
+        f.write('这不是和弦行\n')
+    rows = tts.parse_chords(p)
+    assert len(rows) == 2, '应解析出 2 行，实得 %d' % len(rows)
+    assert rows[0][1] == 'A#m7' and rows[1][1] == 'F7', '和弦名解析错：%r' % rows
+    assert rows[0][2] == 90, '起音数解析错：%r' % rows[0]
+
+
+@check
+def t_octave_audit_ruler():
+    """`octave_audit` 的尺子：① 恒等输入必须 P=R=1.000 ② 整轨 +12 记为八度错。
+
+    对应 PITFALLS 187②：**报数前先跑恒等自检** —— 尺子不对，之后所有读数都不能信。
+    """
+    import midi_file
+    import octave_audit as oa
+
+    def mk(path, base):
+        model = {'format': 1, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+                 'end_beat': 4.0, 'title': 'o',
+                 'tracks': [{'index': 0, 'name': 'P', 'channel': 0, 'program': 0,
+                             'drum': False, 'mute': False, 'solo': False,
+                             'hidden': False,
+                             'notes': [[float(i), 0.5, base + i, 90] for i in range(8)],
+                             'ccs': [], 'program_changes': [], 'markers': []}]}
+        midi_file.export_midi(model, path)
+
+    ref = os.path.join(TMP, 'oa_ref.mid')
+    same = os.path.join(TMP, 'oa_same.mid')
+    up = os.path.join(TMP, 'oa_up.mid')
+    mk(ref, 60)
+    mk(same, 60)
+    mk(up, 72)
+    r = oa.audit(same, ref)
+    assert abs(r['P'] - 1.0) < 1e-9 and abs(r['R'] - 1.0) < 1e-9, \
+        ('恒等输入应 P=R=1.000，实得 P=%.3f R=%.3f —— 尺子坏了，之后的读数都不能信'
+         % (r['P'], r['R']))
+    r2 = oa.audit(up, ref)
+    assert r2['oct12_pct_all'] > 99.0, \
+        '整轨 +12 应几乎全是八度错，实得 %.1f%%' % r2['oct12_pct_all']
+
+
 # ---------------------------------------------------------------- 3. 数学/DSP
 @check
 def t_tune_step_signs():
@@ -593,6 +668,7 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'SONG-FORMAT.md'),
              os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
              os.path.join(ROOT, 'docs', 'CONVENTION.md'),
+             os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
              os.path.join(ROOT, 'studio', 'README.md'),
              os.path.join(os.path.expanduser('~'), '.dsh', 'skills',
                           'bgm-studio', 'SKILL.md')]
@@ -614,7 +690,8 @@ def t_docs_paths():
     dokeys = [os.path.join(ROOT, 'README.md'), os.path.join(ROOT, 'CHEATSHEET.md'),
               os.path.join(ROOT, 'PITFALLS.md'), os.path.join(ROOT, 'PITFALLS-ARCHIVE.md'),
               os.path.join(ROOT, 'docs', 'SONG-FORMAT.md'),
-              os.path.join(ROOT, 'docs', 'THEME-PACK.md'), files[-1]]
+              os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
+              os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'), files[-1]]
     dead = []
     for p in dokeys:
         if not os.path.exists(p):

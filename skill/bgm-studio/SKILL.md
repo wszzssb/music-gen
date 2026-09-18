@@ -18,6 +18,7 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
 | 出症状（杂音/错音/调参不收敛/占用率对不上） | `PITFALLS.md` 按编号查 | 别整读 |
 | **要新增内容**（往哪写、动哪些守卫） | `docs/CONVENTION.md` | ≈1.1k |
 | **扒谱·分轨·多乐器转录·母带匹配**（`.venv-ml`：Demucs / `transcribe_ymt3.py` / matchering） | `ML.md` | ≈3k |
+| **还原/扒带参考曲**（七步工序 · 有效/无效做法 · 度量纪律） | `docs/RESTORE-METHOD.md` | ≈2.5k |
 | **写歌时开可视化面板** | `studio/README.md`；启动 `studio\start.cmd` → http://127.0.0.1:8765 | ≈1.4k |
 
 ## 0. 环境（必须）

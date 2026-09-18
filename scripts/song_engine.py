@@ -1622,7 +1622,13 @@ def build_events(d):
         _rg = TR_RANGE.get(_k)
         if not _rg or not _extra[_k]:
             continue
-        _ps = [it[3] for it in _extra[_k] if len(it) >= 4]
+        # ⚠ **两种格式都要支持**：`{'notes': [...], 'target': [...]}`（扒带还原的完整写法）
+        #   与直接给 list（简写）。我的第一版只处理 list → 遇到 dict 会把**键名字符串**
+        #   当音符（`it[3]` 取到字符）、静默算错或崩掉。引擎自己在下面
+        #   （`isinstance(_ns, dict)`）两种都吃，这里必须一致。
+        _is_dict = isinstance(_extra[_k], dict)
+        _ns = (_extra[_k].get('notes') or []) if _is_dict else _extra[_k]
+        _ps = [it[3] for it in _ns if len(it) >= 4]
         if not _ps:
             continue
         _lo, _hi = _rg
@@ -1634,15 +1640,17 @@ def build_events(d):
                 _sh = _c
                 break
         if _sh:
-            _extra[_k] = [list(it[:3]) + [it[3] + _sh] + list(it[4:])
-                          for it in _extra[_k]]
+            _fix = [list(it[:3]) + [it[3] + _sh] + list(it[4:]) for it in _ns]
             print('  notes_extra[%s] 音域 %d-%d 越界 → 整轨移 %+d 半音'
                   % (_k, min(_ps), max(_ps), _sh))
         else:
-            _keep = [it for it in _extra[_k] if _lo <= it[3] <= _hi]
+            _fix = [it for it in _ns if _lo <= it[3] <= _hi]
             print('  notes_extra[%s] 音域 %d-%d 越界、移八度也装不下 → 丢掉 %d 个越界音'
-                  % (_k, min(_ps), max(_ps), len(_extra[_k]) - len(_keep)))
-            _extra[_k] = _keep
+                  % (_k, min(_ps), max(_ps), len(_ns) - len(_fix)))
+        if _is_dict:
+            _extra[_k]['notes'] = _fix
+        else:
+            _extra[_k] = _fix
 
     def _vel_of(_x, _default=84):
         """音符的力度：第 5 个元素给了就用它，否则回退固定值。

@@ -36,6 +36,7 @@ DOCS = {
     'CHEATSHEET.md（命令速查，按需查）': os.path.join(ROOT, 'CHEATSHEET.md'),
     'PITFALLS.md（出症状才按编号查）': os.path.join(ROOT, 'PITFALLS.md'),
     'HISTORY.md（开发记录，写代码才看）': os.path.join(ROOT, 'HISTORY.md'),
+    'docs/RESTORE-METHOD.md（还原/扒带方法论）': os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
     'studio/README.md（可视化面板）': os.path.join(ROOT, 'studio', 'README.md'),
 }
 # 预算（≈token）。超了说明该拆文档/改格式了，不是"无所谓"。
@@ -195,6 +196,11 @@ LIMITS = {
     #   压缩目标：**10200**（优先把 183/185 这两条"每次都会犯"的并进 `SKILL.md`；
     #   若索引与条目重复，索引只留编号不重复正文）。
     'PITFALLS.md（出症状才按编号查）': 13500,
+    # 新增（2026-09-18）：**还原/扒带方法论** —— 用户要求把"那个对话"24 轮迭代的做法
+    #   整理成文档（它自己没整理过，只留了 242 行 notes.md + 388 个散脚本）。
+    #   估 ~2500 tok，按纪律**2 倍抬**（前两次"抬窄了当场超预算"的教训）→ 5000。
+    #   压缩目标：**2600**（压到位后回落）。
+    'docs/RESTORE-METHOD.md（还原/扒带方法论）': 5000,
     'studio/README.md（可视化面板）': 2200,   # 只在使用面板时读；CLI 路径不需要
 }
 # 宿主级文档：由用户目录（技能/全局约定）提供，**不属于本仓库**。
