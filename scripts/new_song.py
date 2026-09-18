@@ -530,6 +530,26 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
             continue
         _s['arr']['ending_fade'] = 3
         break
+
+    # **段级主奏音色**（`arr.melody_prog`，2026-09-18 补）—— 引擎早就支持
+    # （`song_engine.write_midi` 里有 `melody_prog` 分支），注释里引的就是用户原话：
+    #   **"不同部分都有不同旋律音色，变化很大但是不突兀"**。
+    # 但 `new_song` **从来没生成过它** → 直接写出来的曲子**全曲一个主奏音色**，
+    # 这是"乐器选择不像"的一条主因（用户 2026-09-18："乐器选择还是不像，**在 MIDI 里也一样**"
+    # —— 即不是音源的锅，是 MIDI 层就没换）。
+    #
+    # 规则（两条都有实测依据）：
+    #   ① **同角色的段落用同一个音色** —— 曲式该有的可预期性（与 `arr_by_role` 同口径）；
+    #   ② 只用**起音 ≤20ms** 的音色：颤音琴(11) 42ms 实测"慢半拍"被用户点名淘汰
+    #      （`t_lead_timbre_attack` 在守）。
+    # 候选池按"与钢琴的距离"排：0 钢琴 → 13 木琴 → 8 钢片琴 → 4 电钢 → 24 尼龙吉他 → 9 钟琴。
+    _MEL_PROGS = (0, 13, 8, 4, 24, 9)
+    _role_at = {}
+    for _s in secs:
+        _r = song_engine.role_of_section(_s['name'])
+        if _r not in _role_at:
+            _role_at[_r] = len(_role_at)
+        _s['arr']['melody_prog'] = _MEL_PROGS[_role_at[_r] % len(_MEL_PROGS)]
     # **引子渐入**（`arr.perc_in` → `song_engine.perc_part(inbars=…)`）：真实模板里引子是
     # "b1–b2 安静、b3–b4 鼓组进来"（cheerful 10 首里 7 首前 4 小节有鼓、合计中位 18 点，
     # 而单看 b1 多数是 0）。整段一次性全开会在段落切换处造成亮度突变
