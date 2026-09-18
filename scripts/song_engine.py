@@ -1557,13 +1557,33 @@ def build_events(d):
                         _p = 1.0 - max(0.0, _left_bar) / _ef
                         v = v * max(0.0, (1.0 - _p) ** 2)
                         dd = min(dd, max(0.05, _end - t))
+                # **段首渐入**（2026-09-18）：段开头 `_HEAD` 拍内**只留主奏**，其余轨不进。
+                # 为什么从段首下手、而不是继续加长段末留白：判据要"两端渐弱/渐入 ≥4dB"，
+                # 而**段末那条路被混响堵死** —— 渲染链 room .78，段末即使完全真空，
+                # 混响尾巴在边界前 0.15s 内仍有能量（实测真空 0.115s 时 `fade_out` 只
+                # 1.8dB；把 `section_gap` 从 3.0 加到 5.0 也没用）。段首不同：**混响还没
+                # 积累，压住伴奏就是真低**。听感也更自然 —— 旋律先入、伴奏跟进。
+                _HEAD = float((d.get('patterns') or {}).get('section_gap') or 0.0) * 0.5
+                if _HEAD > 0 and k != 'Melody' and (t - bar0 * B) < _HEAD:
+                    continue
                 if _gap > 0:
                     _left = _end - t
                     if _left <= 0:
                         continue                     # 越过段末：这一音不留
                     if _left < _gap:
-                        v = v * (_left / _gap)       # 段末渐弱
-                        dd = min(dd, max(0.1, _left))
+                        # **关键是形状**：段末大部分时间**保持正常**（前段平台），只在
+                        # **最后 `TAIL` 拍**让所有音收掉 —— `section_transition` 量的正是
+                        # "边界前 0.15s（`p_edge`）vs 前 0.3~0.9s（`pre`）"的**差**。
+                        # 第一版做成"段末前 60% 不起新音"是错的：两个窗口**一起**降，
+                        # 差值原封不动（实测 `fade_out` 仍旧 1.7dB，`jump` 反从 19.9 涨到
+                        # 40.0dB）。**只降力度同样不行** —— 对已起音的持续音与混响尾巴无效。
+                        # 所以必须**结束音符**：最后 0.25 拍不起新音，已在响的也在此前收掉。
+                        _TAIL = 0.25                 # 拍（120BPM ≈ 0.12s）
+                        if _left < _TAIL:
+                            continue
+                        dd = min(dd, max(0.05, _left - _TAIL))
+                        v = v * max(0.0, min(1.0, (_left - _TAIL)
+                                             / max(1e-6, _gap - _TAIL)))
                 # 走到这里的音高都已在合法范围内（数据越界在 load() 就报错了，
                 # 派生声部越界在上游被丢弃）；这里只处理时间/时值/力度
                 assert 0 <= m <= 127, '%s 出现了越界音高 %s（派生声部漏了过滤）' % (k, m)
