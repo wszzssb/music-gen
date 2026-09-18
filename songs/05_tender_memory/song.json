@@ -13,7 +13,10 @@
   "guitar_beats": [0.0, 0.5, 1.0, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 3.75],
   "guitar_vary": true,
   "space": true,
-  "section_gap": 1.0
+  "section_gap": 1.0,
+  "seg_fade": true,
+  "range_fix": true,
+  "legato_trim": true
  },
  "chords": {
   "Esus4": [28, [64, 69, 71]],
@@ -209,6 +212,6 @@
   "candidates": 8,
   "mode": "motif",
   "variants": true,
-  "step_bias": 1.0
+  "step_bias": 0.5
  }
 }
