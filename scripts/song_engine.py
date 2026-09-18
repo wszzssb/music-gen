@@ -1565,14 +1565,17 @@ def build_events(d):
                 # 因为段间的**厚度差在边界那一瞬完成切换** → 听感"硬邦邦地切过去"。
                 # 做法：段首/段末 `_RAMP` 小节内，只让"骨架声部"先上场/后下场 ——
                 # **厚度差保留**（起伏还在），但**爬坡发生在几个小节里**（渐变）。
+                # ⚠ **只做段末退场，不做段首进场**（2026-09-18 用户反馈"内部有一点乱"）。
+                # 第一版是 `_near = min(_bar_in, _bar_out)`（头尾都减配）：段界确实过门了，
+                # 但**每段开头近 2 秒只剩 3 条轨** —— 全曲 7 个段就是"空一下、满一下"反复
+                # 7 次，段内听着发乱。段末退场单独就够 `fade_out ≥ 4dB`（实测 4.1~6.9），
+                # 段首不动反而更稳。
                 _RAMP = 1.0
                 _ORDER = ('Bass', 'Melody', 'Piano', 'Pad', 'Strings',
                           'Hook', 'Glock', 'Arp')
-                _bar_in = (t - bar0 * B) / B          # 距段首几小节
                 _bar_out = (_end - t) / B             # 距段末几小节
-                _near = min(_bar_in, _bar_out)
-                if _near < _RAMP and k in _ORDER:
-                    _allow = int(len(_ORDER) * max(0.3, _near / _RAMP)) + 1
+                if _bar_out < _RAMP and k in _ORDER:
+                    _allow = int(len(_ORDER) * max(0.3, _bar_out / _RAMP)) + 1
                     if _ORDER.index(k) >= _allow:
                         continue
                 if _gap > 0:
