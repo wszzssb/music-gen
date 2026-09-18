@@ -13,8 +13,7 @@
   "guitar_beats": [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
   "guitar_vary": true,
   "space": true,
-  "section_gap": 1.0,
-  "dyn_vel": 8.0
+  "section_gap": 1.0
  },
  "chords": {
   "A6": [33, [57, 61, 64, 66]],
@@ -55,12 +54,6 @@
    [1, 0.75, 1.25, 81], [1, 2.0, 1.0, 83], [1, 3.5, 0.5, 81],
    [2, 0.0, 1.25, 80], [2, 1.25, 1.5, 78], [2, 2.75, 1.5, 76],
    [3, 0.25, 2.5, 81]
-  ],
-  "outro_tag": [
-   [0, 0.5, 1.0, 85], [0, 1.75, 0.75, 83], [0, 2.5, 0.75, 81], [0, 3.25, 1.5, 78],
-   [1, 0.75, 1.25, 81], [1, 2.0, 1.0, 83], [1, 3.5, 0.5, 81],
-   [2, 0.0, 1.25, 80], [2, 1.25, 1.5, 78], [2, 2.75, 1.5, 76],
-   [3, 0.25, 2.5, 81]
   ]
  },
  "sections": [
@@ -71,7 +64,7 @@
    "melody": "intro",
    "arr": {
     "bass": true,
-    "perc": 0,
+    "perc": 1,
     "piano": true,
     "uku": false,
     "arp": false,
@@ -82,8 +75,7 @@
     "glock_all": false,
     "shimmer": false,
     "density": 1,
-    "perc_in": 2,
-    "hook": false
+    "perc_in": 2
    },
    "mode": "major"
   },
@@ -98,14 +90,13 @@
     "piano": true,
     "uku": true,
     "arp": false,
-    "pad": false,
+    "pad": true,
     "strings": false,
     "glock": false,
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 2,
-    "hook": false
+    "density": 2
    },
    "mode": "major"
   },
@@ -118,16 +109,15 @@
     "bass": true,
     "perc": 1,
     "piano": true,
-    "uku": false,
-    "arp": true,
-    "pad": false,
+    "uku": true,
+    "arp": false,
+    "pad": true,
     "strings": false,
     "glock": false,
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 2,
-    "hook": false
+    "density": 3
    },
    "mode": "major"
   },
@@ -138,24 +128,17 @@
    "melody": "B",
    "arr": {
     "bass": true,
-    "perc": 0,
+    "perc": 2,
     "piano": true,
-    "uku": false,
-    "arp": false,
+    "uku": true,
+    "arp": true,
     "pad": true,
-    "strings": false,
-    "glock": false,
+    "strings": true,
+    "glock": true,
     "ep": false,
     "glock_all": false,
     "shimmer": false,
-    "density": 0,
-    "hook": false,
-    "mix": {
-     "Perc": 45,
-     "Bass": 45,
-     "Piano": 45,
-     "Strings": 45
-    }
+    "density": 3
    },
    "mode": "major"
   },
@@ -168,16 +151,15 @@
     "bass": true,
     "perc": 1,
     "piano": true,
-    "uku": false,
+    "uku": true,
     "arp": false,
-    "pad": false,
-    "strings": true,
+    "pad": true,
+    "strings": false,
     "glock": false,
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 2,
-    "hook": false
+    "density": 2
    },
    "mode": "major"
   },
@@ -190,24 +172,23 @@
     "bass": true,
     "perc": 2,
     "piano": true,
-    "uku": false,
+    "uku": true,
     "arp": true,
-    "pad": false,
+    "pad": true,
     "strings": false,
     "glock": false,
     "ep": true,
     "glock_all": false,
-    "shimmer": false,
-    "density": 3,
-    "hook": false
+    "shimmer": true,
+    "density": 2
    },
    "mode": "major"
   },
   {
-   "name": "Tag",
+   "name": "Outro",
    "bars": 4,
    "chords": ["A6", "D6", "E6", "A6"],
-   "melody": "outro_tag",
+   "melody": "outro",
    "arr": {
     "bass": true,
     "perc": 0,
@@ -220,13 +201,7 @@
     "ep": false,
     "glock_all": false,
     "shimmer": false,
-    "density": 0,
-    "hook": false,
-    "mix": {
-     "Perc": 25,
-     "Bass": 25,
-     "Piano": 25
-    }
+    "density": 1
    },
    "mode": "major"
   }

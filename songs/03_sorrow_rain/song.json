@@ -13,8 +13,7 @@
   "guitar_beats": [0.0, 0.25, 0.5, 0.75, 1.0, 1.5, 1.75, 2.0, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75],
   "guitar_vary": true,
   "space": true,
-  "section_gap": 1.0,
-  "dyn_vel": 8.0
+  "section_gap": 1.0
  },
  "chords": {
   "Dsus4": [38, [62, 67, 69]],
@@ -68,16 +67,6 @@
    [5, 1.75, 1.25, 79],
    [6, 0.75, 1.25, 79], [6, 2.0, 1.5, 81], [6, 3.5, 1.0, 81],
    [7, 1.75, 1.25, 79]
-  ],
-  "outro_tag": [
-   [0, 0.75, 0.75, 86], [0, 1.5, 0.5, 84], [0, 2.0, 1.5, 86], [0, 3.5, 2.0, 81],
-   [1, 1.75, 1.75, 79],
-   [2, 0.0, 1.75, 77], [2, 1.75, 1.25, 74], [2, 3.0, 2.0, 77],
-   [3, 1.75, 0.75, 79], [3, 2.5, 1.5, 76],
-   [4, 0.0, 1.75, 81], [4, 1.75, 1.25, 76], [4, 3.0, 2.0, 84],
-   [5, 1.75, 1.25, 79],
-   [6, 0.75, 1.25, 79], [6, 2.0, 1.5, 81], [6, 3.5, 1.0, 81],
-   [7, 1.75, 1.25, 79]
   ]
  },
  "sections": [
@@ -88,7 +77,7 @@
    "melody": "intro",
    "arr": {
     "bass": true,
-    "perc": 0,
+    "perc": 1,
     "piano": true,
     "uku": false,
     "arp": false,
@@ -110,8 +99,7 @@
      "Bass": 85,
      "Glock": 66,
      "Perc": 66
-    },
-    "hook": false
+    }
    },
    "mode": "minor"
   },
@@ -126,13 +114,13 @@
     "piano": true,
     "uku": true,
     "arp": false,
-    "pad": false,
+    "pad": true,
     "strings": false,
     "glock": false,
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 2,
+    "density": 1,
     "mix": {
      "Melody": 98,
      "Hook": 74,
@@ -143,8 +131,7 @@
      "Bass": 88,
      "Glock": 69,
      "Perc": 69
-    },
-    "hook": false
+    }
    },
    "mode": "minor"
   },
@@ -157,9 +144,9 @@
     "bass": true,
     "perc": 1,
     "piano": true,
-    "uku": false,
-    "arp": true,
-    "pad": false,
+    "uku": true,
+    "arp": false,
+    "pad": true,
     "strings": false,
     "glock": false,
     "glock_all": false,
@@ -176,8 +163,7 @@
      "Bass": 90,
      "Glock": 70,
      "Perc": 70
-    },
-    "hook": false
+    }
    },
    "mode": "minor"
   },
@@ -188,29 +174,28 @@
    "melody": "B",
    "arr": {
     "bass": true,
-    "perc": 0,
+    "perc": 2,
     "piano": true,
-    "uku": false,
-    "arp": false,
+    "uku": true,
+    "arp": true,
     "pad": true,
-    "strings": false,
-    "glock": false,
+    "strings": true,
+    "glock": true,
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 0,
+    "density": 2,
     "mix": {
-     "Melody": 55,
-     "Hook": 42,
-     "Piano": 41,
-     "Arp": 26,
-     "Pad": 37,
-     "Strings": 41,
-     "Bass": 50,
-     "Glock": 38,
-     "Perc": 38
-    },
-    "hook": false
+     "Melody": 100,
+     "Hook": 76,
+     "Piano": 74,
+     "Arp": 48,
+     "Pad": 68,
+     "Strings": 74,
+     "Bass": 90,
+     "Glock": 70,
+     "Perc": 70
+    }
    },
    "mode": "minor"
   },
@@ -223,45 +208,12 @@
     "bass": true,
     "perc": 1,
     "piano": true,
-    "uku": false,
+    "uku": true,
     "arp": false,
-    "pad": false,
+    "pad": true,
     "strings": true,
     "glock": false,
     "ep": false,
-    "glock_all": false,
-    "shimmer": false,
-    "density": 2,
-    "mix": {
-     "Melody": 104,
-     "Hook": 79,
-     "Piano": 77,
-     "Arp": 50,
-     "Pad": 71,
-     "Strings": 77,
-     "Bass": 94,
-     "Glock": 73,
-     "Perc": 73
-    },
-    "hook": false
-   },
-   "mode": "minor"
-  },
-  {
-   "name": "C",
-   "bars": 8,
-   "chords": ["Dsus4", "Gm7", "Gm7", "A7", "Dsus4", "Gm7", "Dsus4", "Gm7"],
-   "melody": "C",
-   "arr": {
-    "bass": true,
-    "perc": 2,
-    "piano": true,
-    "uku": false,
-    "arp": true,
-    "pad": false,
-    "strings": false,
-    "glock": false,
-    "ep": true,
     "glock_all": false,
     "shimmer": false,
     "density": 3,
@@ -275,16 +227,47 @@
      "Bass": 94,
      "Glock": 73,
      "Perc": 73
-    },
-    "hook": false
+    }
    },
    "mode": "minor"
   },
   {
-   "name": "Tag",
+   "name": "C",
    "bars": 8,
    "chords": ["Dsus4", "Gm7", "Gm7", "A7", "Dsus4", "Gm7", "Dsus4", "Gm7"],
-   "melody": "outro_tag",
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 2,
+    "piano": true,
+    "uku": true,
+    "arp": true,
+    "pad": true,
+    "strings": true,
+    "glock": true,
+    "ep": false,
+    "glock_all": false,
+    "shimmer": false,
+    "density": 3,
+    "mix": {
+     "Melody": 104,
+     "Hook": 79,
+     "Piano": 77,
+     "Arp": 50,
+     "Pad": 71,
+     "Strings": 77,
+     "Bass": 94,
+     "Glock": 73,
+     "Perc": 73
+    }
+   },
+   "mode": "minor"
+  },
+  {
+   "name": "Outro",
+   "bars": 8,
+   "chords": ["Dsus4", "Gm7", "Gm7", "A7", "Dsus4", "Gm7", "Dsus4", "Gm7"],
+   "melody": "outro",
    "arr": {
     "bass": true,
     "perc": 0,
@@ -297,19 +280,18 @@
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 0,
+    "density": 2,
     "mix": {
-     "Melody": 50,
-     "Hook": 38,
-     "Piano": 37,
-     "Arp": 24,
-     "Pad": 34,
-     "Strings": 37,
-     "Bass": 45,
-     "Glock": 35,
-     "Perc": 35
-    },
-    "hook": false
+     "Melody": 100,
+     "Hook": 76,
+     "Piano": 74,
+     "Arp": 48,
+     "Pad": 68,
+     "Strings": 74,
+     "Bass": 90,
+     "Glock": 70,
+     "Perc": 70
+    }
    },
    "mode": "minor"
   }
