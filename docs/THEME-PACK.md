@@ -60,8 +60,9 @@
 
 1. `bpm` = 包里速度中位；`meter`/`style`/`patterns.bass_style/perc_style` 取包
 2. 段落 = `form.plan`；和弦 = 主进行循环铺满（非 A 段换起点做变化）
-3. 编制 = 引擎预设打底 + `arr_on/arr_off` 覆盖；**`perc` 永远是 1**
-   （`perc_style=light` + `perc=1` 是"无鼓组但保住 5–18kHz"的唯一正解）
+3. 编制 = 引擎预设打底 + `arr_on/arr_off` 覆盖；**`perc` 我们约定用 1**（不是引擎强制）
+   （`perc_style=light` + `perc=1` 是"无鼓组但保住 5–18kHz"的正解 ——
+   `perc: none` 会把这档**唯一**的高频来源一起关掉）
 3.5 **音色** = `arrangement.prog_pool`（由 `extract_theme_timbres.py --inject` 写入），
    逐键覆盖 `STYLES[engine_style].programs` —— 生成**不再只套 5 套预设**：实测模板的实际
    音色远超预设（`classic` 有管钟 14／双簧管 68，`battle` 有排箫 75／钢弦吉他 25，

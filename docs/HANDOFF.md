@@ -70,7 +70,8 @@
    （本轮 `avoid_lead` 第一版就是这样：`ch_all` 的键是**和弦标识**不是小节号，查表永远落空）。
    → `PITFALLS.md` 200。
 7. 🆕 **改包络类判据前先问"这个窗口的能量是谁发出来的"**（新起音 / 持续音 / 混响尾巴）
-   —— 段末压力度对 `section_transition` **完全无效**、段首才有效。→ `PITFALLS.md` 201。
+   —— 段末压"新起音的力度"在我试的那组参数下没动读数、段首才有效
+   （⚠ 别读成"段末原理上无解"，我只试了一种窗口与幅度）。→ `PITFALLS.md` 201。
 8. 🆕 **临时脚本别落在 `scripts/`** —— 自检把 `scripts/*.py` 全当入口脚本扫，
    凭空多两条 FAIL（`import_all` / `console_encoding_safe`）。落仓库外，如 `D:\test\`。→ `PITFALLS.md` 202。
 

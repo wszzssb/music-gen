@@ -118,7 +118,8 @@ DSH 插件注册表快照（当时工具链还没有 git，只能靠手工归档
 > **给另一个对话 / 接手的人**：渲染管线已提速 3.5×，**接口有两处行为变化**：
 > ① `make_song` 只在**定稿**写 `.ogg`（中间轮次只有 `.wav`）；
 > ② `render_midi.render()` 多了 `ogg=` 开关，并新增 `render_midi.encode_ogg(out_base)`。
-> **长曲（>3 分钟）一律后台跑** —— 前台 120s 上限会把 autotune 杀在半路并留下 `*.raw.wav`。
+> **长曲（>3 分钟）走后台跑** —— **当时**前台 120s 上限会把 autotune 杀在半路并留下 `*.raw.wav`
+> （上限若调整，这条要跟着复核）。
 > 另：5 分钟的歌仍在 README 记录的"未验证区间"（>3 分钟未测）；这一轮只证明它**更快、数值不变**，
 > **不证明它更好听**。
 
@@ -730,7 +731,7 @@ A 组 7/17·15/17、B 组 1/23·3/23 不变；自检 79/79、变异 **78/78**。
 聚合产物：`refs/themes/<主题>.json`（含**模板清单 + 逐首来源 URL**）+ `<主题>_melody.json`（喂 melody_gen）。
 
 **生成路径**（`new_song.py --theme <主题>`）：模板包 → song.json 的 bpm/meter/style/段落/和弦/
-编制（`arr_on`/`arr_off`/`arr_maybe` 三档；**perc 永远 =1**，按技能"perc=none 会让 5–18kHz 塌掉"）
+编制（`arr_on`/`arr_off`/`arr_maybe` 三档；**perc 约定 =1**，按技能"perc=none 会让 5–18kHz 塌掉"）
 → 跑 melody_gen（画像 = 主题旋律画像，密度取 MIDI 精确值、不再乘 F0 补偿系数）→
 把"依据了哪几首模板"写进 song.json 的 `theme` 字段。老 `--from <现成曲目>` 仍可用，但会写
 `basis.kind=copied_song` 留痕，`check_song` 判为"依据不合规"（用户口径：不许拿自己做的曲子当模板）。
