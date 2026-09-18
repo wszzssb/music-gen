@@ -1,4 +1,4 @@
-# 7_hidden_door（主题模板包：mystery / 神秘）
+# 07_hidden_door（主题模板包：mystery / 神秘）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py mystery        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 7_hidden_door --theme mystery --seed 7
-& $py scripts\make_song.py 7_hidden_door --check
+& $py scripts\new_song.py 07_hidden_door --theme mystery --seed 7
+& $py scripts\make_song.py 07_hidden_door --check
 ```
 
 ## 还没验证什么

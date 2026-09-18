@@ -1,4 +1,4 @@
-# 8_smoke_jazz（主题模板包：lounge / 酒馆爵士）
+# 08_smoke_jazz（主题模板包：lounge / 酒馆爵士）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py lounge        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 8_smoke_jazz --theme lounge --seed 7
-& $py scripts\make_song.py 8_smoke_jazz --check
+& $py scripts\new_song.py 08_smoke_jazz --theme lounge --seed 7
+& $py scripts\make_song.py 08_smoke_jazz --check
 ```
 
 ## 还没验证什么

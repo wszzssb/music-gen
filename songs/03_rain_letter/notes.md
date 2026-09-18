@@ -1,4 +1,4 @@
-# 3_rain_letter（主题模板包：sorrow / 悲伤）
+# 03_rain_letter（主题模板包：sorrow / 悲伤）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py sorrow        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 3_rain_letter --theme sorrow --seed 7
-& $py scripts\make_song.py 3_rain_letter --check
+& $py scripts\new_song.py 03_rain_letter --theme sorrow --seed 7
+& $py scripts\make_song.py 03_rain_letter --check
 ```
 
 ## 还没验证什么

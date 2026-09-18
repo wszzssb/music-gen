@@ -82,6 +82,74 @@ def cc7_at(level, delta_db):
 ENERGY_GAIN = 1.0
 
 
+# 各 GM 音色在 **2.5–5kHz 的实测电平**（`probe_timbre.probe_programs` 量：150BPM、
+# 两小节固定乐句、**raw 未归一化**）。跨度 **34dB**（电钢 15.5 → 失真吉他 49.8）——
+# 这就是用户"有些配合还是不好"的物理来源：`arr.mix` 是按**轨名**写死的，换了音色不调
+# 电平，轨间平衡就全乱。实测吻合：钢弦吉他 25(48.8) − 长笛 73(29.7) = **19.1dB**，
+# 而守卫在 01/04 上量到 19.2 / 21.0dB（门限 +6dB）。
+# 未列出的音色 → 不补偿（宁可不动，也不按猜测乱调）。
+HF_LEVEL = {30: 49.8, 25: 48.8, 81: 45.2, 29: 44.5, 27: 41.0, 46: 40.9,
+            71: 40.0, 80: 39.1, 75: 35.8, 24: 35.3, 26: 34.2, 73: 29.7,
+            0: 23.1, 8: 22.1, 11: 22.1, 13: 21.8, 4: 15.5}
+
+
+# **CC7 平移量 → 该频段实测 dB 的比例**（实测标定，2026-09-18）：给 Hook 写 −12dB 的
+# CC7 平移（78→39）实测只让它 2.5–5kHz 电平降 **5.8dB**（34.8→29.0）= **0.49 倍**。
+# `cc7_at` 走的是 GM 凹曲线，与"频段电平"不是同一尺度 —— 不换算就会每次都差一半。
+HF_CC7_K = 0.49
+
+
+def hf_balance(progs, gap=6.0, margin=5.0, cap=40.0):
+    """按音色实测高频电平算**伴奏轨**该平移多少 dB（返回 {轨名: 负 dB}）
+
+    为什么必须做（2026-09-18）：音色改成按主题模板取真值后，`track_balance` 立刻在
+    01/04 上超标 19~21dB —— 模板把 Hook 给了**钢弦吉他**(48.8)，主奏是**长笛**(29.7)，
+    两者 2.5–5kHz 差 19.1dB。**保留模板音色、补电平**，而不是把音色换回预设 ——
+    换回去等于把"乐器选择像不像"的成果扔掉（用户那条判据要的正是模板音色）。
+
+    目标：伴奏轨 ≤ `Melody + gap − margin`（留 3dB 余量，免得压着门限走）。
+    **只降不抬**：抬高伴奏会把整曲推响，那是另一个问题。
+
+    ⚠ **`cap` 为什么是 26 而不是 12**（实测标定）：CC7 平移的 dB 与"该轨 2.5–5kHz 实测
+      电平"**不是同一尺度** —— 给 Hook 写 −12dB（CC7 78→39）实测只降了 **5.8dB**
+      （34.8→29.0），约 **0.48 倍**。所以按需降量反推，cap 要放到两倍以上。
+    """
+    mel = progs.get('Melody')
+    if not mel or mel[0] not in HF_LEVEL:
+        return {}
+    lim = HF_LEVEL[mel[0]] + gap - margin
+    out = {}
+    for tr in ('Hook', 'Arp', 'Strings', 'Pad', 'Piano'):
+        v = progs.get(tr)
+        if not v or v[0] not in HF_LEVEL:
+            continue
+        over = HF_LEVEL[v[0]] - lim
+        if over > 0.5:                      # 半 dB 以内不值得写
+            # 按 `HF_CC7_K` 反推写入量：`over` 是"该频段实际高出多少 dB"，
+            # 而 mix 写的是 CC7 平移量，两者差 2 倍（见常量处的实测标定）。
+            out[tr] = -min(over / HF_CC7_K, cap)
+    return out
+
+
+def apply_hf_balance(secs, progs, style):
+    """把 `hf_balance` 的补偿**叠加**到每段的 `arr.mix`（值 = 单整数 CC7）
+
+    ⚠ 只能调一次：它是在**当前值**上按 dB 平移，调两次会在已改过的值上再乘一遍。
+    """
+    import song_engine
+    comp = hf_balance(progs)
+    if not comp:
+        return {}
+    preset_mix = (song_engine.STYLES.get(style) or {}).get('mix') or {}
+    for sec in secs:
+        mix = sec['arr'].setdefault('mix', {})
+        for tr, db in comp.items():
+            ent = preset_mix.get(tr)
+            base = mix[tr] if tr in mix else (int(ent[1]) if ent else 100)
+            mix[tr] = cc7_at(int(base), db)
+    return comp
+
+
 def auto_render_params(ref):
     """按参考曲画像推算渲染参数（用户不用手调就能落在附近）"""
     bands = ref.get('bands', {})
@@ -175,6 +243,15 @@ SLOW_ATTACK = frozenset(list(range(16, 24)) + list(range(40, 52))
 # 不是拨弦**（守卫第一次跑就抓到 daily 的 uku 池首位是 111）—— 弓弦/簧管塞进分解
 # 和弦轨会明显不像。104-108（西塔/班卓/三味线/古筝/拇指琴）是拨弦，保留。
 NOT_PLUCK = frozenset([109, 110, 111])
+# Hook（分解和弦）轨**不用** 2.5–5kHz 极响的音色：吉他族的钢弦 25(48.8) / 清音 27(41.0)
+# / 过载 29(44.5) / 失真 30(49.8) 与锯齿主音 81(45.2) 都比主奏（长笛 29.7）高 11~20dB
+# —— 而 CC7 压到下限也只降约 12dB，压不平，只能把伴奏压没。
+# 用户 2026-09-18 的选择：**换音色**，而不是"把伴奏压到听不见"。
+HOOK_HF_MAX = 41.0
+# Hook 池被筛空时往**同主题的其它声部池**找 —— 池里每个音色都是该主题模板里**真实出现过**
+# 的，所以仍算"按模板选"，不是回落到 5 套风格预设（daily 的 uku 池只有 [25, 111, 30]，
+# 筛完为空 → 落到同主题 piano 池的 0 钢琴）。
+HOOK_POOLS = ('uku', 'piano', 'glock', 'ep', 'pad')
 
 
 def theme_programs(pack, pick=0, verbose=False):
@@ -196,11 +273,20 @@ def theme_programs(pack, pick=0, verbose=False):
     pool = (pack.get('arrangement') or {}).get('prog_pool') or {}
     out = {}
     for key, track in POOL_TO_TRACK:
-        cands = [int(p) for p in (pool.get(key) or []) if 0 <= int(p) <= 95]
-        if track == 'Melody':            # 主奏不许慢起音（见 SLOW_ATTACK）
-            cands = [p for p in cands if p not in SLOW_ATTACK]
-        elif track == 'Hook':            # 分解和弦轨不许弓弦/簧管（见 NOT_PLUCK）
-            cands = [p for p in cands if p not in NOT_PLUCK]
+        # Hook 的候选按 `HOOK_POOLS` 依次拼（uku 优先，空了往同主题的键盘/拨弦池找）
+        keys = HOOK_POOLS if track == 'Hook' else (key,)
+        cands = []
+        for k in keys:
+            for _v in (pool.get(k) or []):
+                p = int(_v)
+                if not (0 <= p <= 95) or p in cands:
+                    continue
+                if track == 'Melody' and p in SLOW_ATTACK:
+                    continue                  # 主奏不许慢起音（见 SLOW_ATTACK）
+                if track == 'Hook' and (p in NOT_PLUCK
+                                        or HF_LEVEL.get(p, 30.0) > HOOK_HF_MAX):
+                    continue                  # 分解和弦不许弓弦/簧管、不许极响吉他
+                cands.append(p)
         if not cands:
             continue
         out[track] = (cands[min(pick, len(cands) - 1)], song_engine.CH[track])
@@ -613,6 +699,12 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     for _s in secs:
         if song_engine.role_of_section(_s['name']) == 'intro' and _s['bars'] >= 4:
             _s['arr']['perc_in'] = 2
+    # **音色平衡补偿**：音色按模板真值取用后，轨间高频平衡必须跟着调（见 `hf_balance`）。
+    # 放在 `d` 组装前、`energy_mix` 之后 —— 段间曲线先写，补偿再叠加，互不覆盖。
+    _hb = apply_hf_balance(secs, theme_programs(pack), pack.get('engine_style'))
+    if _hb:
+        print('  音色平衡补偿（按 2.5-5kHz 实测）：%s'
+              % ' · '.join('%s %+.1fdB' % (k, v) for k, v in sorted(_hb.items())))
     d = {'name': short,
          'bpm': float((pack.get('bpm') or {}).get('median') or 120.0),
          'meter': list(pack.get('meter') or [4, 4]),
@@ -774,7 +866,8 @@ def dry_compose(song_json):
         return False
 
 
-def theme_mode(new, theme, ref_name=None, seed=7, ncand=4, energy_gain=None):
+def theme_mode(new, theme, ref_name=None, seed=7, ncand=4, energy_gain=None,
+                force=False):
     """`--theme` 路径：按主题模板包生成一首新歌"""
     import theme_pack as tp
     pack = tp.load_pack(theme)
@@ -787,8 +880,20 @@ def theme_mode(new, theme, ref_name=None, seed=7, ncand=4, energy_gain=None):
     short = new.split('_', 1)[1] if '_' in new else new
     dst = os.path.join(SONGS, new)
     if os.path.exists(dst):
-        print('已存在: %s' % dst)
-        return 1
+        if not force:
+            # ⚠ 这里**必须说清"什么都没做"**：旧版只打印一句"已存在"就退出，照字面读不出
+            #   "引擎改了也不会进这首曲子" —— 2026-09-18 我加了音色平衡补偿后重跑，看输出
+            #   以为生效了，实际 `song.json` 一字未动、`track_balance` 数值也一字未变
+            #   （`make_song` 渲染的是旧 `song.json`）。
+            print('已存在：%s' % dst)
+            print('  ⚠ **未做任何修改** —— 引擎/参数改了也不会进这首曲子。')
+            print('    按当前引擎重生成：python scripts\\new_song.py %s --theme %s --force'
+                  % (new, theme))
+            print('    `--force` 删旧重建；**改完还必须跑 make_song 重渲染**，'
+                  '否则 .mid/.ogg 仍是旧的。')
+            return 1
+        print('  --force：删掉旧目录重建 %s' % new)
+        shutil.rmtree(dst)
     os.makedirs(dst)
     data = build_from_theme(pack, short, seed=seed, ncand=ncand, energy_gain=energy_gain)
     song_json = os.path.join(dst, 'song.json')
@@ -975,9 +1080,10 @@ def main():
         if '--candidates' in sys.argv else 4
     egain = float(sys.argv[sys.argv.index('--energy-gain') + 1]) \
         if '--energy-gain' in sys.argv else None
+    force = '--force' in sys.argv
     if theme:
         return theme_mode(new, theme, ref_name=ref_name, seed=seed, ncand=ncand,
-                          energy_gain=egain)
+                          energy_gain=egain, force=force)
     style = sys.argv[sys.argv.index('--style') + 1] if '--style' in sys.argv else None
     sec_name = (sys.argv[sys.argv.index('--from-sections') + 1]
                 if '--from-sections' in sys.argv else None)
@@ -997,8 +1103,13 @@ def main():
     short = new.split('_', 1)[1] if '_' in new else new
     dst = os.path.join(SONGS, new)
     if os.path.exists(dst):
-        print('已存在: %s' % dst)
-        return 1
+        if not force:
+            print('已存在：%s' % dst)
+            print('  ⚠ **未做任何修改** —— 要重建加 `--force`（会删旧目录）；'
+                  '改完还必须跑 make_song 重渲染。')
+            return 1
+        print('  --force：删掉旧目录重建 %s' % new)
+        shutil.rmtree(dst)
     os.makedirs(dst)
 
     # --- 参考曲画像

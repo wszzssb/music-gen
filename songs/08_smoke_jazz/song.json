@@ -6,7 +6,7 @@
  "style": "acoustic",
  "programs": {
   "Melody": [65, 0],
-  "Hook": [30, 1],
+  "Hook": [0, 1],
   "Piano": [0, 2],
   "Strings": [62, 5],
   "Bass": [33, 6]

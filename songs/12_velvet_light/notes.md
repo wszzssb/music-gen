@@ -1,4 +1,4 @@
-# 2_velvet_light（主题模板包：gorgeous / 华丽）
+# 12_velvet_light（主题模板包：gorgeous / 华丽）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py gorgeous        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 2_velvet_light --theme gorgeous --seed 7
-& $py scripts\make_song.py 2_velvet_light --check
+& $py scripts\new_song.py 12_velvet_light --theme gorgeous --seed 7
+& $py scripts\make_song.py 12_velvet_light --check
 ```
 
 ## 还没验证什么

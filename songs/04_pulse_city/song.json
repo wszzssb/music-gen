@@ -6,7 +6,7 @@
  "style": "dance",
  "programs": {
   "Melody": [73, 0],
-  "Hook": [29, 1],
+  "Hook": [27, 1],
   "Piano": [0, 2],
   "Strings": [48, 5],
   "Pad": [90, 4],
@@ -79,7 +79,7 @@
     "density": 1,
     "mix": {
      "Melody": 92,
-     "Hook": 73,
+     "Hook": 20,
      "Piano": 69,
      "Arp": 54,
      "Pad": 62,
@@ -112,7 +112,7 @@
     "density": 1,
     "mix": {
      "Melody": 97,
-     "Hook": 77,
+     "Hook": 22,
      "Piano": 73,
      "Arp": 58,
      "Pad": 66,
@@ -145,7 +145,7 @@
     "density": 2,
     "mix": {
      "Melody": 102,
-     "Hook": 81,
+     "Hook": 23,
      "Piano": 77,
      "Arp": 60,
      "Pad": 69,
@@ -178,7 +178,7 @@
     "density": 0,
     "mix": {
      "Melody": 103,
-     "Hook": 82,
+     "Hook": 23,
      "Piano": 78,
      "Arp": 61,
      "Pad": 70,
@@ -211,7 +211,7 @@
     "density": 3,
     "mix": {
      "Melody": 103,
-     "Hook": 82,
+     "Hook": 23,
      "Piano": 78,
      "Arp": 61,
      "Pad": 70,
@@ -244,7 +244,7 @@
     "density": 2,
     "mix": {
      "Melody": 86,
-     "Hook": 69,
+     "Hook": 19,
      "Piano": 65,
      "Arp": 51,
      "Pad": 58,

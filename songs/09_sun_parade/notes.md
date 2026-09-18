@@ -1,4 +1,4 @@
-# 9_sun_parade（主题模板包：cheerful / 欢快）
+# 09_sun_parade（主题模板包：cheerful / 欢快）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py cheerful        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 9_sun_parade --theme cheerful --seed 7
-& $py scripts\make_song.py 9_sun_parade --check
+& $py scripts\new_song.py 09_sun_parade --theme cheerful --seed 7
+& $py scripts\make_song.py 09_sun_parade --check
 ```
 
 ## 还没验证什么

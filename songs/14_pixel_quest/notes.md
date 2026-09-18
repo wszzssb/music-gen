@@ -1,4 +1,4 @@
-# 4_pixel_quest（主题模板包：retro / 复古游戏）
+# 14_pixel_quest（主题模板包：retro / 复古游戏）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py retro        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 4_pixel_quest --theme retro --seed 7
-& $py scripts\make_song.py 4_pixel_quest --check
+& $py scripts\new_song.py 14_pixel_quest --theme retro --seed 7
+& $py scripts\make_song.py 14_pixel_quest --check
 ```
 
 ## 还没验证什么

@@ -1,4 +1,4 @@
-# _pulse_city（主题模板包：neon / 霓虹电子）
+# 04_pulse_city（主题模板包：neon / 霓虹电子）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py neon        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py _pulse_city --theme neon --seed 7
-& $py scripts\make_song.py _pulse_city --check
+& $py scripts\new_song.py 04_pulse_city --theme neon --seed 7
+& $py scripts\make_song.py 04_pulse_city --check
 ```
 
 ## 还没验证什么

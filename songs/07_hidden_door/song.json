@@ -6,6 +6,7 @@
  "style": "gorgeous",
  "programs": {
   "Melody": [69, 0],
+  "Hook": [0, 1],
   "Piano": [0, 2],
   "Strings": [47, 5],
   "Pad": [95, 4],

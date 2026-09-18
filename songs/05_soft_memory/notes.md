@@ -1,4 +1,4 @@
-# 5_soft_memory（主题模板包：tender / 温柔抒情）
+# 05_soft_memory（主题模板包：tender / 温柔抒情）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py tender        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 5_soft_memory --theme tender --seed 7
-& $py scripts\make_song.py 5_soft_memory --check
+& $py scripts\new_song.py 05_soft_memory --theme tender --seed 7
+& $py scripts\make_song.py 05_soft_memory --check
 ```
 
 ## 还没验证什么

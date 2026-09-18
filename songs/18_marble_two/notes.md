@@ -1,4 +1,4 @@
-# 8_marble_two（主题模板包：classic / 古典庄重）
+# 18_marble_two（主题模板包：classic / 古典庄重）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py classic        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 8_marble_two --theme classic --seed 33
-& $py scripts\make_song.py 8_marble_two --check
+& $py scripts\new_song.py 18_marble_two --theme classic --seed 33
+& $py scripts\make_song.py 18_marble_two --check
 ```
 
 ## 还没验证什么

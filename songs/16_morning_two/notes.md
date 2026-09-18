@@ -1,4 +1,4 @@
-# _morning_two（主题模板包：daily / 日常）
+# 16_morning_two（主题模板包：daily / 日常）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py daily        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py _morning_two --theme daily --seed 21
-& $py scripts\make_song.py _morning_two --check
+& $py scripts\new_song.py 16_morning_two --theme daily --seed 21
+& $py scripts\make_song.py 16_morning_two --check
 ```
 
 ## 还没验证什么

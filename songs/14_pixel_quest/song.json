@@ -6,7 +6,7 @@
  "style": "dance",
  "programs": {
   "Melody": [80, 0],
-  "Hook": [29, 1],
+  "Hook": [2, 1],
   "Piano": [2, 2],
   "Strings": [56, 5],
   "Pad": [90, 4],

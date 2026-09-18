@@ -1,4 +1,4 @@
-# 2_wave_walk（主题模板包：seaside / 海边）
+# 02_wave_walk（主题模板包：seaside / 海边）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py seaside        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 2_wave_walk --theme seaside --seed 7
-& $py scripts\make_song.py 2_wave_walk --check
+& $py scripts\new_song.py 02_wave_walk --theme seaside --seed 7
+& $py scripts\make_song.py 02_wave_walk --check
 ```
 
 ## 还没验证什么

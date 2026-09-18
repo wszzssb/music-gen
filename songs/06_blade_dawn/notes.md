@@ -1,4 +1,4 @@
-# 6_blade_dawn（主题模板包：battle / 战斗）
+# 06_blade_dawn（主题模板包：battle / 战斗）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py battle        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 6_blade_dawn --theme battle --seed 7
-& $py scripts\make_song.py 6_blade_dawn --check
+& $py scripts\new_song.py 06_blade_dawn --theme battle --seed 7
+& $py scripts\make_song.py 06_blade_dawn --check
 ```
 
 ## 还没验证什么

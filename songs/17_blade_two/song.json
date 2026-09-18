@@ -6,7 +6,7 @@
  "style": "dance",
  "programs": {
   "Melody": [75, 0],
-  "Hook": [25, 1],
+  "Hook": [28, 1],
   "Piano": [4, 2],
   "Strings": [48, 5],
   "Glock": [11, 7],

@@ -6,7 +6,7 @@
  "style": "ballad",
  "programs": {
   "Melody": [73, 0],
-  "Hook": [25, 1],
+  "Hook": [24, 1],
   "Piano": [0, 2],
   "Strings": [48, 5],
   "Pad": [94, 4],
@@ -100,7 +100,10 @@
     "shimmer": false,
     "density": 1,
     "perc_in": 2,
-    "melody_prog": 73
+    "melody_prog": 73,
+    "mix": {
+     "Hook": 43
+    }
    },
    "mode": "major"
   },
@@ -122,7 +125,10 @@
     "ep": false,
     "shimmer": false,
     "density": 1,
-    "melody_prog": 0
+    "melody_prog": 0,
+    "mix": {
+     "Hook": 43
+    }
    },
    "mode": "major"
   },
@@ -144,7 +150,10 @@
     "glock_all": false,
     "shimmer": false,
     "density": 2,
-    "melody_prog": 13
+    "melody_prog": 13,
+    "mix": {
+     "Hook": 43
+    }
    },
    "mode": "major"
   },
@@ -166,7 +175,10 @@
     "glock_all": false,
     "shimmer": false,
     "density": 0,
-    "melody_prog": 8
+    "melody_prog": 8,
+    "mix": {
+     "Hook": 43
+    }
    },
    "mode": "major"
   },
@@ -188,7 +200,10 @@
     "ep": false,
     "shimmer": false,
     "density": 2,
-    "melody_prog": 0
+    "melody_prog": 0,
+    "mix": {
+     "Hook": 43
+    }
    },
    "mode": "major"
   },
@@ -210,7 +225,10 @@
     "glock_all": false,
     "shimmer": true,
     "density": 2,
-    "melody_prog": 13
+    "melody_prog": 13,
+    "mix": {
+     "Hook": 43
+    }
    },
    "mode": "major"
   },
@@ -233,7 +251,10 @@
     "shimmer": false,
     "density": 3,
     "ending_fade": 3,
-    "melody_prog": 4
+    "melody_prog": 4,
+    "mix": {
+     "Hook": 43
+    }
    },
    "mode": "major"
   }

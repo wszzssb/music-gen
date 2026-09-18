@@ -1,4 +1,4 @@
-# _midnight_drift（主题模板包：night / 夜晚）
+# 13_midnight_drift（主题模板包：night / 夜晚）
 
 | 项目 | 值 |
 |---|---|
@@ -51,8 +51,8 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py night        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py _midnight_drift --theme night --seed 7
-& $py scripts\make_song.py _midnight_drift --check
+& $py scripts\new_song.py 13_midnight_drift --theme night --seed 7
+& $py scripts\make_song.py 13_midnight_drift --check
 ```
 
 ## 还没验证什么

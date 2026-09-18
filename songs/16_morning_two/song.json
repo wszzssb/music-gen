@@ -6,7 +6,7 @@
  "style": "daily",
  "programs": {
   "Melody": [73, 0],
-  "Hook": [25, 1],
+  "Hook": [0, 1],
   "Piano": [0, 2],
   "Strings": [48, 5],
   "Pad": [94, 4],
