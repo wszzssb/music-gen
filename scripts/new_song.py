@@ -1147,8 +1147,14 @@ def main():
         if '--energy-gain' in sys.argv else None
     force = '--force' in sys.argv
     if theme:
-        return theme_mode(new, theme, ref_name=ref_name, seed=seed, ncand=ncand,
-                          energy_gain=egain, force=force)
+        rc = theme_mode(new, theme, ref_name=ref_name, seed=seed, ncand=ncand,
+                        energy_gain=egain, force=force)
+        # ⚠ **挂曲库必须跟着 `theme_mode` 的出口**：main 末尾那处调用**走不到这里**
+        #   —— `--theme` 路径在下面这样一行就 return 了。第一版我把调用写在 main 末尾，
+        #   实测 3 首变体全是 404、日志里也没有"已挂面板曲库"（加了 ≠ 生效）。
+        if rc == 0:
+            link_to_studio_lib(new, os.path.join(SONGS, new))
+        return rc
     style = sys.argv[sys.argv.index('--style') + 1] if '--style' in sys.argv else None
     sec_name = (sys.argv[sys.argv.index('--from-sections') + 1]
                 if '--from-sections' in sys.argv else None)
