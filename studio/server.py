@@ -1034,16 +1034,53 @@ class Handler(BaseHTTPRequestHandler):
                 # 老 `--from <现成曲目>` 仍可用，但它会被 check_song 判为"依据不合规"。
                 theme = (body.get('theme') or '').strip()
                 src = (body.get('from') or '').strip()
+                # **重生成（覆盖）**：`--force`，2026-09-18 补。没有它时 `new_song` 碰到同名
+                # 目录只打印一句"已存在"就退出，而面板照样回 `ok:true` —— 用户以为重新生成
+                # 成功了，其实 `song.json` 一字未动（引擎改了也不会进这首曲子；实测害我白调
+                # 两轮参数）。面板是"改完立刻再生成一版"的主场景，这个开关必须有。
+                force = bool(body.get('force') or body.get('overwrite'))
+                seed = body.get('seed')
                 if theme:
                     args = ['scripts/new_song.py', nid, '--theme', theme]
                 else:
-                    src = src or '05_d135_cheerful'
+                    if not src:
+                        # 老默认写死 `05_d135_cheerful`，那首早就不在库里了 → 静默失败
+                        cand = [s['id'] for s in songs_list() if s.get('mids')]
+                        src = cand[0] if cand else ''
+                    if not src:
+                        return self._err('没给 theme，也没有能当模板的曲目'
+                                         '（新歌请用 theme，见 --list-themes）')
                     args = ['scripts/new_song.py', nid, '--from', src,
                             '--style', (body.get('style') or 'daily')]
+                if seed not in (None, ''):
+                    try:
+                        args += ['--seed', str(int(seed))]
+                    except (TypeError, ValueError):
+                        return self._err('seed 要是整数（例：7 / 21）')
+                if force:
+                    args.append('--force')
                 args += ['--ref', ref]
                 rc, out = run_py(args, timeout=300)
+                # 同名目录会让 `new_song` 拒绝（只打印"已存在"）。面板的生成场景几乎总是
+                # "改完引擎再来一版"，所以**自动补一次 `--force` 重试**，并把 `force: true`
+                # 写回响应 —— 用户才不会以为"什么都没发生"。
+                if rc != 0 and '已存在' in (out or '') and not force:
+                    force = True
+                    args.append('--force')
+                    rc, out = run_py(args, timeout=300)
+                # **`--force` 之后必须重渲染**：它只重建 `song.json`，`.mid`/`.ogg` 还是旧的
+                # （官方口径："改了引擎 ⇒ 重生成 + 重渲染，两步缺一不可"）。面板在这条路径上
+                # 默认顺手渲染，省掉"生成完忘了渲染、听到的还是上一版"这个高频坑。
+                rrc, rout = None, ''
+                do_render = body.get('render')
+                if do_render is None:
+                    do_render = bool(force)
+                if rc == 0 and do_render:
+                    rrc, rout = run_py(['scripts/make_song.py', nid], timeout=600)
                 return self._json({'ok': rc == 0, 'rc': rc, 'log': out[-3000:],
-                                   'id': nid, 'theme': theme, 'from': src, 'ref': ref})
+                                   'id': nid, 'theme': theme, 'from': src, 'ref': ref,
+                                   'force': force, 'seed': seed,
+                                   'render_rc': rrc, 'render_log': (rout or '')[-1500:]})
             if u.path == '/api/stop':
                 return self._stop_job((q.get('id') or [''])[0])
             if u.path == '/api/check':
