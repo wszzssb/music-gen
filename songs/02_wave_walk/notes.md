@@ -29,21 +29,7 @@
 
 ## 频谱对齐画像（**不是模板**，只用于混音对标）
 
-- **seaside_mix**：6 份真实录音画像的**逐维度中位数**（多方参考，见坑 132）
-  —— 响度 -16.9 dBFS · 宽度 0.369 · 质心 3284Hz
-
-| 成员参考 | 评分 | 质心 | 来源 |
-|---|---|---|---|
-| `bgm01c` | 0.911 | 3284 | 项目素材包 Bgm（同批提取的 galgame 商业 BGM）（bgm01c.ogg） |
-| `BGM06` | 0.808 | 1533 | 项目素材包 Bgm（同批提取的 galgame 商业 BGM）（BGM06.ogg） |
-| `BGM15c` | 0.803 | 3338 | 项目素材包 Bgm（同批提取的 galgame 商业 BGM）（BGM15c.ogg） |
-| `BGM04` | 0.694 | 2281 | 项目素材包 Bgm（同批提取的 galgame 商业 BGM）（BGM04.ogg） |
-| `BGM18` | 0.689 | 2043 | 项目素材包 Bgm（同批提取的 galgame 商业 BGM）（BGM18.ogg） |
-| `fine_BGM09` | 0.664 | 3695 | 仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）（<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg） |
-
-> 来源结构：`source` 支持 `kind='file'`（项目素材包，带文件名）与
-> `kind='web'`（网络权威源，带 `url`/`license`）—— 混音参考**必须可溯源**，
-> 守卫 `mix_target_aggregate` 会要求每份成员都有 `source`。
+- BGM01：响度 -17.1 dBFS · 宽度 0.478 · 质心 2810Hz
 
 ## 复现
 
