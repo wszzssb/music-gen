@@ -29,5 +29,12 @@ for src, name in SRC:
     print('  %-16s → docs/HOST-DOCS/%-16s (%d 字节)' % (name, name, len(txt)))
 
 # 同步脚本也留一份，免得下次又靠手抄
-shutil.copyfile(os.path.abspath(__file__), os.path.join(DST, 'sync_host_docs.py'))
-print('  sync_host_docs.py → docs/HOST-DOCS/（下次直接跑它）')
+# ⚠ 从备份目录里跑时**源 == 目标** → `shutil.SameFileError`（2026-09-18 实测踩到：
+#   三份备份都写成功了、脚本却在最后一步 rc=1，看起来像"同步失败"）。
+_src = os.path.abspath(__file__)
+_dst = os.path.join(DST, 'sync_host_docs.py')
+if os.path.normcase(_src) != os.path.normcase(_dst):
+    shutil.copyfile(_src, _dst)
+    print('  sync_host_docs.py → docs/HOST-DOCS/（下次直接跑它）')
+else:
+    print('  sync_host_docs.py 就在备份目录里跑 —— 跳过自拷贝（本来就是同一份）')
