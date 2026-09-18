@@ -1334,7 +1334,8 @@ def onset_tvd(mel, prof):
     return 0.5 * sum(abs(h.get(k, 0) / tot - (P.get(str(k), 0) / pt)) for k in keys)
 
 
-def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0.0):
+def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0.0,
+               form_pen=0.0):
     """候选打分（**越小越好**）：以"不像库里已有旋律"为主，级进偏好为次（opt-in）。
 
     抽成独立函数有两个原因：① `mutation_check` 的注入机制是**改内存里的模块属性**，
@@ -1345,9 +1346,31 @@ def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0
     `step_bias × stepwise` 最多 1（`step_bias` 默认 1.0），所以级进偏好**不会盖过**
     "去重"这个主要目标，但足以在同分候选之间改变选择（实测 44% → 68%）。
     `onset_dist`（落点分布与画像的 TVD，0~1）同量级，理由见 `onset_tvd`。
+
+    **`form_pen`（2026-09-18 新增，opt-in）**：把守卫一直在报的**形态判据**折算成罚分
+    —— 末落点 `last8`、小节内空档 `maxgap_med`、格 0 占比 `g0`、以及**跳后反向率**。
+    为什么必须加：候选原先只看"去重 + 级进 + 落点分散"，于是**选出来的那条形态可能一直
+    不达标**（实测 18 首里 5 项守卫常年 FAIL：小步 38%、跳后反向 21~33%、空档 2.75 拍、
+    末落点 50%）。这些都是**同一批候选里可比较**的量，接进打分即可 —— 不改生成逻辑，
+    只改"挑哪条"，风险最小。`form_pen=0` 时与旧版逐字一致。
     """
     return (shape_share * 2.0 + lang_share + clash * 0.5
-            - step_bias * stepwise + onset_dist)
+            - step_bias * stepwise + onset_dist + form_pen)
+
+
+def form_penalty(fs, ms):
+    """形态罚分（0 = 全达标）。阈值与守卫同源：`FORM_MIN_LAST8 / FORM_MAX_GAP_MED /
+    FORM_MAX_G0`（见 `selftest`）与跳后反向门 0.50（`melody_motif_rules`）。"""
+    pen = 0.0
+    if fs:
+        pen += max(0.0, 0.65 - fs.get('last8', 1.0)) * 3.0      # 末落点不够靠后
+        pen += max(0.0, fs.get('maxgap_med', 0.0) - 1.70) * 0.8  # 小节内空档过大
+        pen += max(0.0, fs.get('g0', 0.0) - 0.22) * 2.0          # 都砸第 1 拍
+    la = (ms or {}).get('leap_after') or 0
+    lr = (ms or {}).get('leap_reverse') or 0
+    if la:
+        pen += max(0.0, 0.50 - lr / la) * 2.0                    # 跳后不反向
+    return pen
 
 
 def main():
@@ -1447,12 +1470,19 @@ def main():
         sc = _distinct(alln, lib) if lib else (0.0, 0.0)
         sw = stepwise_pct(mel)
         ot = onset_tvd(mel, prof)          # 落点格分布与画像的距离（0 = 一致）
+        # 形态判据（守卫同源）：末落点/空档/格0 + 跳后反向 → 折成罚分参与挑候选
+        fs = form_stats(mel, d['sections']) or {}
+        try:
+            ms = motif_stats(mel, d['sections'], chords, tonic) or {}
+        except Exception:                                        # noqa: BLE001
+            ms = {}
+        fp = form_penalty(fs, ms)
         print('  候选 %d（seed=%d）：音符 %d  与库里最大形状共享 %.1f%%  语言重合 %.1f%%'
-              '  级进 %.0f%%  落点偏离 %.3f  强拍复核修正 %d  复用段冲突 %d'
+              '  级进 %.0f%%  落点偏离 %.3f  形态罚 %.2f  强拍复核修正 %d  复用段冲突 %d'
               % (ci + 1, seed + ci * 1000, len(alln), sc[0] * 100, sc[1] * 100,
-                 sw * 100, ot, nfix, clash))
-        # 越小越好，见 `cand_score`：去重为主，级进与落点分散为次（都对候选间排序）
-        score = cand_score(sc[0], sc[1], clash, sw, step_bias, ot)
+                 sw * 100, ot, fp, nfix, clash))
+        # 越小越好，见 `cand_score`：去重为主，级进/落点分散/形态判据为次（都只对候选间排序）
+        score = cand_score(sc[0], sc[1], clash, sw, step_bias, ot, fp)
         # 旧挑法只等于 `score = sc[0]*2 + sc[1] + clash*0.5`（`step_bias=0` 时逐字一致）。
         # 用户在 2026-09-14 实测：同骨架 4 条候选"级进 17% → 52% 越来越顺，202 之后
         # 两条都比原版好"，而旧挑法完全不看听感维度 → 会随机挑到跳进多的那条
