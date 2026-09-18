@@ -253,6 +253,20 @@ HOOK_HF_MAX = 41.0
 # 筛完为空 → 落到同主题 piano 池的 0 钢琴）。
 HOOK_POOLS = ('uku', 'piano', 'glock', 'ep', 'pad')
 
+# **兜底音色**（2026-09-19 加）：主题池**缺某个角色**时，不要让它掉到
+# `STYLES[engine_style].programs` —— 古典那套预设把 `Bass` 给成 **Contrabass(43)**、
+# `Pad` 给成 **Choir Aahs(52)（人声"啊"）**，实测听感就是"**像打呼噜的声音**"
+# （用户 2026-09-19："waltz 背景奇怪…像打呼噜的声音"、"classic 都不好听也是这个原因"）。
+# 证据链：classic / waltz 的主题池恰好缺 `Bass` 与 `Pad` → 吃到预设；
+#   而 battle / neon / daily 的池里有 `bass: 32` → 只有前两个主题犯病，与用户听感一致。
+# 兜底值取**多个主题池实际给出过的**音色（有模板证据，不是自造）：
+FALLBACK_PROG = {
+    'Bass': 32,      # Acoustic Bass —— battle / neon / daily 的主题池都给这个
+    'Pad': 94,       # Pad Halo —— waltz / daily 的主题池给的
+    'Hook': 0,       # Acoustic Grand —— uku 池筛空时的既有回退（HOOK_POOLS 已覆盖多数情况）
+    'Piano': 0, 'Strings': 48, 'Glock': 11, 'Melody': 73,
+}
+
 
 def theme_programs(pack, pick=0, verbose=False):
     """主题模板的**实际音色** → `song.json` 的 `programs`（覆盖引擎风格预设）
@@ -288,6 +302,15 @@ def theme_programs(pack, pick=0, verbose=False):
                     continue                  # 分解和弦不许弓弦/簧管、不许极响吉他
                 cands.append(p)
         if not cands:
+            # ⚠ 缺角色时**不要**掉到 `STYLES[engine_style].programs`（2026-09-19）：
+            #   古典预设的 `Bass=Contrabass(43)` / `Pad=Choir Aahs(52)` 正是用户听到的
+            #   "像打呼噜的声音"。走**兜底表**（值都取自其它主题池的真实音色）。
+            _fb = FALLBACK_PROG.get(track)
+            if _fb is None:
+                continue
+            out[track] = (_fb, song_engine.CH[track])
+            if verbose:
+                print('  %s 缺主题音色 → 兜底 %d' % (track, _fb))
             continue
         out[track] = (cands[min(pick, len(cands) - 1)], song_engine.CH[track])
     if verbose:
