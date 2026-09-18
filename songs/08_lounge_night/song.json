@@ -13,11 +13,12 @@
   "guitar_beats": [0.0, 0.5, 1.0, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 3.75],
   "guitar_vary": true,
   "space": true,
-  "section_gap": 2.0,
+  "section_gap": 3.0,
   "seg_fade": true,
   "range_fix": true,
   "legato_trim": true,
-  "dyn_vel": 8.0
+  "dyn_vel": 8.0,
+  "voicing_shift": 0
  },
  "chords": {
   "Gm7": [31, [55, 58, 62, 65]],
@@ -131,9 +132,9 @@
    "melody": "A",
    "arr": {
     "bass": true,
-    "perc": 1,
+    "perc": 0,
     "piano": true,
-    "uku": true,
+    "uku": false,
     "arp": false,
     "pad": true,
     "strings": false,
@@ -141,7 +142,7 @@
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 3
+    "density": 0
    },
    "mode": "minor"
   },

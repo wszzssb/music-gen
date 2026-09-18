@@ -1019,10 +1019,15 @@ def main():
                         lambda: Mut(_mg, 'cand_score',
                                     lambda a, b, c, d, e, f=0.0, g=0.0:
                                     a * 2.0 + b + c * 0.5 - 100.0 * e * d + f + g)))
-    # **形态罚本身**：把它归零（= 回到"只看去重/级进"的旧选择），形态守卫必须重新报警
-    results.append(case('形态罚被归零（选候选重回旧口径）', 'melody_form_rules',
-                        lambda: Mut(_mg, 'form_penalty',
-                                    lambda fs, ms, small=None, span=None: 0.0)))
+    # **形态罚**：⚠ **不能靠"把 `melody_gen.form_penalty` 归零"来测**（2026-09-18 实测报漏）——
+    # 本检查量的是**磁盘上已生成的 `song.json`**，而归零只改**生成侧**的内存函数，
+    # 已有曲目一个音都不变 → 必然通过，是**假通过**（与上面 `cand_score` 那次"签名不匹配也算
+    # 抓到"同一类毛病）。改成打**检查自己的门**：`t_melody_form_rules` 里的"门本身要有护栏"
+    # 断言必须失败。
+    results.append(case('形态的门被改坏（空档门抬到 99）', 'melody_form_rules',
+                        lambda: Mut(st, 'FORM_MAX_GAP_MED', 99.0)))
+    results.append(case('末落点门被归零（判据变瞎）', 'melody_form_rules',
+                        lambda: Mut(st, 'FORM_MIN_LAST8', 0.0)))
     # **句末收束门本身**：2026-09-15 从 0.55 降到 **0.25**（旧门会把 **33% 的真实模板**
     # 判成不合格 —— 用同一口径复算 218 首 `refs/midi2` 的实测结果；用户口径"现代音乐也符合"）。
     # 把门改到 0（守卫变瞎）必须被抓到：该检查里"注入旧形态必须破门"的自证会失败。

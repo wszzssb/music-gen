@@ -7,13 +7,16 @@
  "patterns": {
   "bass_style": "sixteenth",
   "perc_style": "orchestral",
+  "sub_gain": 1.8,
+  "sub_dur": 1.2,
+  "voicing_shift": 0,
   "melody_dyn": true,
   "arr_by_role": true,
   "arpeggio": [0, 1, 3, 2],
   "guitar_beats": [0.0, 0.25, 0.5, 1.0, 1.5, 1.75, 2.0, 2.5, 3.0, 3.25, 3.5],
   "guitar_vary": true,
   "space": true,
-  "section_gap": 2.0,
+  "section_gap": 3.0,
   "seg_fade": true,
   "range_fix": true,
   "legato_trim": true,
@@ -181,9 +184,9 @@
    "melody": "A",
    "arr": {
     "bass": true,
-    "perc": 1,
+    "perc": 0,
     "piano": true,
-    "uku": true,
+    "uku": false,
     "arp": false,
     "pad": true,
     "strings": false,
@@ -191,7 +194,7 @@
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 3
+    "density": 0
    },
    "mode": "minor"
   },

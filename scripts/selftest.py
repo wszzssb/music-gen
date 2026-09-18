@@ -3791,6 +3791,23 @@ def t_melody_form_rules():
         out['span_merged'] = (max(ps) - min(ps)) if ps else 0
         return out
 
+    # **门本身要有护栏**（照 `t_melody_motif_rules` 的成例，2026-09-18 补）：这几个门都有
+    # 真实模板对照值（见常量处注释：末落点中位 90%、空档中位 1.03 拍、格 0 占比 12.9%…），
+    # 被改成 0 或 99 都会让判据变成瞎的。
+    # ⚠ **为什么必须补这道**：原来的 mutation 用例是"把 `melody_gen.form_penalty` 归零"，
+    # 实测**报漏（136/137）** —— 因为本检查量的是**磁盘上已生成的 `song.json`**，而归零只改
+    # **生成侧**的内存函数，已有曲目一个音都不变 → 必然通过，属**假通过**。
+    # 改打门常量后，下面这段护栏就会失败（这正是"门被改了却没人报警"该抓的东西）。
+    for _n, _v, _lo, _hi in (('FORM_MIN_LAST8', FORM_MIN_LAST8, 0.40, 0.85),
+                             ('FORM_MAX_GAP_MED', FORM_MAX_GAP_MED, 1.20, 2.20),
+                             ('FORM_MAX_G0', FORM_MAX_G0, 0.10, 0.35),
+                             ('FORM_PEAK[0]', FORM_PEAK[0], 0.30, 0.60),
+                             ('FORM_PEAK[1]', FORM_PEAK[1], 0.70, 0.95)):
+        assert _lo <= _v <= _hi, \
+            '%s = %.2f 落在有依据的区间 [%.2f, %.2f] 之外（门被改坏了？）' % (_n, _v, _lo, _hi)
+    assert 1.2 <= FORM_DENS[0] < FORM_DENS[1] <= 3.6, \
+        'FORM_DENS = %s 不像有依据的密度区间（用户口径 2.0~2.6）' % (FORM_DENS,)
+
     good = avg()
     # **判据自证**：旧形态（三音挤前 2 拍 + 每小节复刻同一 figure）必须被抓
     old = avg(cell=(0, 2, 6))

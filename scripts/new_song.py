@@ -484,6 +484,39 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     for sec, mx in zip(secs, emix):
         if mx:
             sec['arr']['mix'] = mx
+
+    # **段级调式**（2026-09-18 补）：`melody_gen` 的调式取 `sec.get('mode')`，段落没写就退回
+    # **画像自己的 `base_scale`**（画像来自真实曲目、与主题包无关）→ 旋律与和弦各走各的调式。
+    # 实测（`b29_melody_chord_fit.py`）：09_cheerful 调内率只有 67%、硬冲突 14%；13_night 67%/14%。
+    # 写进段落即让两边同调式（引擎已支持段级 mode）。
+    _mode = (pack.get('key') or {}).get('mode') or 'major'
+    for s in secs:
+        s['mode'] = _mode
+
+    # **中段"呼吸口"极静段**（2026-09-18 补）：`docs/CASE-BGM35.md` 实测它的
+    # **66 倍段级密度起伏**来自第 201-208 小节的极静段（−34.2dB）；我们的曲子只有 1.7~2.8 倍。
+    # 消融实验（`b29_ablate_density.py`）把 `arr.density` / `arr_by_role` / `space` /
+    # 编配定量四个嫌疑全排除了，定位到**根本没有低密度段**。挑"倒数第 3 个非引子/尾声段"
+    # 当呼吸口（与 BGM35 的位置一致），并把旋律层一起压低（否则它撑住能量、静不下来）。
+    # 挑法（**必须与落盘复核脚本 `b29_add_quiet.py` 的 `pick_quiet` 同规则**，否则新建的曲子
+    # 会挑到 A 系主题段、把主题首现改成极静）：先砍 intro/outro → 再砍掉第一个候选
+    # （主题首次陈述不动）→ 优先 **B/C 等对比段**（段名不以 A 开头）→ 取池子里**倒数第 2 个**
+    # （留最后一个对比段在靠后处给劲儿；BGM35 的极静段也在中后段，不在收尾）。
+    # ⚠ 复核脚本还会多做一步"逐候选试算、要求全曲峰值不掉"——生成阶段还没算 MIDI 事件，
+    #   做不了；所以这里只保证"挑对比段"，落盘后由 `b29_quiet_ratio.py` 复核密度倍率。
+    _cand = [i for i, s in enumerate(secs)
+             if song_engine.role_of_section(s['name']) not in ('intro', 'outro')]
+    _body = _cand[1:]
+    _contra = [i for i in _body if not str(secs[i]['name']).upper().startswith('A')]
+    _pool = _contra or _body
+    if _pool:
+        _q = secs[_pool[-2] if len(_pool) >= 2 else _pool[-1]]
+        _qa = dict(_q.get('arr') or {})
+        for _k in ('uku', 'arp', 'strings', 'glock', 'ep', 'shimmer', 'glock_all'):
+            _qa[_k] = False
+        _qa.update({'bass': True, 'piano': True, 'pad': True, 'perc': 0, 'density': 0})
+        _qa['mix'] = dict(_qa.get('mix') or {}, Melody=42, Bass=45, Piano=42, Pad=42)
+        _q['arr'] = _qa
     # **引子渐入**（`arr.perc_in` → `song_engine.perc_part(inbars=…)`）：真实模板里引子是
     # "b1–b2 安静、b3–b4 鼓组进来"（cheerful 10 首里 7 首前 4 小节有鼓、合计中位 18 点，
     # 而单看 b1 多数是 0）。整段一次性全开会在段落切换处造成亮度突变
@@ -526,7 +559,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
                       #   G=0.35→3/6 达标 · 0.5→3/6 · 1.0→5/6 · **2.0→6/6**。
                       # 原因是渲染链带混响（room-size .78）：渐弱太短会被混响尾巴填满，
                       # 边界前 0.15s 的能量根本没降（G=0.35 时 fade_out 甚至 **−1.7dB**）。
-                      'section_gap': 2.0,
+                      'section_gap': 3.0,
                       # ↓↓↓ 2026-09-18 补：这三项 + dyn_vel 长期"默认关"，症状一直挂在守卫上
                       #     （用户："为什么不会自动打开？让之后的对话能自动识别打开"）。
                       #     引擎的规矩是"opt-in，默认关 = 老曲字节不变"，所以**开关必须写在

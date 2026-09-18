@@ -13,11 +13,12 @@
   "guitar_beats": [0.0, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
   "guitar_vary": true,
   "space": true,
-  "section_gap": 2.0,
+  "section_gap": 3.0,
   "seg_fade": true,
   "range_fix": true,
   "legato_trim": true,
-  "dyn_vel": 8.0
+  "dyn_vel": 8.0,
+  "voicing_shift": 0
  },
  "chords": {
   "C7": [36, [60, 64, 67, 70]],
@@ -174,17 +175,17 @@
    "melody": "B",
    "arr": {
     "bass": true,
-    "perc": 2,
+    "perc": 0,
     "piano": true,
-    "uku": true,
-    "arp": true,
+    "uku": false,
+    "arp": false,
     "pad": true,
-    "strings": true,
-    "glock": true,
+    "strings": false,
+    "glock": false,
     "ep": false,
     "glock_all": false,
     "shimmer": false,
-    "density": 2,
+    "density": 0,
     "mix": {
      "Melody": 100,
      "Hook": 82,
