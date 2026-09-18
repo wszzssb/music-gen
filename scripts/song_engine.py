@@ -260,6 +260,9 @@ PAT_KEYS = (
     # 旋律与力度
     'melody_dyn', 'mel_vel', 'mel_vel_center', 'mel_octave', 'melody_prog',
     'dyn_vel', 'staccato', 'drum_grid', 'perc_layers',
+    # 旋律维度的**带理由豁免**（见 `selftest._exempt_dims`）：画像本身如此、与别的守卫
+    # 互斥时，写清理由放行该维（空理由 = 没写）。
+    'melody_exempt',
     # 音域与还原
     'range_fix', 'legato_trim', 'notes_extra_full',
 )

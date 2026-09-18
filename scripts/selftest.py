@@ -3400,6 +3400,21 @@ def t_melody_lang_diverse():
             '；'.join('%.0f%% %s~%s' % (cc * 100, x, y) for cc, x, y in r['twin'])))
 
 
+def _exempt_dims(j2):
+    """`patterns.melody_exempt`：旋律维度的**带理由豁免**（口径同 `render.json` 的
+    `align_exempt`）—— **理由为空 / 全空白视为没写**，一句空话放行不了任何东西；
+    只放行**被声明的那一维**，其余维照旧判。
+
+    依据（用户 2026-09-19）："守卫阈值可能太绝对了，**增加一个说明了情况可通过**"。
+    触发场景：`melody_matches_profile`（时值维 ≥40%）与 `melody_health`（碎音 ≤8%）
+    在**画像本身多碎音**的主题上互斥 —— `07_hidden_door` 的 mystery 画像自身 **44% 是
+    0.25 拍**，`--dur-fill` 从 0.32 扫到 0.75 实测没有两全点。这类情况该留下**可审计的
+    文字**，而不是把全局阈值改松（那会让所有曲子都失去这道门）。
+    """
+    ex = ((j2 or {}).get('patterns') or {}).get('melody_exempt') or {}
+    return {k: v for k, v in ex.items() if isinstance(v, str) and v.strip()}
+
+
 @check
 def t_melody_matches_profile():
     """**生成出来的旋律必须像它的画像**（统计层守卫）。
@@ -3437,7 +3452,7 @@ def t_melody_matches_profile():
         # 本身就是稀疏采样，落点直方图不可靠 → 用 MELODY_ACCEPT_SPARSE。
         pnotes = prof.get('notes') or sum((prof.get('dur16_hist') or {}).values())
         if dims:
-            rows.append((os.path.basename(d), pname, dims, pnotes))
+            rows.append((os.path.basename(d), pname, dims, pnotes, _exempt_dims(j2)))
     assert rows, '没有带 melody_gen 元数据的曲子（%d），这条检查会空转' % len(rows)
     # 判据自证：同一分布自比 = 100%；全碎音的旋律，时值维必须明显掉下来
     long_n = [(i * 2.0, 2.0, 60) for i in range(16)]
@@ -3445,18 +3460,31 @@ def t_melody_matches_profile():
     fl, fc = PL.feats(long_n), PL.feats(chop_n)
     assert PL.sim({'dur': fl['dur']}, {'dur': fl['dur']}) > 0.999, '同一分布自比必须 100%'
     assert PL.sim({'dur': fl['dur']}, {'dur': fc['dur']}) < 0.5, '全碎音不该判成与长音分布相似'
-    for n, pn, dims, pnotes in rows:
-        print('        %-22s 画像 %-18s 落点 %3.0f%%  时值 %3.0f%%   (画像音数 %d%s)'
+    # 判据自证：豁免必须有实质理由（空 / 空白 = 没写）——
+    # 否则一句空话就能放行任何偏离，这道门等于没有
+    assert _exempt_dims({'patterns': {'melody_exempt': {'dur': '  '}}}) == {}, \
+        '空白理由被当成有效豁免（这条检查可被空话绕过）'
+    assert _exempt_dims({'patterns': {'melody_exempt': {'dur': '理由'}}}) == {'dur': '理由'}, \
+        '正常豁免被误判为无效'
+    assert _exempt_dims(None) == {} and _exempt_dims({}) == {}, '缺豁免字段时应视为无豁免'
+    for n, pn, dims, pnotes, ex in rows:
+        exs = ('，豁免 ' + '/'.join(sorted(ex))) if ex else ''
+        print('        %-22s 画像 %-18s 落点 %3.0f%%  时值 %3.0f%%   (画像音数 %d%s%s)'
               % (n, pn, dims.get('onset', 0) * 100, dims.get('dur', 0) * 100, pnotes,
-                 '，稀疏档' if pnotes < 80 else ''))
+                 '，稀疏档' if pnotes < 80 else '', exs))
     bad = []
-    for n, pn, dims, pnotes in rows:
+    for n, pn, dims, pnotes, ex in rows:
         thr = MELODY_ACCEPT_MIN if pnotes >= 80 else MELODY_ACCEPT_SPARSE
-        if min(dims.values()) < thr:
-            bad.append('%s（画像 %s）落点 %.0f%%/时值 %.0f%%（下限 %.0f%%）'
-                       % (n, pn, dims.get('onset', 0) * 100, dims.get('dur', 0) * 100, thr * 100))
+        # 豁免只放行**被声明的那一维**，其余维照旧判（理由为空 = 没写，已在 `_exempt_dims` 滤掉）
+        miss = {k: v for k, v in dims.items() if v < thr and k not in ex}
+        if miss:
+            bad.append('%s（画像 %s）落点 %.0f%%/时值 %.0f%%（下限 %.0f%%；未达标维 %s）'
+                       % (n, pn, dims.get('onset', 0) * 100, dims.get('dur', 0) * 100,
+                          thr * 100, '/'.join(sorted(miss))))
     assert not bad, ('生成旋律离画像太远：%s —— 先查 melody_gen 的出口裁剪/落点过滤'
-                     '（坑 114/115），别去调画像' % '；'.join(bad))
+                     '（坑 114/115），别去调画像；确属"画像本身如此"就在曲目的 '
+                     '`patterns.melody_exempt` 里写清理由放行该维'
+                     % '；'.join(bad))
 
 
 @check

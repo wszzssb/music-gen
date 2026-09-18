@@ -752,20 +752,16 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
                       # 0.75 拍 ≈ 0.32s：够盖住判据量的"边界后 0.15s"，又不至于让人听出"段首软"。
                       'seg_in': 0.75,
                       # **段末留白 / 渐弱**（见 `song_engine.build_events` 的 `section_gap`）。
-                      # ⚠ 长度**必须是 2.0 拍（≈1 秒），不是 1.0** —— 2026-09-18 消融实验
-                      # （`b29_ablate_gap.py`，同一首扫 G 各渲染一版、按守卫口径量段界）：
-                      #   G=0.35→3/6 达标 · 0.5→3/6 · 1.0→5/6 · **2.0→6/6**。
-                      # 原因是渲染链带混响（room-size .78）：渐弱太短会被混响尾巴填满，
-                      # 边界前 0.15s 的能量根本没降（G=0.35 时 fade_out 甚至 **−1.7dB**）。
-                      # 2026-09-18：**3.0 → 0.5**（不是 5.0 —— 我先试过 5.0，那是错的）。
-                      # `section_transition` 量的是"边界前 0.15s（`p_edge`）vs 前 0.3~0.9s
-                      # （`pre`）"的差：留白一旦长过 **0.3s**，`pre` 自己也落进留白里，
-                      # 两个窗口一起低 → `fade_out` 反而量不出来（实测 3.0 拍 = 1.4s、
-                      # 5.0 拍 = 2.3s 时都只有 1.7~1.8dB；包络显示边界处其实有 −30~−53dB
-                      # 的深谷，时间轴也对齐 —— 纯粹是参照窗口被盖住了）。
-                      # 0.5 拍 ≈ 0.23s：刚好盖住 `p_edge` 那 0.15s，又短于 0.3s。
-                      # ⚠ 单位是**拍**，所以实际秒数随 bpm 变；要更稳应按秒折算（待办）。
-                      'section_gap': 0.5,
+                      # ⚠ 2026-09-19 **改回 3.0**（用户实测判据："**从 0 重新生成的质量没有
+                      #   之前高**"）：与 19 首旧曲逐键 diff 后，**唯一实质差异就是这一项**
+                      #   （旧曲 3.0 / 新曲 0.5；`programs` / `arr` / 段落结构 / 音色全同）
+                      #   —— 听感差别就是"**段落之间有没有呼吸**"。
+                      #   0.5 是 2026-09-18 为迁就 `section_transition` 的 `pre` 参考窗口选的
+                      #   （留白长过 0.3s 时 `pre` 自己也落进留白、量不出渐变）。但那是
+                      #   **为守卫口径牺牲听感**，而且是双输：新曲段界照样 FAIL 4 个，听感还掉了。
+                      #   用户方针（2026-09-19）："**怎么样好听就怎么样，重要的是听感好**"。
+                      # ⚠ 单位是**拍**，秒数随 bpm 变（3.0 拍 @139BPM ≈ 1.29s）。
+                      'section_gap': 3.0,
                       # ↓↓↓ 2026-09-18 补：这三项 + dyn_vel 长期"默认关"，症状一直挂在守卫上
                       #     （用户："为什么不会自动打开？让之后的对话能自动识别打开"）。
                       #     引擎的规矩是"opt-in，默认关 = 老曲字节不变"，所以**开关必须写在
@@ -1072,6 +1068,48 @@ def write_notes(dst, new, data, pack, ref):
         f.write('\n'.join(lines) + '\n')
 
 
+def _studio_lib():
+    """studio 面板的曲库目录（`studio/.libpath` 里那一行）；没有 / 不存在就返回 None。"""
+    p = os.path.join(HERE, '..', 'studio', '.libpath')
+    try:
+        with open(p, encoding='utf-8') as f:
+            lib = f.read().strip()
+    except OSError:
+        return None
+    return lib if lib and os.path.isdir(lib) else None
+
+
+def link_to_studio_lib(name, src):
+    """把新曲**挂进 studio 曲库**（junction）—— 否则面板看不到、也播不了。
+
+    ⚠ 这是用户 2026-09-19 报的"**每次新曲都不会出现**"的根因：曲库里每首曲子是一条
+      **独立 junction**（不是把整个 `songs/` 挂一次），所以新曲得自己挂一条；
+      不挂的话面板 `/api/songs` 列不到它、`/api/audio?id=<曲>` 直接 404。
+    ⚠ 必须用 `cmd /c mklink /J`：MSYS 的 `ln -s` 对目录是**复制**（实测白占 460MB）。
+      失败只提示、不中断生成 —— 曲子在 `songs/` 里是好的，只是面板暂时看不到。
+    """
+    lib = _studio_lib()
+    if not lib:
+        return
+    dst = os.path.join(lib, name)
+    if os.path.exists(dst):
+        print('  已挂面板曲库  ← %s' % dst)
+        return
+    try:
+        r = subprocess.run(['cmd', '/c', 'mklink', '/J', dst, os.path.abspath(src)],
+                           capture_output=True)
+    except OSError as e:                                             # noqa: BLE001
+        print('  !! 挂面板曲库失败（%s）—— 手工挂：cmd /c mklink /J "%s" "%s"'
+              % (e, dst, os.path.abspath(src)))
+        return
+    if r.returncode == 0:
+        print('  已挂面板曲库  ← %s（面板现在能看到它）' % dst)
+    else:
+        print('  !! 挂面板曲库失败：%s\n     手工挂：cmd /c mklink /J "%s" "%s"'
+              % (r.stderr.decode('utf-8', 'replace').strip()[:150],
+                 dst, os.path.abspath(src)))
+
+
 def main():
     if '--list-styles' in sys.argv:
         sys.path.insert(0, HERE)
@@ -1263,6 +1301,8 @@ def main():
         f.write(body)
 
     print('已创建 songs\\%s\\' % new)
+    # **挂进面板曲库**（否则面板看不到/播不了，见 `link_to_studio_lib` 的说明）
+    link_to_studio_lib(new, dst)
     print('  song.json    ← 只改这个（chords / melody / sections）')
     if style:
         print('  风格预设     ← %s（song.json 里显式写的会覆盖预设）' % style)

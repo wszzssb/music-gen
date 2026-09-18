@@ -20,7 +20,7 @@
   "guitar_beats": [0.0, 0.667, 1.333, 2.0, 2.667, 3.333],
   "guitar_vary": true,
   "space": true,
-  "section_gap": 0.5,
+  "section_gap": 3.0,
   "seg_fade": true,
   "range_fix": true,
   "legato_trim": true,
