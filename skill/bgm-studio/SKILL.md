@@ -90,6 +90,11 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
    · 链 `imitate_ref.py`（九段；第 9 段 = **①识别体检 → ②逐带体检**）
    · ⚠ 复音层不能用 pyin 量（方法假数）；⚠ **集成修不掉系统性错误** → 要**独立方法**当尺子
    全部数字与量法 → `docs/CASE-BGM35-FINDINGS.md` 第 38/39/41 条。
+   · **接着走 `docs/RESTORE-METHOD.md` 的七步**（2026-09-18 从另一个对话的最终成果逆推）：
+     ⚠ **别手工拼 MIDI** —— 用 **`transcribe_to_song.py --auto`**（段落**跟随音乐**自适应切分
+     + **逐音力度** + `drum_grid` 逐小节鼓型）；骨架实测比例 **Piano 39% / Perc 36% /
+     Bass 16%**（三件 91%，Strings/Guitar 只是点缀）—— **堆层反而更难听**；
+     渲染后用 `band_match` 对齐，再对响度/宽度。
    然后才轮到：**开工先跑 `audit.py` 拿偏差清单**，再改（`docs/AUDIT-CHECKLIST.md` 有全部参考线）：
    `audit.py <参考音频> <我的音频> --bpm N --mine-json <song.json> --midi <我的.mid>`
    六轴里 **`chord`/`grid`/`density` 属"照抄即可"**（做不到是方法问题，别推给音源），

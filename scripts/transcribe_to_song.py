@@ -61,13 +61,16 @@ MEL_MAX_PER_BAR = 2
 
 
 def read_notes(path):
-    """→ [(起始秒, 结束秒, 音高)]。
+    """→ [(起始秒, 结束秒, 音高, 力度)]。
 
     ⚠ **不用 `mido`**：主 venv 里没有它（只有 `.venv-ml` 有），顶层 import 会让
       `selftest` 的 `import_all` 直接 FAIL（PITFALLS 173 同族）。
       改用工具链自带的 `midi_file`（纯标准库）。
     ⚠ `midi_file` 的 `notes` 起始时间是**拍**（四分音符），乘 `60/bpm` 才是秒 ——
       曾当秒用，结果全曲音挤进第 0 格（PITFALLS 184①）。
+    ⚠ **力度在 index 3**（`midi_file` 模型 = `[start_beat, dur_beat, pitch, vel]`）。
+      它必须一路带到 `song.json` 的 `notes_extra` 第 5 位 —— 丢了力度就是"打字机"
+      （实测对照：带力度的版本 17773/17773 全带，不带的 0/23033）。
     """
     d = midi_file.import_midi(str(path))
     spb = 60.0 / max(1e-9, float(d.get('bpm') or 120.0))
@@ -77,7 +80,9 @@ def read_notes(path):
             if len(it) < 4:
                 continue
             st = float(it[0]) * spb
-            out.append((st, st + float(it[1]) * spb, int(it[2])))
+            vel = int(it[3]) if it[3] is not None else 84
+            out.append((st, st + float(it[1]) * spb, int(it[2]),
+                        max(1, min(127, vel))))
     out.sort()
     return out
 
@@ -105,13 +110,24 @@ def main():
                     help='引擎风格预设（见 new_song.py --list-styles）')
     ap.add_argument('--chords-log', required=True,
                     help='analyze_chords.py 的输出文件（本工具从中解析小节级和弦）')
-    ap.add_argument('--boundaries', required=True,
-                    help='段边界（秒，逗号分隔，含 0 与总时长），如 0,179.2,209.5,331.9')
-    ap.add_argument('--sec-names', required=True,
-                    help='段名（逗号分隔），个数 = 边界数 − 1，如 A,B,C,Ending')
+    ap.add_argument('--boundaries', default='',
+                    help='段边界（秒，逗号分隔，含 0 与总时长）；--auto 时可省略')
+    ap.add_argument('--sec-names', default='',
+                    help='段名（逗号分隔），个数 = 边界数 − 1；--auto 时可省略')
     ap.add_argument('--mid', action='append', default=[],
                     help='轨=文件，可多次；轨名见 --help 的约定 4')
     ap.add_argument('--melody-from', default='Piano', help='从哪条轨抽旋律')
+    ap.add_argument('--quota', action='append', default=[],
+                    help='轨=目标音数（按时间**均匀抽样**到该数），如 Strings=560；可多次')
+    ap.add_argument('--auto', action='store_true',
+                    help='**一键还原**：自动跑 analyze_structure 定段落（段长跟随音乐、'
+                         '不固定 8 小节）+ extract_drum_grid 定逐小节鼓型；'
+                         '此时 --boundaries/--sec-names 可省略')
+    ap.add_argument('--audio', default=None, help='--auto 用：参考音频（分析段落）')
+    ap.add_argument('--target-segments', type=int, default=25,
+                    help='--auto 用：目标段数（默认 25，取 novelty 最强的边界）')
+    ap.add_argument('--drums-mid', default=None,
+                    help='--auto 用：鼓分轨 MIDI（提取 drum_grid.per_bar）')
     ap.add_argument('--full', action='store_true', help='写 patterns.notes_extra_full')
     ap.add_argument('--out', default=None, help='输出 song.json 路径（默认 songs/<name>/）')
     a = ap.parse_args()
@@ -119,6 +135,47 @@ def main():
     bar_sec = 4 * 60.0 / a.bpm
     bounds = [float(x) for x in a.boundaries.split(',') if x.strip()]
     names = [x.strip() for x in a.sec_names.split(',') if x.strip()]
+
+    # —— **一键还原**：段落与鼓型都自动定（见 PITFALLS 182 的教训 —— 写了却不生效；
+    #    以及"固定 8 小节"会让曲式同质化，用户口径是「要看情况」）——
+    drum_grid = None
+    if a.auto:
+        import subprocess
+        import tempfile
+        if not a.audio:
+            raise SystemExit('--auto 需要 --audio <参考音频>（用来定段落）')
+        tmp = tempfile.mkdtemp(prefix='tts_auto_')
+        sj = os.path.join(tmp, 'struct.json')
+        print('  [auto] 分析段落结构（目标 %d 段，段长跟随音乐）…' % a.target_segments)
+        r = subprocess.run([sys.executable, os.path.join(HERE, 'analyze_structure.py'),
+                            a.audio, '--bpm', str(a.bpm),
+                            '--target-segments', str(a.target_segments),
+                            '--min-bars', '2', '--json', sj],
+                           capture_output=True, text=True, encoding='utf-8',
+                           errors='replace')
+        if r.returncode != 0:
+            raise SystemExit('[auto] analyze_structure 失败：%s' % (r.stderr or '')[-300:])
+        st = json.load(open(sj, encoding='utf-8'))
+        bounds = list(st['boundaries_sec'])
+        names = ['S%02d' % (i + 1) for i in range(len(bounds) - 1)]
+        names[-1] = 'Ending'          # 收尾段：role_of_section 只认 Ending/End 为 'E'
+        print('  [auto] 段: %d 段 · 段长(小节) %s' % (len(names), st['bars']))
+        if a.drums_mid:
+            print('  [auto] 提取逐小节鼓型…')
+            gj = os.path.join(tmp, 'grid.json')
+            r2 = subprocess.run([sys.executable, os.path.join(HERE, 'extract_drum_grid.py'),
+                                 a.drums_mid, '--bpm', str(a.bpm),
+                                 '--song-bars', str(max(1, st['boundaries_bar'][-1])),
+                                 '--out', gj],
+                                capture_output=True, text=True, encoding='utf-8',
+                                errors='replace')
+            if r2.returncode == 0:
+                drum_grid = json.load(open(gj, encoding='utf-8'))['per_bar']
+                print('  [auto] 鼓型: %d 小节 · %d 点'
+                      % (len(drum_grid), sum(len(v) for r in drum_grid for v in r.values())))
+            else:
+                print('  [auto] ! 鼓型提取失败：%s' % (r2.stderr or '')[-200:])
+
     if len(names) != len(bounds) - 1:
         raise SystemExit('段名 %d 个 ≠ 边界 %d 个 − 1' % (len(names), len(bounds)))
 
@@ -182,6 +239,13 @@ def main():
         mel[nm] = []
 
     # —— 逐轨音符 ——
+    quotas = {}
+    for spec in a.quota:
+        if '=' not in spec:
+            raise SystemExit('--quota 要写成 轨=音数，收到 %r' % spec)
+        k, v = spec.split('=', 1)
+        quotas[k] = int(v)
+
     ne, mel_src = {}, None
     for spec in a.mid:
         if '=' not in spec:
@@ -192,12 +256,33 @@ def main():
         if not os.path.exists(path):
             raise SystemExit('找不到 %s' % path)
         notes = read_notes(path)
-        ne[tr] = [[int(st / bar_sec), round((st - int(st / bar_sec) * bar_sec) / (bar_sec / 4), 2),
-                   max(0.25, round((en - st) / (bar_sec / 4), 2)), p]
-                  for (st, en, p) in notes]
+        # ⚠ **带第 5 位力度**（`[小节, 拍, 时值, 音高, 力度]`）：引擎的 `_vel_of` 就认它。
+        #   丢了力度 → 引擎套默认值 → "打字机"（实测对照：带 17773/17773，不带 0/23033）。
+        ne[tr] = [[int(st / bar_sec),
+                   round((st - int(st / bar_sec) * bar_sec) / (bar_sec / 4), 2),
+                   max(0.25, round((en - st) / (bar_sec / 4), 2)), p, int(vel)]
+                  for (st, en, p, vel) in notes]
         if tr == a.melody_from:
             mel_src = notes
-        print('  %-8s %5d 音 · 覆盖 %d 小节' % (tr, len(notes), len({int(s / bar_sec) for s, _e, _p in notes})))
+        print('  %-8s %5d 音 · 覆盖 %d 小节 · 力度 %d~%d'
+              % (tr, len(notes), len({int(s / bar_sec) for s, _e, _p, _v in notes}),
+                 min(v for *_x, v in notes), max(v for *_x, v in notes)))
+
+    # —— **配额抽样**（`--quota 轨=音数`）——
+    # ⚠ 为什么必须抽：转录**天然过采样**。实测最痛的一次：把 `other` 轨的 9265 个音
+    #   整片铺成 Strings，而最终交付版的 Strings 只有 **563** —— 差 15 倍，听感上就是
+    #   "一层弦乐糊在上面"。配额按**目标编配比例**给（交付版实测：Piano 4143 ·
+    #   Perc 3776 · Bass 1677 · Strings 563 · Guitar 254），**按时间均匀抽**（不是随机，
+    #   随机会在局部留空洞）。
+    for tr, q in quotas.items():
+        if tr not in ne:
+            print('  ! --quota %s=%d 但没给这条轨的 --mid，忽略' % (tr, q))
+            continue
+        n0 = len(ne[tr])
+        if q > 0 and n0 > q:
+            step = n0 / float(q)
+            ne[tr] = [ne[tr][min(n0 - 1, int(i * step))] for i in range(q)]
+            print('  %-8s 配额抽样 %d → %d（%.0f%%）' % (tr, n0, q, 100.0 * q / n0))
 
     # —— 抽旋律（从 --melody-from 那条轨取每小节的高音区）——
     if mel_src:
@@ -205,7 +290,7 @@ def main():
         for sec in secs:
             rows_m = []
             for b in range(bar0, bar0 + sec['bars']):
-                ns = sorted([(s, p) for (s, _e, p) in mel_src if int(s / bar_sec) == b],
+                ns = sorted([(s, p) for (s, _e, p, _v) in mel_src if int(s / bar_sec) == b],
                             key=lambda x: x[1])
                 if len(ns) < 4:
                     continue
@@ -235,6 +320,10 @@ def main():
     }
     if a.full:
         d['patterns']['notes_extra_full'] = True
+    if drum_grid:
+        # ⚠ 一定要**写进去**才生效：引擎的 Perc 音数主要由它决定，
+        #   而"生成了却没写盘"正是这个项目最常见的一类坑（PITFALLS 182）。
+        d['patterns']['drum_grid'] = {'per_bar': drum_grid}
 
     out = a.out or os.path.join(ROOT, 'songs', a.name, 'song.json')
     os.makedirs(os.path.dirname(out), exist_ok=True)
