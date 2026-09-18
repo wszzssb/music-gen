@@ -3688,8 +3688,13 @@ def t_theme_timbre_pool():
     assert 'Melody' not in ns.theme_programs({'arrangement': {'prog_pool': {'ep': [11]}}}), \
         '池里全是慢起音时该回落到预设，而不是硬用 11'
     # 判据自证：分解和弦轨不许弓弦/簧管（ethnic 族 109/110/111，first run 抓到 daily=111）
-    got2 = ns.theme_programs({'arrangement': {'prog_pool': {'uku': [111, 25]}}})
-    assert got2.get('Hook', (None,))[0] == 25, \
+    # ⚠ **用例数据 2026-09-18 更新**：原来拿 25（钢弦）当"该留下的拨弦"，但同日起
+    #   `HOOK_HF_MAX = 41.0` 把钢弦 25（2.5–5kHz 达 48.8dB）**也**滤掉了 → 池空、
+    #   `Hook` 根本不进结果，断言便拿 `None` 去比 25 而 FAIL。
+    #   **过滤器本身是好的**（111 确实被 `NOT_PLUCK` 滤掉）—— 过时的是用例数据。
+    #   改用 24：daily 的 Hook 自 2026-09-15 起实际就是它（见 `t_track_balance` 的注释）。
+    got2 = ns.theme_programs({'arrangement': {'prog_pool': {'uku': [111, 24]}}})
+    assert got2.get('Hook', (None,))[0] == 24, \
         'Hook 轨没滤掉 111 唢呐（不是拨弦）：%r' % (got2,)
     n_mel = 0
     for p in packs:

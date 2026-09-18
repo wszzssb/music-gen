@@ -834,7 +834,14 @@ def run_melody_gen(song_json, pack, theme, seed, ncand, step_bias=None):
                '--seed', str(seed), '--candidates', str(ncand),
                '--tonic', str((pack.get('key') or {}).get('pc') or 0),
                '--dens', '%.2f' % dens, '--avoid', 'songs',
-               '--step-bias', '%.2f' % sb]
+               '--step-bias', '%.2f' % sb,
+               # **时值偏好**（2026-09-18 起默认 1.0）：把"时值分布与画像的 TVD"接进候选
+               # 打分（`melody_gen.dur_tvd`）。起因：守卫 `melody_matches_profile` 拿
+               # **时值维**判"这条旋律像不像它的画像"，而候选打分原先只管落点（`onset_tvd`）
+               # —— 实测 3 首生成曲的时值承接度 40%/31%/（05 的落点）卡在门上，接上这一项后
+               # 分别升到 54% / 69%，05 的 Outro 落点 TVD 0.702 → 0.284。
+               # 它**只在同批候选之间排序**、不改生成逻辑（同 `onset_tvd` / `form_pen`）。
+               '--dur-bias', '1.0']
         print('  melody_gen：画像 %s（密度 %.2f 音/小节，%d 候选）'
               % (os.path.relpath(prof, ROOT), dens, ncand))
         r = subprocess.run(cmd, cwd=ROOT)

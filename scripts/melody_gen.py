@@ -1356,8 +1356,35 @@ def onset_tvd(mel, prof):
     return 0.5 * sum(abs(h.get(k, 0) / tot - (P.get(str(k), 0) / pt)) for k in keys)
 
 
+def dur_tvd(mel, prof):
+    """**时值**分布与画像 `dur16_hist` 的 TVD（0 = 一致）。与 `onset_tvd` 同族、同纪律。
+
+    为什么补这一维（2026-09-18）：`onset_tvd` 只管落点，候选打分里**没有时值项** ——
+    于是同批候选里"时值分布更像画像"的那条不会被偏好。实测两首生成曲的时值承接度
+    只有 **40% / 31%**（守卫 `melody_matches_profile` 的门是 40%），而它们的落点维
+    是 78% / 79% —— **差的正是时值这一维**（画像多 0.25~0.5 拍短音，生成的是 0.5~1.5 拍）。
+
+    ⚠ 桶口径必须与 `_hists`／守卫一致：`min(16, max(1, round(时值 × 4)))`（16 分格）。
+    ⚠ 与 `onset_tvd` 一样**只当候选之间的相对排序，不当绝对门槛** —— 画像的
+    `dur16_hist` 是 F0 跟踪量出来的"发声时长"，与 MIDI 的 note-off 不是同一个量
+    （见 `_make_cell` 的说明），拿它当硬门会把正常写法判死。
+    """
+    h, tot = {}, 0.0
+    for notes in (mel or {}).values():
+        for x in notes:
+            g = min(16, max(1, int(round(x[2] * 4))))
+            h[g] = h.get(g, 0) + 1
+    tot = float(sum(h.values())) or 1.0
+    P = (prof or {}).get('dur16_hist') or {}
+    pt = float(sum(P.values())) or 1.0
+    if not P:
+        return 0.0
+    keys = set(h) | {int(k) for k in P}
+    return 0.5 * sum(abs(h.get(k, 0) / tot - (P.get(str(k), 0) / pt)) for k in keys)
+
+
 def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0.0,
-               form_pen=0.0):
+               form_pen=0.0, dur_dist=0.0):
     """候选打分（**越小越好**）：以"不像库里已有旋律"为主，级进偏好为次（opt-in）。
 
     抽成独立函数有两个原因：① `mutation_check` 的注入机制是**改内存里的模块属性**，
@@ -1377,7 +1404,7 @@ def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0
     只改"挑哪条"，风险最小。`form_pen=0` 时与旧版逐字一致。
     """
     return (shape_share * 2.0 + lang_share + clash * 0.5
-            - step_bias * stepwise + onset_dist + form_pen)
+            - step_bias * stepwise + onset_dist + form_pen + dur_dist)
 
 
 def small_step_pct(melody, sections, bar_beats=SPB):
@@ -1437,6 +1464,18 @@ def main():
     # 它只在**同批候选之间**排序，不是绝对门槛。
     step_bias = float(sys.argv[sys.argv.index('--step-bias') + 1]) \
         if '--step-bias' in sys.argv else 0.0
+    # **时值偏好**（opt-in；默认 0 = 与旧版逐字一致）：把"时值分布与画像的 TVD"
+    # 接进候选打分（见 `dur_tvd`）—— 落点维早有 `onset_tvd`，**时值维原先没人管**。
+    dur_bias = float(sys.argv[sys.argv.index('--dur-bias') + 1]) \
+        if '--dur-bias' in sys.argv else 0.0
+    # **时值填充系数**（opt-in `--dur-fill`；缺省 = `CELL_DUR_FILL`，见 `_make_cell`）。
+    # 何时用：画像的时值偏短、而 `need`（音至少覆盖到下一个落点的比例）把音统一拉长 →
+    # 候选之间**没有差异**、`--dur-bias` 也就挑不出来。实测 07_hidden_door（画像 mystery
+    # 44% 是 0.25 拍）时值承接度卡在 40%（门 40%）：0.45→0.35 升到 41%、→0.25 升到 54%。
+    # ⚠ 代价是"音与下一个落点之间出现间隙"（`_make_cell` 的注释警告过 fill 的另一侧），
+    #   所以它是**逐首 opt-in**，不做成默认。
+    if '--dur-fill' in sys.argv:
+        globals()['CELL_DUR_FILL'] = float(sys.argv[sys.argv.index('--dur-fill') + 1])
     prof = json.load(open(prof_path, encoding='utf-8'))
     d = json.load(open(song, encoding='utf-8'))
     # **拍号**：落点/时值/拱形全是按"一小节几拍、每拍 4 个十六分格"写的 —— 所以进生成前
@@ -1533,12 +1572,14 @@ def main():
             ms = {}
         fp = form_penalty(fs, ms, small=small_step_pct(mel, d['sections']),
                           span=(fs or {}).get('span'))
+        dt = dur_tvd(mel, prof) * dur_bias
         print('  候选 %d（seed=%d）：音符 %d  与库里最大形状共享 %.1f%%  语言重合 %.1f%%'
-              '  级进 %.0f%%  小步 %.0f%%  落点偏离 %.3f  形态罚 %.2f  强拍复核修正 %d  复用段冲突 %d'
+              '  级进 %.0f%%  小步 %.0f%%  落点偏离 %.3f  时值偏离 %.3f  形态罚 %.2f'
+              '  强拍复核修正 %d  复用段冲突 %d'
               % (ci + 1, seed + ci * 1000, len(alln), sc[0] * 100, sc[1] * 100,
-                 sw * 100, small_step_pct(mel, d['sections']) * 100, ot, fp, nfix, clash))
-        # 越小越好，见 `cand_score`：去重为主，级进/落点分散/形态判据为次（都只对候选间排序）
-        score = cand_score(sc[0], sc[1], clash, sw, step_bias, ot, fp)
+                 sw * 100, small_step_pct(mel, d['sections']) * 100, ot, dt, fp, nfix, clash))
+        # 越小越好，见 `cand_score`：去重为主，级进/落点分散/时值/形态判据为次（都只对候选间排序）
+        score = cand_score(sc[0], sc[1], clash, sw, step_bias, ot, fp, dur_dist=dt)
         # 旧挑法只等于 `score = sc[0]*2 + sc[1] + clash*0.5`（`step_bias=0` 时逐字一致）。
         # 用户在 2026-09-14 实测：同骨架 4 条候选"级进 17% → 52% 越来越顺，202 之后
         # 两条都比原版好"，而旧挑法完全不看听感维度 → 会随机挑到跳进多的那条
