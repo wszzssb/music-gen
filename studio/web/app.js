@@ -446,24 +446,36 @@ function renderSecEdit(){
 /* ---------------- 钢琴卷帘（和弦导引 / 强拍合规 / 增删拖 / 缩放） ---------------- */
 const NOTE_PC = {C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
 const QUALITIES = ['','m','7','maj7','maj9','m7','6','m6','5','sus4','7sus4','sus2','dim','m7b5','aug','add9','m9','9'];
-function totalBeats(){return (S.song.sections||[]).reduce((a,s)=>a+s.bars*4,0);}
-function sectionStartBeats(i){let t=0;for(let k=0;k<i;k++)t+=S.song.sections[k].bars*4;return t;}
+/* ⚠ **拍号**（2026-09-19 修）：下面这一整段原先把"每小节 4 拍"**写死在 15 处** ——
+   3/4 的曲子（waltz 主题）总长因此被算成 `bars×4`（48 小节 → 192 拍，实际 144 拍），
+   卷帘横向比例比音频/音符宽出 **33%**，用户看到的是"速度不匹配、末尾有对不上的音符"。
+   与 `PITFALLS.md` **195**（"全局常量 + 多处引用"里的拍号假设）同族 ——
+   那一轮只修了引擎侧（`melody_gen.SPB`），**前端这一套漏了**。
+   强拍口径与 `selftest.strong_beats` 对齐：4/4→第 1、3 拍；3/4→只有第 1 拍。 */
+function barBeats(){
+  const m = (S.song && S.song.meter) || [4,4];
+  return (m[0] * 4) / m[1];
+}
+function totalBeats(){return (S.song.sections||[]).reduce((a,s)=>a+s.bars*barBeats(),0);}
+function sectionStartBeats(i){let t=0;for(let k=0;k<i;k++)t+=S.song.sections[k].bars*barBeats();return t;}
 function sectionOfBeat(b){let t=0;const a=S.song.sections||[];
-  for(let i=0;i<a.length;i++){ if(b>=t&&b<t+a[i].bars*4) return i; t+=a[i].bars*4; } return -1;}
+  for(let i=0;i<a.length;i++){ if(b>=t&&b<t+a[i].bars*barBeats()) return i; t+=a[i].bars*barBeats(); } return -1;}
 function chordAtBeat(b){const i=sectionOfBeat(b); if(i<0)return null;
   const sec=S.song.sections[i], rel=b-sectionStartBeats(i);
-  return (sec.chords||[])[Math.floor(rel/4)]||null;}
+  return (sec.chords||[])[Math.floor(rel/barBeats())]||null;}
 function chordTones(name){const c=(S.song.chords||{})[name]; if(!c)return [];
   return (c[1]||[]).map(m=>m%12);}
-function isStrongBeat(b){ // 每小节第 1、3 拍（与 selftest 的判据一致）
-  const inBar=b-Math.floor(b/4)*4; return Math.abs(inBar-0)<1e-6||Math.abs(inBar-2)<1e-6;}
+function isStrongBeat(b){ // 与 selftest 的判据一致：4/4 每小节第 1、3 拍；3/4 只有第 1 拍
+  const bg=barBeats(), inBar=b-Math.floor(b/bg)*bg;
+  if(Math.abs(bg-4)<1e-9) return Math.abs(inBar-0)<1e-6||Math.abs(inBar-2)<1e-6;
+  return Math.abs(inBar-0)<1e-6;}
 function melodyNotes(){
-  const out=[]; let t0=0;
+  const out=[]; let t0=0; const bg=barBeats();
   (S.song.sections||[]).forEach((sec,i)=>{
     const key=sec.melody, arr=(S.song.melody||{})[key];
-    if(Array.isArray(arr)) for(const n of arr) out.push({sec:i,beat:t0+n[0]*4+(n[1]||0),
+    if(Array.isArray(arr)) for(const n of arr) out.push({sec:i,beat:t0+n[0]*bg+(n[1]||0),
       dur:n[2]||1,pitch:n[3],vel:96*((sec.arr.vel)||1),editable:true,raw:n});
-    t0+=sec.bars*4;
+    t0+=sec.bars*bg;
   });
   return out;
 }
@@ -567,16 +579,17 @@ function paintRoll(g){
   }
   // ① 和弦内音导引带（按小节的和弦）
   const rowH=H/(g.hi-g.lo+1);
-  for(let b=Math.floor(v.st/4)*4; b<v.st+v.span+4; b+=4){
+  const bg=barBeats();                       // ⚠ 拍号：原来写死 4
+  for(let b=Math.floor(v.st/bg)*bg; b<v.st+v.span+bg; b+=bg){
     const cn=chordAtBeat(b+0.01); if(!cn) continue;
     const tones=chordTones(cn);
     ctx.fillStyle='rgba(87,209,139,.07)';
-    for(const pc of tones){ for(let p=g.lo;p<=g.hi;p++) if(p%12===pc) ctx.fillRect(g.x(b),g.y(p),g.x(b+4)-g.x(b),rowH); }
+    for(const pc of tones){ for(let p=g.lo;p<=g.hi;p++) if(p%12===pc) ctx.fillRect(g.x(b),g.y(p),g.x(b+bg)-g.x(b),rowH); }
   }
   // ② 段落底色 + 边界 + 和弦名
   let t0=0;
   (S.song.sections||[]).forEach((sec,i)=>{
-    const x0=g.x(t0), x1=g.x(t0+sec.bars*4);
+    const x0=g.x(t0), x1=g.x(t0+sec.bars*bg);
     ctx.fillStyle=(i%2)?'rgba(255,255,255,.02)':'rgba(255,255,255,.05)';
     ctx.fillRect(x0,0,Math.max(0,x1-x0),H);
     ctx.strokeStyle='#5cc8ff'; ctx.globalAlpha=.5; ctx.beginPath();
@@ -584,12 +597,12 @@ function paintRoll(g){
     ctx.fillStyle='#8b90a4'; ctx.font=(11*devicePixelRatio)+'px sans-serif';
     if(x1-x0>26) ctx.fillText(sec.name,x0+3,12*devicePixelRatio);
     for(let b=0;b<sec.bars;b++){
-      const xb=g.x(t0+b*4);
+      const xb=g.x(t0+b*bg);
       ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.beginPath(); ctx.moveTo(xb,0); ctx.lineTo(xb,H); ctx.stroke();
       const ch=(sec.chords||[])[b];
       if(ch && (x1-x0)>60) { ctx.fillStyle='#6f7690'; ctx.fillText(ch,xb+3,H-4*devicePixelRatio); }
     }
-    t0+=sec.bars*4;
+    t0+=sec.bars*bg;
   });
   // ③ 循环区间
   const [la,lb]=ENG.state().loop||[null,null];
@@ -678,11 +691,12 @@ function rollDown(e){
     const secIdx=sectionOfBeat(hit.beat); if(secIdx<0) return;
     pushUndo();
     const snapped=Math.round(hit.beat*2)/2;
+    const bg=barBeats();                     // ⚠ 拍号：原来写死 4（3/4 会写错位置）
     const secStart=sectionStartBeats(secIdx), secBars=S.song.sections[secIdx].bars;
-    const rel=Math.max(0,Math.min(secBars*4-0.5,snapped-secStart));
+    const rel=Math.max(0,Math.min(secBars*bg-0.5,snapped-secStart));
     const mel=(S.song.sections[secIdx].melody)||'';
     if(!Array.isArray(S.song.melody[mel])) S.song.melody[mel]=[];
-    const raw=[Math.floor(rel/4), +(rel-Math.floor(rel/4)*4).toFixed(2), 1, hit.pitch];
+    const raw=[Math.floor(rel/bg), +(rel-Math.floor(rel/bg)*bg).toFixed(2), 1, hit.pitch];
     S.song.melody[mel].push(raw); S.dirty=true;
     const note={beat:snapped,pitch:hit.pitch,dur:1,vel:96,editable:true,raw,sec:secIdx};
     S.selNote=note; S.drag={note, mode:'resize', b0:snapped, p0:hit.pitch, d0:1, v0:96};
@@ -697,14 +711,15 @@ function rollMove(e){
   const beat=g.v.st+mx/g.W*g.v.span, pitch=Math.round(g.ppy(my));
   const raw=d.note.raw; if(!raw) return;
   const start=sectionStartBeats(d.note.sec), secBars=S.song.sections[d.note.sec].bars;
+  const bg=barBeats();                       // ⚠ 拍号：原来写死 4
   if(d.mode==='move'){
-    let b=Math.round(beat*2)/2; b=Math.max(start,Math.min(start+secBars*4-0.5,b));
+    let b=Math.round(beat*2)/2; b=Math.max(start,Math.min(start+secBars*bg-0.5,b));
     const rel=b-start;
-    raw[0]=Math.floor(rel/4); raw[1]=+(rel-Math.floor(rel/4)*4).toFixed(2);
+    raw[0]=Math.floor(rel/bg); raw[1]=+(rel-Math.floor(rel/bg)*bg).toFixed(2);
     raw[3]=Math.max(0,Math.min(127,pitch));
     d.note.beat=b; d.note.pitch=raw[3];
   }else if(d.mode==='resize'){
-    let dur=Math.round((beat-d.note.beat)*2)/2; dur=Math.max(0.5,Math.min(secBars*4,dur));
+    let dur=Math.round((beat-d.note.beat)*2)/2; dur=Math.max(0.5,Math.min(secBars*bg,dur));
     raw[2]=dur; d.note.dur=dur;
   }else{                                        // Alt=力度
     const dv=(d.p0-pitch)*4; d.note.vel=Math.max(1,Math.min(127,(d.v0||80)+dv));
@@ -994,16 +1009,24 @@ function drawWave(light){
   const c=$('wave'); if(!c) return;
   const W=c.width=c.clientWidth*devicePixelRatio, H=c.height=56*devicePixelRatio;
   const g=c.getContext('2d'); g.clearRect(0,0,W,H); g.fillStyle='#0f1117'; g.fillRect(0,0,W,H);
+  const d=ENG.state().dur||0;
+  /* ⚠ **时间轴必须与卷帘一致**（2026-09-19）：音频比 MIDI 长（段末留白 + 混响尾巴，
+     实测 122.72s vs 120.00s），原先按**音频时长**铺满整宽 → 波形与播放头比卷帘"快"
+     2.3%，末尾对不上（用户截图报"速度不匹配"）。改用**卷帘覆盖的秒数**当分母。 */
+  const axis = (totalBeats() * 60 / ((S.song && S.song.bpm) || 120)) || d || 1;
   const p=ENG.peaks(1200);
   if(p){
     g.fillStyle='#3a4152';
-    for(let i=0;i<p.length;i++){ const h=p[i]*H*0.9; g.fillRect(i*W/p.length, (H-h)/2, 1, h); }
+    for(let i=0;i<p.length;i++){
+      const sec = i/p.length*d;                   // 这根柱子对应的音频秒
+      if(sec>axis) break;                         // 超出 MIDI 长度的尾巴不画
+      const h=p[i]*H*0.9; g.fillRect(sec/axis*W, (H-h)/2, 1, h);
+    }
   }
-  const d=ENG.state().dur||0;
   if(d){
     const [a,b]=ENG.state().loop;
-    if(a!=null&&b!=null){ g.fillStyle='rgba(92,200,255,.12)'; g.fillRect(a/d*W,0,(b-a)/d*W,H); }
-    const x=ENG.position()/d*W;
+    if(a!=null&&b!=null){ g.fillStyle='rgba(92,200,255,.12)'; g.fillRect(a/axis*W,0,(b-a)/axis*W,H); }
+    const x=ENG.position()/axis*W;
     g.fillStyle='#ff6b6b'; g.fillRect(x-1,0,2,H);
   }
   if(!light) g.fillStyle='#6f7690';
