@@ -51,12 +51,16 @@
    [7, 0.25, 2.0, 82]
   ],
   "outro": [
-   [0, 1.0, 0.5, 75], [0, 2.0, 0.75, 71], [0, 2.75, 0.75, 78], [0, 3.5, 2.0, 71],
-   [1, 2.25, 0.75, 71]
+   [0, 1.0, 0.5, 78], [0, 2.0, 0.75, 71], [0, 2.75, 0.75, 75], [0, 3.5, 1.0, 71],
+   [1, 0.5, 1.0, 69], [1, 1.5, 0.75, 67], [1, 3.0, 2.0, 71],
+   [2, 1.0, 0.5, 71], [2, 2.0, 0.75, 67], [2, 2.75, 0.75, 71], [2, 3.5, 2.0, 67],
+   [3, 2.25, 0.75, 70]
   ],
   "outro_tag": [
-   [0, 0.5, 1.5, 71], [0, 2.0, 0.5, 74], [0, 2.5, 0.75, 71], [0, 3.25, 1.5, 73],
-   [1, 0.75, 1.75, 70]
+   [0, 1.0, 0.5, 78], [0, 2.0, 0.75, 71], [0, 2.75, 0.75, 75], [0, 3.5, 1.0, 71],
+   [1, 0.5, 1.0, 69], [1, 1.5, 0.75, 67], [1, 3.0, 2.0, 71],
+   [2, 1.0, 0.5, 71], [2, 2.0, 0.75, 67], [2, 2.75, 0.75, 71], [2, 3.5, 2.0, 67],
+   [3, 2.25, 0.75, 70]
   ]
  },
  "sections": [
@@ -134,17 +138,17 @@
    "melody": "A",
    "arr": {
     "bass": true,
-    "perc": 1,
+    "perc": 0,
     "piano": true,
     "uku": false,
-    "arp": true,
-    "pad": false,
+    "arp": false,
+    "pad": true,
     "strings": false,
     "glock": false,
     "ep": false,
     "glock_all": false,
     "shimmer": false,
-    "density": 2,
+    "density": 0,
     "mix": {
      "Melody": 56,
      "Hook": 45,
@@ -227,42 +231,9 @@
    "mode": "major"
   },
   {
-   "name": "Outro",
-   "bars": 2,
-   "chords": ["B7", "Gmaj7"],
-   "melody": "outro",
-   "arr": {
-    "bass": true,
-    "perc": 0,
-    "piano": true,
-    "uku": false,
-    "arp": false,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "glock_all": false,
-    "ep": false,
-    "shimmer": false,
-    "density": 1,
-    "mix": {
-     "Melody": 86,
-     "Hook": 69,
-     "Piano": 65,
-     "Arp": 51,
-     "Pad": 58,
-     "Strings": 55,
-     "Bass": 84,
-     "Glock": 51,
-     "Perc": 74
-    },
-    "hook": false
-   },
-   "mode": "major"
-  },
-  {
    "name": "Tag",
-   "bars": 2,
-   "chords": ["G7", "C7"],
+   "bars": 4,
+   "chords": ["B7", "Gmaj7", "G7", "C7"],
    "melody": "outro_tag",
    "arr": {
     "bass": true,
@@ -276,7 +247,7 @@
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 1,
+    "density": 0,
     "mix": {
      "Melody": 43,
      "Hook": 34,

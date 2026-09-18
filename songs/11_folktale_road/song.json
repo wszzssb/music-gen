@@ -62,12 +62,16 @@
    [7, 0.0, 3.0, 84]
   ],
   "outro": [
-   [0, 1.5, 1.25, 72], [0, 2.75, 0.5, 67], [0, 3.25, 2.0, 69],
-   [1, 2.0, 1.0, 69]
+   [0, 1.5, 1.25, 77], [0, 2.75, 0.5, 69], [0, 3.25, 1.25, 71],
+   [1, 0.5, 1.25, 69], [1, 2.0, 2.0, 69],
+   [2, 1.25, 1.25, 67], [2, 2.5, 0.5, 67], [2, 3.0, 1.25, 69],
+   [3, 2.0, 1.0, 72]
   ],
   "outro_tag": [
-   [0, 0.0, 1.25, 74], [0, 1.25, 1.25, 79], [0, 2.5, 1.5, 76],
-   [1, 1.5, 2.0, 72]
+   [0, 1.5, 1.25, 77], [0, 2.75, 0.5, 69], [0, 3.25, 1.25, 71],
+   [1, 0.5, 1.25, 69], [1, 2.0, 2.0, 69],
+   [2, 1.25, 1.25, 67], [2, 2.5, 0.5, 67], [2, 3.0, 1.25, 69],
+   [3, 2.0, 1.0, 72]
   ]
  },
  "sections": [
@@ -145,17 +149,17 @@
    "melody": "C",
    "arr": {
     "bass": true,
-    "perc": 2,
+    "perc": 0,
     "piano": true,
     "uku": false,
     "arp": false,
-    "pad": false,
+    "pad": true,
     "strings": false,
-    "glock": true,
+    "glock": false,
     "ep": false,
     "glock_all": false,
-    "shimmer": true,
-    "density": 3,
+    "shimmer": false,
+    "density": 0,
     "hook": false,
     "mix": {
      "Perc": 45,
@@ -211,31 +215,9 @@
    "mode": "major"
   },
   {
-   "name": "Outro",
-   "bars": 2,
-   "chords": ["F6", "Am6"],
-   "melody": "outro",
-   "arr": {
-    "bass": true,
-    "perc": 0,
-    "piano": true,
-    "uku": false,
-    "arp": false,
-    "pad": true,
-    "strings": false,
-    "glock": false,
-    "ep": false,
-    "glock_all": false,
-    "shimmer": false,
-    "density": 1,
-    "hook": false
-   },
-   "mode": "major"
-  },
-  {
    "name": "Tag",
-   "bars": 2,
-   "chords": ["Gsus4", "C6"],
+   "bars": 4,
+   "chords": ["F6", "Am6", "Gsus4", "C6"],
    "melody": "outro_tag",
    "arr": {
     "bass": true,
@@ -249,7 +231,7 @@
     "ep": false,
     "glock_all": false,
     "shimmer": false,
-    "density": 1,
+    "density": 0,
     "hook": false,
     "mix": {
      "Perc": 25,
