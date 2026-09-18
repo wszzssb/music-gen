@@ -1401,12 +1401,25 @@ def t_section_transition():
         #   （`15_waltz_ballroom` 是 3/4）—— 量错了位置，量出来的"硬切"就是假读数。
         _meter = song_engine._norm_meter(d.get('meter'))
         bar_s = (int(_meter[0]) * 4.0 / int(_meter[1])) * 60.0 / float(bpm)
+        # **主体参照不固定**（用户 2026-09-18 定："这两个不用固定，每一个段落都可以
+        # 选择其之一，有的曲子部分不需要留白，要的时候改变一下主体参照时间"）。
+        # 固定取"边界前 0.3~0.9s"有结构性矛盾：**留白一旦早于 0.3s 开始，参照窗口自己也
+        # 掉进谷里**，于是留白做得越充分越判"硬切"（实测 02_wave_walk「B」：两个窗口都在
+        # −34 / −35.5dB 的谷里、只差 1.5dB，而边界其实有 −38dB 的清晰留白）。
+        # 改为取**本段中部 30%~70%** 当主体 —— 过渡用"留白"还是"渐变"由每个边界自己决定：
+        # 留白式靠 `fade_out`/`fade_in`，渐变式靠 `jump`（**三条门限都没动**）。
+        secs = d.get('sections') or []
         t, ok_all, worst = 0.0, True, None
-        for s in (d.get('sections') or [])[:-1]:
-            t += int(s.get('bars') or 0) * bar_s
+        for i, s in enumerate(secs[:-1]):
+            nbars = int(s.get('bars') or 0)
+            seg0 = t                              # 本段起点（秒）
+            t += nbars * bar_s                    # t → 本段结束 = 边界时刻
             b = int(t / 0.05)
-            pre = env[max(0, b - 18):b - 6]        # 边界前 0.3~0.9s（前段主体）
-            post = env[b + 6:b + 18]               # 边界后 0.3~0.9s（后段主体）
+            pre = env[int((seg0 + nbars * bar_s * 0.30) / 0.05):
+                      int((seg0 + nbars * bar_s * 0.70) / 0.05)]
+            nxt = int(secs[i + 1].get('bars') or 0)
+            post = env[int((t + nxt * bar_s * 0.30) / 0.05):
+                       int((t + nxt * bar_s * 0.70) / 0.05)]
             if len(pre) < 4 or len(post) < 4:
                 continue
             # ⚠ 早先拿"边界 ±0.15s"当 mid 是错的：那个窗**跨了边界**，
