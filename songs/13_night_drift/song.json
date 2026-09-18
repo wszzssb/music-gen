@@ -260,7 +260,8 @@
      "Bass": 80,
      "Glock": 76,
      "Perc": 71
-    }
+    },
+    "ending_fade": 3
    },
    "mode": "minor"
   }

@@ -170,6 +170,11 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             # 第 3 小节起才有（回到 96）。整段关掉会让前 8 小节整体轻 5~6dB（实测），
             # 所以要做的是"前 N 小节不出"，而不是"整段关掉"。
             'glock_from_bar',
+            # **`ending_fade`**（2026-09-18）：段内**最后 N 小节逐小节衰减**（收尾用）。
+            # 依据 `docs/CASE-BGM36.md:60`（最后 7 小节衰减到 −94.1dB）与
+            # `docs/CASE-BGM35.md:129`（5 小节到 −38dB）；我们的 `section_gap` 只做段末几拍，
+            # 实测收尾段 RMS 只到 −16.5~−17.4dB（主体 −15.9）→ **量级差 20~77dB**。
+            'ending_fade',
             # `glock_starved`（2026-09-16）：**极安静段的"疏而亮"层** ——
             # 段内每 2 小节补一个很轻的长音钟琴撑住高频。依据：实测 S13/S17
             # 这种"前 2 小节满格、后面整段没鼓"的段落，频谱质心崩到 2353/1769
@@ -1462,7 +1467,20 @@ def build_events(d):
             #   （段内拍），于是 `_left` 对几乎所有音都是负数、被整段 `continue` 掉，
             #   成品时长从 118s 塌成 19s（`render_duration_matches_midi` 当场抓到）。
             _end = (bar0 + nbars) * B
+            # **收尾逐小节渐弱**（段级 `arr.ending_fade` = 本段最后 N 小节）——
+            # 依据 `docs/CASE-BGM36.md:60`：它最后 **7 个连续小节**一路衰减到 **−94.1dB**；
+            # `docs/CASE-BGM35.md:129` 是 5 小节到 −38dB（`RECIPE-BGM35.md:40` 收尾起音 0.4）。
+            # ⚠ 我们原来的 `section_gap` 只做段末几拍，实测收尾段 RMS 只到 **−16.5~−17.4dB**
+            #   （主体 −15.9）—— **量级差 20~77dB**，这就是"一首放完直接切下一首"的听感来源。
+            # 用**二次**衰减而非线性：dB 上更接近"逐小节掉一截"的指数形。
+            _ef = int(arr.get('ending_fade') or 0)
             for (t, dd, m, v) in bucket[k]:
+                if _ef > 0:
+                    _left_bar = (_end - t) / B           # 距段末还有几小节
+                    if _left_bar < _ef:
+                        _p = 1.0 - max(0.0, _left_bar) / _ef
+                        v = v * max(0.0, (1.0 - _p) ** 2)
+                        dd = min(dd, max(0.05, _end - t))
                 if _gap > 0:
                     _left = _end - t
                     if _left <= 0:

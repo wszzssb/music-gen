@@ -148,7 +148,8 @@
     "ep": true,
     "glock_all": false,
     "shimmer": true,
-    "density": 3
+    "density": 3,
+    "ending_fade": 3
    },
    "mode": "major"
   }

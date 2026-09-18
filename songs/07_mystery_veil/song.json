@@ -215,7 +215,8 @@
     "ep": false,
     "glock_all": false,
     "shimmer": false,
-    "density": 3
+    "density": 3,
+    "ending_fade": 3
    },
    "mode": "minor"
   }

@@ -515,8 +515,21 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
         for _k in ('uku', 'arp', 'strings', 'glock', 'ep', 'shimmer', 'glock_all'):
             _qa[_k] = False
         _qa.update({'bass': True, 'piano': True, 'pad': True, 'perc': 0, 'density': 0})
-        _qa['mix'] = dict(_qa.get('mix') or {}, Melody=42, Bass=45, Piano=42, Pad=42)
+        # ⚠ **不要在这里再压 `mix`**（2026-09-18 实测后去掉）：`RECIPE-BGM35.md:30` 里
+        # 呼吸口 RMS −19.7 vs 主体 −15.8 —— **只降 3.9dB**，它靠**密度**降（起音 36→6.4），
+        # **不是靠音量**。实测我们只做 density 时入口落差 −1.9~−3.6dB，与配方吻合；
+        # 若再叠 `mix × 0.42`（≈ −7.5dB）就过冲，入口会变成硬切。
         _q['arr'] = _qa
+    # **收尾逐小节渐弱**（2026-09-18 补，口径同 `CASE-BGM36.md:60` / `CASE-BGM35.md:129`）：
+    # BGM36 最后 **7 小节**衰减到 −94.1dB、BGM35 是 5 小节到 −38dB —— 那才是"过渡自然"的样板；
+    # 我们的 `section_gap` 只做段末几拍，实测收尾段 RMS 只到 −16.5dB（主体 −15.9）。
+    # 取 **3 小节**（本曲 40~64 小节，约 5~7%），并从末尾往前**跳过极静段**
+    # （极静段是呼吸口，不是收尾；叠加会双重衰减）。
+    for _s in reversed(secs):
+        if int((_s.get('arr') or {}).get('density') or 0) == 0:
+            continue
+        _s['arr']['ending_fade'] = 3
+        break
     # **引子渐入**（`arr.perc_in` → `song_engine.perc_part(inbars=…)`）：真实模板里引子是
     # "b1–b2 安静、b3–b4 鼓组进来"（cheerful 10 首里 7 首前 4 小节有鼓、合计中位 18 点，
     # 而单看 b1 多数是 0）。整段一次性全开会在段落切换处造成亮度突变
