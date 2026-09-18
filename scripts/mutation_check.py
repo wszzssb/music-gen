@@ -1205,6 +1205,15 @@ def main():
     results.append(case('编配：换回机械轮换 level=i%3',
                         'theme_arrangement_dynamic',
                         lambda: Mut(_ns, 'arr_level', lambda eused, i, role=None: i % 3)))
+    # ⑬ 主题音色：把"音色池 → 引擎轨"的映射表清空 → `prog_pool` 注入了却没接上线
+    #    （正是本轮犯过的错：守卫写了却没加 `@check`、根本没进 `CHECKS`）→
+    #    `theme_timbre_pool` 必须抓到 `theme_programs` 空转。
+    #    ⚠ 第一版变异写成"清空 `NOT_PLUCK`"，**它触发不了** —— daily 的 `uku` 池是
+    #      `[25, 111, 30]`，`pick=0` 取首位 25，111 在第 2 位，过滤掉不掉都不影响输出。
+    #      变异用例必须选"改了一定会变形"的点，否则是假绿灯。
+    results.append(case('音色：轨映射表清空（注入却没接线）',
+                        'theme_timbre_pool',
+                        lambda: Mut(_ns, 'POOL_TO_TRACK', ())))
     # ⑫ 让旋律**整个跟着低音走八度**（最极端的平行八度）→ 声部进行守卫必须抓到
     _real_be = _se.build_events
 

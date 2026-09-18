@@ -841,6 +841,23 @@
    "baroque": 2,
    "classical": 4,
    "public_domain": 4
+  },
+  "prog_pool": {
+   "piano": [
+    0,
+    6
+   ],
+   "ep": [
+    71,
+    68
+   ],
+   "strings": [
+    48,
+    40
+   ],
+   "glock": [
+    14
+   ]
   }
  },
  "form": {

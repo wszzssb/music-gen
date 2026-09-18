@@ -159,6 +159,57 @@ def theme_arr(pack, style, level=0):
     return arr
 
 
+# 主题模板音色池 → 引擎轨名（键与 `theme_pack.ROLE_TO_ARR` 的值域一致）
+POOL_TO_TRACK = (('ep', 'Melody'), ('uku', 'Hook'), ('piano', 'Piano'),
+                 ('strings', 'Strings'), ('pad', 'Pad'), ('glock', 'Glock'),
+                 ('bass', 'Bass'))
+# 主奏**不许用**的慢起音音色：用户听感"有一个乐器慢一点不太和谐"（selftest 的
+# `t_lead_timbre_attack` 把上限定在 20ms，颤音琴 11 实测 42ms 被点名淘汰）。
+# 族口径：管风琴 16-23（风箱起音）· 弦乐 40-51（弓弦 60~150ms）· 人声 52-55 · Pad 88-95。
+# ⚠ 那个守卫只渲染 `STYLES` 预设来量，**管不到 song.json 里的实际值** —— 模板音色
+#   从这一层进来，所以过滤必须写在这里，否则能绕过守卫。
+SLOW_ATTACK = frozenset(list(range(16, 24)) + list(range(40, 52))
+                        + list(range(52, 56)) + list(range(88, 96)) + [11])
+# `uku`（Hook 轨 = 拨弦/分解和弦角色）不许用的音色：`theme_pack.ROLE_BY_PROGRAM`
+# 把 ethnic 族 104-111 整体归给 guitar，但其中 **109 风笛 / 110 小提琴 / 111 唢呐
+# 不是拨弦**（守卫第一次跑就抓到 daily 的 uku 池首位是 111）—— 弓弦/簧管塞进分解
+# 和弦轨会明显不像。104-108（西塔/班卓/三味线/古筝/拇指琴）是拨弦，保留。
+NOT_PLUCK = frozenset([109, 110, 111])
+
+
+def theme_programs(pack, pick=0, verbose=False):
+    """主题模板的**实际音色** → `song.json` 的 `programs`（覆盖引擎风格预设）
+
+    依据 = `arrangement.prog_pool`：`extract_theme_timbres.py --inject` 扫 8~10 首同主题
+    模板、**每首一票**（取该声部音符最多的那条轨）选出的真实 GM 音色，按频次排序。
+    `pick=0` ＝ 该主题**最常用**的那个音色（实测 classic＝钢琴/大键琴、battle＝原声贝斯、
+    neon＝原声贝斯＋方波主音）；多候选留给"同主题换音色"的变体。
+
+    ⚠ 为什么 `ep → Melody`：`ROLE_TO_ARR` 把 lead/reed/pipe 三族都折成 `ep`，这正是
+      主奏族（排箫 75 / 单簧管 71 / 方波主音 80）—— 这才是"主奏该用什么音色"的模板证据。
+    ⚠ **`Perc` 与 `Arp` 不接**：`perc` 池里是**音高打击乐**（钢鼓 114 / 反镲 119），
+      不是鼓组（鼓组在 channel 10，不吃 program）；`Arp` 在模板角色里没有对应族。
+    ⚠ 值必须是 `(program, channel)` 二元组：`song_engine` 用 `tuple(v)` 解包，
+      写成裸 int 会 `TypeError: 'int' object is not iterable`。
+    """
+    import song_engine
+    pool = (pack.get('arrangement') or {}).get('prog_pool') or {}
+    out = {}
+    for key, track in POOL_TO_TRACK:
+        cands = [int(p) for p in (pool.get(key) or []) if 0 <= int(p) <= 95]
+        if track == 'Melody':            # 主奏不许慢起音（见 SLOW_ATTACK）
+            cands = [p for p in cands if p not in SLOW_ATTACK]
+        elif track == 'Hook':            # 分解和弦轨不许弓弦/簧管（见 NOT_PLUCK）
+            cands = [p for p in cands if p not in NOT_PLUCK]
+        if not cands:
+            continue
+        out[track] = (cands[min(pick, len(cands) - 1)], song_engine.CH[track])
+    if verbose:
+        print('  音色依据（模板实际）：%s'
+              % ' · '.join('%s=%d' % (k, v[0]) for k, v in sorted(out.items())))
+    return out
+
+
 def effective_gain(pack, gain=None):
     """这次实际用的阻尼系数：调用方指定 > 包里的逐主题标定值 > 全局默认
 
@@ -543,7 +594,11 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     #   ② 只用**起音 ≤20ms** 的音色：颤音琴(11) 42ms 实测"慢半拍"被用户点名淘汰
     #      （`t_lead_timbre_attack` 在守）。
     # 候选池按"与钢琴的距离"排：0 钢琴 → 13 木琴 → 8 钢片琴 → 4 电钢 → 24 尼龙吉他 → 9 钟琴。
-    _MEL_PROGS = (0, 13, 8, 4, 24, 9)
+    # ⚠ **模板主奏音色排最前**：否则 `programs.Melody` 会被这里的段级值立刻覆盖、
+    #   等于白设 —— 实测第一版 MIDI `pcs=[71,0,13,8,13,4]`，71（单簧管）只活了一个音。
+    _mel_tpl = (theme_programs(pack).get('Melody') or (None,))[0]
+    _MEL_PROGS = tuple(dict.fromkeys(
+        [p for p in (_mel_tpl, 0, 13, 8, 4, 24, 9) if p is not None]))
     _role_at = {}
     for _s in secs:
         _r = song_engine.role_of_section(_s['name'])
@@ -564,6 +619,12 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
          'desc': '%s（依据主题模板包 %s：%d 首同主题模板）'
                  % (pack.get('label', ''), pack['theme'], pack.get('template_count', 0)),
          'style': pack.get('engine_style'),
+         # **音色按主题模板来**（逐键覆盖 `STYLES[engine_style].programs`，见
+         # `theme_programs`）：实测模板用的音色远超 5 套预设 —— classic 有管钟/双簧管/
+         # 小提琴，battle 有排箫/钢弦吉他，neon 有方波主音/合成弦乐，lounge/night 有
+         # 中音·次中音萨克斯。用户判据"乐器选择不像"就卡在这一层。
+         # 只写"模板里有证据"的那几个轨，其余仍继承预设（`song_engine` 是逐键 update）。
+         'programs': theme_programs(pack, verbose=True),
          'patterns': {'bass_style': (pack.get('rhythm') or {}).get('bass_style', 'simple'),
                       'perc_style': (pack.get('rhythm') or {}).get('perc_style', 'light'),
                       # **乐句级力度曲线**（opt-in，见 `song_engine.mel_dyn_env`）：

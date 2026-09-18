@@ -62,6 +62,20 @@
 2. 段落 = `form.plan`；和弦 = 主进行循环铺满（非 A 段换起点做变化）
 3. 编制 = 引擎预设打底 + `arr_on/arr_off` 覆盖；**`perc` 永远是 1**
    （`perc_style=light` + `perc=1` 是"无鼓组但保住 5–18kHz"的唯一正解）
+3.5 **音色** = `arrangement.prog_pool`（由 `extract_theme_timbres.py --inject` 写入），
+   逐键覆盖 `STYLES[engine_style].programs` —— 生成**不再只套 5 套预设**：实测模板的实际
+   音色远超预设（`classic` 有管钟 14／双簧管 68，`battle` 有排箫 75／钢弦吉他 25，
+   `lounge`·`night` 有中音·次中音萨克斯 65/66）。用户判据"**乐器选择还是不像，在 MIDI 里
+   也是一样的**"（即不是音源的锅）就卡在这一层。
+   · 映射与 `ROLE_TO_ARR` 对齐：`ep→Melody`（lead/reed/pipe 折在这，正是主奏族）·
+     `uku→Hook` · `piano/bass/strings/pad/glock` 同名；**`Perc`/`Arp` 不接**
+     （`perc` 池里是音高打击乐 114/119，不是鼓组）
+   · **取用层**过滤（守卫 `t_theme_timbre_pool` 在输出上判）：主奏禁慢起音
+     （11／16-23／40-51／52-55／88-95）、`Hook` 禁弓弦簧管（109-111，ethnic 族被整族
+     归进 guitar）—— `t_lead_timbre_attack` 只渲染 `STYLES` 预设、**管不到 song.json
+     的实际值**，所以过滤必须写在这里
+   · 模板主奏音色要排在段级 `melody_prog` 池**最前**，否则被段级值立刻覆盖
+     （实测 `pcs=[71,0,13,8,13,4]` —— 71 只活了一个音）
 4. 旋律 = `melody_gen` + 主题旋律画像（密度取 MIDI 精确值，不乘 F0 补偿系数）；
    **生成后当场体检**（`probe_melody_health`），不合格按 1.0→0.75→0.6→0.5 的密度阶梯重试 ——
    密集主题（如 `battle` 的 chiptune/game 模板）实测第一档碎音 37%，降到 1.94 音/小节才过

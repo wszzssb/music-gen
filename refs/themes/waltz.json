@@ -850,6 +850,28 @@
    "folk": 2,
    "public_domain": 2,
    "romantic": 2
+  },
+  "prog_pool": {
+   "strings": [
+    48,
+    42,
+    40,
+    46
+   ],
+   "piano": [
+    0,
+    6
+   ],
+   "ep": [
+    73,
+    68
+   ],
+   "pad": [
+    94
+   ],
+   "uku": [
+    25
+   ]
   }
  },
  "form": {

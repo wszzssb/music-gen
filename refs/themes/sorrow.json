@@ -843,6 +843,25 @@
    "ballad": 4,
    "classical": 3,
    "romantic": 3
+  },
+  "prog_pool": {
+   "uku": [
+    24,
+    26
+   ],
+   "piano": [
+    0,
+    1
+   ],
+   "bass": [
+    32
+   ],
+   "ep": [
+    71
+   ],
+   "strings": [
+    48
+   ]
   }
  },
  "form": {

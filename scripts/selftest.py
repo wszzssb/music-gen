@@ -338,7 +338,12 @@ def t_transcribe_to_song_beat_unit():
     midi_file.export_midi(model, p)
     ns = tts.read_notes(p)
     assert len(ns) == 2, '读回音符数不对：%d' % len(ns)
-    starts = sorted(s for s, _e, _p in ns)
+    # ⚠ **按索引取、别按元组长度解包**：`read_notes` 从 3 元组扩成 4 元组
+    # （末尾加速度，见 `measure_velocity.py`）时，`for s, _e, _p in ns` 会当场
+    # `ValueError: too many values to unpack (expected 3, got 4)` —— 这条检查
+    # 曾因此静默 FAIL 一整轮（2026-09-18 跑全量自检才发现）。
+    assert len(ns[0]) >= 4, 'read_notes 应带力度（≥4 元组），实得 %d 元组' % len(ns[0])
+    starts = sorted(n[0] for n in ns)
     assert abs(starts[0] - 2.0) < 0.03 and abs(starts[1] - 3.0) < 0.03, \
         ('120bpm 下第 4/6 拍应分别是 2.0/3.0 秒，实得 %s —— 拍/秒换算错了'
          % [round(x, 3) for x in starts])
@@ -3583,6 +3588,73 @@ def t_theme_pack_valid():
           % (len(packs), tot, tp.MIN_TEMPLATES))
     assert not bad, ('主题模板包不合规：%s —— 重跑 python scripts\\theme_pack.py <主题>'
                      '（模板不足时加 --allow-fetch 联网抓）' % '；'.join(bad[:4]))
+
+
+@check
+def t_theme_timbre_pool():
+    """**主题模板的实际音色必须真的进到生成里** —— "学会了 ≠ 做得出"。
+
+    2026-09-18 现状：主题包有 8~10 首模板、**每首自带整套配器**，而生成只套
+    `STYLES[engine_style].programs` 那**一套**（5 个风格各一套）—— 用户判据
+    "乐器选择还是不像，**在 MIDI 里也是一样的**"（即不是音源的锅）就卡在这层。
+    补法：`extract_theme_timbres.py --inject` 把 `arrangement.prog_pool` 写进主题包，
+    `new_song.theme_programs` 逐键覆盖预设。
+
+    判据（前三条各自都踩过）：
+      ① 每个主题包有非空的 `prog_pool`，值都是合法 GM（0-95）
+      ② 轨映射与 `theme_pack.ROLE_TO_ARR` 的值域对齐（ep→Melody · uku→Hook · 其余同名）
+      ③ **主奏音色不许慢起音** —— 最容易漏的一条：`t_lead_timbre_attack` 只渲染
+         `STYLES` 预设、**管不到 song.json 的实际值**，模板音色是从另一条路进来的
+      ④ 值必须是 `(program, channel)` 二元组（裸 int 会在 `song_engine` 的 `tuple(v)` 上崩）
+    """
+    import song_engine
+    import new_song as ns
+    packs = [p for p in sorted(glob.glob(os.path.join(ROOT, 'refs', 'themes', '*.json')))
+             if not os.path.basename(p).endswith('_melody.json')]
+    assert packs, '没有主题包，这条检查会空转'
+    # 判据自证：主奏慢起音过滤必须真在工作（11 颤音琴实测 42ms，被用户点名淘汰）
+    got = ns.theme_programs({'arrangement': {'prog_pool': {'ep': [11, 73]}}})
+    assert got.get('Melody', (None,))[0] == 73, \
+        '主奏慢起音过滤失效（11 该被滤掉、剩下 73）：%r' % (got,)
+    assert 'Melody' not in ns.theme_programs({'arrangement': {'prog_pool': {'ep': [11]}}}), \
+        '池里全是慢起音时该回落到预设，而不是硬用 11'
+    # 判据自证：分解和弦轨不许弓弦/簧管（ethnic 族 109/110/111，first run 抓到 daily=111）
+    got2 = ns.theme_programs({'arrangement': {'prog_pool': {'uku': [111, 25]}}})
+    assert got2.get('Hook', (None,))[0] == 25, \
+        'Hook 轨没滤掉 111 唢呐（不是拨弦）：%r' % (got2,)
+    n_mel = 0
+    for p in packs:
+        pack = json.load(open(p, encoding='utf-8'))
+        th = pack.get('theme') or os.path.basename(p)[:-5]
+        pool = (pack.get('arrangement') or {}).get('prog_pool')
+        assert pool, ('%s 缺 arrangement.prog_pool（音色依据没注入）：'
+                      'python scripts\\extract_theme_timbres.py %s --inject' % (th, th))
+        for role, ps in pool.items():
+            assert ps, '%s 的 prog_pool[%s] 是空表' % (th, role)
+            # ⚠ 池是**模板的原始事实**：ethnic 族 104-111（小提琴/唢呐/风笛）会被
+            # `ROLE_BY_PROGRAM` 归进 guitar 族、音高打击乐 114/119 归进 perc 族。
+            # 所以这里只判"是不是合法 GM（0-127）"；**"能不能用"归 `theme_programs`
+            # 那一层**（下面的慢起音/拨弦判据）。首轮把这里收紧到 95 时，守卫对着
+            # 事实误报了两条（cheerful 的 114、daily 的 111）。
+            for v in ps:
+                assert 0 <= int(v) <= 127, \
+                    '%s prog_pool[%s] 含非法 GM 音色 %r（GM 范围 0-127）' % (th, role, v)
+        progs = ns.theme_programs(pack)
+        assert progs, '%s 的 theme_programs 空转（一个轨都没定出来）' % th
+        for tr, v in progs.items():
+            assert isinstance(v, (tuple, list)) and len(v) == 2, \
+                '%s programs[%s]=%r 不是 (program, channel) 二元组' % (th, tr, v)
+            assert 0 <= int(v[0]) <= 95, '%s programs[%s] 音色非法' % (th, tr)
+            assert int(v[1]) == song_engine.CH[tr], \
+                '%s programs[%s] 通道 %r 与引擎通道表不符' % (th, tr, v[1])
+        if 'Melody' in progs:
+            assert int(progs['Melody'][0]) not in ns.SLOW_ATTACK, \
+                ('%s 主奏音色 %d 是慢起音（听感"慢半拍"）：过滤没生效'
+                 % (th, progs['Melody'][0]))
+            n_mel += 1
+    assert n_mel >= 5, '能定出主奏音色的主题只有 %d 个，这条检查形同虚设' % n_mel
+    print('        %d 个主题：prog_pool 合法 · 主奏 %d 个都有音色且非慢起音'
+          % (len(packs), n_mel))
 
 
 @check
