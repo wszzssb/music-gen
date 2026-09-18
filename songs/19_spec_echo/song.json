@@ -18,7 +18,9 @@
   "range_fix": true,
   "legato_trim": true,
   "dyn_vel": 8.0,
-  "voicing_shift": 0
+  "voicing_shift": 0,
+  "seg_in": 0.75,
+  "avoid_lead": 2
  },
  "chords": {
   "Em7": [28, [64, 67, 71, 74]],

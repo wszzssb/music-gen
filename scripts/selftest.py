@@ -5837,7 +5837,7 @@ def t_intro_gradience():
     _orig = SE.perc_part
     try:
         SE.perc_part = lambda style, level, i, nbars, layers=None, kick_vel=None, \
-            B=4.0, inbars=0: _orig(style, level, i, nbars, layers, kick_vel, B, 0)
+            B=4.0, inbars=0, seed=0: _orig(style, level, i, nbars, layers, kick_vel, B, 0, seed)
         _bad = perc_beats()
     finally:
         SE.perc_part = _orig

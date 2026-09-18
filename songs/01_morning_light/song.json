@@ -26,7 +26,8 @@
   "seg_fade": true,
   "range_fix": true,
   "legato_trim": true,
-  "dyn_vel": 8.0
+  "dyn_vel": 8.0,
+  "avoid_lead": 2
  },
  "chords": {
   "Em7": [28, [64, 67, 71, 74]],

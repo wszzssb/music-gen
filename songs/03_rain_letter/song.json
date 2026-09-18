@@ -24,7 +24,8 @@
   "seg_fade": true,
   "range_fix": true,
   "legato_trim": true,
-  "dyn_vel": 8.0
+  "dyn_vel": 8.0,
+  "avoid_lead": 2
  },
  "chords": {
   "Dsus4": [38, [62, 67, 69]],

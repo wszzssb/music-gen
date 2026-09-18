@@ -24,7 +24,8 @@
   "seg_fade": true,
   "range_fix": true,
   "legato_trim": true,
-  "dyn_vel": 8.0
+  "dyn_vel": 8.0,
+  "avoid_lead": 2
  },
  "chords": {
   "Esus4": [28, [64, 69, 71]],

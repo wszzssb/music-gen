@@ -255,7 +255,8 @@ PAT_KEYS = (
     'bass_style', 'perc_style', 'bass_vel', 'kick_vel', 'voicing_shift',
     'sub_gain', 'sub_dur', 'arpeggio', 'guitar_beats', 'guitar_vary',
     # 段落与结构
-    'arr_by_role', 'space', 'section_gap', 'seg_fade', 'density', 'mix',
+    'arr_by_role', 'space', 'section_gap', 'seg_fade', 'seg_in', 'avoid_lead',
+    'density', 'mix',
     # 旋律与力度
     'melody_dyn', 'mel_vel', 'mel_vel_center', 'mel_octave', 'melody_prog',
     'dyn_vel', 'staccato', 'drum_grid', 'perc_layers',
@@ -937,7 +938,7 @@ def glock_part(ch, i, B=4.0, vel=None, oct=24):
     return []
 
 
-def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0, inbars=0):
+def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0, inbars=0, seed=0):
     """打击：light = 沙锤+轻底鼓（抒情向）；dance = 四踩+反拍踩镲（舞曲向）
 
     `B` = 一小节的四分音符数（默认 4 = 老行为，逐字节不变）；十六分格数 = B*4。
@@ -957,20 +958,56 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0, inbars=
     NB = max(1, int(round(B)))
     S = NB * 4                                     # 一小节的十六分格数（4/4 → 16）
     out = []
+    # ---- 打击乐共用工具（2026-09-18 起所有档共用）----
+    # `_dh`：确定式哈希（位混合同 `dyn_vel`）—— 不用随机数、跑两次逐字节一致。
+    # `_hit`：按哈希概率落一个点，力度 = base ± spread（逐格不同 → 力度档数自然多）。
+    # 依据：仿写 `b35_remake.mid` 的鼓 **66 种力度、16 格全满、疏密差 2 倍**；而"每拍
+    #   写死一个力度"的固定套路只有 7~14 种、且只踩少数格 → 用户"鼓像打字机"。
+    # `seed`（曲名哈希，由 `build_events` 传）参与哈希 → **不同曲拿到不同鼓型**。
+    def _dh(a, b, c):
+        x = (int(a) * 73856093) ^ (int(b) * 19349663) ^ (int(c) * 83492791)
+        x = (x ^ (x >> 13)) & 0x7FFFFFFF
+        return x / float(0x7FFFFFFF)
+
+    def _hit(g, prob, base, spread, note, tag, dur=0.12):
+        if _dh(seed * 1009 + i * 61 + g, tag, g * 7 + 3) < prob:
+            v = base + spread * (_dh(seed * 17 + i * 3 + g, tag + 11, g + 5) - 0.5) * 2.0
+            out.append((g * 0.25, dur, note, max(12, min(112, int(round(v))))))
+
     if style == 'dance':
-        for b in range(NB):
-            out.append((b, 0.1, 36, 100 if b % 2 == 0 else 94))
-            if level >= 2:
-                out.append((b + 0.25, 0.1, 36, 84))       # 双踩
-        for b in range(1, NB, 2):                         # 军鼓 2、4（4/4 → 1、3）
-            out.append((b, 0.1, 38, 96))
-        for b in range(NB):
-            # ⚠ 2026-09-15 修：踩镲 vel 98 → 66。实测 46/47 的 Perc 在 10–18k 有 28.8dB，
-            #   而旋律（钢琴，音区中位 74 左右）在 5–10k 只有 1.5dB —— 高频打击把旋律盖住。
-            #   降到 66 后 Perc 的 10–18k 掉到 19.8dB（−9dB），CLAP happy 0.438→0.449。
-            out.append((b + 0.5, 0.1, 42, 66))            # 只放反拍
-            if level >= 3:
-                out.append((b + 0.25, 0.1, 42, 20))
+        # **十六分铺开 + 三档力度**（2026-09-18 重做，同一病根：旧行为每拍写死
+        #   100/94/96/66 → 实测 `04_pulse_city` 只有 **39 种力度、13 格落点**，
+        #   而仿写是 66 种、16 格全满）。骨架（四踩 + 2/4 军鼓 + 反拍踩镲）保留，
+        #   补"十六分 ghost + 力度层次 + 哈希切分"。
+        # ⚠ 守住 2026-09-15 的教训：踩镲**不能太亮** —— 旧值 98 会把旋律的 5–10k
+        #   盖住（降到 66 后 Perc 的 10–18k 掉 9dB、CLAP happy 0.438→0.449）。
+        #   所以八分踩镲收在 72~86、十六分 ghost 更轻。
+        _dskel = [4 * b for b in range(1, NB, 2)]         # 2、4 拍（4/4 → 格 4、12）
+        _dl = min(2, max(0, level - 1))
+        _dg = 0.45 + 0.15 * _dl                           # 十六分踩镲出现率
+        for g in range(S):
+            _q = g % 4
+            # ① 踩镲：八分格必出（骨架 + 高频连续性），十六分格按概率 ghost
+            if _q == 0 or _q == 2:
+                _v = (86.0 if _q == 0 else 72.0) + \
+                    10.0 * (_dh(seed + i * 13 + g, 42, g) - 0.5)
+                out.append((g * 0.25, 0.22, 42, max(20, min(108, int(round(_v))))))
+            else:
+                _hit(g, _dg, 58.0, 12.0, 42, 142, 0.22)
+            # ② 底鼓：四踩（正拍强）+ e 位弱推 + 哈希切分
+            if _q == 0:
+                _hit(g, 0.96, 102.0, 6.0, 36, 36)
+            elif _q == 1:
+                _hit(g, 0.35 + 0.20 * _dl, 86.0, 8.0, 36, 361)
+            else:
+                _hit(g, 0.10, 92.0, 8.0, 36, 362)
+            # ③ 军鼓：2、4 拍是骨架，a 位与十六分 ghost（旧行为只有骨架那一个力度）
+            if g in _dskel:
+                _hit(g, 0.96, 98.0, 5.0, 38, 38)
+            elif _q == 3:
+                _hit(g, 0.40 + 0.10 * _dl, 78.0, 10.0, 38, 381)
+            else:
+                _hit(g, 0.09 + 0.05 * _dl, 62.0, 12.0, 38, 382)
         if level >= 3:
             out.append((B - 0.5, 0.1, 46, 72))
     elif style == 'pump':
@@ -1039,47 +1076,102 @@ def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0, inbars=
         if i % 8 == 7:                                    # 8 小节加一次大过门
             out.append((3.875 - (4.0 - B), 0.1, 49, 88))  # 吊镲（不冲太高，保持均匀）
     elif style == 'waltz':
-        # 圆舞曲的打击：底鼓只踩第 1 拍（轻），第 2、3 拍用侧棒点一下，八分沙锤铺连续性。
-        # 目的不是"更响"，而是让三拍的**层级**听得出来（1 强 2 弱 3 弱）。
-        out.append((0.0, 0.12, 36, 68))
-        for b in range(1, NB):
-            out.append((float(b), 0.12, 37, 52 if b % 2 else 46))
-        for k in range(NB * 2):
-            out.append((k * 0.5, 0.2, 82, 34 if k % 2 else 44))
+        # 圆舞曲：**1 强 2 弱 3 弱**的层级（骨架不动）+ 力度层次 + 十六分点缀。
+        # （2026-09-18 同批重做：旧行为实测 `15_waltz_ballroom` 只有 **12 种力度、
+        #   只踩 8 格**，且沙锤每小节一模一样 = 打字机。）
+        # ⚠ 3/4 拍：`S = NB*4 = 12` 格，八分格是 0/2/4/6/8/10。
+        _wl = min(2, max(0, level - 1))
+        for g in range(S):
+            # ① 沙锤：八分格必出（"蓬-恰-恰"的连续性来源），十六分按概率 ghost
+            if g % 2 == 0:
+                _v = (50.0 if g % 4 == 0 else 40.0) + \
+                    10.0 * (_dh(seed + i * 19 + g, 82, g) - 0.5)
+                out.append((g * 0.25, 0.2, 82, max(18, min(96, int(round(_v))))))
+            else:
+                _hit(g, 0.28 + 0.14 * _wl, 32.0, 8.0, 82, 182, 0.2)
+            # ② 底鼓：**只踩第 1 拍**（`waltz_groove` 守卫：三拍的层级靠"1 有底鼓、
+            #   2/3 只有侧棒"来表达）。⚠ 别往第 3 拍加弱推 —— 实测会被守卫拦下
+            #   （实得位置 [0.0, 2.0]）。
+            if g == 0:
+                _hit(g, 0.97, 74.0, 6.0, 36, 36)
+            # ③ 侧棒：第 2、3 拍（格 4、8）
+            if g == 4:
+                _hit(g, 0.96, 56.0, 8.0, 37, 737)
+            elif g == 8:
+                _hit(g, 0.92, 50.0, 8.0, 37, 7371)
         if level >= 3:
             out.append((B - 0.25, 0.3, 81, 58))
     elif style == 'orchestral':
-        # 定音鼓 + 三角铁微光 + 吊镲：华丽/盛大向，不用鼓组
-        out.append((0.0, 0.35, 47, 96))                   # 低定音鼓（正拍）
-        if level >= 2:
-            out.append((B / 2.0, 0.35, 47, 82))           # 第 3 拍（4/4 → 2.0）
-            out.append((B - 0.5, 0.35, 48, 72))           # 高定音鼓推进
-        for b in range(NB):                               # 三角铁反拍微光（补 5-18kHz）
-            out.append((b + 0.5, 0.25, 81, 54))
-            if level >= 2:
-                out.append((b + 0.25, 0.2, 81, 34))
+        # 定音鼓 + 三角铁微光 + 吊镲：华丽/盛大向，不用鼓组。
+        # 2026-09-18 同批重做：旧行为每小节固定 4~6 个点、力度 7~14 种、只踩 5~10 格 ——
+        #   实测 `10_marble_hall` **3.44 音/小节、7 种力度**，比"打字机"还稀。
+        #   骨架（定音鼓 + 三角铁微光）保留，补"力度层次 + 十六分推进"。
+        # ⚠ 不用鼓组音色（36/38/42）—— 这一档的定位就是"不用鼓组"。
+        # ⚠ 三角铁时值 ≤0.24（相邻十六分格距 0.25）：重叠会让 FluidSynth 配错 note-off。
+        _ol = min(2, max(0, level - 1))
+        for g in range(S):
+            _q = g % 4
+            # ① 三角铁：八分格必出（5–18kHz 连续性来源），十六分按概率 ghost
+            if g % 2 == 0:
+                _v = (62.0 if _q == 0 else 50.0) + \
+                    10.0 * (_dh(seed + i * 23 + g, 81, g) - 0.5)
+                out.append((g * 0.25, 0.25, 81, max(22, min(100, int(round(_v))))))
+            else:
+                _hit(g, 0.24 + 0.14 * _ol, 40.0, 10.0, 81, 181, 0.24)
+            # ② 定音鼓：正拍重击（低/高交替）+ 第 3 拍推进 + 十六分滚奏
+            if _q == 0:
+                _hit(g, 0.96, 94.0, 8.0, 47 if (g // 4) % 2 == 0 else 48, 474)
+            elif _q == 2:
+                _hit(g, 0.30 + 0.25 * _ol, 72.0, 12.0, 48, 484)
+            else:
+                _hit(g, 0.08 + 0.10 * _ol, 62.0, 12.0, 47, 4741)
         if level >= 3:
             out.append((B - 0.25, 0.3, 81, 62))
     else:                                                 # light
-        # 沙锤：**4 小节一个循环的落点型**。
-        # ⚠ 原先这里是 `for k in range(NB*2): (k*0.5, 0.2, 82, 46 if k%2 else 38)` ——
-        #   每 0.5 拍一个、力度只有两档、全曲一动不动。听感就是用户说的"d d d d ddd"，
-        #   而且**所有用 light 的曲子都是同一条**（用户："怎么都是这个"）。
-        #   现在按小节轮换四种落点：铺底 / 抽格+切分 / 加十六分 / 留白。
-        #   每小节仍保 ≥7 个沙锤 → 5–18kHz 连续性不塌（那一档只有沙锤一个高频来源）。
-        _ENV = (1.0, 0.85, 0.95, 0.82)                    # 每 4 小节的力度起伏
-        _beats = [k * 0.5 for k in range(NB * 2)]
-        if i % 4 == 3 and len(_beats) >= 4:                 # 每 4 小节末尾轻切分
-            _beats = _beats[:-1] + [NB * 2 * 0.5 - 0.75]
-        for bi, off in enumerate(_beats):
-            if off < B:
-                base = 46 if bi % 2 else 38
-                out.append((off, 0.2, 82, max(24, int(base * _ENV[i % 4]))))
-        if level >= 2:
-            out.append((0.0, 0.1, 36, 68))
-            out.append((B / 2.0, 0.1, 36, 60))
-            for b in range(1, NB, 2):                     # 侧棒（4/4 → 1、3）
-                out.append((float(b), 0.1, 37, 52))
+        # **轻鼓组三件套**（2026-09-18 重做：用户"鼓像打字机"）。
+        # 依据 = 仿写 `99_b35_remake/b35_remake.mid` 逐格实测（口径 docs/HANDOFF.md §6）：
+        #   REF **18.99 音/小节** = CHH 8.79 + Kick 5.60 + Snare 4.60；力度 **66 种**
+        #       （主档 85 = 各段 `perc_vel_max`、中档 60~70、ghost 46~58）；
+        #       16 格全满、疏密差 2 倍（338 vs 167）。
+        #   旧 light = **7.02 音/小节**：沙锤 6.18 只踩 8 个偶数格 + 底鼓 0.36 + 侧棒 0.36；
+        #       力度 **13 种、且 36/43/31/37 各 36 个 = 完全均匀**（4 小节一循环）→ 打字机。
+        # 三条改法：① 三件套都出（不再"沙锤+点缀"）② 落点铺到十六分（哈希采样，
+        #   疏密自然不均）③ 力度分档 + **确定式哈希抖动**（同 `dyn_vel` 口径：
+        #   不用随机数、跑两次逐字节一致）。
+        # `seed`（曲名哈希，由 `build_events` 传）: 没有它，所有用 light 的曲子会拿到
+        #   **同一条**鼓型 —— 正是原来那句"怎么都是这个"的病根。
+        # ⚠ **八分格必出**（不交给哈希）：这一档是 5–18kHz 的唯一来源，全概率化会出现
+        #   整小节高频空洞（坑 81：例曲占用 99%、我们 78%）。
+        # ⚠ 时值必须 **< 相邻十六分格距 0.25 拍**：密集化后同音高重叠会让 FluidSynth
+        #   配错 note-off、留下永不关闭的悬空 voice（坑 82）。
+        # （`_dh` / `_hit` 见函数开头，2026-09-18 起各档共用）
+        _sn = 37 if level < 2 else 38                 # 轻档用侧棒（柔），加厚才换军鼓
+        _lvl2 = min(2, max(0, level - 1))             # 0/1/2 → 十六分层逐级加密
+        _skel = [4 * b for b in range(1, NB, 2)]      # 2、4 拍（4/4 → 格 4、12）
+        for g in range(S):
+            _beat = (g % 4 == 0)                      # 正拍 = 每拍第一个十六分
+            # ① 踩镲：八分格必出（正拍亮 / 反拍次之），十六分格 ghost
+            if g % 2 == 0:
+                _v = (80.0 if _beat else 64.0) + 12.0 * (_dh(seed + i * 17 + g, 42, g) - 0.5)
+                out.append((g * 0.25, 0.22, 42, max(20, min(112, int(round(_v))))))
+            else:
+                _hit(g, 0.30 + 0.20 * _lvl2, 50.0, 14.0, 42, 142)
+            # ② 底鼓：正拍强 · e 位弱（REF 里 e 位出现率 0.6 反而高于正拍 0.5）· 其余切分
+            if _beat:
+                _hit(g, 0.78, 84.0, 10.0, 36, 36)
+            elif g % 4 == 1:
+                _hit(g, 0.45 + 0.15 * _lvl2, 60.0, 12.0, 36, 361)
+            else:
+                _hit(g, 0.08 + 0.06 * _lvl2, 72.0, 12.0, 36, 362)
+            # ③ 小鼓/侧棒：2、4 拍是骨架，a 位重音，其余 ghost
+            if g in _skel:
+                _hit(g, 0.90, 86.0, 8.0, _sn, 700 + _sn)
+            elif g % 4 == 3:
+                _hit(g, 0.70, 80.0, 10.0, _sn, 700 + _sn)
+            elif _beat:
+                _hit(g, 0.30, 68.0, 12.0, _sn, 700 + _sn)
+            else:
+                _hit(g, 0.07 + 0.05 * _lvl2, 54.0, 12.0, _sn, 700 + _sn)
         # 垫层（opt-in）：**light 才是最需要它的一档** —— 这一档只有沙锤一个高频来源，
         # 5–18kHz 的连续性全靠垫层（坑 81：例曲 5000Hz 占用 99%，我们 78%）。
         # ⚠ 以前这段只写在 `pump` 分支里 → `perc_style: light` 下声明的 `perc_layers`
@@ -1128,6 +1220,7 @@ def build_events(d):
     # 缺省关：老曲与 rehearsal 夹具的字节完全不变；主题路径的新歌默认开（`new_song`）。
     _thin = space_on(pat)
     bar0 = 0
+    bar_chord = {}                   # 全局小节号 → 和弦标识（伴奏避让主奏要用，见文件末尾）
     for sec_i, sec in enumerate(d['sections']):
         nbars = sec['bars']
         arr = sec.get('arr', {})
@@ -1138,6 +1231,7 @@ def build_events(d):
         sec_chords = []              # 本段已出现过的和弦根音（吉他换把位档位，见 guitar_arpeggio）
         for i in range(nbars):
             cn = sec['chords'][i]
+            bar_chord[bar0 + i] = cn
             if cn not in ch_all:
                 raise SystemExit('段落 %s 第 %d 小节引用了未定义的和弦 "%s"'
                                  % (sec.get('name', '?'), i + 1, cn))
@@ -1406,10 +1500,15 @@ def build_events(d):
                             (t0 + float(_g) * 0.25, 0.2, _note,
                              max(1, min(127, int(round(float(_v) * _lvl))))))
             elif arr.get('perc'):
+                # 曲名哈希 → `perc_part(seed=…)`：每首曲的鼓型因此不同（没有它，
+                # 所有用 light 的曲子会共用同一条型 —— 用户当初就是抱怨"怎么都是这个"）。
+                _pseed = 0
+                for _c in str(d.get('name') or ''):
+                    _pseed = (_pseed * 131 + ord(_c)) % 100003
                 for (b, dd, m, v) in perc_part(pat['perc_style'], arr['perc'], i, nbars,
                                                pat.get('perc_layers'),
                                                pat.get('kick_vel'), B,
-                                               int(arr.get('perc_in') or 0)):
+                                               int(arr.get('perc_in') or 0), _pseed):
                     bucket['Perc'].append((t0 + b, dd, m, v))
         for _mi in mel:
             b, beat, dur, m = _mi[0], _mi[1], _mi[2], _mi[3]
@@ -1596,6 +1695,24 @@ def build_events(d):
                         dd = min(dd, max(0.05, _left - _TAIL))
                         v = v * max(0.0, min(1.0, (_left - _TAIL)
                                              / max(1e-6, _gap - _TAIL)))
+                # **段首极短渐入**（opt-in `patterns.seg_in` = 渐入长度，单位拍；默认 0 =
+                #   老行为逐字节不变）。与段末退场配对，补的是 `fade_in` 那一侧。
+                # 为什么需要：`section_transition` 的 `fade_in` 量"边界后 0.15s"，而新段的
+                #   第一个音常常是**本段最响**（实测 17 的 C 段开头 −13.0dB、段中 −16.2dB）
+                #   → `fade_in` 是负的，只能靠 `fade_out` 过门；可**极安静段**恰好过不了
+                #   `fade_out`：17 的 B2 段中本来就只有 −31.1dB，段末留白后 −33.9dB，只差
+                #   **2.7dB**（19 是 3.8dB，差 0.2dB）—— 全库 102 个边界就这 2 个 FAIL，
+                #   而它们 `section_gap` 已经开到 3 拍（再加大也没用，段中本来就是谷底）。
+                # ⚠ 段首**有效**、段末压力度**无效**：段首的音全是新起的，段末的 RMS 却由
+                #   更早起音的长音撑着（上面早写过这条教训：对已起音的持续音降力度没用）——
+                #   我第一次就是照段末压，读数一字未变，白跑一轮。
+                # ⚠ 用户反馈过"段首减配听着发乱"，但那次是**段首 1 小节（1.7s）只剩 3 条轨**
+                #   （空一下满一下）。这里**不减声部**，只在段首前 `_IB` 拍做力度坡度。
+                _IB = float((d.get('patterns') or {}).get('seg_in') or 0.0)
+                if _IB > 0:
+                    _bar_in = (t - bar0 * B) / B          # 距段首几小节
+                    if 0.0 <= _bar_in < _IB / B:
+                        v = v * (0.15 + 0.85 * _bar_in * B / _IB)
                 # 走到这里的音高都已在合法范围内（数据越界在 load() 就报错了，
                 # 派生声部越界在上游被丢弃）；这里只处理时间/时值/力度
                 assert 0 <= m <= 127, '%s 出现了越界音高 %s（派生声部漏了过滤）' % (k, m)
@@ -1607,6 +1724,47 @@ def build_events(d):
         bar0 += nbars
     for k in ev:
         ev[k].sort()
+    # **伴奏避让主奏**（opt-in `patterns.avoid_lead` = 允许的音高差；0/缺省 = 老曲逐字节不变）。
+    # 用户（2026-09-18 听 04_pulse_city）："前面有一点伴奏撞主奏 …… 后面有和前面相同的
+    # 地方也是一样"。实测口径：伴奏轨的音与 Melody **时间重叠**且音高相同或差 ≤2 半音 ——
+    #   04：Hook74 × Melody76 @4.3s（A 段）与 @31.9s（A2 段，重复段再来一次）；
+    #   02：Hook71 × Melody71 等一串，集中在 8.5~12.5s（用户上一轮说的"12 秒左右"）。
+    # ⚠ **修法不是消除撞音**：仿写 `b35_remake` 有 498 处"同起点同音高"，比我们多得多
+    #   （我们 02 是 32 处）—— 它撞的是伴奏之间，正常。要修的是"**伴奏压在旋律的同音高/
+    #   同音区上**"（主奏被自己的伴奏糊住）。
+    # 做法：把那个伴奏音**移到本和弦的另一个音级**（和声完全不变 ⇒ 和谐优先），
+    #   挑"离主奏 ≥4 半音、又离原音最近"的候选 → 伴奏线条的跳幅最小。
+    _al = int((d.get('patterns') or {}).get('avoid_lead') or 0)
+    if _al > 0 and ev.get('Melody') and ch_all:
+        _mel = ev['Melody']
+        for _k in list(ev):
+            if _k == 'Melody':
+                continue
+            _out = []
+            for (_t, _dd, _m, _v) in ev[_k]:
+                _bad = [_m2 for (_t2, _d2, _m2, _v2) in _mel
+                        if (_t < _t2 + _d2 and _t2 < _t + _dd) and abs(_m - _m2) <= _al]
+                # ⚠ `ch_all` 的键是**和弦标识**（`cn`），不是小节号 —— 和弦由段落用
+                #   `sec['chords'][i]` 逐小节指定，所以要过 `bar_chord` 这张表
+                #   （第一版直接 `ch_all.get(小节号)`，永远落空、整段静默不生效）。
+                _tones = (ch_all.get(bar_chord.get(int(_t // B))) or (None, []))[1]
+                if not _bad or not _tones:
+                    _out.append((_t, _dd, _m, _v))
+                    continue
+                _c = [c for c in _tones if all(abs(c - b) >= 4 for b in _bad)]
+                if _c:
+                    _out.append((_t, _dd, min(_c, key=lambda x: (abs(x - _m), x)), _v))
+                else:
+                    # 和弦音里没有合适的 → 退一步试八度（音级不变，和声仍安全）
+                    _up = _m + 12 if _m >= max(_bad) else _m - 12
+                    _dn = _m - 12 if _m >= max(_bad) else _m + 12
+                    for _c2 in (_up, _dn):
+                        if 12 <= _c2 <= 108 and all(abs(_c2 - b) >= 4 for b in _bad):
+                            _out.append((_t, _dd, _c2, _v))
+                            break
+                    else:
+                        _out.append((_t, _dd, _m, _v))
+            ev[_k] = _out
     # **逐轨自定义音符**（opt-in `notes_extra`）—— **扒带/还原**用：从 Demucs 分轨各自扒出的
     # 音符按轨写进来。格式 {'Bass': [[小节, 拍内, 时值拍, 音高], ...], ...}
     #
