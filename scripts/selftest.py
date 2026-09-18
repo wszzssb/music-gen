@@ -1397,7 +1397,10 @@ def t_section_transition():
         env = 20 * _np.log10(_np.maximum(_np.array(
             [_np.sqrt((mono[i:i + hop] ** 2).mean())
              for i in range(0, max(1, len(mono) - hop), hop)]), 1e-9))
-        bar_s = 4 * 60.0 / float(bpm)
+        # ⚠ **一小节不是恒等于 4 拍**：写死 4 会把 3/4 曲子的段边界整体算错
+        #   （`15_waltz_ballroom` 是 3/4）—— 量错了位置，量出来的"硬切"就是假读数。
+        _meter = song_engine._norm_meter(d.get('meter'))
+        bar_s = (int(_meter[0]) * 4.0 / int(_meter[1])) * 60.0 / float(bpm)
         t, ok_all, worst = 0.0, True, None
         for s in (d.get('sections') or [])[:-1]:
             t += int(s.get('bars') or 0) * bar_s
