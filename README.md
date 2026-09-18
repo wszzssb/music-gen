@@ -143,6 +143,9 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `probe_voicing.py` / `probe_tension.py` | **声部进行 / 张力曲线**：voicing 移动·保持·交叉；逐段调内张力 σ 与头尾走向 |
 | `probe_aesthetic.py` / `probe_aqa.py` | **模型侧主观分**（`.venv-ml`，`--all` 全库排序）：CLAP 零样本情绪 / AQA 的 CE·PQ·CU·PC。⚠ 库内区分度极低 → **只揪异常，不当验收门** |
 | `section_probe.py` | 分段体检：RMS / 频谱质心 / 6-16k / 低频 / 宽度 / 起音密度（段落地图按曲子硬编码，换曲子要改 `SECS`） |
+| `analyze_structure.py` | **按音乐自适应切段**（2026-09-18）：四特征 novelty（响度/亮度/起音/和声）→ 平滑 → 峰值检测 → 边界吸附小节线。`--target-segments N` 控制段数；段长**跟随音乐**，不固定 8 小节（用户口径"古典规整、现代多不等，要看情况"） |
+| `transcribe_to_song.py` | **转录 → `song.json`**（还原/扒带的正道入口）：`--auto` 一键串起**段落切分 + 逐小节鼓型 + 逐音力度 + 配额抽样**；五条契约（段内/全局小节号 · 和弦数=小节数 · 一段一键 · 轨名白名单 · `notes_extra` 完整形式） |
+| `extract_drum_grid.py` / `measure_velocity.py` | **鼓型提取**（逐小节 `drum_grid.per_bar` —— 引擎 Perc 音数**主要由它决定**，不是 `perc_style`/`arr.perc`）与**逐音力度量取**（分位校准；缺它 = 打字机听感） |
 | `arrange_probe.py` | 编配诊断：逐段音高分布、音符密度、亮度指数 |
 | `noise_probe.py` | 杂音体检：6-16k 尾巴电平 + 谱平坦度（噪声高、纯音≈0）+ 爆音检测 |
 | `midi_probe.py` | MIDI 解析：轨名/音色/速度/音域/音符数/小节数 |
