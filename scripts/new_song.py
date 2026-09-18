@@ -523,7 +523,25 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
                       # **段末留白**（见 `song_engine.build_events` 的 `section_gap`）——
                       # 用户："有转变可以，但要过渡自然或中间有空白作为间隔"。
                       # 实测 27/34 首的段界是硬切（边界处不比两侧低、跳变中位 5.5dB）。
-                      'section_gap': 1.0},
+                      'section_gap': 1.0,
+                      # ↓↓↓ 2026-09-18 补：这三项 + dyn_vel 长期"默认关"，症状一直挂在守卫上
+                      #     （用户："为什么不会自动打开？让之后的对话能自动识别打开"）。
+                      #     引擎的规矩是"opt-in，默认关 = 老曲字节不变"，所以**开关必须写在
+                      #     这里**（新歌默认带、老曲不受影响）—— 写进文档是拦不住的。
+                      # **段界力度平滑**（opt-in `patterns.seg_fade`）：给段界处的力度做过渡，
+                      # 治 `section_transition` 的"硬切"（实测边界跳 5.1~23.9dB、
+                      # 两端渐弱只有 -0.7~3.8dB，门要求 ≥4dB）。
+                      'seg_fade': True,
+                      # **音区修正 + 弱起音修正**（opt-in `patterns.range_fix`）：旋律钻到伴奏
+                      # 音区以下、或主奏起音拖沓时自动修（治"音域只 7 半音"、"听着慢半拍"）。
+                      # 引擎里已保证它排在 `legato_trim` **之前**（先改音高会打乱分组）。
+                      'range_fix': True,
+                      # **去同音高重叠**（opt-in `patterns.legato_trim`）：同音高的相邻音提前
+                      # 松键，避免音源把后一个音吞掉（听感"少音"，见坑 157 系列）。
+                      'legato_trim': True,
+                      # **长音层逐小节力度**（opt-in `patterns.dyn_vel`）：Pad/Strings/Glock
+                      # 这些长音轨原本力度只有 **1 种**（实测最平轨 Pad:1，AUDIT 管这叫"打字机"）。
+                      'dyn_vel': 8.0},
          'chords': chords, 'melody': melody, 'sections': secs,
          # **模板依据留痕**：check_song / 自检照这份核对"是不是白名单来源、够不够多"
          'theme': {'name': pack['theme'], 'label': pack.get('label'),
