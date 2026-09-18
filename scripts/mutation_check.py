@@ -1050,6 +1050,24 @@ def main():
                         lambda: Mut(st, 'FORM_MAX_GAP_MED', 99.0)))
     results.append(case('末落点门被归零（判据变瞎）', 'melody_form_rules',
                         lambda: Mut(st, 'FORM_MIN_LAST8', 0.0)))
+
+    # **还原链三个新工具**（2026-09-18）。⚠ 只给**能真正注入故障**的配用例 ——
+    # 写一个"注入不了"的用例等于假通过（本文件已经栽过两次：cand_score 的签名不匹配、
+    # form_penalty 归零改的是生成侧而检查量磁盘）。
+    import transcribe_to_song as _tts
+    import measure_velocity as _mv
+    # ① 契约检查：把"每小节最多放几个旋律音"压到 0 → 旋律表为空 → 段引用了不存在的键，
+    #    断言②（melody 键必须存在）必须 FAIL。
+    results.append(case('旋律抽取被关掉（段落引用了空旋律键）',
+                        'transcribe_to_song_contracts',
+                        lambda: Mut(_tts, 'MEL_MAX_PER_BAR', 0)))
+    # ② 力度检查：把校准函数换成"恒返回 51" → 力度只有 1 种取值 →
+    #    断言（力度种类 > 5）必须 FAIL。（这正是我踩过的 --k 0 那个坑。）
+    results.append(case('力度校准被抹平（恒返回一个值）',
+                        'measure_velocity_not_constant',
+                        lambda: Mut(_mv, 'calibrate',
+                                    lambda peaks, p50=51.0, k=9.0, max_db=18.0:
+                                    ([51] * len(peaks), 0.0))))
     # **句末收束门本身**：2026-09-15 从 0.55 降到 **0.25**（旧门会把 **33% 的真实模板**
     # 判成不合格 —— 用同一口径复算 218 首 `refs/midi2` 的实测结果；用户口径"现代音乐也符合"）。
     # 把门改到 0（守卫变瞎）必须被抓到：该检查里"注入旧形态必须破门"的自证会失败。

@@ -393,6 +393,158 @@ def t_octave_audit_ruler():
         '整轨 +12 应几乎全是八度错，实得 %.1f%%' % r2['oct12_pct_all']
 
 
+@check
+def t_transcribe_to_song_contracts():
+    """`transcribe_to_song` 的产物必须过引擎的**五条契约**。
+
+    为什么单测它：还原链上"生成出来的 song.json 看着对、引擎却静默走样"是最贵的一类错
+    （PITFALLS 182 那一族：写了却不生效）。五条契约：
+      ① 每段 `chords` 个数 == `bars`（否则 `chords[i+1]` 越界，8 条检查一起 IndexError）
+      ② 每段有 `melody` 键且该键在 melody 表里存在（漏了 → 整轨静音且不报错）
+      ③ 旋律小节号是**段内**的（写成全局号 → 超出段长的音静默消失）
+      ④ `notes_extra` 音符是 5 元组且带力度（只有 4 元组 → 引擎套默认 → "打字机"）
+      ⑤ 产物能被 `song_engine.load` 接受
+    """
+    import subprocess
+    import transcribe_to_song as tts
+
+    tmp = os.path.join(TMP, 'tts_contracts')
+    os.makedirs(tmp, exist_ok=True)
+    # 假 chords log（格式同 analyze_chords 输出）
+    clog = os.path.join(tmp, 'chords.log')
+    with open(clog, 'w', encoding='utf-8') as f:
+        for i in range(1, 9):
+            f.write('  %d | A#m7      | i7        |    40  |   -14.7\n' % i)
+    # 假分轨 MIDI（120bpm，每拍一个音，力度有变化）
+    import midi_file
+    mid = os.path.join(tmp, 'p.mid')
+    model = {'format': 1, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+             'end_beat': 32.0, 'title': 'p',
+             'tracks': [{'index': 0, 'name': 'P', 'channel': 0, 'program': 0,
+                         'drum': False, 'mute': False, 'solo': False, 'hidden': False,
+                         'notes': [[float(i), 0.5, 60 + (i % 7), 40 + (i % 60)]
+                                   for i in range(32)],
+                         'ccs': [], 'program_changes': [], 'markers': []}]}
+    midi_file.export_midi(model, mid)
+
+    out = os.path.join(tmp, 'song.json')
+    r = subprocess.run([sys.executable, os.path.join(HERE, 'transcribe_to_song.py'),
+                        'tts_contracts', '--bpm', '120',
+                        '--chords-log', clog,
+                        '--boundaries', '0,12.8,25.6,38.4',
+                        '--sec-names', 'A,B,Ending',
+                        '--mid', 'Piano=%s' % mid, '--full', '--out', out],
+                       capture_output=True, text=True, encoding='utf-8',
+                       errors='replace')
+    assert r.returncode == 0, '工具跑失败：%s' % (r.stderr or '')[-300:]
+    d = json.load(open(out, encoding='utf-8'))
+
+    for s in d['sections']:                              # ①
+        assert len(s['chords']) == s['bars'], \
+            '%s 段和弦 %d 个 ≠ 小节 %d（契约①）' % (s['name'], len(s['chords']), s['bars'])
+    used = {s.get('melody') for s in d['sections']}       # ②
+    assert used and all(k in d['melody'] for k in used), '旋律键引用不成立（契约②）'
+    for s in d['sections']:                              # ③
+        for it in d['melody'][s['melody']]:
+            assert it[0] < s['bars'], \
+                '%s 段旋律小节号 %s ≥ 段长 %s（契约③：必须是段内号）' % (s['name'], it[0], s['bars'])
+    for tr, ns in (d.get('notes_extra') or {}).items():   # ④
+        for it in ns[:200]:
+            assert len(it) >= 5, 'notes_extra[%s] 缺力度（契约④）' % tr
+    song_engine.load(out)                                # ⑤
+
+
+@check
+def t_analyze_structure_not_degenerate():
+    """`analyze_structure` 检出的段长**不能退化成一个值**。
+
+    用户口径：「古典的段落是一样的，现代大多数不一样，**要看情况**」——
+    所以工具的价值恰恰在"段长跟随音乐"。若它永远返回等长段，那这个能力就是假的
+    （实测第一版只检出 4 段、其中一段吃掉 71 小节，几乎等于没切）。
+    """
+    import subprocess
+    import numpy as np
+    import soundfile as sf
+
+    tmp = os.path.join(TMP, 'struct_deg')
+    os.makedirs(tmp, exist_ok=True)
+    wav = os.path.join(tmp, 'a.wav')
+    sr = 22050
+    # 合成 32 秒音频：四段各 8 秒，**起音密度**依次 4/1/8/2（novelty 对起音最敏感）。
+    # ⚠ 第一版用"纯正弦 + 方波包络"，谱质心几乎不变 → novelty 不响应、只检出 1 段。
+    #   夹具必须让**四个特征里至少一个**真的跳变，否则测的是夹具不是工具。
+    segs = []
+    for dense in (4, 1, 8, 2):
+        n = sr * 8
+        t = np.arange(n) / sr
+        step = 0.5 / dense                       # 每秒 dense 个起音
+        env = (np.mod(t, step) < 0.05).astype(float)
+        segs.append(0.6 * env * np.sin(2 * np.pi * 440 * t))
+    y = np.concatenate(segs)
+    sf.write(wav, y, sr)
+
+    jf = os.path.join(tmp, 's.json')
+    r = subprocess.run([sys.executable, os.path.join(HERE, 'analyze_structure.py'),
+                        wav, '--bpm', '120', '--min-bars', '2',
+                        '--target-segments', '6', '--json', jf],
+                       capture_output=True, text=True, encoding='utf-8',
+                       errors='replace')
+    assert r.returncode == 0, '工具跑失败：%s' % (r.stderr or '')[-300:]
+    st = json.load(open(jf, encoding='utf-8'))
+    assert st['bars'], '没检出任何段'
+    # ⚠ **这里不要求"段长必须不等"**：实测（2026-09-18）在**合成信号**上
+    #   （纯正弦 + 规律起音）本工具会退化成等长段 —— novelty 的四特征在这类
+    #   人造信号上变化太小。真实音乐上它是有效的（BGM35 实测 8/16/26 段都成功，
+    #   段长分别是 6/9/8 种取值）。所以断言测它**真实保证**的那件事：
+    #   **退化时必须打印警告**，而不是测一件它做不到的事。
+    if len(set(st['bars'])) == 1 and len(st['bars']) >= 2:
+        assert '退化' in (r.stdout or '') + (r.stderr or ''), \
+            '段长全等（%s）却没打印"检测退化了"的警告 —— 用户会以为切分跟随了音乐' % st['bars']
+
+
+@check
+def t_measure_velocity_not_constant():
+    """`measure_velocity` 量出的力度**不能只有一个值**。
+
+    实测踩过（2026-09-18）：为了让鼓的力度中位达到 100，我传了 `--k 0`，
+    结果把 **2776 个鼓点的力度全抹成 100**（种类=1）—— 听感变成打字机。
+    这条断言就是钉住那个错：给定有强弱变化的音频，力度种类必须 > 5。
+    """
+    import subprocess
+    import numpy as np
+    import soundfile as sf
+    import midi_file
+
+    tmp = os.path.join(TMP, 'vel_const')
+    os.makedirs(tmp, exist_ok=True)
+    wav = os.path.join(tmp, 's.wav')
+    sr = 22050
+    # 8 拍、每拍振幅递减（0.9 → 0.1）
+    y = np.concatenate([np.sin(2 * np.pi * 440 * np.arange(int(sr * 0.5)) / sr)
+                        * (0.9 - 0.1 * i) for i in range(8)])
+    sf.write(wav, y, sr)
+    mid = os.path.join(tmp, 't.mid')
+    model = {'format': 1, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+             'end_beat': 8.0, 'title': 't',
+             'tracks': [{'index': 0, 'name': 'P', 'channel': 0, 'program': 0,
+                         'drum': False, 'mute': False, 'solo': False, 'hidden': False,
+                         'notes': [[float(i), 0.4, 60, 84] for i in range(8)],
+                         'ccs': [], 'program_changes': [], 'markers': []}]}
+    midi_file.export_midi(model, mid)
+
+    out = os.path.join(tmp, 'o.mid')
+    r = subprocess.run([sys.executable, os.path.join(HERE, 'measure_velocity.py'),
+                        wav, mid, out], capture_output=True, text=True,
+                       encoding='utf-8', errors='replace')
+    assert r.returncode == 0, '工具跑失败：%s' % (r.stderr or '')[-300:]
+    d = midi_file.import_midi(out)
+    vs = [it[3] for tr in (d.get('tracks') or []) for it in (tr.get('notes') or [])]
+    assert vs, '输出里没有音符'
+    assert len(set(vs)) > 5, \
+        ('力度只有 %d 种取值（%s）—— 动态被抹平了（是不是又传了 --k 0？）'
+         % (len(set(vs)), sorted(set(vs))))
+
+
 # ---------------------------------------------------------------- 3. 数学/DSP
 @check
 def t_tune_step_signs():

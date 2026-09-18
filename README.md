@@ -146,6 +146,9 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `analyze_structure.py` | **按音乐自适应切段**（2026-09-18）：四特征 novelty（响度/亮度/起音/和声）→ 平滑 → 峰值检测 → 边界吸附小节线。`--target-segments N` 控制段数；段长**跟随音乐**，不固定 8 小节（用户口径"古典规整、现代多不等，要看情况"） |
 | `transcribe_to_song.py` | **转录 → `song.json`**（还原/扒带的正道入口）：`--auto` 一键串起**段落切分 + 逐小节鼓型 + 逐音力度 + 配额抽样**；五条契约（段内/全局小节号 · 和弦数=小节数 · 一段一键 · 轨名白名单 · `notes_extra` 完整形式） |
 | `extract_drum_grid.py` / `measure_velocity.py` | **鼓型提取**（逐小节 `drum_grid.per_bar` —— 引擎 Perc 音数**主要由它决定**，不是 `perc_style`/`arr.perc`）与**逐音力度量取**（分位校准；缺它 = 打字机听感） |
+| `transcribe_ymt3.py` / `bp_transcribe.py` | **两个转录模型**：YourMT3+（整段混音直接出多轨 MIDI，`--bsz auto`；⚠ 必须用本脚本，官方 `bsz=8` 慢 2.3×）与 Basic Pitch（Spotify，ONNX 后端，跑在**独立 venv** `D:\test\bp-venv`，不碰 `.venv-ml` 的 torch）。⚠ 二者错误**互不相关**才是价值所在 |
+| `eval_transcription.py` / `ensemble_transcribe.py` | **转录评估与集成**：前者是被评 MIDI 对参照的**音符级 F1**（逐段列，`--self-test` 量尺子天花板、`--shift` 判"只是错位"）；后者**多来源交叉验证**后合成一份（实测单来源 0.333 → 集成 0.532）。⚠ 集成修不掉**系统性**错误，要独立方法当尺子 |
+| `extract_vocals.py` / `imitate_ref.py` | 人声提取（差分法 + 只修段间过门杂音）与**九段还原链**（第 9 段 = ①识别体检 → ②逐带体检） |
 | `arrange_probe.py` | 编配诊断：逐段音高分布、音符密度、亮度指数 |
 | `noise_probe.py` | 杂音体检：6-16k 尾巴电平 + 谱平坦度（噪声高、纯音≈0）+ 爆音检测 |
 | `midi_probe.py` | MIDI 解析：轨名/音色/速度/音域/音符数/小节数 |
