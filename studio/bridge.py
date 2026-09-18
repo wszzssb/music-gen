@@ -283,7 +283,14 @@ def cmd_finalize(a):
         raise SystemExit('没有 WAV 产物，先渲染：%s' % wav)
     ref_name = a.ref or cfg.get('ref') or 'BGM16c'
     target = 0.51
-    rp = os.path.join(MG, 'refs', '%s.json' % ref_name)
+    # ⚠ **画像查找必须与 `scorecard.ref_path` 同一条路**（2026-09-19 修）：
+    #   主题聚合画像在 `refs/mix_targets/<名字>.json`，而这里原先只拼 `refs/<名字>.json`
+    #   → **主题画像永远找不到** → 每首的宽度目标都退回默认 `0.51`
+    #   → 实测 24 首成品宽度**全是 0.511**，而权威素材是 0.391~0.656 的自然分布。
+    #   这正是「多样性」差距里最直白的一条，也是 `docs/CONVENTION.md` §1
+    #   「抄一份 = 埋一处漂移」的活例子（`scorecard` 早就把两处查找写在一处了）。
+    import scorecard as _sc
+    rp = _sc.ref_path(ref_name)
     if os.path.isfile(rp):
         target = json.load(open(rp, encoding='utf-8')).get('width') or target
     got = rm.set_width_exact(wav, target)
