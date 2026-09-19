@@ -1455,6 +1455,9 @@ def main():
     if len(sys.argv) < 3:
         print(__doc__)
         return 1
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段
+    import studio_guard
+    studio_guard.ensure_panel()
     song, prof_path = sys.argv[1], sys.argv[2]
     seed = int(sys.argv[sys.argv.index('--seed') + 1]) if '--seed' in sys.argv else 7
     ncand = int(sys.argv[sys.argv.index('--candidates') + 1]) \

@@ -331,6 +331,9 @@ def main():
     if not args:
         print(__doc__)
         return 1
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段
+    import studio_guard
+    studio_guard.ensure_panel()
     song = args[0]
     folder = os.path.join(SONGS, song)
     if not os.path.isdir(folder):
