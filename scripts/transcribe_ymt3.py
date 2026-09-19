@@ -164,12 +164,13 @@ def main():
     repo = find_repo(args.repo)
     if repo is None:
         print("✗ 找不到 YourMT3 仓库（需含 model_helper.py）。用 --repo 指定，"
-              "或设 DSH_YMT3_REPO。见 ML.md「YourMT3+ 转录」。", flush=True)
+              "或设 DSH_YMT3_REPO。**装法见 INSTALL.md 的「想扒 MIDI」那节**。", flush=True)
         sys.exit(2)
     ckpt = find_weights(repo, args.weights)
     if ckpt is None:
         print("✗ 找不到权重 %s/amt/logs/2024/%s/checkpoints/model.ckpt。"
-              "见 ML.md 的下载说明（hf-mirror）。" % (repo, EXP), flush=True)
+              "**装法（含权重怎么取）见 INSTALL.md 的「想扒 MIDI」那节**。" % (repo, EXP),
+              flush=True)
         sys.exit(2)
 
     libs = find_libs(repo)
