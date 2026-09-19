@@ -657,7 +657,12 @@ function paintRoll(g){
  * 也不可能有残影（canvas 上零个播放头像素）。 */
 function drawPlayhead(g0){
   const ph=$('rollPh'); if(!ph) return;
-  const g=g0||S.rollG;
+  /* ⚠ 不拿缓存的 `S.rollG` 当默认值：它**只在 `renderRoll()` 里更新**，而 **Ctrl+滚轮缩放**、
+     拖时间轴、自动滚屏都会改缩放/视窗，却不保证紧接着就重画一次 → 红线停在旧位置
+     （用户 2026-09-19："ctrl 加滑轮滚动进度红线不跟随视角了"）。
+     这里改成每帧现算 `rollGeom()` —— 它只是纯计算，开销可忽略，缩放/滚动天然跟上。
+     传进来的 `g0`（`renderRoll` 里那一次）仍然优先，保证与刚画的音符严格对齐。 */
+  const g=g0||rollGeom();
   if(!g||!S.events||!S.song){ ph.style.opacity='0'; return; }
   const dpr=devicePixelRatio||1;
   const x=g.x(ENG.position()/(60/(S.song.bpm||120)));
