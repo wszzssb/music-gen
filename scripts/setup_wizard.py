@@ -34,10 +34,30 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
 PY_VENV = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
-PY_ML = os.path.join(ROOT, ".venv-ml", "Scripts", "python.exe")
 if not os.path.isfile(PY_VENV):                      # 非 Windows 布局
     PY_VENV = os.path.join(ROOT, ".venv", "bin", "python")
-    PY_ML = os.path.join(ROOT, ".venv-ml", "bin", "python")
+
+
+def _cli_opt(name):
+    """从 argv 里提前读一个选项 —— 要在模块顶部（定义提示语/路径之前）就能用到。"""
+    for i, a in enumerate(sys.argv):
+        if a.startswith(name + "="):
+            return a.split("=", 1)[1]
+        if a == name and i + 1 < len(sys.argv):
+            return sys.argv[i + 1]
+    return None
+
+
+# ML 解释器：`--ml-python <路径>` > 环境变量 `DSH_ML_PYTHON` > 本仓库的 `.venv-ml`。
+# 为什么要能指别处：**本机已经有装好的 5.4GB 环境时，别让新人再下一份**（用户 2026-09-19
+# 明确要求"ML 环境 5.4GB 先调我电脑里有的"）——指向它，第 5 步就会直接判"本来就已完成"。
+_ML_EXPLICIT = _cli_opt("--ml-python") or os.environ.get("DSH_ML_PYTHON")
+if _ML_EXPLICIT:
+    PY_ML = _ML_EXPLICIT
+else:
+    PY_ML = os.path.join(ROOT, ".venv-ml", "Scripts", "python.exe")
+    if not os.path.isfile(PY_ML):
+        PY_ML = os.path.join(ROOT, ".venv-ml", "bin", "python")
 
 
 # ---------------------------------------------------------------- 语言
@@ -273,6 +293,10 @@ def main():
                     help="只跑这几步，如 5,6 / only these steps, e.g. 5,6")
     ap.add_argument("--lang", default=None, choices=["zh", "en"],
                     help="强制语言 / force language（已在启动时生效）")
+    ap.add_argument("--ml-python", default=None, metavar="PATH",
+                    help="复用已有的 ML 解释器（指向别处 .venv-ml\\Scripts\\python.exe，"
+                         "省掉 5.4GB 重装）/ reuse an existing ML python; "
+                         "也可用环境变量 DSH_ML_PYTHON")
     a = ap.parse_args()
     only = ({int(x) for x in a.only.replace(" ", "").split(",") if x} if a.only else None)
 
