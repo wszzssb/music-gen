@@ -1454,6 +1454,14 @@ def t_section_transition():
         if not ok_all and worst:
             bad.append('%s: 边界「%s」跳 %.1fdB、两端渐弱/渐入只有 %.1fdB（硬切）'
                        % (sid, worst[1], worst[0], worst[2]))
+    if not checked:
+        # **clone 后的正常状态**：`.gitignore` 排除了 `songs/**/*.wav`（母版体积大、
+        # 一条 `make_song.py <曲目>` 就能重生成，见 INSTALL「仓库带什么」）→ 没有 wav
+        # 就量不了段界。给可读提示并跳过，别让新人第一次自检就见到红（2026-09-19 实测：
+        # 新手环境 5 个 FAIL 里有 1 个就是它）。
+        print('        没有可量的 *_sf.wav（母版不随仓库分发）→ 跳过段界核对；'
+              '跑一次 make_song.py <曲目> 后本检查自动生效')
+        return
     assert checked >= 3, '主题路径曲目太少（%d），这条检查会空转' % checked
     assert not bad, ('段界硬切（要"过渡自然或中间留白"）：%s' % '；'.join(bad[:4]))
     print('        %d 首主题路径曲目：段界都有留白或渐变' % checked)
@@ -3832,8 +3840,18 @@ def t_midi_lib_index_sync():
         # ① 索引 → 磁盘（1 号库的 file 只有文件名，按 basename 兜一层）
         missing = [f for f in idx_paths
                    if f not in on_disk and os.path.basename(f) not in {os.path.basename(x) for x in on_disk}]
-        assert not missing, ('索引里有 %d 个文件在磁盘上不存在：%s —— 删文件后要重跑 '
-                             'fetch_midi_lib.py 重建索引' % (len(missing), ', '.join(sorted(missing)[:4])))
+        if not on_disk:
+            # **clone 后的正常状态**：`.gitignore` 排除了 `refs/midi/**/*.mid`（版权，只带
+            # "统计事实"索引，见 INSTALL「仓库带什么」）→ 一个 .mid 都没有时，"索引里有、
+            # 磁盘上没有"不是漂移，而是"素材没随仓库分发"。报 FAIL 会让每个新人第一次
+            # 自检就吃 3 个红（2026-09-19 实测）。**磁盘上有 MIDI 时照样严格核对**。
+            print('        %s：库内没有 .mid（素材不随仓库分发）→ 跳过索引核对；'
+                  '自备后跑 fetch_midi_lib.py 重建索引即恢复'
+                  % os.path.relpath(root, ROOT).replace('\\', '/'))
+        else:
+            assert not missing, ('索引里有 %d 个文件在磁盘上不存在：%s —— 删文件后要重跑 '
+                                 'fetch_midi_lib.py 重建索引'
+                                 % (len(missing), ', '.join(sorted(missing)[:4])))
         # ② 磁盘 → 索引
         unindexed = sorted(p for p in on_disk if os.path.basename(p) not in idx_base)
         assert not unindexed, ('磁盘上有 %d 个 .mid 不在索引里：%s —— 重跑 fetch_midi_lib.py'
@@ -5330,7 +5348,14 @@ def t_midi_file_editor_roundtrip():
 
     lib = os.path.join(ROOT, 'refs', 'midi2')
     files = sorted(glob.glob(os.path.join(lib, '*', '*.mid')))[:200:17][:MIDI_RT_MIN]
-    assert len(files) >= MIDI_RT_MIN, '夹具太少（%d 首）—— 这条检查会空转' % len(files)
+    # clone 后 `refs/midi2/**/*.mid` 必然为空（外部 MIDI 版权，`.gitignore` 排除，见 INSTALL
+    # 「仓库带什么」）→ 空夹具给**可读提示**并继续：后面的 format 0 段用的是**入库的**
+    # `songs/*.mid`，照跑不误。**非空但不足**仍算 FAIL（那才是"库不完整"）。
+    if not files:
+        print('        refs/midi2/ 里没有 .mid（素材不随仓库分发）→ 跳过外部 MIDI 的往返核对；'
+              '自备后自动生效')
+    else:
+        assert len(files) >= MIDI_RT_MIN, '夹具太少（%d 首）—— 这条检查会空转' % len(files)
     bad, exact, net = [], 0, 0
     for p in files:
         try:
@@ -5531,7 +5556,13 @@ def t_midi_ops_semantics():
                                 for n in mm['tracks'][0]['notes']):
             raw = mm
             break
-    assert raw is not None, '找不到"未量化"的真实 MIDI 当变异夹具'
+    if raw is None:
+        # 没有外部 MIDI（`refs/midi2/**/*.mid` 不随仓库分发，见 INSTALL「仓库带什么」）
+        # → 这段**变异自证无从做起**。明确报出来并跳过 —— 上面那 18 项性质已经断言过了，
+        # 弱化 ≠ 假绿（2026-09-19：新手环境 5 个 FAIL 里有 1 个就是它）。
+        print('        没有未量化的外部 MIDI（素材不随仓库分发）→ 跳过"忽略量化强度"'
+              '的变异自证；自备 refs/midi2/ 后自动生效')
+        return
     _old_q = mop.quantize
 
     def _q_force(model, grid='1/16', strength=1.0, **kw):

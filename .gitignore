@@ -15,13 +15,13 @@ vendor/
 # 仅「很好」的曲目带全套音频，其余跑一次 make_song.py 即出。
 songs/**/*.wav
 songs/**/*.ogg
-# 质量分级为「很好」的曲目带**成品 ogg**（偏差 ≤3.5dB 且强拍 0 错音，开箱可听）；
-# wav 母版体积是 ogg 的 5~6 倍、且一条 make_song.py 就能重生成，故不入库。
-!songs/12_d75_warm/*.ogg
-!songs/13_d75_rising/*.ogg
-!songs/19_d129_tender/*.ogg
-!songs/23_d150_skip_along/*.ogg
-!songs/25_d150_joy/*.ogg
+# **只带一首开箱可听的示例**：新人 clone 下来第一件事就是"听一耳朵"，仓库一个 ogg 都
+# 没有会直接卡住这一步（INSTALL.md 末尾的示例指向它）。
+# ⚠ 这里原来有 5 条 `!songs/<旧曲目>/*.ogg` 豁免，2026-09-19 删掉：那些曲目
+# （12_d75_warm / 13_d75_rising / 19_d129_tender / 23_d150_skip_along / 25_d150_joy）
+# 在"19 首用当前能力从 0 重写"时已被替换 → 豁免**指向不存在的目录**、一条都没生效，
+# 于是"仓库带几首成品"变成"一首都没有"，而 INSTALL.md 还在让人去听其中一个（实测：新手照做必扑空）。
+!songs/08_smoke_jazz/*.ogg
 
 stems/
 export/
@@ -58,7 +58,7 @@ studio/.refdir
 Thumbs.db
 desktop.ini
 .DS_Store
-!songs/31_f123_night_drift/*.ogg
+# 同 §③：`31_f123_night_drift` 也是被 19 首重写替掉的旧曲目 → 这条豁免同样指向不存在的目录
 refs/midi2/**/*.mid
 refs/midi2/**/*.midi
 refs/midi2/_broken/

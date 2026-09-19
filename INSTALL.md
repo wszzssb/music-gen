@@ -22,9 +22,13 @@ python -m venv .venv                                                          # 
 ## 验证环境可用
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\selftest.py      # 78 项全绿 = 可用（约 30 秒）
+.\.venv\Scripts\python.exe scripts\selftest.py      # 全绿 = 可用（约 30 秒；项数见输出，别照抄数字）
 .\.venv\Scripts\python.exe scripts\rehearsal.py     # 彩排：5 套风格端到端（约 4 分钟）
 ```
+
+> **clone 后第一次自检**：素材类项目（外部 MIDI、参考曲音频、wav 母版）**不随仓库分发**，
+> 所以那几条检查会打印"跳过…（素材不随仓库分发）"而不是报错 —— 这是正常的，**不是环境坏了**。
+> 自备素材（或跑一次 `make_song.py`）后它们自动生效。
 
 ## 写歌技能（可选，推荐）
 
@@ -86,6 +90,8 @@ mklink /J "%USERPROFILE%\.dsh\skills\bgm-studio" "<仓库路径>\skill\bgm-studi
 
 产物在 `songs\99_my_first\`：**`.mid`**（9 轨 GM，可挂任何更好的音源）+ `_sf.wav` + `_sf.ogg` + 对标成绩单。
 
-只想先听现成的示例：`songs\23_d150_skip_along\d150_skip_along_sf.ogg`。
+只想先听现成的示例：`songs\08_smoke_jazz\smoke_jazz_sf.ogg`（**仓库自带这一首的成品 ogg**）。
+其余曲目的音频按设计不入库 —— 想看/听哪首就跑一次
+`.\.venv\Scripts\python.exe scripts\make_song.py <曲目id>` 重生成（十几秒到一分钟）。
 命令全表见 `CHEATSHEET.md`；曲式与风格预设见 `docs/SONG-FORMAT.md`；
 要把参考曲换成你自己的，见上面「参考曲：自备」。
