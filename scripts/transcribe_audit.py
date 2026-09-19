@@ -16,7 +16,10 @@
 
 输出的五个数（逐帧，默认 23ms/帧）：
     ✓ 音高一致 · ~ 差八度 · ✗ 音高不同 · ✗ 漏检 · ✗ 假音
-判据（BGM29 bass 实测做参照）：**一致率 < 70% 就先修识别**，别去调混音。
+判据：**一致率 < 70% 就先修识别**（BGM29 bass 实测做参照）—— ⚠ 这条**只对单音性强的层**
+（bass）成立。复音层（Piano / Guitar / Strings）不要用绝对门槛：**校准值**（拿用户认可的
+`v5_source.mid` 当被测对象、同一把尺子）是 Bass 53.2% · Guitar 12.5% · Piano 9.1% ·
+Strings 6.2% —— 连认可版都过不了 70%。复音层该看**同声部的相对变化**与**漏检/假音的方向**。
 
 用法：
     python scripts/transcribe_audit.py <参考分轨.wav> <我方.mid> --tracks "Bass" \
@@ -86,6 +89,15 @@ def main():
                     mine[j] = n[2]
 
     both = (ref >= 0) & (mine >= 0)
+    # ⚠ **轨名一个都没匹配上时必须报错退出**（2026-09-19 实测踩到）：`--tracks "Acoustic Piano"`
+    #   在 shell 里丢了空格 → 匹配不到任何轨 → 我方有声帧 1 → 打印"一致率 **0.0%**：
+    #   **先修识别**（<70%）"。**0% 看起来像"转录全错"，实际是参数没接上** ——
+    #   这种"静默给 0 分"比报错危险得多（会引着人去修一个不存在的问题，同 209 一族）。
+    if not used:
+        raise SystemExit('--tracks=%r 在这些 MIDI 里一个轨名都没匹配到\n'
+                         '  实际轨名：%s\n'
+                         '  （提示：轨名含空格时 shell 里要整体加引号）'
+                         % (a.tracks, [t.get('name') for t in m['tracks']]))
     same = both & (ref == mine)
     oct8 = both & (np.abs(ref - mine) == 12)
     diff = both & (ref != mine) & (np.abs(ref - mine) != 12)
@@ -106,6 +118,21 @@ def main():
     acc = 100 * same.sum() / tot
     print('   → 一致率 **%.1f%%**：%s' % (acc, '合格' if acc >= 70 else
                                        '**先修识别**（<70%），别去调混音/音色/EQ'))
+    # ⚠ **基线提示必须印在输出上，不能只写在 docstring 里**（2026-09-19 实测的元教训）：
+    #   本文件的 docstring 第 14 行早就写着"只适用于单音性强的层（bass 最典型）。复音层不能用
+    #   ……实测 other 层会得到'假音 66%'这种**方法本身造成的**假数"，而排查"用户说还是不像"
+    #   时，我照样拿它量 Piano / Guitar / Strings，并据"Piano 假音 63%"去判"要修 YMT3 通道" ✗
+    #   —— 因为**脚本每次照样打印"一致率 8.9%：先修识别（<70%）"**：绝对门槛 + 行动指令，
+    #   谁看谁信。文档写在"只有读文档的人会看到"的地方，等于没写。
+    #   下面这四个数是**校准值**：拿用户认可的 `v5_source.mid`（BGM35）当被测对象、同一把尺子。
+    if acc < 70:
+        print('   ⚠ 但 70% **不是跨声部的绝对门槛** —— 本判据用 pyin（**单音高**估计器），'
+              '复音层天然偏低。')
+        print('     校准（用户认可的 v5_source.mid，BGM35，同一把尺子）：'
+              'Bass 53.2% · Guitar 12.5% · Piano 9.1% · Strings 6.2%')
+        print('     → 比"绝对值"该看的是：**同一声部的相对变化** + **漏检/假音的方向**'
+              '（漏检多 = 少了真音；假音多 = 多了音）。要绝对判据请用'
+              ' `eval_transcription.py`（音符级 F1，天花板 0.809）。')
     per = defaultdict(int)
     for i in np.where(miss)[0]:
         per[int(times[i])] += 1
