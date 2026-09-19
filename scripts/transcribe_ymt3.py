@@ -96,6 +96,38 @@ DEFAULT_DEST = os.path.abspath(os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "vendor", "ymt3repo"))
 # ↑ 新人不用想放哪：`vendor/` 本来就不入仓库（音源也在那儿），放模型正合适
 
+
+def panel_roots():
+    """面板允许打开的根（与 `studio/server.py` 的 `allowed = [ROOT, LIB]` 对齐）。
+
+    解析顺序与 server 一致：`BGM_STUDIO_LIB` → `studio/.libpath` → 只剩工具链。
+    """
+    toolchain = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    roots = [toolchain]
+    lib = os.environ.get("BGM_STUDIO_LIB")
+    if not lib:
+        p = os.path.join(toolchain, "studio", ".libpath")
+        if os.path.isfile(p):
+            lib = open(p, encoding="utf-8").read().strip()
+    if lib and os.path.isdir(lib):
+        roots.append(os.path.abspath(lib))
+    return roots
+
+
+def default_out_dir():
+    """默认输出目录 = **面板认得的目录**（新人扒完在面板里找不到东西 —— 实测踩过）。
+
+    背景：`studio/server.py` 只允许打开**工具链与曲库之内**的文件（`allowed = [ROOT, LIB]`），
+    而面板列"曲目"还要求目录里有 `song.json`。所以 MIDI 至少要落在允许路径里，用户才能
+    「📂 打开」→ 在 MIDI 编辑器里看到它。原来的默认值是 `<音频同目录>/ymt3_out` —— 音频常常
+    在别的盘、别的目录（例如解包出来的 `Bgm\\`），于是产物**永远进不了面板**（实测：
+    BGM36 扒完在面板里怎么点都找不到）。
+    """
+    roots = panel_roots()
+    if len(roots) > 1:                      # 有曲库 → 落曲库（面板的列表也在那儿）
+        return os.path.join(roots[1], "_transcribe")
+    return os.path.join(roots[0], "transcribe")
+
 # 转录真正要的模块（照 `ymt3repo/requirements.txt`；`yt-dlp`/`gradio_log` 是它家网页 demo 用的）
 NEED_MODULES = ("torch", "soundfile", "transformers", "lightning", "mido",
                 "mir_eval", "wandb", "einops", "deprecated", "dotenv")
@@ -252,7 +284,9 @@ def auto_chunk(free_mb, dur, seg_sec, frames, bsz):
 def main():
     ap = argparse.ArgumentParser(description="YourMT3+ 多乐器转录（加速版）")
     ap.add_argument("audio", help="音频文件或目录（目录则批量处理其下 *.ogg/*.wav/*.flac/*.mp3）")
-    ap.add_argument("-o", "--out", default=None, help="MIDI 输出目录（默认 <音频同目录>/ymt3_out）")
+    ap.add_argument("-o", "--out", default=None,
+                    help="MIDI 输出目录（默认落**面板认得的目录**：<曲库>/_transcribe，"
+                         "没有曲库就是 <工具链>/transcribe —— 这样面板「📂 打开」能打开它）")
     ap.add_argument("--bsz", default="auto", help="推理 batch，默认 auto（按显存自动选）")
     ap.add_argument("--name", default=None, help="单个文件时的输出名")
     ap.add_argument("--repo", default=None, help="YourMT3 仓库目录")
@@ -351,10 +385,10 @@ def main():
     if os.path.isdir(args.audio):
         files = sorted(os.path.join(args.audio, f) for f in os.listdir(args.audio)
                        if f.lower().endswith(exts))
-        out_dir = args.out or os.path.join(args.audio, "ymt3_out")
     else:
         files = [args.audio]
-        out_dir = args.out or os.path.join(os.path.dirname(os.path.abspath(args.audio)), "ymt3_out")
+    # 默认落"面板认得的目录"（见 default_out_dir 的注释：落在音频旁边的话面板打不开）
+    out_dir = args.out or default_out_dir()
     os.makedirs(out_dir, exist_ok=True)
     if not files:
         print("✗ 没有可处理的音频", flush=True)
@@ -460,6 +494,16 @@ def main():
         json.dump({"bsz": bsz, "repo": repo, "weights": ckpt, "items": report}, fh,
                   ensure_ascii=False, indent=1)
     print("\n报告 → %s（%d 首）" % (rp, len(report)), flush=True)
+
+    # **把"下一步去哪儿看"直接打出来**：以前到这就结束了，新人扒完不知道产物在面板哪儿
+    # （实测：默认落在音频旁边的 `ymt3_out`，而面板只能打开工具链与曲库之内的文件）。
+    ap = os.path.abspath(out_dir)
+    if any(ap == r or ap.startswith(r + os.sep) for r in panel_roots()):
+        print("面板里打开：启动 studio → 点「📂 打开」→ 选 %s"
+              % (dst if len(files) == 1 else out_dir), flush=True)
+    else:
+        print("⚠ 这个目录面板打不开（它只允许工具链与曲库之内）——想直接打开就换成 "
+              "`-o \"%s\"`" % default_out_dir(), flush=True)
 
 
 if __name__ == "__main__":

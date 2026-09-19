@@ -76,8 +76,10 @@ py -3.13 -m venv .venv-ml
 
 ```powershell
 $env:DSH_YMT3_LIBS = "D:\models\ymt3libs"
-.\.venv-ml\Scripts\python.exe scripts\transcribe_ymt3.py "<你的音频.ogg>" -o <输出目录> --download
-#   → <输出目录>\<名字>.mid  +  _report.json（逐通道音符数 —— 能直接看出哪些声部有内容）
+.\.venv-ml\Scripts\python.exe scripts\transcribe_ymt3.py "<你的音频.ogg>" --download
+#   → 默认落 <曲库>\_transcribe\<名字>.mid + _report.json（逐通道音符数 —— 能看出哪些声部有内容）
+#   ⚠ 默认目录是**面板认得的目录**（工具链或曲库之内）：扒完在面板点「📂 打开」选这个 .mid，
+#     就在 MIDI 编辑器里（能听、能改、能导出）。用 `-o` 指到桌面/临时目录的话面板会拒绝打开。
 ```
 
 第一次跑会下 **4MB 代码 + 516MB 权重**，默认放 `<工具链>\vendor\ymt3repo`（想换地方加 `--repo <路径>`）。
