@@ -114,8 +114,14 @@ def main():
     ap.add_argument('--sub', action='store_true', help='强制做 sub 层（覆盖自适应判断）')
     ap.add_argument('--hp', type=float, default=None,
                     help='渲染高通频率（缺省 = 按参考曲低频含量自适应）')
-    ap.add_argument('--bsz', type=int, default=32)
+    ap.add_argument('--bsz', type=int, default=0,
+                    help='YourMT3 推理 batch；**0 = auto**（按显存自动挑，8GB 卡 → 24）')
     a = ap.parse_args()
+    # ⚠ 2026-09-19：原来 default=32 且**显式传给子进程** —— 于是 `transcribe_ymt3.pick_bsz`
+    #   的 8GB 档自动下调（32→24）**根本走不到**。实测 8GB 卡上 bsz=32 吃 7.68/8.15GB（94%）
+    #   → WDDM 分页到共享显存 → 同一首 282s 曲子转录 >7.5 分钟未完（ML.md 基准 ≈100s）。
+    #   0 = 不传 `--bsz`，交给子脚本按显存自动挑（换机器也对）。
+    _BS = ['--bsz', str(a.bsz)] if a.bsz > 0 else []
 
     ref = os.path.abspath(a.ref)
     if not os.path.isfile(ref):
@@ -157,7 +163,7 @@ def main():
     if stage(1, 'ymt3') and stale(ymt_mid, 'ymt3'):
         print('\n[2/9] YourMT3 整曲转录')
         sh([PY_ML, os.path.join(HERE, 'transcribe_ymt3.py'), ref, '-o', ymt,
-            '--name', '%s_ymt3' % name, '--bsz', str(a.bsz)], 'ymt3')
+            '--name', '%s_ymt3' % name] + _BS, 'ymt3')
     else:
         print('\n[2/9] 整曲转录 —— 已存在，跳过')
 
@@ -167,7 +173,7 @@ def main():
     if stage(2, 'ymt3bass') and stale(yb_mid, 'ymt3bass'):
         print('\n[3/9] YourMT3 对 bass 分轨单独转录')
         sh([PY_ML, os.path.join(HERE, 'transcribe_ymt3.py'), bass_wav, '-o', ymt,
-            '--name', '%s_bass_ymt3' % name, '--bsz', str(a.bsz)], 'ymt3bass')
+            '--name', '%s_bass_ymt3' % name] + _BS, 'ymt3bass')
     else:
         print('\n[3/9] bass 分轨转录 —— 已存在，跳过')
 

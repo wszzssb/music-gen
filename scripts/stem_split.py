@@ -59,6 +59,13 @@ def split_one(model_name, audio, outroot):
         sf.write(os.path.join(outdir, "%s.wav" % src), y, sr, subtype="PCM_16")
     print("  %-14s %.1fs · %s → %s（%d 轨）"
           % (model_name, time.time() - t, name, outdir, len(model.sources)), flush=True)
+    # 跑完就把模型与显存放掉（下一个模型要在同一台 8GB 卡上加载）
+    try:
+        del model
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:                                               # noqa: BLE001
+        pass
     return outdir
 
 
@@ -73,8 +80,23 @@ def main():
     os.makedirs(outroot, exist_ok=True)
     models = ["htdemucs", "htdemucs_6s"] if a.model == "both" else [a.model]
     print("分轨 %s → %s" % (os.path.basename(a.audio), outroot))
-    for m in models:
-        split_one(m, a.audio, outroot)
+    if len(models) > 1:
+        # ⚠ **每个模型一个独立子进程**（2026-09-19 修 · 通用性缺陷）：
+        #   同进程连着跑两个模型时，第一个模型的 CUDA 缓存不放 →
+        #   8GB 卡上第二个模型加载会**卡死**（实测：`-m both` 跑 11 分钟零产出、
+        #   GPU 利用率 6%、进程内存两次采样一字不变），**且不打印任何原因**；
+        #   而单独跑每个模型各只要 ~8.4s。
+        #   独立进程还能让子进程的 stdout 直接可见（不再吞错误）。
+        import subprocess
+        import sys as _sys
+        for m in models:
+            r = subprocess.run([_sys.executable, os.path.abspath(__file__),
+                                a.audio, '-o', outroot, '-m', m])
+            if r.returncode != 0:
+                raise SystemExit('模型 %s 分轨失败（rc=%s）' % (m, r.returncode))
+    else:
+        for m in models:
+            split_one(m, a.audio, outroot)
 
 
 if __name__ == "__main__":
