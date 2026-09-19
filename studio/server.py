@@ -175,7 +175,11 @@ def run_py(args, timeout=900, cwd=None):
     # 工具链的模块都在 <root>/scripts 下：跑 -c 片段时必须让子进程能找到它们
     # （实测踩过：面板保存 song.json 时 ModuleNotFoundError: json_io → 保存按钮直接失败）
     pp = os.path.join(ROOT, 'scripts')
+    # `BGM_STUDIO_INNER=1`：告诉子进程"你是面板调起来的" → `studio_guard` 的 A′ 委托
+    # 据此**走原生实现**，否则 `new_song.py` 会反过来 POST `/api/new` → 无限递归
+    # （面板的 `/api/new`、`kind=render-tune` 背后正是 run_py 起这两个脚本）。
     env = dict(os.environ, PYTHONIOENCODING='utf-8', BGM_STUDIO_ROOT=ROOT,
+               BGM_STUDIO_INNER='1',
                PYTHONPATH=pp + (os.pathsep + os.environ['PYTHONPATH'] if os.environ.get('PYTHONPATH') else ''))
     p = subprocess.run([py_exe(), '-X', 'utf8'] + args, cwd=cwd or ROOT, env=env,
                        capture_output=True, text=True, encoding='utf-8',
@@ -671,7 +675,9 @@ def start_job(sid, kind, opts=None):
         JOBS[jid] = JOB
 
     def worker():
-        env = dict(os.environ, PYTHONIOENCODING='utf-8', BGM_STUDIO_ROOT=ROOT)
+        # 同上：面板起的任务也要带 INNER 标记，否则任务里的脚本会反过来再委托一次
+        env = dict(os.environ, PYTHONIOENCODING='utf-8', BGM_STUDIO_ROOT=ROOT,
+                   BGM_STUDIO_INNER='1')
         try:
             rc = 0
             for i, c in enumerate(cmds):

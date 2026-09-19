@@ -1169,6 +1169,12 @@ def main():
     # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段
     import studio_guard
     studio_guard.ensure_panel()
+    # A′（2026-09-19 用户拍板）：**默认把生成委托给面板** —— 手敲 CLI 就等于在面板里建任务，
+    # GUI 全程可见、产物立刻能听。面板内部调用（BGM_STUDIO_INNER）、批量（BGM_CLI_DIRECT）、
+    # 以及面板无法等价表达的调用（没给 --ref / 带 --candidates 等）自动退回原生实现。
+    _rc = studio_guard.delegate_new_song(sys.argv)
+    if _rc is not None:
+        return _rc
     new = args[0]
     ref_name = sys.argv[sys.argv.index('--ref') + 1] if '--ref' in sys.argv else None
     seed = int(sys.argv[sys.argv.index('--seed') + 1]) if '--seed' in sys.argv else 7

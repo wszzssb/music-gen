@@ -127,7 +127,7 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `profile_ref.py` | 参考曲剖析 → 缓存成 `refs/<名字>.json`（含倍频程/宽度/质心/16 分节奏型/调式/结构、速度层级与 `level_scores`） |
 | `metrics.py` | 共用度量内核（上面两个工具都用它，保证口径一致） |
 | `cli_utf8.py` | 控制台编码兜底（GBK 下打印 `✓` 会崩）——所有入口脚本启动即调用，见坑 58 |
-| `studio_guard.py` | **面板守卫（硬形式）**：生成开工前探活 `127.0.0.1:8765`，不在跑就 **detached** 拉起（`start.cmd` 是阻塞前台，从脚本里调会连生成一起卡）；起不来只警告、不中断。已接在 `new_song` / `make_song` / `melody_gen` 的 `main()`；`BGM_NO_PANEL=1` 整段跳过。判据见自检 `panel_guard_wired` |
+| `studio_guard.py` | **面板守卫 + A′「面板是唯一入口」**：① 生成开工前探活 `127.0.0.1:8765`，不在跑就 **detached** 拉起（`start.cmd` 是阻塞前台，从脚本里调会连生成一起卡）—— 接在 `new_song` / `make_song` / `melody_gen` 的 `main()`；② **默认把生成/渲染委托给面板 API**（`/api/new`、`/api/job?kind=render-tune`）：手敲 CLI 就等于在面板里建任务，GUI 全程可见、产物立刻能听。开关：`BGM_STUDIO_INNER=1` 面板内部走原生（**防递归**）· `BGM_CLI_DIRECT=1` 批量直连 · `BGM_NO_PANEL=1` 整段跳过。判据：自检 `panel_guard_wired` / `panel_is_only_entry` |
 | `melody_profile.py` | **扒"旋律语言"**（音级/音程/时值/落点）+ **调内率自检**（<80% 就报"别用"）。在 Demucs 的 other 声部上跑：66%→93% |
 | `melody_gen.py` | **按画像生成旋律**：句长/落点/时值/音程都从画像的**分布**抽样（句末留休止），强拍强制吸附和弦音；`--avoid`+`--candidates` 与库里已有旋律去重；每首一组个性参数 |
 | `probe_melody_lang.py` / `probe_melody_health.py` | **旋律体检**：①语言分布重合度（≥85%=孪生）②形态——密度/同音/最长同音串/碎音/强拍 |

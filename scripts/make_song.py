@@ -334,6 +334,12 @@ def main():
     # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段
     import studio_guard
     studio_guard.ensure_panel()
+    # A′（2026-09-19 用户拍板）：**默认把渲染委托给面板** —— 手敲 CLI 就等于在面板里建任务，
+    # GUI 全程可见、产物立刻能听；面板内部调用（BGM_STUDIO_INNER）和批量（BGM_CLI_DIRECT）
+    # 走原生实现。带 `--check`/`--no-compose` 等面板无等价任务的开关时不委托（见 studio_guard）。
+    _rc = studio_guard.delegate_make_song(sys.argv)
+    if _rc is not None:
+        return _rc
     song = args[0]
     folder = os.path.join(SONGS, song)
     if not os.path.isdir(folder):

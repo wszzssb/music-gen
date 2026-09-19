@@ -51,7 +51,7 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py mystery        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 07_hidden_door --theme mystery --seed 7
+& $py scripts\new_song.py 07_hidden_door --theme mystery --seed 11
 & $py scripts\make_song.py 07_hidden_door --check
 ```
 

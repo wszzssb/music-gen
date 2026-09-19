@@ -2320,6 +2320,46 @@ def t_panel_guard_wired():
 
 
 @check
+def t_panel_is_only_entry():
+    """**面板是唯一入口**（A′，2026-09-19 用户拍板）：手敲 `new_song`/`make_song`
+    就等于在面板里建任务，GUI 全程可见、产物立刻能听。
+
+    为什么落到代码里：这条规矩**文档写了四遍、用户当场问了五次**（02:34 / 08:08 / 08:44 /
+    09:31 / 09:44）仍然没生效 —— 那轮 4 首仿写的生成**全程走 CLI**，面板只被 curl 过两次探活。
+    "写进文档"和"被追问"都失效，于是改由委托代码物理保证。
+
+    判据：① `studio_guard` 的 delegate_* 在；② 两个生成脚本都接了线（剥注释后匹配）；
+    ③ `server.py` **两处**子进程环境都带 `BGM_STUDIO_INNER=1` —— 这是**防递归的根**：
+       面板 `/api/new` 背后正是 `run_py(['scripts/new_song.py', ...])`（`server.py:1079`），
+       少了这个标记，`new_song.py` 会反过来 POST `/api/new` → 无限套娃；
+    ④ **反向对照**：两个开关（面板内部 / 批量直连）都必须真的能拦住委托。
+    """
+    sg_src = open(os.path.join(HERE, 'studio_guard.py'), encoding='utf-8').read()
+    for fn in ('def delegate_blocked(', 'def delegate_make_song(', 'def delegate_new_song('):
+        assert fn in sg_src, 'studio_guard.py 缺 %s' % fn
+    missing = []
+    for nm, call in (('make_song.py', 'delegate_make_song('),
+                     ('new_song.py', 'delegate_new_song(')):
+        s = open(os.path.join(HERE, nm), encoding='utf-8').read()
+        code = '\n'.join(ln.split('#')[0] for ln in s.splitlines())
+        if call not in code:
+            missing.append(nm)
+    assert not missing, '这些生成脚本没接面板委托（绕过了唯一入口）: %s' % ', '.join(missing)
+    srv = open(os.path.join(ROOT, 'studio', 'server.py'), encoding='utf-8').read()
+    assert srv.count("BGM_STUDIO_INNER='1'") >= 2, \
+        'server.py 的两处子进程环境没都注入 BGM_STUDIO_INNER（面板调脚本会无限递归）'
+    import studio_guard as _sg
+    from unittest import mock
+    for env, why in (({'BGM_STUDIO_INNER': '1'}, '面板内部调用'),
+                     ({'BGM_CLI_DIRECT': '1'}, '显式直连')):
+        with mock.patch.dict(os.environ, env):
+            assert _sg.delegate_blocked() is not None, \
+                '%s 时仍然允许委托（开关没生效：会递归 / 批量会被迫过面板）' % why
+    assert 'BGM_STUDIO_INNER' not in os.environ, \
+        '自检进程自己带着 BGM_STUDIO_INNER —— 上面那条反向对照是空转'
+
+
+@check
 def t_dur_floor_wired():
     """**时值下限 + 并轨必须接在流水线上**（2026-09-19 落，用户"杂乱/不流畅"那次）。
 

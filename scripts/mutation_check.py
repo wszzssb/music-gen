@@ -1458,23 +1458,41 @@ def main():
                         'midi_export_noteoff_first',
                         lambda: Mut(_mfi, 'W_ON', 2)))
 
-    # ㉒ 生成脚本绕开面板守卫（把接线删掉）→ `panel_guard_wired` 必须抓到。
-    #    这条守卫的全部意义就是"防文档失效"，所以必须证明**拆掉接线它会红**。
-    #    拆在临时目录的副本上（不动真文件）；`studio_guard.py` 要一起拷过去，
-    #    否则它会因为"缺模块"先失败 —— 那是另一个理由，测不到"接线"这一段。
-    class NoPanelGuard:
-        def __enter__(self):
-            import shutil
-            self.old = st.HERE
-            d = tempfile.mkdtemp(dir=TMP)
-            shutil.copy2(os.path.join(self.old, 'studio_guard.py'), d)
-            for nm in ('new_song.py', 'make_song.py', 'melody_gen.py'):
-                open(os.path.join(d, nm), 'w', encoding='utf-8').write(
-                    '# 故意不接 studio_guard.ensure_panel()（变异注入）\n')
-            st.HERE = d
-        def __exit__(self, *a):
-            st.HERE = self.old
-    results.append(case('生成脚本绕开面板守卫', 'panel_guard_wired', NoPanelGuard))
+    # ㉒ / ㉔ 的公共夹具：把真 HERE 下**所有** .py 拷进临时目录，并把"面板接线"字样
+    #    从除 `studio_guard.py` 以外的每个脚本里抹掉 —— 等价于"生成脚本没接面板"。
+    #
+    #    为什么不用"造几个空文件"的老写法（2026-09-19 实测被它坑过一次）：检查里的
+    #    脚本清单**会增长** —— `panel_guard_wired` 原本只查 new_song / make_song /
+    #    melody_gen，后来 `imitate_ref.py` 也接了守卫、清单跟着变长，而变异只造了 3 个
+    #    文件 → 第 4 个不存在 → 以 `FileNotFoundError` 收场：**"抓到"了，但理由不是
+    #    接线缺失**，等于这条用例在替另一件事报警。改成"拷全 + 抹字样"后就与清单长度无关。
+    import contextlib
+
+    @contextlib.contextmanager
+    def _no_panel_wiring():
+        import glob as _glob
+        import shutil
+        old, d = st.HERE, tempfile.mkdtemp(dir=TMP)
+        for p in _glob.glob(os.path.join(old, '*.py')):
+            nm = os.path.basename(p)
+            if nm == 'studio_guard.py':          # 守卫模块本身留着（否则红的是"缺模块"）
+                shutil.copy2(p, d)
+                continue
+            s = open(p, encoding='utf-8').read()
+            keep = [ln for ln in s.splitlines()
+                    if 'studio_guard' not in ln and 'ensure_panel' not in ln
+                    and 'delegate_' not in ln]
+            open(os.path.join(d, nm), 'w', encoding='utf-8').write('\n'.join(keep))
+        st.HERE = d
+        try:
+            yield
+        finally:
+            st.HERE = old
+    results.append(case('生成脚本绕开面板守卫', 'panel_guard_wired', _no_panel_wiring))
+
+    # ㉔ 面板委托被拆掉（生成又回到"绕开面板"）→ `panel_is_only_entry` 必须抓到。
+    #    夹具同上（拷全 + 抹掉 delegate_* 接线）。
+    results.append(case('生成脚本绕开面板唯一入口', 'panel_is_only_entry', _no_panel_wiring))
 
     # ㉓ 时值下限被关掉（`mb=_DF` → `mb=0`）→ `dur_floor_wired` 必须抓到。
     #    这条参数是"听感 = 杂乱 / 不流畅"那轮的产物（PITFALLS 206），最容易被
