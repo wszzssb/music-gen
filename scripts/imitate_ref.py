@@ -109,7 +109,10 @@ def main():
     ap.add_argument('--force', action='append', default=[], help='强制重跑某阶段，可重复')
     ap.add_argument('--rms', type=float, default=-16.10, help='成品 RMS 目标')
     ap.add_argument('--width', type=float, default=None, help='成品宽度（默认对齐参考曲）')
-    ap.add_argument('--thr', type=float, default=0.90, help='低音集成阈值')
+    ap.add_argument('--thr', type=float, default=0.90, help='低音集成阈值（历史链，别乱动）')
+    ap.add_argument('--merge-thr', type=float, default=0.30,
+                    help='非低音声部的集成阈值（`--merge` 合并式）。'
+                         '实测 BGM35：0.90 → Piano 391 音；**0.30 → 3896**（认可版 v5 是 4143）')
     ap.add_argument('--no-sub', action='store_true', help='强制不做低八度 sub 层')
     ap.add_argument('--sub', action='store_true', help='强制做 sub 层（覆盖自适应判断）')
     ap.add_argument('--hp', type=float, default=None,
@@ -219,25 +222,57 @@ def main():
 
     song = os.path.join(P, 'song.mid')
     if stage(4, 'bass') and stale(song, 'bass'):
-        print('\n[5/9] 低音专项集成（三源交叉验证%s）' % (' + sub 层' if sub_on else '，不加 sub'))
-        cmd = [PY_ML, os.path.join(HERE, 'bass_ensemble.py'),
-               '--base', ymt_mid, '--out', song, '--layer', 'Bass', '--thr', str(a.thr)]
-        if have(yb_mid):
-            cmd += ['--source', 'ymt3b=%s|24|60' % yb_mid]
-        for tag in ('bass4', 'bass6'):
-            p = os.path.join(bpdir, 'bp_%s.mid' % tag)
-            if have(p):
-                cmd += ['--source', '%s=%s|24|60' % (tag, p)]
-        if sub_on:
-            cmd += ['--sub']
-        # 八度校正：拿**参考曲的 bass 分轨**跑 pyin 提基频，修"差一个八度"的系统性转录错误。
-        # 实测 BGM29 全曲 bass 只有 48.5% 的帧音高一致、**25.3% 差整八度**；
-        # 这类错误多模型集成修不掉（YMT3/BP4/BP6 犯的是同一个错）。
-        if os.path.isfile(bass_wav):
-            cmd += ['--octave-ref', bass_wav]
-        sh(cmd, 'bass')
+        print('\n[5/9] 多声部集成（Bass / Piano / Guitar / Strings × 多来源%s）'
+              % (' + sub 层' if sub_on else ''))
+        # ── 2026-09-19 扩：原来只集成 **Bass 一条**，而第 4 段跑的 6 条 BP 分轨转录里
+        #    另外 4 条（piano/guitar/other×2）**跑完没人用** → Piano 一直是 YMT3 单通道原样。
+        #    实测（BGM35，对照用户认可版 v5_source.mid 的 Piano 4143 / 全曲 10413）：
+        #      替换式集成 thr=0.90 → Piano 391 · 全曲 6685（比不集成还差）
+        #      **--merge + thr=0.30 → Piano 3896 · 全曲 10190**（追到 v5 的 94% / 98%）
+        #    所以：非低音声部一律 `--merge`（合并而非替换）+ 低阈值，低音那条走它自己的历史链。
+
+        def _bp(tag):
+            return os.path.join(bpdir, 'bp_%s.mid' % tag)
+
+        def _ens(layer, srcs, cur_in, out, thr, merge=False, extra=None):
+            cmd = [PY_ML, os.path.join(HERE, 'bass_ensemble.py'),
+                   '--base', cur_in, '--out', out, '--layer', layer, '--thr', str(thr)]
+            for nm, p, lo, hi in srcs:
+                if have(p):
+                    cmd += ['--source', '%s=%s|%d|%d' % (nm, p, lo, hi)]
+            if merge:
+                cmd += ['--merge']
+            if extra:
+                cmd += extra
+            sh(cmd, 'ens-%s' % layer.split()[0])
+            return out
+
+        cur = ymt_mid
+        tmp = lambda i: os.path.join(P, 'ens_%d.mid' % i)                     # noqa: E731
+        # ① 低音：三源交叉 + 八度校正 + 可选 sub。**也走 merge + 低阈值** ——
+        #    实测走历史链的 thr=0.90 只剩 386 音（v5 是 1677），而 0.30+merge 能追回来。
+        cur = _ens('Bass',
+                   [('ymt3b', yb_mid, 24, 60), ('bass4', _bp('bass4'), 24, 60),
+                    ('bass6', _bp('bass6'), 24, 60)],
+                   cur, tmp(0), a.merge_thr, merge=True,
+                   extra=(['--sub'] if sub_on else []) +
+                         (['--octave-ref', bass_wav] if os.path.isfile(bass_wav) else []))
+        # ② 钢琴（YMT3 的 Acoustic Piano 轨由 `--merge` 并入来源）
+        cur = _ens('Acoustic Piano',
+                   [('bp_piano6', _bp('piano6'), 21, 108),
+                    ('bp_other6', _bp('other6'), 21, 108)],
+                   cur, tmp(1), a.merge_thr, merge=True)
+        # ③ 吉他：**只用 6s 模型的 guitar 轨** —— 曾误加 `bp_other4`（4s 的 other 是
+        #    钢琴/弦乐/其它混在一起），实测把 Guitar 顶到 2253 音（v5 只 254，多 8.9 倍）。
+        cur = _ens('Guitar (clean)',
+                   [('bp_guitar6', _bp('guitar6'), 40, 88)],
+                   cur, tmp(2), a.merge_thr, merge=True)
+        # ④ 弦乐
+        cur = _ens('Strings',
+                   [('bp_other6', _bp('other6'), 36, 96)],
+                   cur, song, a.merge_thr, merge=True)
     else:
-        print('\n[5/9] 低音集成 —— 已存在，跳过')
+        print('\n[5/9] 多声部集成 —— 已存在，跳过')
 
     # ── 6 渲染（高通频率由参考曲低频含量决定）──────────────────────────────
     raw = os.path.join(P, 'render.wav')

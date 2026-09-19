@@ -76,6 +76,9 @@ def main():
                     help='参考**低音分轨音频**：用它跑 pyin 提基频，修正"差一个八度"的转录错误。'
                          '实测 BGM29 全曲 bass 只有 48.5%% 的帧音高一致、**25.3%% 差整八度**，'
                          '而这类系统性错误多模型集成修不掉（三个模型犯同一个错）。')
+    ap.add_argument('--merge', action='store_true',
+                    help='把 base 目标轨的音也当成一个来源（**合并**而非替换）。'
+                         '钢琴/吉他/弦乐要用它；低音那条历史行为是替换，别开')
     ap.add_argument('--min-prob', type=float, default=0.20,
                     help='pyin 置信度下限。实测扫描（BGM29 bass 全曲一致率）：'
                          '0.35→64.9%% · **0.20→69.9%%** · 0.12→70.1%%（拐点在 0.20，再放宽没收益）')
@@ -95,6 +98,26 @@ def main():
             continue
         srcs[name] = load_notes(path, lo, hi)
         print('  来源 %-10s %5d 音（音域 %d-%d）' % (name, len(srcs[name]), lo, hi))
+    # **把 base 里目标轨的音也当成一个来源**（opt-in `--merge`，2026-09-19 加）
+    #
+    # 为什么需要：本工具的语义一直是**替换**（用集成结果覆盖该轨），于是
+    # 「原轨有、来源没有」的音会被**丢掉** —— 对低音那条历史链是对的（v5 也是替换 + sub），
+    # 但对钢琴/吉他/弦乐就成了净损失：BGM35 实测 Piano 替换后 2396 音 ≈ 原样 2377，
+    # 而用户认可版 `v5_source.mid` 的 Piano 是 **4143**（多来源**合并**的结果）。
+    # 开 `--merge` 后，base 该轨的音与各来源一起进"跨来源支持率"评分：
+    # 被多来源支持的留下、只被单方支持的按同一把尺子裁掉。
+    if getattr(a, 'merge', False):
+        _b = midi_file.import_midi(a.base)
+        _spb = 60.0 / float(_b.get('bpm') or 120.0)
+        _bn = []
+        for _tr in _b.get('tracks', []):
+            if _tr.get('name') == a.layer:
+                for (st, du, p, v) in (_tr.get('notes') or []):
+                    _bn.append((float(st) * _spb, int(p), float(du) * _spb, int(v)))
+        if _bn:
+            srcs['__base__'] = sorted(_bn)
+            print('  并入 base 的 %s 轨：%d 音（--merge）' % (a.layer, len(_bn)))
+
     if not srcs:
         raise SystemExit('没有可用来源')
 
