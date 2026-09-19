@@ -397,10 +397,10 @@ function renderStrip(){
     d.innerHTML = `<b>${sec.name}</b>${sec.bars}小节`;
     d.title = (sec.chords||[]).join(' / ');
     /* 点段落 = **跳到该段开头**（用户 2026-09-19："点击段落时间轴自动跳转到那个段落开头"）。
-     * 视窗也一起移到段首：不然红线会因"超出视野"被隐藏（drawPlayhead 里 x 越界就 opacity=0），
-     * 看上去又像"没跟随"。 */
+     * 视窗不用在这里手动摆：`seekTo` 会走统一的居中跟随（段首落在视野中央，前后都能看到一点
+     * 上下文），比"贴最左"更好用，也避免两处各摆一次互相打架。 */
     d.onclick=()=>{
-      S.sec=i; S.viewStart=sectionStartBeat(i); renderAll();
+      S.sec=i; renderAll();
       seekTo(sectionStartBeat(i)*(60/((S.song&&S.song.bpm)||120)));
     };
     st.appendChild(d);
@@ -760,7 +760,10 @@ function rollWheel(e){
   const dy=(Math.abs(e.deltaX)>Math.abs(e.deltaY))?e.deltaX:e.deltaY;
   if(e.ctrlKey){
     S.zoom=Math.max(1,Math.min(16,(S.zoom||1)*(dy<0?1.25:0.8)));
-  }else{ S.viewStart=Math.max(0,(S.viewStart||0)+ (dy>0?1:-1)*g.v.span*0.15); }
+  }else{
+    S.viewStart=Math.max(0,(S.viewStart||0)+ (dy>0?1:-1)*g.v.span*0.15);
+    S.followHold=Date.now()+2500;      // 手动横滚 → 先让用户看 2.5s，别被居中跟随立刻拉回去
+  }
   renderRoll();
 }
 
@@ -954,6 +957,36 @@ async function togglePlay(){
   ENG.play(S.mode).then(ok=>{ if(!ok) log(noSourceHint(S.mode)); });
   rAF();
 }
+/* 让播放头保持在视野**正中**（用户 2026-09-19："让红线除了开头和结尾那部分，其它部分保持在中间"）。
+ * 目标起点 = 播放拍 − 视野跨度/2，再被 [0, tb−span] 收口，于是三种情形自然分开：
+ *   · 开头那半屏：st 顶在 0，红线从左边往中间走；
+ *   · 中间：红线钉在正中不动，卷帘内容连续滚（"视角一直在动"）；
+ *   · 结尾那半屏：st 顶在 tb−span，红线从中间往右走。
+ * ⚠ 只有**视野小于整曲**（放大过）时才动：zoom=1 时 span=tb，整曲已经在视野里，`rollView` 把 st
+ *   收口到 0，移也移不动 —— 那种情形下红线的前进速度是"整曲秒数铺满 ~900px"的必然
+ *   （实测 331s 的曲子 ≈2.7px/s，肉眼基本看不出动；要看得出前进得先 Ctrl+滚轮放大）。
+ * ⚠ 位移不足 1 像素就**不重画**：居中跟随每帧都在改 st，若每帧都 renderRoll 就等于播放时每帧
+ *   重画整幅卷帘（音符一多就白烧 CPU）。1px 以内的滞后肉眼看不出来，且红线是 DOM 层、本身仍每帧 60fps。 */
+function centerPlayhead(force){
+  if(!S.song || !S.events) return false;
+  /* 用户刚**手动横滚**过就让位：否则播放中想往回看一眼，会被每帧拉回中央（等于手动滚动失效）。
+     2.5s 后自动恢复跟随 —— 比"加个开关"省事，也比"永久停止跟随"不容易让人忘了它被关了。
+     ⚠ `force=true` 时无视让位：点段落 / 拖进度条是**明确的定位指令**，必须把播放头带到视野里来
+     —— 实测踩过：让位窗口内点段落，视窗没跟过去，红线落到视野外被 drawPlayhead 隐藏（opacity=0），
+     看着就是"点了段落红线不见了"。 */
+  if(!force && Date.now() < (S.followHold||0)) return false;
+  const v=rollView();
+  if(v.span >= v.tb-1e-6) return false;
+  const spb=60/(S.song.bpm||120);
+  const beat=ENG.position()/spb;
+  const want=Math.max(0, Math.min(v.tb-v.span, beat - v.span/2));
+  const c=$('roll');
+  const pxPerBeat=((c && c.width) ? c.width : 903)/v.span;
+  if(Math.abs(want - v.st) * pxPerBeat < 1) return false;
+  S.viewStart=want;
+  try{ renderRoll(); }catch(e){}
+  return true;
+}
 function rAF(){
   /* ⚠ 防重入 + 常驻：原来 `rAF()` 只在点 ▶ / 试听时才被调用，而 `step` 末尾无条件
    *   `requestAnimationFrame(step)` —— 点 3 次就有 3 个循环同时跑（越点越卡）；
@@ -984,11 +1017,14 @@ function rAF(){
         try{ renderRoll(); }catch(e){ /* 由 renderAll 的兜底统一报 */ }
       }
     }
+    /* 播放中让播放头保持在视野中央（= 用户说的"红线保持在中间"）。必须排在 drawPlayhead 之前
+     * —— 移完视窗这一帧的红线位置才是对的。 */
+    if(st.playing) centerPlayhead();
     drawPlayhead();
-    /* 波形/电平表降频到 ~12fps：这个循环现在常驻（播放与否都跑），
-     * 而 `drawWave` 每次都重设 canvas 尺寸并重画 1200 根柱子 —— 60fps 白烧 CPU。 */
+    /* 波形/电平表降到 ~12fps（一律降，播放时也一样）：`drawWave` 每次都重设 canvas 尺寸
+     * 并重画 2400 根柱子，60fps 白烧 CPU；卷帘那条红线仍是每帧 60fps，不受影响。 */
     tick++;
-    if(st.playing || (tick % 5) === 0) { drawWave(true); drawMeters(); syncSeek(); }
+    if((tick % 5) === 0) { drawWave(true); drawMeters(); syncSeek(); }
     const d=st.dur||0, p=ENG.position();
     $('posInfo').textContent=num(p).toFixed(1)+' / '+num(d).toFixed(1)+'s';
     requestAnimationFrame(step);
@@ -1092,6 +1128,11 @@ function seekTo(sec){
   const d=ENG.state().dur||0;
   const t=Math.max(0, Math.min(d||0, Number(sec)||0));
   ENG.seek(t);
+  /* 定位后把播放头带到视野中央（点段落 / 拖进度条 / 点波形都走这里）——
+     否则红线可能落在视野外被隐藏，看着像"没跟上"。
+     这里是**明确指令**，所以清掉"手动横滚让位"并强制居中（见 centerPlayhead 的 force 说明）。 */
+  S.followHold=0;
+  try{ centerPlayhead(true); }catch(e){}
   try{ drawWave(); }catch(e){}
   try{ syncSeek(); }catch(e){}
   try{ drawPlayhead(); }catch(e){}
