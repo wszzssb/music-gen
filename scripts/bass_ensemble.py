@@ -126,13 +126,25 @@ def main():
 
     by_pitch = defaultdict(list)
     kept = 0
+    # **归一化支持分**（2026-09-19 修 · 通用缺陷）：
+    #   原判据 `sum(w[支持来源]) < thr → 砍` 隐含假设"各来源的跨来源支持率都接近 1"。
+    #   BGM16 实测三个来源的 w 只有 **0.437 / 0.404 / 0.067** → 即使**三源全共识**
+    #   也只有 0.908（勉强过 0.90），**两源共识 0.841 就被砍** ——
+    #   合并后 1427 个候选只剩 **2 音**，整条 Bass 轨等于废掉（体检一致率 0.6%）。
+    #   改成按"占全部来源权重之和的比例"归一：三源全共识 = 1.0、两源共识 ≈ 0.93、
+    #   单源独有 ≈ 0.48 —— **语义仍是"要共识"**，但对材料质量自适应（BGM29 那种
+    #   各来源一致的曲子上，归一化前后取值几乎相同，行为不变）。
+    W_TOTAL = sum(w.values())
+    dropped = 0
     for (note, s) in merged.values():
-        if sum(w.get(n, 0.0) for n in s) < a.thr:
+        if sum(w.get(n, 0.0) for n in s) / max(1e-9, W_TOTAL) < a.thr:
+            dropped += 1
             continue
         t, p, d, v = note
         by_pitch[p].append([t, min(d, a.max_dur), v])
         kept += 1
-    print('  阈值 %.2f → 保留 %d 音' % (a.thr, kept))
+    print('  阈值 %.2f（归一化，权重总和 %.3f）→ 保留 %d 音 · 砍 %d'
+          % (a.thr, W_TOTAL, kept, dropped))
 
     def dedup(byp):
         """同音高截断，避免重叠（重叠会被音源吞音：note-off 只带音高不带 id）"""
