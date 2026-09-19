@@ -68,11 +68,33 @@ studio\stop.cmd           # 按端口杀进程树
   **启动时按预算自动清理**（`prune_tmp_audio`：>7 天的删、总量压到 512MB 以内，最旧先删；
   `--keep-tmp-audio` 可跳过）。以前从不清理，实测涨到 0.93GB（见 `PITFALLS.md` 125）。
 
+## 中英切换（右上角 🌐）
+
+右上角浮着一个 `🌐 EN` / `🌐 中文` 开关，点一下切语言并刷新。**首次按系统语言自动判**
+（`navigator.language`，中文系统 = 中文），选择存 localStorage。
+
+实现是「**中文就是 HTML 原文** + 按字典替换」（`web/i18n.js`）：切英文时逐节点换成英文，
+切回中文只需刷新 —— 于是不用维护两份 HTML，也**不动** `engine.js` / `app.js` 的逻辑；
+那两个文件运行时写进 DOM 的文案由 MutationObserver 兜住。
+
+覆盖面与缺口（**有脚本守，别凭印象**）：
+
+- **静态文案 152 条**（index 75 / ed 77）全覆盖，`scripts/i18n_check.py` 守：漏一条退出码 1。
+  这条守卫是必要的 —— 漏翻**只有英文环境看得见**，中文系统下怎么点都不暴露。
+- **运行时文案**也翻了：音轨卡（`338 音` / `音色` / `🎧 试听`）、曲目下拉
+  （`12_velvet_light · 108BPM · 64小节 · 有成品`）、段落条、`测量中…`、曲库提示等，
+  走 `i18n.js` 的 `DYN` 词表 + `REGEX` 模式表（模式失配只退回中文、不报错，所以改
+  `app.js` 模板时要回来对一眼）。
+- **仍未翻**：① 日志区的整句（随状态拼出来的中文句子）② canvas 里 `fillText` 画的字
+  （如编辑器空态那句「先导入一个 .mid 文件」）。这两类得改 `app.js` / `ed.js` 本身，暂不做；
+  `smoke_i18n.js` 会把它们单独列出来，实测英文态这两类之外**零汉字残留**。
+
 ## 回归
 
 ```powershell
 node studio\tools\smoke_ui.js   # 引擎面板：初始化/混音台写回/撤销/分轨播放/卷帘拖删缩放/搜索采纳表
 node studio\tools\smoke_ed.js   # 编辑器：导入真实 .mid（走真实 HTTP）→ 编辑 → 和弦 → 导出往返
+node studio\tools\smoke_i18n.js # 中英切换：真浏览器切 en → 断言按钮/标签页标题 + 数残留汉字（需服务在 8791）
 node studio\tools\browser_check.js  # 真浏览器：音轨卡/残影/播放头定位
 ```
 

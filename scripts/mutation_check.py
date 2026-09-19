@@ -1494,6 +1494,39 @@ def main():
     #    夹具同上（拷全 + 抹掉 delegate_* 接线）。
     results.append(case('生成脚本绕开面板唯一入口', 'panel_is_only_entry', _no_panel_wiring))
 
+    # 面板漏翻一条静态文案（把字典里的 `💾 保存` 抹掉）→ `i18n_ui_translated` 必须抓到。
+    # 变异的是 i18n.js（不是 .py），所以夹具要连 `studio/web` 一起搬到临时目录，并按
+    # i18n_check.py 的 `WEB = dirname(HERE)/studio/web` 布局摆成两层：
+    #     <base>/scripts/*.py  +  <base>/studio/web/{index,ed}.html,i18n.js
+    # 摆错层的症状是"抓到"但理由是"文件不存在"，等于这条用例在替另一件事报警
+    # （`_no_panel_wiring` 的注释里记着同一类坑）。
+    @contextlib.contextmanager
+    def _i18n_missing_entry():
+        import glob as _g
+        import shutil as _sh
+        old_here, old_root = st.HERE, st.ROOT
+        base = tempfile.mkdtemp(dir=TMP)
+        d = os.path.join(base, 'scripts')
+        os.makedirs(d)
+        for p in _g.glob(os.path.join(old_here, '*.py')):
+            _sh.copy2(p, d)
+        web = os.path.join(base, 'studio', 'web')
+        os.makedirs(web)
+        for nm in ('index.html', 'ed.html', 'i18n.js'):
+            _sh.copy2(os.path.join(old_root, 'studio', 'web', nm), web)
+        p = os.path.join(web, 'i18n.js')
+        s = open(p, encoding='utf-8').read()
+        victim = "'💾 保存': '💾 Save',"
+        assert victim in s, '变异夹具失效：i18n.js 里找不到 %s' % victim
+        open(p, 'w', encoding='utf-8').write(s.replace(victim, ''))
+        st.HERE, st.ROOT = d, base
+        try:
+            yield
+        finally:
+            st.HERE, st.ROOT = old_here, old_root
+    results.append(case('面板漏翻一条文案（切英文时仍是中文）',
+                        'i18n_ui_translated', _i18n_missing_entry))
+
     # ㉓ 时值下限被关掉（`mb=_DF` → `mb=0`）→ `dur_floor_wired` 必须抓到。
     #    这条参数是"听感 = 杂乱 / 不流畅"那轮的产物（PITFALLS 206），最容易被
     #    "参数不该写死"退回默认关 —— 关掉后旋律轨时值中位会跌回 0.10~0.19s

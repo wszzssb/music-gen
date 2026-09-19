@@ -2328,6 +2328,49 @@ def t_panel_guard_wired():
 
 
 @check
+def t_i18n_ui_translated():
+    """面板**中英切换**必须盖住所有静态文案（2026-09-19 落）。
+
+    背景：切换实现成「中文 = HTML 原文 + 按字典替换」（`studio/web/i18n.js`）。这个做法有个
+    特有的盲区 —— **漏翻只有英文环境看得见**：中文系统下怎么点都不暴露，`smoke_ui.js`
+    （vm 替身，压根不加载 i18n.js）与 `browser_check.js`（中文语言）也照样全绿。
+    实测就是这么漏的：首版字典靠"肉眼扫 HTML"写，一上脚本立刻查出 24 条漏项；其中
+    `<title>` 与两处 `&lt;` 转义条目**运行时根本匹配不上**（`getAttribute()` 给的是解码后的
+    `<`，字典里写的却是 `&lt;`）—— 而当时的检查脚本自己做了 unescape，反倒把 bug 藏住。
+    两处都已修：字典写裸字符、检查脚本不再 unescape（写错就当场报缺失）。
+
+    判据：① 两个 HTML 都引了 `/i18n.js`；② 字典的静态区 / 动态区 / 正则表都在；
+    ③ `scripts/i18n_check.py` 退出码 0；
+    ④ **反向对照**：它抓到的文案条数必须 ≥150 —— 解析一旦坏掉（抓到 0 条）就"永远通过"，
+       这条防的正是"恒真装饰品"（同 `panel_guard_wired` 里对 `panel_alive` 的做法）。
+    """
+    import re as _re
+    import subprocess as _sp
+    web = os.path.join(ROOT, 'studio', 'web')
+    for nm in ('index.html', 'ed.html'):
+        s = open(os.path.join(web, nm), encoding='utf-8').read()
+        assert '/i18n.js' in s, '%s 没引 /i18n.js（语言切换不会加载）' % nm
+    js = open(os.path.join(web, 'i18n.js'), encoding='utf-8').read()
+    for key in ('var DICT = {', 'var DYN = {', 'var REGEX = ['):
+        assert key in js, 'i18n.js 里缺 %s' % key
+    # ⚠ 解码要兜住：Windows 控制台默认 GBK，子进程若不做编码兜底就吐 cp936 字节，
+    #   这里硬按 utf-8 解会抛 UnicodeDecodeError —— 那样"抓到"的理由就成了"解码崩了"，
+    #   而不是"漏翻"（mutation_check 实测踩到过：判据报成功的却是解码异常）。
+    #   两头都堵：给子进程显式 PYTHONIOENCODING，读回来再 errors='replace'。
+    env = dict(os.environ, PYTHONIOENCODING='utf-8')
+    r = _sp.run([sys.executable, os.path.join(HERE, 'i18n_check.py')],
+                capture_output=True, text=True, encoding='utf-8', errors='replace',
+                env=env, cwd=ROOT)
+    out = ((r.stdout or '') + (r.stderr or '')).strip()
+    assert r.returncode == 0, \
+        'i18n_check.py 报漏项（切英文时这些仍是中文）：\n%s' % out[:600]
+    n = sum(int(m) for m in _re.findall(r'含中文文案 (\d+) 条', out))
+    assert n >= 150, ('i18n_check.py 只抓到 %d 条文案（<150）—— 解析大概率坏了，'
+                      '这条检查会退化成恒真' % n)
+    print('        中英切换：%d 条静态文案全覆盖，i18n_check 退出码 0' % n)
+
+
+@check
 def t_panel_is_only_entry():
     """**面板是唯一入口**（A′，2026-09-19 用户拍板）：手敲 `new_song`/`make_song`
     就等于在面板里建任务，GUI 全程可见、产物立刻能听。
