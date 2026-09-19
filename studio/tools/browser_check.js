@@ -279,14 +279,21 @@ function cdp(wsUrl) {
         await sleep(1500);
         sol = await readSolo();
         let sawJob = !!sol.job;
-        if (sawJob) for (let i = 0; i < 100 && !sol.solo; i++) { await sleep(1500); sol = await readSolo(); if (!sol.job) break; }
+        /* ⚠ 任务消失 ≠ 音源接管：`pollJob` 的完成分支是 `await loadSong(); await playSolo(...)`
+         *   （串行），`S.job` 先被置 null，之后还要重新拉 /api/song、/api/files、
+         *   /api/audio?kind=mix 才轮到 solo。原来这里 `if (!sol.job) break;` 正好卡在那个窗口里
+         *   跳出 —— 明明接管了却判"没接管"（实测：第 2 拍读到 {solo:null, job:null}，
+         *   第 3 拍才是 solo:'Melody'）。改成任务消失后再多给 5 拍（1.5s/拍）当宽限。 */
+        let grace = 0;
+        if (sawJob) for (let i = 0; i < 100 && !sol.solo; i++) { await sleep(1500); sol = await readSolo(); if (!sol.job) { if (++grace > 5) break; } }
         let viaDom = false;
         if (!sawJob && !sol.solo) {
           viaDom = true;      // 确实一次都没建任务 → DOM click 触发同一 handler（如实标注）
           await c.evaljs('(()=>{document.querySelector(\'#trackList button[data-k="solo"]\').click();return 1;})()');
           await sleep(1500);
           sol = await readSolo(); sawJob = !!sol.job;
-          if (sawJob) for (let i = 0; i < 100 && !sol.solo; i++) { await sleep(1500); sol = await readSolo(); if (!sol.job) break; }
+          let grace2 = 0;   // 同上：回退路径也要留宽限（作用域不同，不能共用 grace）
+          if (sawJob) for (let i = 0; i < 100 && !sol.solo; i++) { await sleep(1500); sol = await readSolo(); if (!sol.job) { if (++grace2 > 5) break; } }
         }
         r.solo = sol; r.soloBtn = btn.name; r.soloViaDom = viaDom;
         if (!sol.solo) bad.push(`点了"${btn.name}"的 🎧 试听但音源没被接管（任务 ${sol.job || '无'} · ${sol.info} · ${sol.tail}` +

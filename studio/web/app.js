@@ -906,6 +906,18 @@ function bind(){
   c.oncontextmenu=rollContext; c.onmouseleave=rollUp; c.onwheel=rollWheel;
   window.addEventListener('resize',()=>renderRoll());
 }
+/* 没音源时**按模式说清是哪一种缺**。原来三种模式共用一句「（分轨要先"载入分轨"）」，
+ * 对 master 模式是误导：实测新兵副本 30 首里 27 首没渲染过（目录里只有 song.json / .mid /
+ * notes.md，没有成品 ogg），点 ▶ 只看到"分轨要先载入分轨"，会以为播放按钮坏了 ——
+ * 真因是"这首还没渲染出成品音频"。 */
+function noSourceHint(mode){
+  if(mode==='stems')
+    return '这一模式还没有音源：分轨 —— 先点「⬇ 载入分轨」（逐轨渲染成 OGG，要等几秒）';
+  if(mode==='ref')
+    return '这一模式还没有音源：参考曲 —— 这首没配参考音频（曲目 render.json 的 ref，或 studio/.refdir 指向的目录）';
+  return '这一模式还没有音源：master —— 这首还没渲染出成品音频，点「🔊 渲染」（约 30 秒）'
+       + '或「✨ 渲染+调参」生成 <曲名>_sf.ogg 后就能播';
+}
 async function togglePlay(){
   const s=ENG.state();
   if(s.playing){ ENG.pause(); drawWave(); return; }
@@ -915,7 +927,7 @@ async function togglePlay(){
     const why=S.soloTrack?('已回到整曲（'+S.soloTrack+' 试听结束）'):'已回到整曲（分段试听结束）';
     await backToFullSong(why);
   }
-  ENG.play(S.mode).then(ok=>{ if(!ok) log('这一模式还没有音源：'+S.mode+'（分轨要先"载入分轨"）'); });
+  ENG.play(S.mode).then(ok=>{ if(!ok) log(noSourceHint(S.mode)); });
   rAF();
 }
 function rAF(){
