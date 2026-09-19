@@ -12,7 +12,13 @@ button.mini{padding:2px 8px;font-size:12px}
 select,input[type=number]{background:#252a37;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 input[type=range]{width:88px;vertical-align:middle}
 .dim{color:var(--dim);font-weight:400}
+/* ⚠ grid/flex 子项默认 `min-width:auto` 会让**内容撑破列宽**：曲子一长（段落条 `.sec` 宽度
+ * ∝ 小节数，207 小节的曲目总宽远超一屏）就把中间那个 `1fr` 列顶开 → 整页冒出横向拖动条
+ * （用户 2026-09-19："曲子很长时下面会出现拖动条，界面左右部分保持全屏上下没关系"）。
+ * `min-width:0` 让子项按列宽收敛，超出的内容交给元素自己的 `overflow-x:auto` 内部滚：
+ * 页面宽度始终 = 视口宽（左右撑满），只留纵向滚动。 */
 #grid{display:grid;grid-template-columns:290px 1fr 330px;gap:10px;padding:10px;align-items:start}
+#grid > *{min-width:0}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
 .panel h2{margin:2px 0 8px;font-size:13px;font-weight:600}
 #logWrap{margin:0 10px 10px}
@@ -24,7 +30,7 @@ input[type=range]{width:88px;vertical-align:middle}
 .track .row{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:12px}
 .track .row label{color:var(--dim);width:34px}
 .track .n{color:var(--dim);font-size:11px;margin-left:auto}
-#secStrip{display:flex;gap:4px;overflow-x:auto;padding-bottom:6px}
+#secStrip{display:flex;gap:4px;overflow-x:auto;padding-bottom:6px;min-width:0}
 .sec{flex:0 0 auto;border:1px solid var(--line);border-radius:6px;padding:4px 6px;cursor:pointer;background:#232838;font-size:11px;text-align:center;min-width:44px}
 .sec.sel{border-color:var(--acc);background:#1d3345}
 .sec b{display:block;font-size:11px}
