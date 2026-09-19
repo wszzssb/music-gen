@@ -384,31 +384,6 @@
   ]
  },
  {
-  "file": "anime/Emma - A Victorian Romance - Silhouette of a Breeze - anime-tomodachi.blogspot.c.mid",
-  "style": "anime",
-  "md5": "82fb97587d6761c02de9a8fb31dc0433",
-  "bytes": 5059,
-  "bpm": 120.0,
-  "timesig": [
-   4,
-   4
-  ],
-  "bars": 68.0,
-  "seconds": 136.0,
-  "note_count": 612,
-  "tracks": [
-   {
-    "index": 0,
-    "name": "PianoL",
-    "channel": 4,
-    "program": 0,
-    "notes": 612,
-    "lo": 41,
-    "hi": 94
-   }
-  ]
- },
- {
   "file": "anime/K Anime Project - Shiro 2.mid",
   "style": "anime",
   "md5": "4f30007ad3f3250a42dba565370051ad",
@@ -5310,31 +5285,6 @@
     "notes": 202,
     "lo": 38,
     "hi": 72
-   }
-  ]
- },
- {
-  "file": "film/Saint Seiya - Ikki's theme (aka Brother's Theme, Shun's Theme, Shinreii Prayer,.mid",
-  "style": "film",
-  "md5": "bdd262c2b0c37856caf2589d786dd402",
-  "bytes": 2101,
-  "bpm": 71.0,
-  "timesig": [
-   4,
-   4
-  ],
-  "bars": 21.0,
-  "seconds": 71.0,
-  "note_count": 232,
-  "tracks": [
-   {
-    "index": 1,
-    "name": "Acoustic Grand Piano",
-    "channel": 0,
-    "program": 0,
-    "notes": 232,
-    "lo": 36,
-    "hi": 89
    }
   ]
  },

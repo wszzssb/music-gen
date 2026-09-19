@@ -213,6 +213,67 @@ def build_index(root):
     return rows
 
 
+def repair(root):
+    """按 `_sources.json` 的原始 URL 逐首重下**缺失**的 MIDI（2026-09-19 事故恢复用）。
+
+    为什么单独一个入口：`main()` 是**按搜索词**抓的（每次结果不同，抓回来的是另一批文件），
+    而 `_sources.json` 记了逐首的**原始下载 URL** —— 拿它逐首重下才能拿回**同一批**文件
+    （实测抽样 6/6：内容 md5 与 `_index.json` 逐首一致）。
+
+    为什么需要它：`refs/midi2/*.mid` 被 .gitignore 排除（版权 + 体积），
+    本地误删后 **git 恢复不了**（只能恢复 `_index.json` / `_sources.json`）；
+    而主题包校验、写歌本身都**不读** MIDI 文件（读索引与画像），所以库缺失不会立刻暴露。
+    """
+    idx_p = os.path.join(root, '_index.json')
+    src_p = os.path.join(root, '_sources.json')
+    if not (os.path.isfile(idx_p) and os.path.isfile(src_p)):
+        print('缺 _index.json / _sources.json（这两个是入库的，先 git checkout 恢复）')
+        return 1
+    idx = {r['file']: r for r in json.load(open(idx_p, encoding='utf-8'))}
+    src = json.load(open(src_p, encoding='utf-8'))
+    todo = []
+    for f, url in src.items():
+        if f not in idx:
+            continue
+        dest = os.path.join(root, *f.split('/'))
+        if not os.path.isfile(dest):
+            todo.append((f, url, dest, idx[f].get('md5')))
+    print('索引 %d 首 · 来源 %d 条 · **缺 %d 首**' % (len(idx), len(src), len(todo)))
+    if not todo:
+        print('库是完整的（没有缺文件）')
+        return 0
+    got = fail = 0
+    badmd5 = []
+    for i, (f, url, dest, want) in enumerate(todo, 1):
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = r.read()
+        except Exception as e:                                     # noqa: BLE001
+            print('  [%d/%d] 失败 %s → %s' % (i, len(todo), f, str(e)[:60]))
+            fail += 1
+            time.sleep(DELAY)
+            continue
+        h = hashlib.md5(data).hexdigest()
+        with open(dest, 'wb') as fh:
+            fh.write(data)
+        if want and h != want:
+            badmd5.append(f)
+            print('  [%d/%d] md5 不符 %s（服务器内容变了）' % (i, len(todo), f))
+        else:
+            got += 1
+        if i % 20 == 0 or i == len(todo):
+            print('  … 进度 %d/%d（成功 %d · 失败 %d）' % (i, len(todo), got, fail))
+        time.sleep(DELAY)
+    print('\n恢复 %d 首 · 失败 %d · md5 不符 %d' % (got, fail, len(badmd5)))
+    if badmd5:
+        print('  md5 不符（索引该重算）：%s' % ', '.join(badmd5[:8]))
+    if fail:
+        print('  失败的多半是 URL 失效 —— 这些首需要重抓或从索引里剔除')
+    return 0 if not fail else 1
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     if not args:
@@ -226,6 +287,8 @@ def main():
     only = sys.argv[sys.argv.index('--styles') + 1].split(',') \
         if '--styles' in sys.argv else None
     dry = '--dry-run' in sys.argv
+    if '--repair' in sys.argv:
+        return repair(root)
     os.makedirs(root, exist_ok=True)
     ver = os.path.join(root, '_sources.json')
     src = json.load(open(ver, encoding='utf-8')) if os.path.isfile(ver) else {}

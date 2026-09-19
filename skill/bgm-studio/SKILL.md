@@ -37,6 +37,13 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
 **模板依据是硬规矩**：一次生成依据**同主题 ≥8 首模板**，模板只能是 `refs/midi2/`（带来源 URL）
 或网络权威数据 —— 不许拿"自己做的曲子 / 某份音频"当模板（老 `--from` 会被 `check_song` 拦下）。
 
+⚠ **MIDI 模板库不入库**（版权 + 体积），**但这不影响别人 clone 下来直接写歌**：
+`refs/midi2/` 只带 `_index.json`（索引 + 逐首 md5）与 `_sources.json`（来源 URL），
+而**写歌读的是画像** `refs/themes/*.json`（15 个主题包 = 150 首模板的聚合，已入库），
+校验时比对的也是**索引里的 md5**、不碰 MIDI 文件 —— 实测把 MIDI 全移走，
+`t_theme_pack_valid` / `t_theme_basis_whitelist` 仍 PASS。只有**加/改主题**
+（重算画像）才需要 MIDI：`scripts\fetch_midi_lib.py` 重抓即可。
+
 ```powershell
 & $py ...\scripts\theme_pack.py <主题>       # ① --list-themes 看主题；同主题不足 8 首加 --allow-fetch
 & $py ...\scripts\new_song.py <NN_名字> --theme <主题> --ref <画像名>   # ② 出 song.json + 旋律
