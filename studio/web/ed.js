@@ -671,6 +671,34 @@ function fadeStop(w, g, parts, fade) {
     for (const p of parts) { try { p.stop(); } catch (e) { /* 已停 */ } }
   }
 }
+/* 每族一张**波表**（`createPeriodicWave`）：把 `FAMILIES[*].harm` 的谐波幅度直接烘进波形，
+ * 于是一个振荡器就能出全部泛音。
+ *
+ * 为什么非改不可（用户 2026-09-19："播放有问题卡卡的，声音还很奇怪，完全没有其它播放器好"）：
+ * 原实现是"**每个泛音一个 sine 振荡器 + 一个 GainNode**"，实测平均 **3.42 个泛音/音**
+ * （整场 2192 个振荡器 + 同样多的 GainNode），而并发预算是"全局 160 个振荡器" ——
+ * 密集段落（鼓 + 伴奏 + 旋律一起进）一到 160 就开始 `victim.stop(0.006)` 杀音，
+ * 被杀的是 6ms 淡出切断的：听感正是"卡"（音被吃掉、节奏错位）+ "声音怪"（尾巴被剁）。
+ * 波表化之后每音只用 **2 个振荡器**（±detune 各一，保留齐奏厚度），节点数降到约 1/3.5，
+ * 同样的预算能同时发 2 倍多的音，而音色不变（谐波幅度原样搬过去）。 */
+const WV = new Map();
+function waveFor(ctx, fam) {
+  const key = fam + '|' + (ctx.sampleRate | 0);
+  let w = WV.get(key);
+  if (w) return w;
+  const spec = FAMILIES[fam] || FAMILIES.clean;
+  const N = 64;                                  // 谐波阶数上限（泛音最高 5 倍，够用）
+  const real = new Float32Array(N + 1), imag = new Float32Array(N + 1);
+  for (const [mult, amp] of spec.harm) {
+    const k = Math.round(mult);
+    if (k >= 1 && k <= N) imag[k] += amp;        // imag = 正弦分量（原实现全是 sine）
+  }
+  w = ctx.createPeriodicWave(real, imag);
+  WV.set(key, w);
+  try { window.__WV = WV; } catch (e) { /* 无 window 环境 */ }
+  return w;
+}
+
 function voice(w, at, want, freq, vel, fam) {
   const spec = FAMILIES[fam] || FAMILIES.clean;
   const g = w.createGain();
@@ -694,15 +722,17 @@ function voice(w, at, want, freq, vel, fam) {
   if (S.master.wet) g.connect(S.master.wet);
   const oscs = [];
   let made = 0, skipped = 0;
-  for (const [mult, amp] of spec.harm) {
-    let f = freq * mult;
+  /* 一个波表 + 两个振荡器（±detune 各一）代替"每个泛音一个振荡器 + 一个 GainNode"：
+   * 泛音幅度烘在波表里（见 `waveFor`），±detune 保住同族音之间的齐奏厚度。 */
+  const wv = waveFor(w, fam);
+  const dt = (spec.detune || 0) / 1200;
+  for (const d of (dt > 0 ? [dt, -dt] : [0])) {
+    const f = freq * (1 + d);
     if (f > 16000) { skipped++; continue; }
     const o = w.createOscillator();
-    o.type = 'sine';
-    o.frequency.setValueAtTime(f * (1 + (Math.random() * 2 - 1) * spec.detune / 1200), at);
-    const og = w.createGain();
-    og.gain.value = amp / spec.harm.length;
-    o.connect(og); og.connect(lp);
+    o.setPeriodicWave(wv);
+    o.frequency.setValueAtTime(f, at);
+    o.connect(lp);
     o.start(at);
     o.stop(relAt + r + 0.06);
     oscs.push(o);
@@ -860,8 +890,11 @@ function playTone(w, at, dur, pitch, vel, drum, key, trackIdx) {  /* 并发控�
    *   现在改成按**振荡器预算**限流：全局 160 个振荡器、每轨 40 个。
    *   换算成音数大约"全局 ~55 音 / 每轨 ~13 音"，与真实回放需求相当。 */
   const want = Math.max(0.05, Math.min(3, dur));
-  const OSC_BUDGET = 160;        // 全局振荡器预算（不是音数）
-  const OSC_PER_TRACK = 40;      // 每轨预算
+  /* 预算按**振荡器**算（不是音数）。波表化之前每音 3.42 个振荡器 → 160 只够约 47 个音，
+   * 密集段落疯狂触发下面的 victim 淘汰（6ms 淡出切断 = 用户听到的"卡 + 怪声"）。
+   * 波表化之后每音 2 个振荡器（见 `voice`），320 的预算能同时发约 160 个音。 */
+  const OSC_BUDGET = 320;        // 全局振荡器预算（不是音数）
+  const OSC_PER_TRACK = 80;      // 每轨预算
   // **并发保护**（不是"拒绝新音"）：到上限时**停掉最弱/最老的**再发新的。
   let guard = 0;
   while ((S.liveOsc || 0) >= OSC_BUDGET && guard++ < 8) {

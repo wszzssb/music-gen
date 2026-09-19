@@ -100,7 +100,8 @@ for (const id of ['roll', 'velLane']) els.get(id).parentElement = fakeEl('wrap')
  * 会让基准漂移，于是 `at < now` 把窗口内每个音都判成"已过期"（实测 0 发声）——
  * 那是测试把代码玩坏了，不是代码的问题。这里用 VClock 统一管两边。 */
 let TONES = 0;                 // 音色总数（= 振荡器数；一个音符会有多个泛音）
-let OSCS = 0;                  // 泛音振荡器总数（验证"多泛音"）
+let OSCS = 0;                  // 振荡器总数（波表化后每音 2 个：±detune）
+let WAVES_USED = 0;            // setPeriodicWave 调用数（验证"泛音走波表"）
 let FILTERS = 0;               // 滤波器总数（验证"有滤波"）
 let VCLOCK = 0;
 const VClock = {
@@ -117,7 +118,12 @@ class FakeNode {
   }
   connect() { return this; } disconnect() {} start() {} stop() {}
 }
-class FakeOsc extends FakeNode { constructor() { super(); TONES++; OSCS++; } }
+class FakeOsc extends FakeNode {
+  constructor() { super(); TONES++; OSCS++; }
+  /* 波表振荡器：`voice()` 现在走 `o.setPeriodicWave(waveFor(...))`（一个波形出全部泛音）。
+   * 记一下，便于断言"真的走波表、没退回逐泛音建振荡器"。 */
+  setPeriodicWave(w) { this.wave = w; WAVES_USED++; }
+}
 class FakeBiquad extends FakeNode { constructor() { super(); FILTERS++; } }
 class FakeAC {
   constructor() { this.state = 'running'; this.destination = new FakeNode(); this.sampleRate = 48000; }
@@ -127,6 +133,14 @@ class FakeAC {
   createBiquadFilter() { return new FakeBiquad(); }
   createDynamicsCompressor() { return new FakeNode(); }
   createConvolver() { return new FakeNode(); }
+  /* 替身必须跟着实现走：`voice()` 现在用 `createPeriodicWave` 把谐波烘成波表
+   * （原来"每个泛音一个振荡器 + 一个 GainNode"，实测平均 3.42 振荡器/音，密集段落
+   * 把音频线程压垮 → 用户听到"卡 + 声音怪"；见 ed.js 里 waveFor 的注释）。
+   * 真浏览器里这是标准 API，替身缺了它 ed.js 一开声就 TypeError。 */
+  createPeriodicWave(real, imag) {
+    return { __wave: true, n: (imag && imag.length) || 0,
+             real: Array.from(real || []), imag: Array.from(imag || []) };
+  }
   createBufferSource() { return new FakeNode(); }
   createBuffer(ch, len, sr) {
     const data = [];
@@ -172,7 +186,8 @@ const sandbox = {
   devicePixelRatio: 1, fetch: realFetch, btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
   AudioContext: FakeAC, webkitAudioContext: FakeAC, URL, Buffer,
   __TONES: () => TONES,                                 // 让沙箱能读到发声计数
-  __TOTAL: () => OSCS,                                  // 泛音振荡器总数
+  __TOTAL: () => OSCS,                                  // 振荡器总数（波表化后每音 2 个）
+  __WAVES: () => WAVES_USED,                            // setPeriodicWave 次数（泛音走波表）
   __FILTERS: () => FILTERS,                             // 滤波器总数
   __CLOCK: (s) => VClock.advance(s),                    // 沙箱内推进虚拟时钟
   localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
@@ -399,8 +414,13 @@ const S = vm.runInContext('S', sandbox);
       padAtk: FAMILIES.pad.atk,
       master: !!S.master, wet: !!(S.master && S.master.wet),
       comp: !!(S.master && S.master.comp),
-      liveMade: S.pt ? S.pt.made : 0, liveN: S.pt ? S.pt.n : 0 })`, sandbox));
+      liveMade: S.pt ? S.pt.made : 0, liveN: S.pt ? S.pt.n : 0,
+      waves: __WAVES() })`, sandbox));
     chk(q.fams.length >= 5, '音色族 ' + q.fams.length + ' 种：' + q.fams.join('/'));
+    /* 泛音必须走**波表**（`createPeriodicWave`），不许退回"每个泛音一个 sine 振荡器"：
+     * 后者实测 3.42 个振荡器/音 + 同样多的 GainNode，密集段落把音频线程压垮 →
+     * `victim.stop(0.006)` 疯狂杀音，正是用户听到的"卡 + 声音很怪"（2026-09-19 反馈）。 */
+    chk(q.waves > 0, '泛音走波表（setPeriodicWave ' + q.waves + ' 次，不是每泛音一个振荡器）');
     chk(q.pianoHarm >= 3, '钢琴泛音 ' + q.pianoHarm + ' 层（老实现是单振荡器 = 1）');
     chk(q.stringsVib > 0 && q.padAtk > 0.1, '弦乐有揉弦、铺垫有缓起（不是一刀切的包络）');
     chk(q.master && q.wet && q.comp, '主输出挂了混响与压缩器（干声贴耳/叠加削波的解）');
