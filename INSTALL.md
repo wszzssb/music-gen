@@ -66,16 +66,26 @@ py -3.13 -m venv .venv-ml
 .\.venv-ml\Scripts\python.exe -m pip install demucs matchering librosa pyloudnorm
 .\.venv-ml\Scripts\python.exe -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
 
-# ② YourMT3 源码（HF Space 的 clone；走 hf-mirror，国内可达）
-git clone https://hf-mirror.com/spaces/mimbres/YourMT3 <模型目录>\ymt3repo
-#   权重就在这个仓库里：amt\logs\2024\<实验名>\checkpoints\model.ckpt（516MB）
-#   ⚠ 若 clone 下来只有 LFS 指针（文件只有几百字节），再拉一次：
-#       cd <模型目录>\ymt3repo ; git lfs pull
-#     或到 hf-mirror 那个 Space 的 Files 页单独下 model.ckpt，放到上面那个路径
+# ② YourMT3 源码（HF Space 的 clone；**必须走 hf-mirror**，官方 huggingface.co 国内连不上）
+git clone --depth 1 https://hf-mirror.com/spaces/mimbres/YourMT3 <模型目录>\ymt3repo
+#   ⚠ **权重不在这个 git 仓库里**：Space 把 `amt/logs/` 写进了 `.gitignore`，所以
+#     clone 下来只有 ~4MB 代码，`git lfs pull` 也没东西可拉（2026-09-19 实测确认）。
+#     权重要从 HF 的 **dataset** 单独下 —— 见 ③。
 
-# ③ transformers **4.45.1**（YourMT3 要 4.x，而 .venv-ml 里装的是 5.x）
-#    装到**独立目录**、不动 site-packages（脚本会自己把它 sys.path 前置）：
+# ③ 权重 516MB（**必须设 HF_ENDPOINT 走镜像**，否则国内下不动）
+$env:HF_ENDPOINT = "https://hf-mirror.com"
+.\.venv-ml\Scripts\python.exe -c "from huggingface_hub import hf_hub_download as d; print(d(repo_id='Richhiey/YourMT3', repo_type='dataset', filename='logs/2024/mc13_256_all_cross_v6_xk5_amp0811_edr005_attend_c_full_plus_2psn_nl26_sb_b26r_800k/checkpoints/model.ckpt', local_dir=r'<某处>'))"
+#   下完**必须放到这个路径**（注意 dataset 里是 `logs/...`，落盘要加 `amt\` 前缀）：
+#     <模型目录>\ymt3repo\amt\logs\2024\<实验名>\checkpoints\model.ckpt
+#   （实测 1 分 43 秒下完，516MB）
+
+# ④ transformers **4.45.1** + YourMT3 自己的依赖
+#    4.45.1 装到**独立目录**、不动 site-packages（脚本会自己把它 sys.path 前置）：
 .\.venv-ml\Scripts\python.exe -m pip install --target <模型目录>\ymt3libs transformers==4.45.1 tokenizers==0.20.3 "huggingface-hub<1.0"
+#    转录还缺这些（照 `ymt3repo\requirements.txt` 抄，但**别整体 `-r`** ——
+#    它钉 `numpy==1.26.4` 且带 `--extra-index-url .../cu113`，会**重装 4GB 的旧 torch**）：
+.\.venv-ml\Scripts\python.exe -m pip install mido "lightning>=2.2.1" deprecated einops wandb python-dotenv mir_eval
+#    （requirements 里的 `yt-dlp` / `yt-dlp-oauth2` / `gradio_log` 是 Space 网页 demo 用的，转录不需要）
 ```
 
 **扒一首**：
@@ -93,18 +103,23 @@ $ml = ".venv-ml\Scripts\python.exe"
 `DSH_YMT3_REPO` / `DSH_YMT3_LIBS` 环境变量 → `D:\test\models\ymt3repo`（`ymt3libs` 认它的兄弟目录）
 → `<工具链>\vendor\ymt3repo`；也可以直接 `--repo <路径>`。
 
-**三个已知坑**（实测踩出来的，详见 `docs\CASE-BGM35-FINDINGS.md` 第 33 条）：
+**五个已知坑**（实测踩出来的，前三条详见 `docs\CASE-BGM35-FINDINGS.md` 第 33 条）：
 1. 权重路径里的 project 必须是 **`2024`**（不是默认的 `ymt3`），否则找不到权重；
 2. `transformers` 必须 **4.45.1**（连带 `tokenizers==0.20.3`、`huggingface-hub<1.0`）；
-3. `torchaudio 2.11` 的解码改走 torchcodec（没装）→ 已用 soundfile 打补丁，**你不用处理**。
+3. `torchaudio 2.11` 的解码改走 torchcodec（没装）→ 已用 soundfile 打补丁，**你不用处理**；
+4. **权重要自己下**：`amt/logs/` 在 Space 自己的 `.gitignore` 里 → `git clone` / `git lfs pull`
+   都拿不到（只回 4MB 代码），必须走 ③ 从 dataset 下；
+5. **`ymt3repo\requirements.txt` 不能整体 `pip install -r`**：它钉 `numpy==1.26.4` 且带
+   `--extra-index-url .../cu113` → 会**重装 4GB 的旧 torch**；按 ④ 那条只装缺的。
 
 **版权**：转录结果是参考曲的**逐音复制**。本地分析/对照/学习随便用，
 **不能上传到网络**（公开发布即侵权）—— 见 `ML.md` 的「版权与边界」。
 
-> ⚠ **验证程度**：① 已实测（`py -3.13 -m venv .venv-ml` + torch cu128，**95 秒装完、`cuda True`**）；
-> ② 的 clone URL 已用 `git ls-remote` 验过可达；③ 的版本号与已跑通那台机器的 `dist-info` 逐个核对过
-> （`transformers-4.45.1` / `tokenizers-0.20.3` / `huggingface_hub-0.26.2`）、权重落点也核实是真文件（516MB）
-> 而非 LFS 指针。**但我没有在全新机器上端到端走完 ②③** —— 照做若卡住，多半是 hf-mirror 的 LFS 或版本号漂移。
+> ✅ **已在新机器上端到端跑通**（2026-09-19，干净目录从零走一遍）：
+> `venv-ml` + torch **95 秒** → clone 代码（4MB）→ 下权重 **1 分 43 秒** → 补依赖 → **转录 44.2 秒**
+> 出 MIDI（331.9s 的曲子、8671 音符、8.2× 实时、显存峰值 4963MB），产物与已跑通那台机器
+> **逐字节一致**（SHA256 `d92c9ff8…c0c8bf`）—— 同模型同权重，**可复现**。
+> 全程**唯一必须走镜像**的是 ②③：`hf-mirror.com` + `HF_ENDPOINT`（官方 huggingface.co 国内下不动）。
 
 ## 仓库带什么、不带什么
 
