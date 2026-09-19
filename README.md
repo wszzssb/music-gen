@@ -30,23 +30,42 @@ BGM 制作与分析的完整管线。**任何新对话（或新的人）从这�
 ```
 music-gen\
 ├── README.md            本文件（总索引，**按顶部地图按需读**）
+├── INSTALL.md / setup.cmd  安装：clone 后先双击 setup.cmd（建环境 + 取音源 + 自检）
+├── CHEATSHEET.md        命令速查（按需查，别整篇读）
 ├── PITFALLS.md          踩坑台账（出症状时按编号查；旧条目在 PITFALLS-ARCHIVE.md）
 ├── HISTORY.md           开发经过 + 修过的全部 bug（写代码/排查才看）
+├── ML.md                ML 工具链（Demucs / YourMT3 / matchering）的用法
 ├── .venv\               依赖环境（numpy + soundfile + imageio-ffmpeg）
+├── .venv-ml\            ML 环境（Python 3.13 + CUDA，可选）
 ├── vendor\              外部二进制：fluidsynth.exe + GeneralUser GS 音源
-├── refs\                参考曲画像缓存（对比时不必再读参考曲）
+├── refs\                参考曲画像缓存 + 主题模板包（refs\themes\）
 ├── scripts\             引擎 + 分析/体检/渲染 + 自检/预演/变异/成本审计
+├── studio\              **可视化面板**（studio\start.cmd → http://127.0.0.1:8765）
+├── docs\                分路径文档（CONVENTION / THEME-PACK / IMITATE-PATH / SONG-FORMAT / …）
+├── skill\               bgm-studio 技能的仓库侧副本（宿主级副本在 ~/.dsh/skills）
+├── stems\ / export\     分轨缓存 / 合并交付导出（不进 git）
 └── songs\               每首歌一个文件夹（song.json + MIDI + 成品音频 + notes.md）
 ```
 
 **每曲的 `notes.md` 写了调性/速度/结构/复现命令/实测对比**，接手先读它。
 `render.json` 存该曲的渲染参数（`make_song.py` 直接读，不用在命令行重复）。
 
+**⚠ 曲库可以在仓库外**：`studio\.libpath` 里那一行路径就是**面板的曲库根** —— 本机指向
+`D:\test\llm_direct\studio_lib\songs`（32 首），而仓库内 `songs\` 是 28 首，两边同名曲目是
+**各自独立的两份文件**。面板只改 `song.json`，所以两条路结果一致；但 **`selftest` 查的是
+仓库内 `songs\`**，别拿面板里看到的那首去对照自检结果。
+
 **clone 后先双击 `setup.cmd`**（自动建环境 + 取音源 + 自检），细节见 `INSTALL.md`；运行时一律用 `.venv\Scripts\python.exe`。
 
 ---
 
 ## 1. 一分钟上手（**新歌只写一个 JSON，不写代码**）
+
+> **面板是唯一入口**（2026-09-19 起的 A′）：手敲 `new_song.py` / `make_song.py` 会**默认把任务
+> 委托给面板 API**（`scripts\studio_guard.py`：生成前自动探活、没在跑就 detached 拉起）——
+> 于是任务在 GUI 里全程可见、产物立刻能听，也顺手治好了"CLI 在跑、面板没接上"的老毛病。
+> 面板 = `studio\start.cmd` → http://127.0.0.1:8765（用法见 `studio\README.md`）。
+> 两个开关：批量 / CI 用 `BGM_CLI_DIRECT=1` 直连；整段跳过用 `BGM_NO_PANEL=1`。
 
 > **先选路径（三条，依据不同，混用会静默走样）**：
 > ① **直接作曲**（"来一首 BGM"）= 本节四步，依据**主题模板包**；
@@ -184,10 +203,10 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 
 ### 已被证明的
 
-- **自检全绿**；**注入故障全部被抓**（防线不是摆设）：
-  和弦错音、通道冲突、风格预设通道冲突、旋律越界、段落和弦数不符、限幅越界、
-  MIDI 丢音符、参考画像缺字段、`voicing_shift` 失效、响度契约失效。
-  （自检项数随每轮修 bug 增长：现在是 **89 项**，含模板依据白名单、速度来源、编码安全等检查。）
+- **自检 133/134**（2026-09-19 收尾实测；唯一未过项见「未被验证的」第 13 条）。
+  **注入故障全部被抓**（防线不是摆设）：和弦错音、通道冲突、风格预设通道冲突、旋律越界、
+  段落和弦数不符、限幅越界、MIDI 丢音符、参考画像缺字段、`voicing_shift` 失效、响度契约失效。
+  （项数随每轮修 bug 增长：89 → **134 项**，含模板依据白名单、速度来源、编码安全、i18n 覆盖率等检查。）
 - 端到端：新参考曲扒谱 → 脚手架 → 作曲 → 真音源渲染 → 自动调参 → 对标，5 套风格 + 5 种边界情况全通。
 - 交付物：零削波、无 NaN、无直流、尾部无底噪、时长与谱面一致、MIDI 往返无丢音。
 
@@ -231,16 +250,26 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
     出音频 —— **LLM 不直接产出音频或 MIDI**，也**没接** Suno/Udio/MusicGen 等外部音乐生成
     （模板须可溯源，见 §1）。**没做过的对照**：LLM 直写 MIDI 跳过引擎差多少
     （会丢 9 轨编排与 `check_song` 全部校验）。
+13. **自检有 1 条未过，而且它是对"曲子"而不是对"代码"的判据**（2026-09-19 收尾实测）：
+    `density_dynamic_range` —— 仓库内 `40_imitate_b35` 的逐小节密度起伏只有 **4.6 倍**，
+    判据要 ≥8 倍（参考侧实测 22 倍）。同轮另两条已修掉（`i18n_check.py` 的编码兜底写法
+    不合判据、`index.html` 两条文案漏翻）→ 修完是 **133/134**。要让这条转绿只能**改这首曲子的
+    编配**（补极静 / 极密小节），属音乐内容改动，本轮没动 —— **别把它当代码回归红灯**。
 
 
 ## 3. 产物
 
 ```
-songs\23_d150_skip_along\   d150_skip_along.mid / _sf.wav / _sf.ogg + song.json + spec.json + notes.md
-songs\11_dn75_neon\         dn75_neon.mid / _sf.wav / _sf.ogg（5 分钟长曲，走后台渲染）
-songs\01_ac150_seaside\     脚本式作曲期遗留（legacy，无 song.json，不参与对标）
-songs\_archive\             已归档曲目（03/04/06–09 等，不进交付）
+songs\40_imitate_b35\    imitate_b35.mid / _sf.ogg / _sf.wav + song.json + render.json + notes.md
+                         （仿写 BGM35：207 小节 / 331 秒，`imitate_plan.py` 路径）
+songs\01_morning_light\  morning_light.mid / _sf.ogg / _sf.wav + song.json + render.json + notes.md
+                         （主题模板包路径；同目录另有 `compose.py` = 本曲的生成入口）
+songs\90_new_battle\     主题路径的变体曲（同批生成，用于 A/B 与风格对比）
 ```
+
+**每曲目录固定这几样**：`song.json`（唯一要手写的）+ `compose.py`（可复现的生成入口）
++ `.mid`（谱面）+ `_sf.ogg` / `_sf.wav`（真音源成品）+ `render.json`（本曲渲染参数）+ `notes.md`。
+仓库内 `songs\` 现 **28 首**：01–19（主题路径）· 40–43（`imitate_plan` 仿写）· 90_*（变体）。
 
 **质量分级「很好」的曲目才带成品音频**（开箱可听）；其余只带谱面与文档 —— 跑 `make_song.py <曲目>` 即出音频。
 
