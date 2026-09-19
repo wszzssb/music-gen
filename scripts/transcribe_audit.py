@@ -73,7 +73,19 @@ def main():
 
     m = midi_file.import_midi(a.mid)
     spb = 60.0 / float(m.get('bpm') or 120.0)
-    want = set(t.strip() for t in a.tracks.split(','))
+    want = [t.strip() for t in a.tracks.split(',') if t.strip()]
+    # ⚠ **部分匹配失败也要报错**（2026-09-20 实测补的口子）：传 `"Bass,Piano"` 时 Bass 匹配上、
+    #   而真轨名是 `Acoustic Piano` → **静默只比了 Bass 轨**，读数 14.1% 看着完全正常，
+    #   却答错了问题（低音其实大量在 Piano 轨里，连它一起算漏检从 62% 掉到 10%）。
+    #   下面那条 `if not used` 只管"一个都没匹配到"，拦不住这种"少匹配了谁"。
+    names = [tr.get('name') for tr in m['tracks']]
+    missing = [w for w in want if w not in names]
+    if missing:
+        raise SystemExit('--tracks 里这些轨名在 MIDI 里不存在：%s\n  可用的轨名：%s\n'
+                         '  （要写全名：`Acoustic Piano` 而不是 `Piano`；'
+                         '少比一条轨会让读数看着正常、其实答错问题）'
+                         % (missing, ', '.join(str(x) for x in names)))
+    want = set(want)
     mine = np.full(len(f0), -1, dtype=int)
     used = []
     for tr in m['tracks']:
