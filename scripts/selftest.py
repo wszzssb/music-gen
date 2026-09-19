@@ -5397,6 +5397,11 @@ def t_midi_file_editor_roundtrip():
         for t in m2.get('tracks') or []:
             t['notes'] = (t.get('notes') or [])[::2]
         return _old(m2, path, fmt=fmt)
+    if not files:
+        # 没有外部 MIDI → **这段变异自证无从做起**（它要拿一首真实 MIDI 去"丢一半音符"）。
+        # 上面的 format 0 段用的是**入库的** `songs/*.mid`，已经跑完并打印了。
+        # ⚠ 少了这个 return 会 `IndexError: files[0]` —— 2026-09-19 新手环境实测踩到。
+        return
     try:
         mfi.export_midi = _half
         r = mfi.roundtrip_report(files[0], os.path.join(tempfile.gettempdir(), 'rt_mut.mid'))
