@@ -346,6 +346,41 @@ def main():
     with open(spec_path, 'w', encoding='utf-8') as f:
         json.dump(spec, f, ensure_ascii=False, indent=1)
 
+    # **notes.md**（2026-09-19 补）：spec 路径原来不写 notes，于是照 INSTALL「五分钟出第一首」
+    # 做完第一首，自检的 `notes_present` 立刻报红 —— 新手会以为自己做错了。
+    # 依据如实写成 **spec.json**（**不是**主题模板包，那是 `new_song.py --theme` 的路径），
+    # 免得两条路混用（README §1 顶部"三条路径"的分叉表就是这个口径）。
+    try:
+        _secs = d.get('sections') or []
+        _nl = ['# %s（spec 路径：直接作曲）\n' % os.path.basename(out),
+               '| 项目 | 值 |', '|---|---|',
+               '| 依据 | **`spec.json`** —— 手写"和弦走向 + 旋律骨架"，'
+               '时值/排列/编制由 `build_song.py` 推导 |',
+               '| 风格 | %s |' % (d.get('style') or '-'),
+               '| 速度·拍号 | %s BPM · %s |' % (d.get('bpm'), d.get('meter') or [4, 4]),
+               '| 段落 | %s（共 %d 小节） |'
+               % (' / '.join('%s %s小节' % (s.get('name'), s.get('bars')) for s in _secs),
+                  sum(s.get('bars') or 0 for s in _secs)),
+               '| 首段和弦 | %s |'
+               % (' '.join((_secs[0].get('chords') or [])[:8]) if _secs else '-'),
+               '| 混音目标 | %s（**只用于混音对标，不是模板依据**） |' % (spec.get('ref') or '-'),
+               '', '## 复现', '', '```powershell',
+               r'$py = "<工具链根>\.venv\Scripts\python.exe"',
+               'cd <工具链根>',
+               # 用**曲目目录里那份** spec 复现（spec 跟着歌走，见上面那段注释）
+               r'& $py scripts\build_song.py songs\%s\spec.json --out songs\%s'
+               % (os.path.basename(out), os.path.basename(out)),
+               r'& $py scripts\make_song.py %s' % os.path.basename(out), '```', '',
+               '## 还没验证什么', '',
+               '- 未渲染/未对齐 —— 跑 `make_song.py` 才有成绩单',
+               '- **模板依据**：这条路径**不引用主题模板包**（依据 = 你手写的 spec）。'
+               '要走"同主题 ≥8 首模板聚合"的合规路径请用 `new_song.py --theme`，'
+               '见 `docs/THEME-PACK.md`']
+        with open(os.path.join(out, 'notes.md'), 'w', encoding='utf-8', newline='') as f:
+            f.write('\n'.join(_nl) + '\n')
+    except Exception as _e:                                  # noqa: BLE001
+        print('  （notes.md 未生成: %s: %s）' % (type(_e).__name__, _e))
+
     spec_tok = len(json.dumps(spec, ensure_ascii=False))
     full_tok = len(json_io.dumps(d))
     print('✓ %s' % sp)
