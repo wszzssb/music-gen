@@ -130,6 +130,7 @@ async function loadSong(){
     (S.events?S.events.seconds+'s':''), S.song.style||'', 'ref='+(S.render.ref||'-')].join(' · ');
   $('songInfo').textContent = info;
   renderAll(); loadFiles();
+  rAF();                                  // 逐帧更新常驻（防重入见 rAF 的注释）
   await prepAudio();
   loadMetrics();
 }
@@ -395,7 +396,13 @@ function renderStrip(){
     d.style.width = Math.max(44, sec.bars*14)+'px';
     d.innerHTML = `<b>${sec.name}</b>${sec.bars}小节`;
     d.title = (sec.chords||[]).join(' / ');
-    d.onclick=()=>{S.sec=i;renderAll();};
+    /* 点段落 = **跳到该段开头**（用户 2026-09-19："点击段落时间轴自动跳转到那个段落开头"）。
+     * 视窗也一起移到段首：不然红线会因"超出视野"被隐藏（drawPlayhead 里 x 越界就 opacity=0），
+     * 看上去又像"没跟随"。 */
+    d.onclick=()=>{
+      S.sec=i; S.viewStart=sectionStartBeat(i); renderAll();
+      seekTo(sectionStartBeat(i)*(60/((S.song&&S.song.bpm)||120)));
+    };
     st.appendChild(d);
   });
 }
@@ -743,9 +750,17 @@ function rollContext(e){
 }
 function rollWheel(e){
   const g=rollGeom();
-  if(e.ctrlKey){ e.preventDefault();
-    S.zoom=Math.max(1,Math.min(16,(S.zoom||1)*(e.deltaY<0?1.25:0.8)));
-  }else{ S.viewStart=Math.max(0,(S.viewStart||0)+ (e.deltaY>0?1:-1)*g.v.span*0.15); }
+  /* ⚠ 卷帘上的滚轮**一律 preventDefault**（原来只有 Ctrl 分支拦了默认行为）。
+   *   不拦的后果是实测出来的（2026-09-19 headless）：普通滚轮让**整页跟着竖滚**（scrollY 每次 +120），
+   *   卷帘很快滚出鼠标位置（`elementFromPoint(卷帘中心)` 从 `roll` 变成 `main`）→ 之后的滚轮
+   *   **连 Ctrl+滚轮一起**都落不到 canvas 上 → 用户体感"Ctrl+滚轮没反应 / 红线不跟着变"
+   *   （那次连续 4 步滚轮事件全丢）。卷帘自己就是可横滚区域，要滚整页请用卷帘以外的区域。 */
+  e.preventDefault();
+  /* 触控板横向双指滑动（deltaX）也当横移：取绝对值大的那个轴作主方向 */
+  const dy=(Math.abs(e.deltaX)>Math.abs(e.deltaY))?e.deltaX:e.deltaY;
+  if(e.ctrlKey){
+    S.zoom=Math.max(1,Math.min(16,(S.zoom||1)*(dy<0?1.25:0.8)));
+  }else{ S.viewStart=Math.max(0,(S.viewStart||0)+ (dy>0?1:-1)*g.v.span*0.15); }
   renderRoll();
 }
 
@@ -900,8 +915,7 @@ function bind(){
   $('btnLoadStems').onclick=loadStems; $('btnApplyMix').onclick=applyMixToSong;
   if($('seek')) $('seek').oninput=()=>{
     const d=ENG.state().dur||0;
-    ENG.seek(($('seek').value/1000)*d);
-    drawWave(); syncSeek();
+    seekTo(($('seek').value/1000)*d);
   };
   $('btnRenderMix').onclick=async()=>{ if(await saveSong(true)) startJob('render','渲染（合并成品）'); };
   $('btnMixfit').onclick=()=>startJob('mixfit','自动配平（解方程 + 实测校验）');
@@ -941,6 +955,13 @@ async function togglePlay(){
   rAF();
 }
 function rAF(){
+  /* ⚠ 防重入 + 常驻：原来 `rAF()` 只在点 ▶ / 试听时才被调用，而 `step` 末尾无条件
+   *   `requestAnimationFrame(step)` —— 点 3 次就有 3 个循环同时跑（越点越卡）；
+   *   更要紧的是**暂停态没有任何逐帧更新**：拖进度条 / 点段落 / 点波形时波形动了、
+   *   卷帘红线不动（实测 2026-09-19，体感就是"红线不跟随"）。
+   *   现在：曲目加载完启动一次，之后常驻（波形/电平表本身已降到 ~12fps）。 */
+  if(S.rafOn) return;
+  S.rafOn=true;
   let tick = 0;
   const step=()=>{
     const st=ENG.state();
@@ -1020,8 +1041,8 @@ function bindWave(){
     const rg=rollGeom();
     if(rg && rg.v && rg.v.span>0) return (rg.v.st + f*rg.v.span) * spb;
     return f * (ENG.state().dur||0); };
-  c.onmousedown=(e)=>{ shift=e.shiftKey; dragging=true; if(shift){$('loopA').value=pos(e).toFixed(1);} else ENG.seek(pos(e)); };
-  c.onmousemove=(e)=>{ if(!dragging) return; if(shift){ $('loopB').value=pos(e).toFixed(1); $('loopChk').checked=true; applyLoop(); } else ENG.seek(pos(e)); drawWave(); };
+  c.onmousedown=(e)=>{ shift=e.shiftKey; dragging=true; if(shift){$('loopA').value=pos(e).toFixed(1);} else seekTo(pos(e)); };
+  c.onmousemove=(e)=>{ if(!dragging) return; if(shift){ $('loopB').value=pos(e).toFixed(1); $('loopChk').checked=true; applyLoop(); } else seekTo(pos(e)); };
   window.addEventListener('mouseup',()=>{dragging=false;});
 }
 /* 追加式日志（新消息在**底部**）。
@@ -1052,6 +1073,28 @@ function syncSeek(){
   }
   const info=$('seekInfo');
   if(info) info.textContent=fmtSec(ENG.position())+' / '+fmtSec(d);
+}
+/* 第 i 段的**起始拍** = 它前面所有段落的小节数之和 × 每小节拍数。
+ * 独立成函数是因为"点段落跳转"与"段落条上的定位"都要用它，别各算一份（算法不一致过）。 */
+function sectionStartBeat(i){
+  const secs=(S.song&&S.song.sections)||[];
+  const bg=barBeats(); let b=0;
+  for(let k=0;k<i && k<secs.length;k++) b+=(secs[k].bars||0)*bg;
+  return b;
+}
+/* 统一的"跳到第几秒"：**进度条 / 波形 / 卷帘红线 三处一起走**，暂停态也要立刻跟上。
+ * 为什么要统一（实测 2026-09-19）：卷帘红线原来只在 rAF 循环里更新，而那个循环只在点 ▶ /
+ * 试听时才启动 —— 暂停时拖进度条 / 点波形 / 点段落，全是"波形动了、红线不动"
+ * （用户体感"红线不跟随"）。现在① rAF 循环常驻（见 rAF 的防重入注释）② 这里再显式重画一次，
+ * 不依赖下一帧；三条路径（进度条、波形、段落条）也都改走它，行为一致。
+ * 每次重画各自兜异常（沿用 renderAll 的口径）：画不出来也不许把定位本身弄失败。 */
+function seekTo(sec){
+  const d=ENG.state().dur||0;
+  const t=Math.max(0, Math.min(d||0, Number(sec)||0));
+  ENG.seek(t);
+  try{ drawWave(); }catch(e){}
+  try{ syncSeek(); }catch(e){}
+  try{ drawPlayhead(); }catch(e){}
 }
 function drawWave(light){
   const c=$('wave'); if(!c) return;
