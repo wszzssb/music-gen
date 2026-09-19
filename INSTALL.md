@@ -53,52 +53,40 @@ mklink /J "%USERPROFILE%\.dsh\skills\bgm-studio" "<仓库路径>\skill\bgm-studi
 `rehearsal.py` 的「全新参考曲扒谱」那一步用环境变量 `BGM_REF_DIR` 指定参考曲目录；
 **没设置就跳过该步、用 `refs\` 里已有画像继续**（不算失败）—— 所以 clone 下来直接跑彩排也能全绿。
 
-## 想扒 MIDI（把音频转成 MIDI）？还要多装一步
+## 想扒 MIDI（把音频转成 MIDI）？
 
-上面 ①②③ 装的是**主工具链**（纯标准库 + numpy 的确定性管线），它**不含转录能力**。
-"把音频扒成 MIDI"要跑 AI 模型（YourMT3+，多乐器 SOTA），依赖一套**独立的 ML 环境**。
-照下面做一次、之后一直能用（**约 6GB**；有 NVIDIA 卡最快，没卡也能跑、只是慢一两个数量级）：
+**可选**（只写歌不用看这节）。要 Python 3.13 + 约 6GB 磁盘；有 NVIDIA 卡最快，没卡也能跑（慢一两个数量级）。
+
+**① 装 ML 环境**（一次性，约 5 分钟）
 
 ```powershell
-# ① ML 环境（**别与主 .venv 混用**：主 venv 是 3.14，PyTorch 上游还没 cp314 轮子）
 py -3.13 -m venv .venv-ml
 .\.venv-ml\Scripts\python.exe -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
-.\.venv-ml\Scripts\python.exe -m pip install demucs matchering librosa pyloudnorm
-.\.venv-ml\Scripts\python.exe -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
-
-# ② YourMT3 源码（HF Space 的 clone；**必须走 hf-mirror**，官方 huggingface.co 国内连不上）
-git clone --depth 1 https://hf-mirror.com/spaces/mimbres/YourMT3 <模型目录>\ymt3repo
-#   ⚠ **权重不在这个 git 仓库里**：Space 把 `amt/logs/` 写进了 `.gitignore`，所以
-#     clone 下来只有 ~4MB 代码，`git lfs pull` 也没东西可拉（2026-09-19 实测确认）。
-#     权重要从 HF 的 **dataset** 单独下 —— 见 ③。
-
-# ③ 权重 **不用手动下** —— 跑转录时加 `--download` 就行：脚本会自动走 hf-mirror 镜像
-#    拉 516MB 并摆到正确位置（2026-09-19 实测 1 分 43 秒）。手动下也行，见本节末尾「细节」。
-
-# ④ transformers **4.45.1** + YourMT3 自己的依赖
-#    4.45.1 装到**独立目录**、不动 site-packages（脚本会自己把它 sys.path 前置）：
-.\.venv-ml\Scripts\python.exe -m pip install --target <模型目录>\ymt3libs transformers==4.45.1 tokenizers==0.20.3 "huggingface-hub<1.0"
-#    转录还缺这些（照 `ymt3repo\requirements.txt` 抄，但**别整体 `-r`** ——
-#    它钉 `numpy==1.26.4` 且带 `--extra-index-url .../cu113`，会**重装 4GB 的旧 torch**）：
-.\.venv-ml\Scripts\python.exe -m pip install mido "lightning>=2.2.1" deprecated einops wandb python-dotenv mir_eval
-#    （requirements 里的 `yt-dlp` / `yt-dlp-oauth2` / `gradio_log` 是 Space 网页 demo 用的，转录不需要）
+.\.venv-ml\Scripts\python.exe -m pip install demucs matchering librosa pyloudnorm mido "lightning>=2.2.1" deprecated einops wandb python-dotenv mir_eval soundfile
+.\.venv-ml\Scripts\python.exe -m pip install --target D:\models\ymt3libs transformers==4.45.1 tokenizers==0.20.3 "huggingface-hub<1.0"
 ```
 
-**扒一首**（第一次跑会**自动下权重**，516MB、走镜像）：
+- `D:\models` 随便挑个地方放；最后那条 `--target` 是给 YourMT3 专用的 **transformers 4.45.1**，
+  **不动** `.venv-ml` 里自带的 5.x（脚本会自己把它 `sys.path` 前置）。
+- **为什么单开一个 venv**：主 venv 是 3.14，而 PyTorch 上游还没有 cp314 的轮子。
+- 后面那条 `pip install` 清单**照 `ymt3repo\requirements.txt` 抄，但别整体 `-r`** ——
+  它钉 `numpy==1.26.4` 且带 `..cu113` 索引，会**重装 4GB 的旧 torch**。
+
+**② 扒一首** —— 模型代码和权重都**自动下**（走 hf-mirror 镜像）
 
 ```powershell
-$env:DSH_YMT3_REPO = "<模型目录>\ymt3repo"
-$env:DSH_YMT3_LIBS = "<模型目录>\ymt3libs"
+$env:DSH_YMT3_LIBS = "D:\models\ymt3libs"
 .\.venv-ml\Scripts\python.exe scripts\transcribe_ymt3.py "<你的音频.ogg>" -o <输出目录> --download
 #   → <输出目录>\<名字>.mid  +  _report.json（逐通道音符数 —— 能直接看出哪些声部有内容）
 ```
 
-实测（RTX 5060 Laptop 8GB）：**5.5 分钟的曲子 44 秒**出 MIDI（8× 实时，显存峰值 4963MB，
-产物 9 轨 8671 音）。**别直接调官方 `transcribe()`** —— 它把 batch 硬编码成 8，同一首要跑 12 分钟。
+第一次跑会下 **4MB 代码 + 516MB 权重**，默认放 `<工具链>\vendor\ymt3repo`（想换地方加 `--repo <路径>`）。
+实测（RTX 5060 Laptop 8GB）：**5.5 分钟的曲子 44 秒**出 MIDI（8× 实时，8671 音符）。
+**别直接调官方 `transcribe()`** —— 它把 batch 硬编码成 8，同一首要跑 12 分钟。
 
-**三样东西放哪**：脚本自己找，找不到会明确报错 ——
-`DSH_YMT3_REPO` / `DSH_YMT3_LIBS` 环境变量 → `D:\test\models\ymt3repo`（`ymt3libs` 认它的兄弟目录）
-→ `<工具链>\vendor\ymt3repo`；也可以直接 `--repo <路径>`。
+**找不到东西时**：脚本依次找 `DSH_YMT3_REPO`/`DSH_YMT3_LIBS` → `D:\test\models\ymt3repo`
+（`ymt3libs` 认它的兄弟目录）→ `<工具链>\vendor\ymt3repo`；**缺依赖会直接打印三条可复制的
+pip 命令**，缺权重会提示加 `--download`。
 
 **出问题再看这里**（都实测过）：
 - **别整体装 `ymt3repo\requirements.txt`** —— 它钉 `numpy==1.26.4` 且带 `..cu113` 索引，

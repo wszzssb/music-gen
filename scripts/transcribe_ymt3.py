@@ -88,9 +88,67 @@ def find_libs(repo):
 # 2026-09-19 实测确认：权重**不在** Space 的 git 仓库里 —— `amt/logs/` 在 Space 自己的
 # `.gitignore` 里，所以 `git clone` 只有 ~4MB 代码、`git lfs pull` 也拉不到东西。
 # 它在 HF 的 **dataset** `Richhiey/YourMT3`，那边的路径前缀是 `logs/`（落盘时要补 `amt/`）。
-DL_REPO = "Richhiey/YourMT3"
+DL_SPACE = "https://hf-mirror.com/spaces/mimbres/YourMT3"    # 模型代码（~4MB）
+DL_REPO = "Richhiey/YourMT3"                                 # 权重所在（HF dataset）
 DL_REPO_TYPE = "dataset"
 DL_MIRROR = "https://hf-mirror.com"      # 官方 huggingface.co 国内下不动
+DEFAULT_DEST = os.path.abspath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "vendor", "ymt3repo"))
+# ↑ 新人不用想放哪：`vendor/` 本来就不入仓库（音源也在那儿），放模型正合适
+
+# 转录真正要的模块（照 `ymt3repo/requirements.txt`；`yt-dlp`/`gradio_log` 是它家网页 demo 用的）
+NEED_MODULES = ("torch", "soundfile", "transformers", "lightning", "mido",
+                "mir_eval", "wandb", "einops", "deprecated", "dotenv")
+PIP_HINT = ("--index-url https://download.pytorch.org/whl/cu128 torch torchaudio\n"
+            "    {py} -m pip install mido \"lightning>=2.2.1\" deprecated einops wandb "
+            "python-dotenv mir_eval soundfile\n"
+            "    {py} -m pip install --target \"{libs}\" transformers==4.45.1 "
+            "tokenizers==0.20.3 \"huggingface-hub<1.0\"")
+
+
+def missing_modules():
+    """缺哪些依赖（只查 spec、不真的 import，所以很快）。"""
+    import importlib.util
+    miss = []
+    for m in NEED_MODULES:
+        try:
+            ok = importlib.util.find_spec(m) is not None
+        except Exception:                                    # noqa: BLE001
+            # 实测：某些包的元数据坏了会让 `find_spec` 抛 `StopIteration`
+            # （importlib.metadata.from_name 里 next(iter(...)) 空转）——
+            # 那是**环境有病**、不是"缺包"，当成"有"处理，别在这里再炸一次。
+            ok = True
+        if not ok:
+            miss.append(m)
+    return miss
+
+
+def clone_repo(dest, quiet=False):
+    """模型代码不存在时自动 clone（走 hf-mirror）。成功返回路径，失败返回 None。"""
+    import subprocess
+    if not quiet:
+        print("  下模型代码（约 4MB，源 %s）…" % DL_SPACE, flush=True)
+    os.makedirs(os.path.dirname(os.path.abspath(dest)), exist_ok=True)
+    try:
+        subprocess.run(["git", "clone", "--depth", "1", DL_SPACE, dest],
+                       check=True, capture_output=True, text=True, timeout=900)
+    except Exception as e:                                   # noqa: BLE001
+        # ⚠ **别急着判失败**：HF Space 里带 LFS 文件，而 `amt/logs/` 又被它自己的
+        #   `.gitignore` 排除 → clone 常常"代码下来了、LFS 那步失败"并整体返回 128。
+        #   实测（2026-09-19）判失败时目录里其实已有 ~4MB 代码，而那份 LFS 我们本来
+        #   也不需要（权重单独下）。所以**先看目录再说**。
+        if not os.path.isfile(os.path.join(dest, "model_helper.py")):
+            print("✗ 自动 clone 失败（%s）—— 手工：git clone --depth 1 %s \"%s\""
+                  % (e, DL_SPACE, dest), flush=True)
+            return None
+        if not quiet:
+            print("  （clone 返回非零：LFS 那步失败，但代码已就位 —— 不影响，权重单独下）",
+                  flush=True)
+    if os.path.isfile(os.path.join(dest, "model_helper.py")):
+        if not quiet:
+            print("  ✓ 代码已就位：%s" % os.path.abspath(dest), flush=True)
+        return os.path.abspath(dest)
+    return None
 
 
 def download_weights(repo, quiet=False):
@@ -200,16 +258,39 @@ def main():
     ap.add_argument("--repo", default=None, help="YourMT3 仓库目录")
     ap.add_argument("--weights", default=None, help="model.ckpt 路径")
     ap.add_argument("--download", action="store_true",
-                    help="权重缺失时自动从 HF 镜像下载（516MB，一次性）")
+                    help="缺什么自动拿什么：模型代码（~4MB）+ 权重（516MB），都走 hf-mirror 镜像")
     args = ap.parse_args()
 
+    want_dl = getattr(args, "download", False)
     repo = find_repo(args.repo)
+    if repo is None and want_dl:
+        repo = clone_repo(args.repo or DEFAULT_DEST)
     if repo is None:
-        print("✗ 找不到 YourMT3 仓库（需含 model_helper.py）。用 --repo 指定，"
-              "或设 DSH_YMT3_REPO。**装法见 INSTALL.md 的「想扒 MIDI」那节**。", flush=True)
+        print("✗ 找不到 YourMT3 仓库（需含 model_helper.py）。\n"
+              "  · 加 `--download` 自动拿（代码 4MB + 权重 516MB，都走 hf-mirror）；\n"
+              "  · 或 `--repo <路径>` / 设环境变量 `DSH_YMT3_REPO`。", flush=True)
         sys.exit(2)
+
+    libs = find_libs(repo)
+    if libs:
+        sys.path.insert(0, libs)          # 4.45.1 必须排在 site-packages 的 5.x 之前
+
+    # **依赖自检**：缺就打印可直接复制的装法，而不是等 import 崩在半路。
+    # 2026-09-19 实测：照 ML.md 那三条装完，转录还会依次缺
+    # pytorch_lightning → mido → mir_eval → wandb…（生产 134 个包 vs 新手 65 个）。
+    miss = missing_modules()
+    if miss:
+        print("✗ 缺依赖：%s\n"
+              "  当前解释器：%s\n"
+              "  首次装齐约 5 分钟 / 5.4GB，三条命令：\n"
+              "    %s -m pip install %s"
+              % (", ".join(miss), sys.executable, sys.executable,
+                 PIP_HINT.format(py=sys.executable, libs=libs or "<ymt3libs 目录>")),
+              flush=True)
+        sys.exit(3)
+
     ckpt = find_weights(repo, args.weights)
-    if ckpt is None and getattr(args, "download", False):
+    if ckpt is None and want_dl:
         ckpt = download_weights(repo)
     if ckpt is None:
         print("✗ 找不到权重 %s/amt/logs/2024/%s/checkpoints/model.ckpt。\n"
@@ -218,9 +299,6 @@ def main():
               flush=True)
         sys.exit(2)
 
-    libs = find_libs(repo)
-    if libs:
-        sys.path.insert(0, libs)          # 4.45.1 必须排在 site-packages 的 5.x 之前
     sys.path.insert(0, os.path.join(repo, "amt", "src"))
     sys.path.insert(0, repo)
     os.chdir(repo)                        # config 里 save_dir='amt/logs' 是相对路径
