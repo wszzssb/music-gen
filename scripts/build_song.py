@@ -143,7 +143,22 @@ def build(spec, lo=55):
         mspec = s.get('melody')
         if isinstance(mspec, dict) and mspec:
             mname, ev = next(iter(mspec.items()))
-            melody[mname] = melody_from_spec(ev, bars)
+            if len(mspec) > 1:
+                raise SystemExit(
+                    '段落 %s 的 melody 给了 %d 个键（%s），只认第一个 —— 键名就是旋律名，'
+                    '一段写一支；要复用别段已定义的旋律写成 "melody": "%s"'
+                    % (nm, len(mspec), '/'.join(list(mspec)[:4]), mname))
+            ev2 = melody_from_spec(ev, bars)
+            # ⚠ **同名不同内容 = 静默覆盖**（2026-09-19 实测）：写了 5 段、每段都叫 `m`，
+            #   结果只剩最后一段生效（154 个音 → 8 个），而**没有任何提示** —— 正是这个
+            #   项目最忌讳的"静默失效"。同名本是"复用"的语义（见上一条注释），给不同内容
+            #   就是用法冲突，直接报出来。
+            if mname in melody and melody[mname] != ev2:
+                raise SystemExit(
+                    '旋律名 %r 在第 %s 段被重新赋值（前面已有同名、内容不同）—— 同名会覆盖。'
+                    '每段要不同旋律请用不同键名（**段名最直观**），'
+                    '要复用同一支请写 "melody": %r' % (mname, nm, mname))
+            melody[mname] = ev2
         elif isinstance(mspec, str):
             mname = mspec                     # 复用已有旋律名
         elif base.get('melody'):
