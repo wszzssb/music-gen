@@ -102,7 +102,10 @@
     '把 MIDI/OGG/WAV/notes 拷到导出目录 = 合并交付':
       'Copy MIDI/OGG/WAV/notes to the export dir = deliver',
     '把推子/声像写回 song.json 的 mix': 'Write faders/pan back into song.json mix',
-    '拖动波形定位；Shift+拖 = 设循环区间': 'Drag the waveform to seek; Shift+drag = set loop range',
+    '整曲进度：拖动定位（与编辑器顶部那条一样）':
+      'Whole-song progress: drag to seek (same as the bar at the top of the editor)',
+    '拖动波形定位（与卷帘同一时间轴，红线对齐）；Shift+拖 = 设循环区间':
+      'Drag the waveform to seek (same timeline as the roll, red line aligned); Shift+drag = set loop range',
     '按分轨解方程配平每轨音量：解 → 真渲染 → 实测 → 更好才留（会自动回滚）':
       'Solve per-stem gain, render for real, measure, keep only if better (auto-rollback)',
     '播放（空格）': 'Play (space)',

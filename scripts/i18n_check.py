@@ -117,6 +117,5 @@ def main():
 
 
 if __name__ == '__main__':
-    import cli_utf8
-    cli_utf8.setup()      # 控制台编码兜底（GBK 下打印中文会崩）—— 与其它入口脚本一致
+    import cli_utf8 as _cu; _cu.setup()   # 控制台编码兜底（GBK 下打印 ✓ 会崩）—— 与其它入口脚本同一写法
     sys.exit(main())
