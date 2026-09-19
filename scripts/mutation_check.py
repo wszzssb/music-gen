@@ -1513,6 +1513,22 @@ def main():
                         lambda: _CopyWith('imitate_ref.py',
                                           [('merge_tracks.py', 'merge_DISABLED.py')])))
 
+    # ㉔b 并轨目标从 Strings 改回 Piano（= 首版那个"一点都不像"的配置）→ 必须抓到。
+    #     这条守的是**听感结论**：原曲主体（other 44%）是合成器/弦乐，并进 Piano
+    #     等于用钢琴音色弹它 —— 音高全对、音色全错，而所有音符级指标都看不出来。
+    # ㉔c 单来源层（Guitar / Strings）被改回共识阈值 → 整层被砍（原曲主体消失）→ 必须抓到
+    # ㉔d help 字符串里的 `%%` 被改回裸 `%`（argparse 再做一次 %-format 会炸）→ 必须抓到。
+    #     这条不是理论风险：2026-09-19 就因为这个让 `imitate_ref.py --help` 直接退出，
+    #     而 traceback 里**看不到是哪个参数**。
+    results.append(case('help 里的 %% 被改成裸 %', 'cli_help_renders',
+                        lambda: _CopyWith('imitate_ref.py', [('44%%', '44%')])))
+    results.append(case('单来源层改回共识阈值', 'single_source_layers_unfiltered',
+                        lambda: _CopyWith('imitate_ref.py',
+                                          [('a.thr_extra', 'a.merge_thr')])))
+    results.append(case('并轨改回并进 Piano', 'dur_floor_wired',
+                        lambda: _CopyWith('imitate_ref.py',
+                                          [("default='Strings'", "default='Acoustic Piano'")])))
+
     # ㉕ `stale()` 退回"只看文件在不在" → "改了 MIDI 却渲染旧音频"（PITFALLS 207，
     #    三首一起跑 18 秒就"完成"了，用户听到的是上一版音频）→ 必须抓到。
     #    这里直接换掉**模块函数**（守卫里 `ir.needs_redo(...)` 调的正是它）。

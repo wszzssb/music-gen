@@ -134,6 +134,12 @@ def main():
     ap.add_argument('--merge-thr', type=float, default=0.30,
                     help='非低音声部的集成阈值（`--merge` 合并式）。'
                          '实测 BGM35：0.90 → Piano 391 音；**0.30 → 3896**（认可版 v5 是 4143）')
+    ap.add_argument('--thr-extra', type=float, default=0.0,
+                    help='**单来源层**（Guitar / Strings）的阈值，默认 **0 = 不筛**。'
+                         '⚠ 别拿 `--merge-thr` 套这两层：那两层是"1 个 BP 来源 + base 里另一'
+                         '种内容"，跨来源支持率天然趋近 0（实测 bp_other6 只有 **0.019**），'
+                         '共识阈值会把它们**整层砍掉**（实测 BGM16 Strings 砍 3256 只留 193、'
+                         'Guitar 砍 643 只留 268）→ 原曲主体（other 占 44%%）整体消失 = "不像"')
     ap.add_argument('--no-sub', action='store_true', help='强制不做低八度 sub 层')
     ap.add_argument('--sub', action='store_true', help='强制做 sub 层（覆盖自适应判断）')
     ap.add_argument('--hp', type=float, default=None,
@@ -144,8 +150,12 @@ def main():
                     help='时值下限（拍）——对**每条旋律轨**生效（鼓/打击轨不动）。'
                          '实测依据见下（用户"太杂乱、不流畅"那次的量化）；0 = 关')
     ap.add_argument('--absorb', default='Synth Pad,Organ,Synth Lead,Chromatic Percussion',
-                    help='并进 Acoustic Piano 的轨名（逗号分隔）——YMT3 的合成器/键盘通道。'
+                    help='并进目标轨的轨名（逗号分隔）——YMT3 的合成器/键盘通道。'
                          '**给空串 = 不并**（保留原轨数）')
+    ap.add_argument('--absorb-into', default='Strings',
+                    help='并进哪条轨。⚠ 默认 **Strings**（不是 Piano）—— 见下方那段实测：'
+                         '这 4 条通道是原曲的 `other` 主体（合成器/弦乐），'
+                         '并进 Piano = 用钢琴音色弹合成器声部（听感"一点都不像"）')
     a = ap.parse_args()
     # ⚠ 2026-09-19：原来 default=32 且**显式传给子进程** —— 于是 `transcribe_ymt3.pick_bsz`
     #   的 8GB 档自动下调（32→24）**根本走不到**。实测 8GB 卡上 bsz=32 吃 7.68/8.15GB（94%）
@@ -305,26 +315,51 @@ def main():
                    cur, tmp(1), a.merge_thr, merge=True, mb=_DF)
         # ③ 吉他：**只用 6s 模型的 guitar 轨** —— 曾误加 `bp_other4`（4s 的 other 是
         #    钢琴/弦乐/其它混在一起），实测把 Guitar 顶到 2253 音（v5 只 254，多 8.9 倍）。
+        #    ⚠ 阈值用 `--thr-extra`（默认 0 = 不筛），**不是** `--merge-thr`：本层是
+        #      "bp_guitar6（647 音）+ base 的 YMT3 Guitar 轨（268 音）"两种来源，
+        #      实测 `--merge-thr 0.30` 会把 bp_guitar6 那 647 音**全砍**（保留数恰好
+        #      等于 YMT3 的 268）→ 原曲 guitar 轨（能量占 10.9%）几乎全缺，
+        #      audit 一致率 1.2%、漏检 87%（用户听感"一点都不像"的一部分）。
         cur = _ens('Guitar (clean)',
                    [('bp_guitar6', _bp('guitar6'), 40, 88)],
-                   cur, tmp(2), a.merge_thr, merge=True, mb=_DF)
-        # ④ 弦乐
+                   cur, tmp(2), a.thr_extra, merge=True, mb=_DF)
+        # ④ 弦乐：同样用 `--thr-extra`。⚠ 本层是所有层里**最不该用共识阈值**的：
+        #    `bp_other6`（3289 音 = 原曲 other 主体的转录）与 base 的 YMT3 Strings 轨
+        #    （193 音）不是"同一内容的两次测量"，而是**两种不同内容** —— 共识判据在这儿
+        #    没有意义。实测 BGM16：
+        #      `--thr 0.30` → 保留 193（漏检 26.7% / 一致率 1.6%）
+        #      `--thr 0.00` → 保留 3449（**漏检 1.0%** / 一致率 **13.0%**；假音 20.3% 几乎不变）
+        #    —— 全留在**两个方向上都更好**，所以这两层的默认就是"不筛"。
         cur = _ens('Strings',
                    [('bp_other6', _bp('other6'), 36, 96)],
-                   cur, song, a.merge_thr, merge=True, mb=_DF)
-        # ⑤ 并轨（2026-09-19 新增）：把 YMT3 的**合成器/键盘通道**并进 Piano。
+                   cur, song, a.thr_extra, merge=True, mb=_DF)
+        # ⑤ 并轨（2026-09-19 新增）：把 YMT3 的**合成器/键盘通道**并进目标轨。
         #    实测病根：集成后仍有 9 条轨 —— Synth Pad 637 音（碎音 68%）、Organ 294（81%）、
-        #    Chromatic Percussion 315（84%）、Synth Lead 159（21%），**而认可版 v5 只有 5 条轨**
-        #    （Piano / Perc / Bass / Strings / Guitar），这些音是被并进 Piano 的。
-        #    并完正好 5 轨（我的 Drums 2004 + Piano 3084 + Bass 910 + Guitar 268 + Strings 193）。
+        #    Chromatic Percussion 315（84%）、Synth Lead 159（21%），**而认可版 v5 只有 5 条轨**。
+        #
+        #    ⚠ **并进哪条轨：Strings，不是 Piano**（2026-09-19 第二轮实测纠正 —— 首版并进
+        #      Piano，用户听感"**听起来还行就是一点都不像**"）。判据是 demucs 6s 各分轨的
+        #      **能量占比**（它说明这首曲子的声部结构到底是什么）：
+        #        BGM16: other **44.0%** · drums 25.6 · guitar 10.9 · bass 8.5 · piano **7.9**
+        #        BGM23: drums 39.4 · bass 26.6 · other 13.5 · guitar 12.8 · piano **3.5**
+        #        BGM29: drums 36.0 · bass 27.5 · other 19.2 · guitar 13.6 · piano **0.1**
+        #      → 原曲主体是 **other（合成器 / 弦乐一类）**，钢琴只占 0.1~7.9%。
+        #      而这 4 条 YMT3 通道**就是那个 other 的主body**。并进 Piano = 拿**钢琴音色**
+        #      去弹原曲的合成器声部 → 音高对、音色错，听感就是"不像"。
+        #      并进 Strings 才对：音色族相近（这也正是 RESTORE-METHOD §1 ⑤ 的
+        #      "长音 → Strings"，以及认可版 v5 只有 5 轨的原因）。
+        #      旁证：用户对 **BGM29 的评价是"还可以"**，而它的 other 占比恰好最低（19.2%）。
+        #    （另注：`bp_other6` **没有**进 Piano —— 实测单跑 `bp_piano6` 也是 1679 音、
+        #      "砍 0"，原配置砍掉的 2912 全是 `bp_other6` 的候选，被阈值全滤了。
+        #      所以 Piano 偏多的来源**只是这次并轨**，不是 BP 的 other 轨。）
         #    放在**最后**：合成器轨没经过 ①~④ 的集成，只有并进来才一起吃到 `--min-beats`。
         _abs = [s.strip() for s in (a.absorb or '').split(',') if s.strip()]
         if _abs:
-            sh([PY_MAIN, os.path.join(HERE, 'merge_tracks.py'), song,
-                '--into', 'Acoustic Piano', '--from', ','.join(_abs),
-                '--min-beats', '%g' % _DF] if _DF > 0 else
-               [PY_MAIN, os.path.join(HERE, 'merge_tracks.py'), song,
-                '--into', 'Acoustic Piano', '--from', ','.join(_abs)], 'absorb')
+            _base = [PY_MAIN, os.path.join(HERE, 'merge_tracks.py'), song,
+                     '--into', a.absorb_into, '--from', ','.join(_abs)]
+            if _DF > 0:
+                _base += ['--min-beats', '%g' % _DF]
+            sh(_base, 'absorb')
     else:
         print('\n[5/9] 多声部集成 —— 已存在，跳过')
 

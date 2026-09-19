@@ -859,7 +859,14 @@ def t_docs_paths():
         for m in sorted(set(ptr.findall(txt))):
             if os.path.basename(m) in OK_GENERIC:
                 continue
-            if not os.path.exists(os.path.join(ROOT, m)):
+            # ⚠ 2026-09-19：也接受 `docs/<名>` —— 写成 `` `RESTORE-METHOD.md` ``（漏 `docs/`
+            #   前缀）在同一批改动里被**当场犯了两次**（先 PITFALLS 206，再 THEME-PACK /
+            #   IMITATE-PATH）。而这种写法**指针本身是能走通的**（读者当然找得到同目录的
+            #   文档），判成"腐烂"属于**误导性报错** —— 真正的腐烂是"文件不在了"。
+            #   判据仍保留原意：两处都不存在才算 dead。变异用例是**真把文件改名**，
+            #   所以这条放松不会让它漏。
+            if not (os.path.exists(os.path.join(ROOT, m))
+                    or os.path.exists(os.path.join(ROOT, 'docs', m))):
                 dead.append('%s → %s' % (os.path.basename(p), m))
     assert not dead, '文档指针腐烂（搬走了正文却没改指针）: ' + '; '.join(dead)
 
@@ -2340,6 +2347,18 @@ def t_dur_floor_wired():
     assert 'default=0.55' in src, '--dur-floor 默认值被改掉了（等于默认关掉时值下限）'
     assert "default='Synth Pad,Organ,Synth Lead,Chromatic Percussion'" in src, \
         '--absorb 默认清单被清空（并轨默认失效）'
+    assert "default='Synth Pad,Organ,Synth Lead,Chromatic Percussion'" in src, \
+        '--absorb 默认清单被清空（并轨默认失效）'
+    # ⚠ **并进哪条轨是听感问题，不是整洁问题**（2026-09-19 第二轮实测纠正）：
+    #   首版并进 Piano → 用户"听起来还行就是**一点都不像**"。判据是 demucs 6s 分轨的
+    #   **能量占比**：BGM16 other **44.0%** / piano **7.9%**、BGM23 3.5%、BGM29 **0.1%**
+    #   —— 原曲主体是 other（合成器/弦乐），而 YMT3 那 4 条合成器通道正是它。
+    #   并进 Piano = 拿钢琴音色弹合成器声部（音高对、音色错 = "不像"）；
+    #   并进 Strings 才对（音色族相近，也符合 RESTORE-METHOD §1 ⑤ 与 v5 的 5 轨）。
+    #   旁证：用户对 other 占比最低的 BGM29 评价是"还可以"。
+    assert "default='Strings'" in src, \
+        "--absorb-into 默认不是 Strings —— 并进 Piano 会用钢琴音色弹原曲的合成器声部" \
+        "（用户听感\"一点都不像\"；BGM16 的 other 占 44%、钢琴只占 7.9%）"
     mt = open(os.path.join(HERE, 'merge_tracks.py'), encoding='utf-8').read()
     assert "'--min-beats'" in mt, 'merge_tracks.py 没接 --min-beats'
 
@@ -2372,6 +2391,74 @@ def t_dur_floor_wired():
     assert ir.needs_redo(_out, ('render',), 'render', [_up]) is True, \
         '--force 必须能强制重做'
 
+
+
+@check
+def t_single_source_layers_unfiltered():
+    """**单来源层不能用"多来源共识"阈值**（2026-09-19 实测；用户听感"一点都不像"）。
+
+    `bass_ensemble --thr` 的语义是"这个音要有足够比例的来源支持"，它成立的前提是
+    **各来源在描述同一个声部**（如 Bass 的 ymt3b + bass4 + bass6 都在转同一条贝斯）。
+    而 Guitar / Strings 两层是"1 个 BP 来源 + base 里**另一种内容**"：
+      · Strings：`bp_other6`（3289 音，原曲 `other` 主体的转录）vs YMT3 的 Strings 轨（193 音）
+        —— 实测**跨来源支持率只有 0.019**（它们本就不是同一个东西）
+      · Guitar：`bp_guitar6`（647 音）vs YMT3 的 Guitar 轨（268 音）
+    拿 `--merge-thr 0.30` 套这两层 → **整层被砍**（保留数恰好等于 YMT3 那一侧）：
+      · Strings 砍 3256 只留 193 → audit 漏检 26.7%、一致率 1.6%
+      · Guitar  砍  643 只留 268 → audit 漏检 **87%**、一致率 1.2%
+    而原曲的 `other` 与 `guitar` 分别占能量 **44.0% / 10.9%**（demucs 6s 实测）——
+    整层消失 = 主体没了 = "一点都不像"。
+    改 `--thr 0` 后**两个方向都更好**：Strings 保留 3449 · 漏检 **1.0%** · 一致率 13.0% ·
+    假音 20.3%（几乎不变）。所以这两层由 `--thr-extra`（**默认 0 = 不筛**）控制。
+
+    判据：① 两个单来源层用 `a.thr_extra`（≥2 处）；② `--thr-extra` 默认 0.0；
+    ③ **反向对照**：三源共识层 Bass 仍必须走 `a.merge_thr` —— 别把好的一起放开。
+    """
+    src = open(os.path.join(HERE, 'imitate_ref.py'), encoding='utf-8').read()
+    code = '\n'.join(ln.split('#')[0] for ln in src.splitlines())      # 剥注释再匹配
+    assert "'--thr-extra', type=float, default=0.0" in src, \
+        '--thr-extra 默认不是 0.0 —— 单来源层会被共识阈值整层砍掉（实测漏检 87%）'
+    n = code.count('a.thr_extra')
+    assert n >= 2, 'Guitar / Strings 两层都该用 a.thr_extra，实得 %d 处' % n
+    assert 'a.merge_thr' in code, '--merge-thr 没人用了？共识层也被一起放开就过头了'
+    i = code.find("_ens('Bass'")
+    assert i > 0, '找不到 Bass 层的调用'
+    assert 'a.merge_thr' in code[i:i + 400], \
+        'Bass 层不该改走 --thr-extra —— 它才是真正的多来源共识场景（三源同内容）'
+
+
+@check
+def t_cli_help_renders():
+    """**每个 CLI 脚本的 `--help` 都必须能打出来**（argparse 的 help 会再做一次 %-format）。
+
+    实测（2026-09-19，当场踩到）：在 `--thr-extra` 的 help 里写了 `（other 占 44%）` ——
+    裸 `%` 被 argparse 当格式说明符 → `ValueError: unsupported format character '?' (0xff09)`
+    → `badly formed help string`，**脚本连 `--help` 都跑不起来**（不是打印错，是直接退出）。
+    这类错专挑"加参数顺手写说明"的时候发生，而且报错**不告诉你是哪个参数/哪一行**
+    （第一版 traceback 只有 argparse 内部帧，是靠 `...<2 lines>...` 才定位到的）。
+
+    判据：`scripts/*.py` 里凡含 `argparse` 与 `__main__` 的，`--help` 都要 exit 0。
+    `--help` 由 argparse 自己处理（parse_args 内立即 sys.exit(0)），**不会**触发脚本的重活，
+    所以这条检查很便宜（只付一次 import 成本）。超时 30s 的算过（有的脚本顶层 import torch）。
+    """
+    import glob
+    import subprocess
+    bad = []
+    for p in sorted(glob.glob(os.path.join(HERE, '*.py'))):
+        s = open(p, encoding='utf-8').read()
+        if 'argparse' not in s or '__main__' not in s:
+            continue
+        try:
+            r = subprocess.run([sys.executable, p, '--help'], capture_output=True,
+                               encoding='utf-8', errors='replace', timeout=30)
+        except subprocess.TimeoutExpired:
+            continue
+        if r.returncode != 0:
+            tail = (r.stderr or '').strip().splitlines()
+            bad.append('%s → %s' % (os.path.basename(p),
+                                    tail[-1] if tail else 'exit %d' % r.returncode))
+    assert not bad, ('这些脚本的 `--help` 打不出来（通常 = help 字符串里有裸 `%`，'
+                     'argparse 会再做一次 %-format）: ' + '; '.join(bad))
 
 
 @check
