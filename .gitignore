@@ -60,3 +60,8 @@ refs/midi2/**/*.mid
 refs/midi2/**/*.midi
 refs/midi2/_broken/
 !refs/midi/mid-*/*.mid
+
+# 面板曲库的本地镜像（junction 目标也在别处）：里面可能放**参考曲原音频**，
+# 公开仓库不能收（用户 2026-09-19 要求提交时当场发现 studio_lib/songs/60_b35_imitate/
+# 下有 00_原曲_BGM35.ogg）
+studio_lib/

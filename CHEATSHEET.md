@@ -27,6 +27,24 @@ $py = ".\.venv\Scripts\python.exe"
 模板**只能是** `refs/midi2/` 或网络权威数据；老 `--from` 会写 `basis=copied_song`，
 `check_song` 报"依据不合规"。
 
+## 模仿写歌（照着某一首参考曲写 —— 与上面四步分开的一条路径）
+
+**分界**：依据**同样是主题模板包**（合规不变），但段落层要按**单首参考曲**的实测结构重写。
+口径 / 七步 / 段名纪律 / 三条路径的边界 → **`docs/IMITATE-PATH.md`**。
+
+```powershell
+& $py scripts\profile_ref.py "<素材>/BGM35.ogg" BGM35 --bpm 150   # ① 参考曲画像（BPM 必须显式钉死一层）
+& $py scripts\new_song.py 40_imitate_b35 --theme night --ref BGM35 --seed 40   # ② 骨架（依据=模板包）
+& $py scripts\imitate_plan.py 40_imitate_b35 --plan plan40.json --dry-run      # ③ 只校验 + 打段表
+& $py scripts\imitate_plan.py 40_imitate_b35 --plan plan40.json                #    写盘（会把 melody 清空）
+& $py scripts\melody_gen.py songs\40_imitate_b35\song.json refs\themes\night_melody.json --avoid songs
+& $py scripts\check_song.py 40_imitate_b35
+& $py scripts\make_song.py 40_imitate_b35
+```
+
+- 结构表字段与硬校验（段名只能 A–E、同角色 = 同进行 + 同旋律、段数/和弦数）→ `scripts\imitate_plan.py --help`
+- ⚠ **只改 `--ref` 不算模仿**（那只是混音目标）；**抄音符是还原**（`docs/RESTORE-METHOD.md`），不是模仿
+
 ### 旋律：**一首一份画像**（共用 = 十首一套口音，孪生 5 对）
 
 ```powershell

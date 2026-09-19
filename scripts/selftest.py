@@ -826,6 +826,7 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
              os.path.join(ROOT, 'docs', 'CONVENTION.md'),
              os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
+             os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'),
              os.path.join(ROOT, 'studio', 'README.md'),
              os.path.join(os.path.expanduser('~'), '.dsh', 'skills',
                           'bgm-studio', 'SKILL.md')]
@@ -848,7 +849,8 @@ def t_docs_paths():
               os.path.join(ROOT, 'PITFALLS.md'), os.path.join(ROOT, 'PITFALLS-ARCHIVE.md'),
               os.path.join(ROOT, 'docs', 'SONG-FORMAT.md'),
               os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
-              os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'), files[-1]]
+              os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
+              os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'), files[-1]]
     dead = []
     for p in dokeys:
         if not os.path.exists(p):
@@ -1452,15 +1454,25 @@ def t_section_transition():
 
 @check
 def t_density_dynamic_range():
-    """**段级密度要有大起大落** —— 用户指定案例 BGM35 实测"逐小节起音数 0→66，变化 66 倍"，
-    结构是 3 个高潮 + 3 个呼吸口；而我们原来只有 **1.5–2.8 倍**（全程一条平线）。
+    """**密度要有大起大落** —— 判据用**逐小节**口径（与它引的依据同口径）。
 
-    口径：**直接数 MIDI 音符**（不渲染、不受音源质量影响 —— 用户："只需要 midi 一样就行"）。
-    判据：每小节音符数的 **max/min ≥ 4 倍**。
-    只查**声明了 `arr.density`** 的曲目 —— 早期曲没有这一档，量的是历史包袱；
-    新曲（`new_song` 生成的）都带 `density`（见 `song_engine.build_events` 的说明）。
+    ⚠ **2026-09-19 修口径**（用户"选 A"）。本判据原来量的是"**逐段**平均音/小节"，
+    而它引的依据（`docs/RECIPE-BGM35.md`）写的是"**逐小节**起音数 0→66，变化 66 倍" ——
+    两个口径不同口径量同一批曲子，实测差一个数量级：
+
+    | 曲目 | 逐段起伏 | **逐小节起伏** | 小节 min/max |
+    |---|---|---|---|
+    | `99_b35_remake`（还原版，参考侧代理） | 3.45× | **22.0×** | 4 / 88 |
+    | 某仿写曲 | 3.31× | **4.62×** | 13 / 60 |
+    | 41/42/43 | 10.6/9.1/8.9× | 15.0/12.4/13.8× | 5 / 62~75 |
+
+    → 旧口径下**参考曲自己都过不了 ≥4 倍的门**，同时把"逐小节真的平"的曲子报成通过。
+    新门 **≥8 倍**，依据：参考侧 22× · 历史"全程一条平线"约 2~3× · 本轮 41/42/43 实测 12~15×。
+    判据只数 MIDI 音符（不渲染 —— 用户："只需要 midi 一样就行"）；
+    只查**声明了 `arr.density`** 的曲目（早期曲没这一档，量的是历史包袱）。
+    逐段值仍打印（供参考），**不参与判定**。
     """
-    checked, bad = 0, []
+    checked, bad, info = 0, [], []
     for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
         try:
             d = song_engine.load(p)
@@ -1470,23 +1482,40 @@ def t_density_dynamic_range():
         if not any((s.get('arr') or {}).get('density') is not None for s in secs):
             continue                      # 没声明 density 的曲不查（历史曲目）
         ev, _nb = song_engine.build_events(d)
-        per, bar = [], 0
-        for s in secs:
-            n = int(s.get('bars') or 0)
-            lo, hi = bar * 4.0, (bar + n) * 4.0
-            cnt = sum(1 for k in ev for (t, _d, _m, _v) in ev[k] if lo <= t < hi)
-            per.append(cnt / max(1.0, n))
-            bar += n
-        if len(per) < 3 or min(per) <= 0:
+        nbar = sum(int(s.get('bars') or 0) for s in secs)
+        if nbar <= 0:
+            continue
+        per_bar = [0] * nbar
+        for k in ev:
+            for (t, _dd, _m, _v) in ev[k]:
+                b = int(t // 4)
+                if 0 <= b < nbar:
+                    per_bar[b] += 1
+        nz = [x for x in per_bar if x > 0]
+        if len(nz) < 8:
             continue
         checked += 1
-        ratio = max(per) / min(per)
-        if ratio < 4.0:
-            bad.append('%s: %.1f 倍（min %.1f / max %.1f 音每小节）'
-                       % (os.path.basename(os.path.dirname(p)), ratio, min(per), max(per)))
+        ratio = max(nz) / min(nz)
+        per, bar = [], 0                      # 逐段值只作参考输出
+        for s in secs:
+            n = int(s.get('bars') or 0)
+            per.append(sum(per_bar[bar:bar + n]) / max(1, n))
+            bar += n
+        tag = os.path.basename(os.path.dirname(p))
+        info.append('%s %.1f×' % (tag, ratio))
+        if ratio < 8.0:
+            bad.append('%s: 逐小节 %.1f 倍（min %d / max %d 音每小节；'
+                       '逐段 %.2f 倍）—— 缺极静/极密小节'
+                       % (tag, ratio, min(nz), max(nz), max(per) / max(1e-9, min(per))))
     assert checked >= 1, '没有声明 arr.density 的曲目（这条检查会空转）'
-    assert not bad, ('段级密度太平（要 ≥4 倍起伏，BGM35 是 66 倍）：%s' % '；'.join(bad[:4]))
-    print('        %d 首带 density 的曲目：段级密度起伏都 ≥4 倍' % checked)
+    # **判据自证**：把一首曲子的 density 全抹平 → 逐小节起伏必然塌到门以下
+    _ratio_of = lambda pb: (max([x for x in pb if x > 0]) /
+                            max(1, min([x for x in pb if x > 0]))) if any(pb) else 0
+    assert _ratio_of([0, 1, 1, 2, 40, 41]) > 8.0, '判据自证失败：示例曲线应判为有起伏'
+    assert _ratio_of([10, 11, 10, 12, 11, 10]) < 8.0, '判据自证失败：平线应判为太平'
+    assert not bad, ('密度太平（逐小节起伏要 ≥8 倍，参考侧实测 22 倍）：%s' % '；'.join(bad[:4]))
+    print('        %d 首带 density 的曲目：逐小节密度起伏（%s）'
+          % (checked, ' · '.join(info[:6])))
 
 
 @check
@@ -2234,6 +2263,45 @@ def t_console_encoding_safe():
         if 'if __name__' in src and '_cu.setup()' not in src:
             missing.append(nm)
     assert not missing, '这些入口脚本没做编码兜底: %s' % ', '.join(missing)
+
+
+@check
+def t_panel_guard_wired():
+    """**生成类脚本必须过面板守卫**（2026-09-19 落，同一类错第四次之后）。
+
+    背景：`SKILL.md` §2 第①条写着"动手前先 curl 8765，非 200 就先 `studio\\start.cmd`"，
+    `token_audit.py` 里还记着它当时是"2026-09-18 **第二次**犯"；2026-09-19 那轮仿写 4 首
+    （40/41/42/43）**生成仍全程走 CLI**，面板直到用户开口问"有没有用 8765"之后 37 秒才接上。
+    文档写到第四遍没生效 ⇒ 按「犯到第三次就写进硬形式」，改由代码保证。
+
+    判据：① `studio_guard.py` 在、`ensure_panel` 在；
+    ② 三个生成脚本都接了线（**先剥注释再匹配** —— "把调用注释掉"不许算接上）；
+    ③ **反向对照**：`panel_alive()` 对"刚被释放的端口"必须返回 False ——
+    否则探活退化成恒真的装饰品（"探到 200 就算活着"最容易变成它）。
+    """
+    mod = os.path.join(HERE, 'studio_guard.py')
+    assert os.path.exists(mod), '缺 scripts/studio_guard.py（面板守卫模块没了）'
+    src = open(mod, encoding='utf-8').read()
+    assert 'def ensure_panel(' in src, 'studio_guard.py 里没有 ensure_panel'
+    missing = []
+    for nm in ('new_song.py', 'make_song.py', 'melody_gen.py'):
+        s = open(os.path.join(HERE, nm), encoding='utf-8').read()
+        # **必须先剥掉注释再匹配**：否则"把调用注释掉"（`# studio_guard.ensure_panel()`）
+        # 会骗过这条检查 —— 首版就是这么写的，变异用例（注入的正好是一行注释）
+        # 当场判"**漏了**"：这条守卫自己先示范了一次"看起来接了、其实没接"。
+        code = '\n'.join(ln.split('#')[0] for ln in s.splitlines())
+        if 'studio_guard' not in code or 'ensure_panel(' not in code:
+            missing.append(nm)
+    assert not missing, ('这些生成脚本没接面板守卫（生成会绕开面板）: %s'
+                         % ', '.join(missing))
+    import socket
+    import studio_guard as sg
+    sk = socket.socket()
+    sk.bind(('127.0.0.1', 0))
+    dead_port = sk.getsockname()[1]      # 刚释放 ⇒ 此刻必然没人听
+    sk.close()
+    assert sg.panel_alive(port=dead_port, timeout=0.5) is False, \
+        'panel_alive 对没人听的端口 %d 也返回 True —— 探活是装饰品' % dead_port
 
 
 @check
@@ -5691,6 +5759,107 @@ def t_theme_melody_reuse():
           % (checked, '/'.join(str(x) for x in sorted(set(spans))),
              ('；%d 首显式豁免：%s' % (len(exempt), ' / '.join(exempt))) if exempt else ''))
     assert not bad, '旋律复用不达标：%s' % '；'.join(bad[:4])
+
+
+IMITATE_SRC_RE = re.compile(r'^imitate:(\S+)$')
+
+
+def _imitate_unmarked(n_sec, n_plan, src):
+    """段落结构与主题包 `form.plan` 不一致、又没写 `imitate:` 留痕 → 两条路径混用。
+
+    抽成独立函数是为了能被 `mutation_check` 注入（同 `role_melody_name` 的做法）。
+    """
+    return n_sec != n_plan and not IMITATE_SRC_RE.match(str(src or ''))
+
+
+@check
+def t_imitate_path_marked():
+    """**模仿写歌必须留痕**：段落结构改过（段数 ≠ 主题包 `form.plan`）就要有
+    `basis.structure_source = 'imitate:<参考曲画像名>'`（`scripts\\imitate_plan.py` 自动写）。
+
+    为什么（用户 2026-09-19："把模仿写歌和直接作曲的功能和文档分开，防止错用"）：
+    两条路径的**依据不同**（直接作曲 = 主题包的 `form.plan`；模仿 = 单首参考曲的实测结构），
+    但出口是同一个 `song.json` —— 本轮实测就是这样：先 `new_song.py --theme` 出骨架，
+    再用**仓库外的手写脚本**把 26 段结构塞进去；`song.json` 上**看不出**它已经不是主题包的结构，
+    于是 check_song 与后续接手的人都会按"直接作曲"的口径理解它（并以为段名可以随便起）。
+    判据：带 `theme.pack` 的曲目，段数与包 `form.plan` 不一致时必须有 `imitate:` 留痕。
+    **判据自证**：同一组数字抹掉留痕 → 必须判为问题；没改结构 → 不该判。
+    """
+    bad, checked = [], 0
+    for d in song_dirs():
+        try:
+            j = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
+        except Exception:                                   # noqa: BLE001
+            continue
+        pack_rel = (j.get('theme') or {}).get('pack')
+        if not pack_rel:
+            continue                       # 没有主题依据的老曲目不追溯
+        pp = os.path.join(ROOT, pack_rel)
+        if not os.path.exists(pp):
+            continue
+        try:
+            plan = ((json.load(open(pp, encoding='utf-8')).get('form') or {})
+                    .get('plan') or [])
+        except Exception:                                   # noqa: BLE001
+            continue
+        if not plan:
+            continue
+        checked += 1
+        n_sec = len(j.get('sections') or [])
+        src = (j.get('basis') or {}).get('structure_source')
+        if _imitate_unmarked(n_sec, len(plan), src):
+            bad.append('%s: 段数 %d ≠ 主题包 form.plan %d，且没有 '
+                       'basis.structure_source="imitate:<参考曲>"'
+                       '（模仿写歌请走 scripts\\imitate_plan.py）'
+                       % (os.path.basename(d), n_sec, len(plan)))
+    assert checked >= 1, '没有带 theme.pack 的曲目 —— 这条检查只能空转'
+    assert _imitate_unmarked(26, 6, ''), '判据自证失败：结构被改过又没留痕应判为问题'
+    assert not _imitate_unmarked(26, 6, 'imitate:BGM35'), '判据自证失败：留了痕不该判'
+    assert not _imitate_unmarked(6, 6, ''), '判据自证失败：没改结构不该判'
+    assert not bad, ('两条路径混用（模仿写歌没留痕）：%s' % '；'.join(bad[:4]))
+    print('        %d 首主题路径曲目：结构一致的按主题包、改过结构的都带 imitate 留痕' % checked)
+
+
+@check
+def t_identify_cross_rules():
+    """`identify_ref.cross_check`：**名次差 ≤1 才算"两路一致"，冲突照实报**（不许和稀泥）。
+
+    为什么（用户 2026-09-19："不能每次都靠别人给音频级分轨，其它的歌没有，
+    能不能强化你自己的识别功能"）：配器识别以前靠外部产物 / 转录工具的通道名，
+    实测两次给出**错误配器**（把 YourMT3 的 'Arp' 通道当成"原曲有琶音层"，被用户当场否掉）。
+    现在两路交叉 —— 这条规则必须**坏得起来**，否则它只是把任何输入都判"一致"的装饰。
+    夹具用 BGM35 的实测数字（demucs 6s × YourMT3），
+    **判据自证**：把 ymt3 侧钢琴也改小 → 名次拉平 → 必须不再算冲突。
+    """
+    import identify_ref as IR
+
+    def chan(name, n, share):
+        return {'channel': 0, 'name': name, 'notes': n, 'share_pct': share}
+
+    stems = [{'file': 'bass.wav', 'energy_share': 39.7, 'active_pct': 73.9},
+             {'file': 'drums.wav', 'energy_share': 31.6, 'active_pct': 78.5},
+             {'file': 'guitar.wav', 'energy_share': 14.7, 'active_pct': 71.5},
+             {'file': 'piano.wav', 'energy_share': 7.0, 'active_pct': 73.1},
+             {'file': 'other.wav', 'energy_share': 6.9, 'active_pct': 93.1},
+             {'file': 'vocals.wav', 'energy_share': 0.0, 'active_pct': 1.7}]
+    y = {'channels': [chan('Drums', 3808, 43.9), chan('Acoustic Piano', 2377, 27.4),
+                      chan('Bass', 835, 9.6), chan('Strings', 706, 8.1),
+                      chan('Guitar (clean)', 450, 5.2)]}
+    cc = IR.cross_check(stems, y)
+    assert any('piano' in x for x in cc['conflict']), \
+        '钢琴 demucs 第4 / ymt3 第2 → 必须算冲突；实际 agree=%s' % cc['agree']
+    assert any('drums' in x for x in cc['agree']), \
+        '鼓两路都在第 1~2 → 必须算一致；实际 conflict=%s' % cc['conflict']
+    assert any('人声' in x for x in cc['absent']), '人声轨 0%/1.7% 应判为器乐版'
+    y2 = {'channels': [chan('Drums', 3808, 43.9), chan('Acoustic Piano', 100, 4.0),
+                       chan('Bass', 835, 9.6), chan('Strings', 706, 8.1),
+                       chan('Guitar (clean)', 450, 5.2)]}
+    cc2 = IR.cross_check(stems, y2)
+    assert any('piano' in x for x in cc2['agree']), \
+        ('判据自证失败：钢琴两路都小（名次接近）时仍被判冲突 → 规则没在量名次；'
+         'conflict=%s' % cc2['conflict'])
+    return '交叉判读按名次：一致 %d 条 / 冲突 %d 条（钢琴那条与真值同向）' \
+           % (len(cc['agree']), len(cc['conflict']))
 
 
 ONSET_TVD_MAX = 0.65      # 每段落点分布与画像的 TVD 上限

@@ -12,6 +12,7 @@ BGM 制作与分析的完整管线。**任何新对话（或新的人）从这�
 > | 你要做的事 | 读哪节 |
 > |---|---|
 > | **写一首新歌（本工具链内的唯一合规路径）** | **`docs/THEME-PACK.md`**（主题模板包 = 依据；混音目标）+ 下面 §1 的四步 |
+> | **照着某首参考曲写（模仿写歌）** | **`docs/IMITATE-PATH.md`** + `scripts\imitate_plan.py`（与"直接作曲 / 还原"的分界见该文首表） |
 > | 要写/改 `song.json`（格式与风格预设） | **`docs/SONG-FORMAT.md`** |
 > | 只是重出某首歌的成品 | §1 里第 ③ 步那条命令（其余不用看） |
 > | 想省 token / 问"为什么写歌变贵" | §1 里「省 token 的三条硬规矩」+ `python scripts\token_audit.py` |
@@ -46,6 +47,13 @@ music-gen\
 ---
 
 ## 1. 一分钟上手（**新歌只写一个 JSON，不写代码**）
+
+> **先选路径（三条，依据不同，混用会静默走样）**：
+> ① **直接作曲**（"来一首 BGM"）= 本节四步，依据**主题模板包**；
+> ② **模仿写歌**（"照着某首做"）= 同样先出骨架，**段落层改用 `scripts\imitate_plan.py`
+> 按单首参考曲的实测结构重写** → `docs/IMITATE-PATH.md`；
+> ③ **还原扒带**（"扒成 MIDI"）= 抄参考曲的**音符** → `docs/RESTORE-METHOD.md`。
+> ⚠ **只改 `--ref` ≠ 模仿**（`--ref` 只是混音目标）；**拿音频当模板依据不合规**（`check_song` 拦）。
 
 **改完任何东西先跑一次自检**（覆盖导入/数据/编码/DSP 方向/语义/端到端渲染/产物/文档）：
 
@@ -107,6 +115,8 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `build_song.py` | **紧凑 spec → song.json**：只写和弦走向+旋律骨架，时值/排列/编制自动推；`--to-spec` 反向导出 |
 | `new_song.py` | 新歌脚手架：`--theme <主题>` 按**主题模板包**出 song.json（含跑 melody_gen、填混音目标）；`--from` 只用于复现/改歌 |
 | `theme_pack.py` | **主题模板包**：同主题 ≥8 首 MIDI 模板（来源白名单 + 可溯源）聚合成和声/节奏/配器/曲式/旋律画像 + **混音目标** → `refs/themes/` |
+| `imitate_plan.py` | **模仿写歌的段落层入口**（2026-09-19）：按**单首参考曲**的实测结构（`--plan` 结构表：进行 / 每段 density / 编配 / 主奏音色）重写 `songs/<曲>/song.json` 的 sections+chords+patterns。写盘前**硬校验**：段名只能用 A–E（`role_of_section` 取段名里第一个 a–e 字母，`Rise`/`Peak` 会全落 `E`）、同角色 = 同进行 + 同旋律、段数/和弦数/参数范围；和弦没变时**保留旋律**。留痕 `basis.structure_source="imitate:<参考曲>"`（守卫 `t_imitate_path_marked` 照它判"结构改过却没走模仿路径"）→ 口径见 `docs/IMITATE-PATH.md` |
+| `identify_ref.py` | **参考曲识别**（2026-09-19，调 `.venv-ml` 的 Demucs + YourMT3）：两路独立来源交叉 —— ① Demucs 6s 分离（GPU ≈40s/首）给逐声部**能量占比/活跃度**；② YourMT3+ 转录（≈75s/首）给 **13 通道音符数**（通道名从转录 MIDI 的轨名读，不猜）。名次差 ≤1 才算"一致"，冲突时**默认信 ymt3**（BGM35 实测：钢琴 demucs 判 7.0%、ymt3 判 27.4%、真值 29.4%）→ `refs/identify/<名字>.json`。**别再用转录通道名或 `probe_timbre --solo` 的高频段推配器** |
 | `make_song.py` | **一条命令**：作曲 → 渲染 → 对标成绩单（`--check` 先验数据） |
 | `scorecard.py` | 成品 vs 画像 → 一屏差距表 + 调参建议 + 可粘贴重跑命令（`--bpm N` 给真实速度） |
 | `rehearsal.py` | **新歌预演**：全新参考曲 × 5 套风格 + 边界情况端到端（对齐 dB 只打印，坑 105） |
@@ -117,6 +127,7 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `profile_ref.py` | 参考曲剖析 → 缓存成 `refs/<名字>.json`（含倍频程/宽度/质心/16 分节奏型/调式/结构、速度层级与 `level_scores`） |
 | `metrics.py` | 共用度量内核（上面两个工具都用它，保证口径一致） |
 | `cli_utf8.py` | 控制台编码兜底（GBK 下打印 `✓` 会崩）——所有入口脚本启动即调用，见坑 58 |
+| `studio_guard.py` | **面板守卫（硬形式）**：生成开工前探活 `127.0.0.1:8765`，不在跑就 **detached** 拉起（`start.cmd` 是阻塞前台，从脚本里调会连生成一起卡）；起不来只警告、不中断。已接在 `new_song` / `make_song` / `melody_gen` 的 `main()`；`BGM_NO_PANEL=1` 整段跳过。判据见自检 `panel_guard_wired` |
 | `melody_profile.py` | **扒"旋律语言"**（音级/音程/时值/落点）+ **调内率自检**（<80% 就报"别用"）。在 Demucs 的 other 声部上跑：66%→93% |
 | `melody_gen.py` | **按画像生成旋律**：句长/落点/时值/音程都从画像的**分布**抽样（句末留休止），强拍强制吸附和弦音；`--avoid`+`--candidates` 与库里已有旋律去重；每首一组个性参数 |
 | `probe_melody_lang.py` / `probe_melody_health.py` | **旋律体检**：①语言分布重合度（≥85%=孪生）②形态——密度/同音/最长同音串/碎音/强拍 |

@@ -209,6 +209,53 @@ def main():
     results = []
     real_song_dirs = st.song_dirs          # 注入"部分曲目"用
 
+    # 0. 模仿写歌没留痕（2026-09-19：模仿写歌 / 直接作曲分开后的"防错用"判据）
+    #    判据内容是"段数 ≠ 主题包 form.plan 时必须有 basis.structure_source=imitate:<参考曲>"，
+    #    所以夹具 = 一首**真的模仿路径曲目**（40_imitate_b35，26 段 vs night 包 6 段），
+    #    注入 = 把留痕抹掉。没有这类曲目时跳过（曲目会被删，硬编码会崩整轮）。
+    def _no_imitate_mark():
+        import shutil
+        p40 = os.path.join(ROOT, 'songs', '40_imitate_b35', 'song.json')
+        if not os.path.exists(p40):
+            raise SkipCase('没有模仿路径曲目（40_imitate_b35）当夹具')
+        tmpd = os.path.join(TMP, 'imitate_unmarked')
+        shutil.rmtree(tmpd, ignore_errors=True)
+        os.makedirs(tmpd)
+        j = json.load(open(p40, encoding='utf-8'))
+        (j.get('basis') or {}).pop('structure_source', None)
+        json.dump(j, open(os.path.join(tmpd, 'song.json'), 'w', encoding='utf-8'),
+                  ensure_ascii=False, indent=1)
+        return Mut(st, 'song_dirs', lambda **k: [tmpd])
+    results.append(case('模仿写歌没留痕（结构改过）', 'imitate_path_marked', _no_imitate_mark))
+
+    # 0b. 识别交叉判读被换成"永远说一致"（2026-09-19：识别功能自己的守卫）
+    def _always_agree():
+        import identify_ref as IR
+
+        def fake(stems, ymt3):
+            return {'agree': ['全都一致'], 'conflict': [], 'ymt3_only': [],
+                    'demucs_only': [], 'absent': []}
+        return Mut(IR, 'cross_check', fake)
+    results.append(case('识别交叉判读永远说一致', 'identify_cross_rules', _always_agree))
+
+    # 0c. 密度起伏被抹平（2026-09-19 修口径后补：判据改量逐小节，注入要能红）
+    def _flat_density():
+        src = os.path.join(ROOT, 'songs', '41_imitate_b16', 'song.json')
+        if not os.path.exists(src):
+            raise SkipCase('没有 41_imitate_b16 当夹具')
+        td = os.path.join(TMP, 'flat_density')
+        os.makedirs(td, exist_ok=True)
+        j = json.load(open(src, encoding='utf-8'))
+        for s in j['sections']:
+            s.setdefault('arr', {})['density'] = 2      # 全段抹平
+        json.dump(j, open(os.path.join(td, 'song.json'), 'w', encoding='utf-8'),
+                  ensure_ascii=False, indent=1)
+        real_glob = st.glob.glob
+        return Mut(st.glob, 'glob',
+                   lambda pat, **kw: [os.path.join(td, 'song.json')]
+                   if str(pat).endswith('song.json') else real_glob(pat, **kw))
+    results.append(case('密度抹平（全段 density=2）', 'density_dynamic_range', _flat_density))
+
     # 1. 和弦音写错
     d = temp_song_dir(lambda x: x['chords'].__setitem__('D', [38, [57, 62, 66, 69, 75]]))
     results.append(case('和弦里混进不属于它的音',
@@ -1405,6 +1452,24 @@ def main():
     results.append(case('导出把按键排在松键之前（吞接续音）',
                         'midi_export_noteoff_first',
                         lambda: Mut(_mfi, 'W_ON', 2)))
+
+    # ㉒ 生成脚本绕开面板守卫（把接线删掉）→ `panel_guard_wired` 必须抓到。
+    #    这条守卫的全部意义就是"防文档失效"，所以必须证明**拆掉接线它会红**。
+    #    拆在临时目录的副本上（不动真文件）；`studio_guard.py` 要一起拷过去，
+    #    否则它会因为"缺模块"先失败 —— 那是另一个理由，测不到"接线"这一段。
+    class NoPanelGuard:
+        def __enter__(self):
+            import shutil
+            self.old = st.HERE
+            d = tempfile.mkdtemp(dir=TMP)
+            shutil.copy2(os.path.join(self.old, 'studio_guard.py'), d)
+            for nm in ('new_song.py', 'make_song.py', 'melody_gen.py'):
+                open(os.path.join(d, nm), 'w', encoding='utf-8').write(
+                    '# 故意不接 studio_guard.ensure_panel()（变异注入）\n')
+            st.HERE = d
+        def __exit__(self, *a):
+            st.HERE = self.old
+    results.append(case('生成脚本绕开面板守卫', 'panel_guard_wired', NoPanelGuard))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
