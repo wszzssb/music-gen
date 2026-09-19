@@ -72,12 +72,8 @@ git clone --depth 1 https://hf-mirror.com/spaces/mimbres/YourMT3 <模型目录>\
 #     clone 下来只有 ~4MB 代码，`git lfs pull` 也没东西可拉（2026-09-19 实测确认）。
 #     权重要从 HF 的 **dataset** 单独下 —— 见 ③。
 
-# ③ 权重 516MB（**必须设 HF_ENDPOINT 走镜像**，否则国内下不动）
-$env:HF_ENDPOINT = "https://hf-mirror.com"
-.\.venv-ml\Scripts\python.exe -c "from huggingface_hub import hf_hub_download as d; print(d(repo_id='Richhiey/YourMT3', repo_type='dataset', filename='logs/2024/mc13_256_all_cross_v6_xk5_amp0811_edr005_attend_c_full_plus_2psn_nl26_sb_b26r_800k/checkpoints/model.ckpt', local_dir=r'<某处>'))"
-#   下完**必须放到这个路径**（注意 dataset 里是 `logs/...`，落盘要加 `amt\` 前缀）：
-#     <模型目录>\ymt3repo\amt\logs\2024\<实验名>\checkpoints\model.ckpt
-#   （实测 1 分 43 秒下完，516MB）
+# ③ 权重 **不用手动下** —— 跑转录时加 `--download` 就行：脚本会自动走 hf-mirror 镜像
+#    拉 516MB 并摆到正确位置（2026-09-19 实测 1 分 43 秒）。手动下也行，见本节末尾「细节」。
 
 # ④ transformers **4.45.1** + YourMT3 自己的依赖
 #    4.45.1 装到**独立目录**、不动 site-packages（脚本会自己把它 sys.path 前置）：
@@ -88,12 +84,13 @@ $env:HF_ENDPOINT = "https://hf-mirror.com"
 #    （requirements 里的 `yt-dlp` / `yt-dlp-oauth2` / `gradio_log` 是 Space 网页 demo 用的，转录不需要）
 ```
 
-**扒一首**：
+**扒一首**（第一次跑会**自动下权重**，516MB、走镜像）：
 
 ```powershell
-$ml = ".venv-ml\Scripts\python.exe"
-& $ml scripts\transcribe_ymt3.py "<你的音频.ogg>" -o <输出目录> --name 我的曲子
-#   → <输出目录>\我的曲子.mid  +  _report.json（逐通道音符数 —— 能直接看出哪些声部有内容）
+$env:DSH_YMT3_REPO = "<模型目录>\ymt3repo"
+$env:DSH_YMT3_LIBS = "<模型目录>\ymt3libs"
+.\.venv-ml\Scripts\python.exe scripts\transcribe_ymt3.py "<你的音频.ogg>" -o <输出目录> --download
+#   → <输出目录>\<名字>.mid  +  _report.json（逐通道音符数 —— 能直接看出哪些声部有内容）
 ```
 
 实测（RTX 5060 Laptop 8GB）：**5.5 分钟的曲子 44 秒**出 MIDI（8× 实时，显存峰值 4963MB，
@@ -103,14 +100,15 @@ $ml = ".venv-ml\Scripts\python.exe"
 `DSH_YMT3_REPO` / `DSH_YMT3_LIBS` 环境变量 → `D:\test\models\ymt3repo`（`ymt3libs` 认它的兄弟目录）
 → `<工具链>\vendor\ymt3repo`；也可以直接 `--repo <路径>`。
 
-**五个已知坑**（实测踩出来的，前三条详见 `docs\CASE-BGM35-FINDINGS.md` 第 33 条）：
-1. 权重路径里的 project 必须是 **`2024`**（不是默认的 `ymt3`），否则找不到权重；
-2. `transformers` 必须 **4.45.1**（连带 `tokenizers==0.20.3`、`huggingface-hub<1.0`）；
-3. `torchaudio 2.11` 的解码改走 torchcodec（没装）→ 已用 soundfile 打补丁，**你不用处理**；
-4. **权重要自己下**：`amt/logs/` 在 Space 自己的 `.gitignore` 里 → `git clone` / `git lfs pull`
-   都拿不到（只回 4MB 代码），必须走 ③ 从 dataset 下；
-5. **`ymt3repo\requirements.txt` 不能整体 `pip install -r`**：它钉 `numpy==1.26.4` 且带
-   `--extra-index-url .../cu113` → 会**重装 4GB 的旧 torch**；按 ④ 那条只装缺的。
+**出问题再看这里**（都实测过）：
+- **别整体装 `ymt3repo\requirements.txt`** —— 它钉 `numpy==1.26.4` 且带 `..cu113` 索引，
+  会**重装 4GB 的旧 torch**；按 ④ 那条只装缺的就行。
+- **权重别指望 clone 带下来**：Space 把 `amt/logs/` 写进了它自己的 `.gitignore`，`git clone`
+  只回 4MB 代码、`git lfs pull` 也没东西 —— 用 `--download`（它从 HF dataset 下并自动摆位）。
+- 三样东西的搜索顺序：`DSH_YMT3_REPO`/`DSH_YMT3_LIBS` → `D:\test\models\ymt3repo`
+  （`ymt3libs` 认它的兄弟目录）→ `<工具链>\vendor\ymt3repo`；也可 `--repo <路径>`。
+- 更细的坑（project 必须是 **`2024`**、`transformers` 必须 **4.45.1**、torchcodec 已打补丁）
+  → `docs\CASE-BGM35-FINDINGS.md` 第 33 条。
 
 **版权**：转录结果是参考曲的**逐音复制**。本地分析/对照/学习随便用，
 **不能上传到网络**（公开发布即侵权）—— 见 `ML.md` 的「版权与边界」。

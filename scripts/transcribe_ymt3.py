@@ -39,6 +39,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 import time
 from collections import Counter
 
@@ -81,6 +82,45 @@ def find_libs(repo):
         if path and os.path.isdir(path):
             return path
     return None
+
+
+# ── 权重下载（`--download`）：让新人不用抄那串 100 字符的实验名 ─────────────
+# 2026-09-19 实测确认：权重**不在** Space 的 git 仓库里 —— `amt/logs/` 在 Space 自己的
+# `.gitignore` 里，所以 `git clone` 只有 ~4MB 代码、`git lfs pull` 也拉不到东西。
+# 它在 HF 的 **dataset** `Richhiey/YourMT3`，那边的路径前缀是 `logs/`（落盘时要补 `amt/`）。
+DL_REPO = "Richhiey/YourMT3"
+DL_REPO_TYPE = "dataset"
+DL_MIRROR = "https://hf-mirror.com"      # 官方 huggingface.co 国内下不动
+
+
+def download_weights(repo, quiet=False):
+    """从 HF dataset（**自动走镜像**）下权重，摆到脚本要的位置。成功返回路径。"""
+    os.environ.setdefault("HF_ENDPOINT", DL_MIRROR)     # 新人不用自己设镜像
+    try:
+        from huggingface_hub import hf_hub_download
+    except ImportError:
+        print("✗ 需要 huggingface_hub：pip install huggingface_hub", flush=True)
+        return None
+    src = "logs/2024/%s/checkpoints/model.ckpt" % EXP
+    tmp = os.path.join(tempfile.gettempdir(), "ymt3_weights_dl")
+    if not quiet:
+        print("  下权重（516MB，一次性；源 %s，镜像 %s）…"
+              % (DL_REPO, os.environ["HF_ENDPOINT"]), flush=True)
+    try:
+        got = hf_hub_download(repo_id=DL_REPO, repo_type=DL_REPO_TYPE,
+                              filename=src, local_dir=tmp)
+    except Exception as e:                                   # noqa: BLE001
+        print("✗ 下载失败（%s: %s）—— 检查网络，或按 INSTALL.md 的「想扒 MIDI」手动下"
+              % (type(e).__name__, e), flush=True)
+        return None
+    dst_dir = os.path.join(repo, "amt", "logs", "2024", EXP, "checkpoints")
+    os.makedirs(dst_dir, exist_ok=True)
+    dst = os.path.join(dst_dir, "model.ckpt")
+    shutil.copy2(got, dst)
+    if not quiet:
+        print("  ✓ 权重已就位：%s（%.0f MB）" % (dst, os.path.getsize(dst) / 1048576.0),
+              flush=True)
+    return dst
 
 
 # ── 显存预算：batch 与分组（2026-09-19 · 实测标定）────────────────────────
@@ -159,6 +199,8 @@ def main():
     ap.add_argument("--name", default=None, help="单个文件时的输出名")
     ap.add_argument("--repo", default=None, help="YourMT3 仓库目录")
     ap.add_argument("--weights", default=None, help="model.ckpt 路径")
+    ap.add_argument("--download", action="store_true",
+                    help="权重缺失时自动从 HF 镜像下载（516MB，一次性）")
     args = ap.parse_args()
 
     repo = find_repo(args.repo)
@@ -167,9 +209,12 @@ def main():
               "或设 DSH_YMT3_REPO。**装法见 INSTALL.md 的「想扒 MIDI」那节**。", flush=True)
         sys.exit(2)
     ckpt = find_weights(repo, args.weights)
+    if ckpt is None and getattr(args, "download", False):
+        ckpt = download_weights(repo)
     if ckpt is None:
-        print("✗ 找不到权重 %s/amt/logs/2024/%s/checkpoints/model.ckpt。"
-              "**装法（含权重怎么取）见 INSTALL.md 的「想扒 MIDI」那节**。" % (repo, EXP),
+        print("✗ 找不到权重 %s/amt/logs/2024/%s/checkpoints/model.ckpt。\n"
+              "  · 加 `--download` 自动下（走 hf-mirror 镜像，516MB 一次性）；\n"
+              "  · 手动装法见 INSTALL.md 的「想扒 MIDI」那节。" % (repo, EXP),
               flush=True)
         sys.exit(2)
 
