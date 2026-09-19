@@ -51,7 +51,7 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py battle        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 17_blade_two --theme battle --seed 45
+& $py scripts\new_song.py 17_blade_two --theme battle --seed 7
 & $py scripts\make_song.py 17_blade_two --check
 ```
 

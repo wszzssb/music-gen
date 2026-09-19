@@ -9,7 +9,8 @@
   "Hook": [0, 1],
   "Piano": [0, 2],
   "Strings": [48, 5],
-  "Pad": [94, 4]
+  "Pad": [94, 4],
+  "Bass": [32, 6]
  },
  "patterns": {
   "bass_style": "waltz",
@@ -20,12 +21,13 @@
   "guitar_beats": [0.0, 0.667, 1.333, 2.0, 2.667, 3.333],
   "guitar_vary": true,
   "space": true,
+  "avoid_lead": 2,
+  "seg_in": 0.75,
   "section_gap": 3.0,
   "seg_fade": true,
   "range_fix": true,
   "legato_trim": true,
-  "dyn_vel": 8.0,
-  "avoid_lead": 2
+  "dyn_vel": 8.0
  },
  "chords": {
   "Gm7": [31, [55, 58, 62, 65]],

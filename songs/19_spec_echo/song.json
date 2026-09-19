@@ -4,6 +4,15 @@
  "meter": [4, 4],
  "desc": "日常（依据主题模板包 daily：10 首同主题模板）",
  "style": "daily",
+ "programs": {
+  "Melody": [73, 0],
+  "Hook": [0, 1],
+  "Piano": [0, 2],
+  "Strings": [48, 5],
+  "Pad": [94, 4],
+  "Glock": [11, 7],
+  "Bass": [32, 6]
+ },
  "patterns": {
   "bass_style": "sixteenth",
   "perc_style": "light",
@@ -13,14 +22,13 @@
   "guitar_beats": [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
   "guitar_vary": true,
   "space": true,
+  "avoid_lead": 2,
+  "seg_in": 0.75,
   "section_gap": 3.0,
   "seg_fade": true,
   "range_fix": true,
   "legato_trim": true,
-  "dyn_vel": 8.0,
-  "voicing_shift": 0,
-  "seg_in": 0.75,
-  "avoid_lead": 2
+  "dyn_vel": 8.0
  },
  "chords": {
   "Em7": [28, [64, 67, 71, 74]],
@@ -30,22 +38,24 @@
  },
  "melody": {
   "A": [
-   [0, 0.5, 0.75, 64], [0, 2.0, 0.5, 62], [0, 3.0, 1.0, 64],
-   [1, 1.0, 0.75, 62], [1, 2.5, 0.5, 64], [1, 3.5, 0.5, 65],
-   [2, 0.75, 0.75, 69], [2, 2.0, 0.5, 71], [2, 3.25, 0.75, 69],
-   [4, 0.5, 0.75, 71], [4, 2.0, 0.5, 74], [4, 3.0, 1.0, 71],
-   [5, 3.0, 0.5, 69],
-   [6, 1.0, 0.25, 71], [6, 2.0, 0.25, 74], [6, 2.5, 0.5, 71], [6, 3.5, 0.5, 71]
+   [0, 1.0, 0.5, 64], [0, 1.5, 0.75, 69], [0, 3.0, 1.0, 67],
+   [1, 1.25, 0.75, 79], [1, 2.0, 0.75, 76], [1, 3.25, 0.75, 79],
+   [2, 1.5, 0.5, 83], [2, 2.0, 1.5, 86], [2, 3.5, 0.5, 88],
+   [3, 0.0, 2.25, 84],
+   [4, 0.5, 0.5, 79], [4, 1.0, 0.75, 81], [4, 2.5, 1.5, 86],
+   [5, 0.0, 2.25, 79],
+   [6, 1.0, 0.5, 81], [6, 1.5, 0.75, 83], [6, 3.0, 1.0, 86],
+   [7, 0.0, 2.25, 72]
   ],
   "B": [
-   [0, 1.0, 0.75, 76], [0, 2.5, 0.25, 74], [0, 3.25, 0.75, 76],
-   [1, 1.25, 0.25, 77], [1, 2.0, 0.25, 77], [1, 2.75, 0.25, 81], [1, 3.5, 0.5, 77],
-   [2, 0.0, 1.5, 76], [2, 3.0, 1.0, 72],
-   [3, 0.25, 2.25, 76],
-   [4, 0.0, 1.5, 76], [4, 3.0, 1.0, 74],
-   [5, 0.75, 0.75, 77], [5, 2.25, 0.25, 74], [5, 3.0, 1.0, 75],
-   [6, 1.25, 0.25, 77], [6, 2.0, 0.25, 79], [6, 2.75, 0.25, 81], [6, 3.5, 0.5, 74],
-   [7, 0.25, 2.25, 76]
+   [0, 1.25, 0.75, 71], [0, 2.5, 0.5, 69],
+   [1, 0.0, 1.5, 67],
+   [2, 0.0, 1.0, 69], [2, 1.0, 1.5, 67],
+   [3, 0.25, 0.75, 64], [3, 1.75, 0.5, 62], [3, 3.0, 0.5, 67], [3, 3.5, 0.75, 64],
+   [4, 1.0, 1.0, 62], [4, 2.25, 1.0, 62],
+   [5, 0.0, 1.5, 67],
+   [6, 0.0, 0.75, 65], [6, 1.5, 0.5, 63], [6, 2.75, 1.25, 65],
+   [7, 0.0, 1.5, 60]
   ]
  },
  "sections": [
@@ -66,7 +76,8 @@
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 1
+    "density": 1,
+    "melody_prog": 73
    },
    "mode": "major"
   },
@@ -87,7 +98,8 @@
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 2
+    "density": 2,
+    "melody_prog": 73
    },
    "mode": "major"
   },
@@ -98,17 +110,18 @@
    "melody": "B",
    "arr": {
     "bass": true,
-    "perc": 2,
+    "perc": 0,
     "piano": true,
-    "uku": true,
-    "arp": true,
+    "uku": false,
+    "arp": false,
     "pad": true,
-    "strings": true,
-    "glock": true,
+    "strings": false,
+    "glock": false,
     "ep": false,
     "glock_all": false,
     "shimmer": false,
-    "density": 1
+    "density": 0,
+    "melody_prog": 0
    },
    "mode": "major"
   },
@@ -119,9 +132,9 @@
    "melody": "A",
    "arr": {
     "bass": true,
-    "perc": 0,
+    "perc": 1,
     "piano": true,
-    "uku": false,
+    "uku": true,
     "arp": false,
     "pad": true,
     "strings": false,
@@ -129,7 +142,8 @@
     "glock_all": false,
     "ep": false,
     "shimmer": false,
-    "density": 0
+    "density": 2,
+    "melody_prog": 73
    },
    "mode": "major"
   },
@@ -151,7 +165,8 @@
     "glock_all": false,
     "shimmer": true,
     "density": 3,
-    "ending_fade": 3
+    "ending_fade": 3,
+    "melody_prog": 0
    },
    "mode": "major"
   }
@@ -170,17 +185,17 @@
   "energy_curve_db": [],
   "energy_gain": 1.0,
   "templates": ["anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid", "anime/Animal Crossing - Load Game.mid", "anime/Composition - The Anime Medley.mid", "anime/ABBA.Name of the game K.mid", "folk/I-Was-Country-When-Country-Wasn't-Cool.mid", "folk/A.JACKSON.Gone country.mid", "folk/Acid-Folk.mid", "pop/IGGY POP.Louie Louie.mid", "pop/Disco Citizens - Footprint.mid", "pop/Disco-Fans.mid"],
-  "melody_profile": "refs/melody/BGM33_pyin_melody.json",
+  "melody_profile": "refs/themes/daily_melody.json",
   "seed": 7,
   "melody_reuse": true
  },
  "melody_gen": {
-  "profile": "BGM33_pyin",
-  "seed": 16,
+  "profile": "daily",
+  "seed": 7,
   "dens": 2.6,
-  "candidates": 8,
+  "candidates": 4,
   "mode": "motif",
   "variants": true,
-  "step_bias": 0.5
+  "step_bias": 1.0
  }
 }

@@ -51,7 +51,7 @@
 $py = "<工具链根>/venv/python.exe"
 cd <工具链根>
 & $py scripts\theme_pack.py classic        # 模板包（模板不足时 --allow-fetch 联网抓）
-& $py scripts\new_song.py 18_marble_two --theme classic --seed 33
+& $py scripts\new_song.py 18_marble_two --theme classic --seed 7
 & $py scripts\make_song.py 18_marble_two --check
 ```
 
