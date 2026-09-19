@@ -250,6 +250,10 @@ def main():
     name = a.name or re.sub(r'\W+', '_', os.path.splitext(os.path.basename(a.audio))[0])
     print('== 识别参考曲 %s ==' % name)
 
+    # 面板守卫（硬形式）：识别属于"分析类"，同样要走面板（分轨能在面板里逐轨独奏核对）
+    import studio_guard
+    studio_guard.ensure_panel()
+
     dst = run_stems(a.audio, name, a.model)
     stems = measure(dst)
     print('  逐声部（能量口径）：')

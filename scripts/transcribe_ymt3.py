@@ -206,6 +206,16 @@ def main():
     print("显存 %d/%d MB · batch=%d%s" % (free_mb, total_mb, bsz,
           "（auto：总量与可用量取小）" if args.bsz == "auto" else ""), flush=True)
 
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    # ⚠ 2026-09-19 补：冷启动审计（新开对话只读文档）发现"自动探活"当时只覆盖
+    #   new_song/make_song/melody_gen 三个入口，**模仿路径整条都没接** ——
+    #   于是新对话走仿写时，"已自动化"并不成立，面板还得靠人记得。
+    #   面板是辅助通道：起不来只警告、不中断（这里用 try 兜住，守卫自身出错也不该拖垮生成）。
+    try:
+        import studio_guard
+        studio_guard.ensure_panel()
+    except Exception as _e:                                        # noqa: BLE001
+        print('  （面板守卫跳过：%s）' % str(_e)[:80])
     t0 = time.time()
     model = load_model_checkpoint(args=MODEL_ARGS, device="cuda")
     print("① 模型载入 %.1fs" % (time.time() - t0), flush=True)

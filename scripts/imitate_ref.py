@@ -11,7 +11,7 @@
 | 阶段 | 做什么 | 依据 |
 |---|---|---|
 | stems | htdemucs + htdemucs_6s 分轨 | 6s 的 piano/guitar 与 4s 的 other/bass 错误互不相关 |
-| ymt3 | YourMT3+ 整曲转录（bsz=32） | 2.3× 快、产物与官方一致；多乐器一次出 13 通道 |
+| ymt3 | YourMT3+ 整曲转录（**batch 与分组自动推算**，见 `ML.md`「长曲必须分组推理」） | 2.3× 快、产物与官方一致；多乐器一次出 13 通道 |
 | ymt3bass | **对 bass 分轨再跑一次** | 全混音里低音被盖住：279 音 vs 分轨 818 音（BGM29 实测） |
 | bp | 6 条分轨跑 Basic Pitch | 与 YMT3 错误不相关 → 集成才有增益 |
 | bass | 低音三源交叉验证 + 低八度 sub 层 | 平均相对带差 2.61 → **0.95 dB** |
@@ -126,6 +126,12 @@ def main():
     ref = os.path.abspath(a.ref)
     if not os.path.isfile(ref):
         raise SystemExit('找不到参考音频：%s' % ref)
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    # ⚠ 2026-09-19 补：这条流水线**本来是缺口** —— `new_song`/`make_song`/`melody_gen`
+    #   早就接了守卫，而"仿写/还原"这条主路没接，于是仿写时面板依然是"等用户开口才接上"。
+    #   面板是**辅助通道**：起不来只警告不中断（stdout/stderr 也照样跑得完）。
+    import studio_guard
+    studio_guard.ensure_panel()
     name = a.name or os.path.splitext(os.path.basename(ref))[0]
     # ⚠ 分轨目录名来自**音频文件名**（demucs 自己按输入文件命名），而转录产物名来自 --name ——
     #    两者可能大小写/拼写不同（BGM29.ogg → stems/htdemucs/BGM29，但转录叫 bgm29_ymt3）。

@@ -2284,7 +2284,12 @@ def t_panel_guard_wired():
     src = open(mod, encoding='utf-8').read()
     assert 'def ensure_panel(' in src, 'studio_guard.py 里没有 ensure_panel'
     missing = []
-    for nm in ('new_song.py', 'make_song.py', 'melody_gen.py'):
+    # ⚠ 2026-09-19 扩清单：原来只有三个"写歌"脚本，而**仿写/还原**这条主路
+    #   （`imitate_ref.py`）与识别（`identify_ref.py`）当时是缺口 —— 于是"新开对话仿写"
+    #   依然会出现"面板等用户开口才接上"（守卫自己的注释里记着那次事故）。
+    for nm in ('new_song.py', 'make_song.py', 'melody_gen.py',
+               'imitate_ref.py', 'identify_ref.py', 'imitate_plan.py',
+               'transcribe_ymt3.py'):
         s = open(os.path.join(HERE, nm), encoding='utf-8').read()
         # **必须先剥掉注释再匹配**：否则"把调用注释掉"（`# studio_guard.ensure_panel()`）
         # 会骗过这条检查 —— 首版就是这么写的，变异用例（注入的正好是一行注释）

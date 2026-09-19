@@ -190,6 +190,16 @@ def main():
     ap.add_argument('--dry-run', action='store_true', help='只校验 + 打印，不写盘')
     a = ap.parse_args()
 
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    # ⚠ 2026-09-19 补：冷启动审计（新开对话只读文档）发现"自动探活"当时只覆盖
+    #   new_song/make_song/melody_gen 三个入口，**模仿路径整条都没接** ——
+    #   于是新对话走仿写时，"已自动化"并不成立，面板还得靠人记得。
+    #   面板是辅助通道：起不来只警告、不中断（这里用 try 兜住，守卫自身出错也不该拖垮生成）。
+    try:
+        import studio_guard
+        studio_guard.ensure_panel()
+    except Exception as _e:                                        # noqa: BLE001
+        print('  （面板守卫跳过：%s）' % str(_e)[:80])
     sp = os.path.join(SONGS, a.song, 'song.json')
     if not os.path.isfile(sp):
         die('找不到 %s（先跑 new_song.py --theme 出骨架）' % sp)

@@ -34,7 +34,7 @@ py -3.13 -m venv .venv-ml
 ## 标准流程
 
 ```powershell
-$ml = "<工具链根>/venv-ml/python.exe"
+$ml = "<工具链根>/.venv-ml/Scripts/python.exe"
 # ① 分离参考曲（也分离我们自己的成品，做逐声部对比）
 & $ml -m demucs -n htdemucs -o stems "<参考曲目录>/BGM33.ogg"
 & $ml -m demucs -n htdemucs -o stems "songs\14_d75_pulse\pulse_sf.wav"
