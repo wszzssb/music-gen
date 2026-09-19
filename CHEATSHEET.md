@@ -146,3 +146,13 @@ studio\stop.cmd     # 停
 
 参数：`--dur-floor`（时值下限，只动旋律层，默认 0.55 拍）· `--absorb-into`（YMT3 的合成器通道并进哪条轨，默认 Strings —— 并进 Piano 会用钢琴音色弹它）· `--thr-extra`（Guitar/Strings 是单来源层，套 `--merge-thr` 会把整层砍掉）；改过参数要 `--from bass --force bass` 重跑。
 判据 → `docs/RESTORE-METHOD.md` §4b · PITFALLS 206/207。
+
+### 推不上去（github.com 时通时不通）
+
+```powershell
+bash tools/git-push/push_via_tunnel.sh       # 一键：先试直连 → 不通就挑可达 IP 走本地转发器再推
+git rev-list --count origin/main..HEAD       # 推之前先看还有几个提交没推
+```
+
+根因**不是 DNS**，是"**某个目标 IP 的 443 被丢**"（详见 `tools/git-push/README.md`）；
+零改动的办法是**隔 15 秒重试**（实测第 3 轮就通）· 症状台账 PITFALLS 212。

@@ -9,7 +9,12 @@ import os
 import shutil
 
 HOME = os.path.expanduser('~')
-DST = r'D:\software\skill\docs\HOST-DOCS'
+# 备份落点 = 本脚本所在目录（它在 docs/HOST-DOCS/ 里）。
+# ⚠ 这里原来写死 `D:\software\skill\docs\HOST-DOCS`；2026-09-19 仓库搬进 music-gen\ 子目录时
+#   我先写成"往上两级再拼 docs/HOST-DOCS"，结果多拼了一层 → 备份被写到 docs/docs/HOST-DOCS，
+#   而真正的 docs/HOST-DOCS 一直没更新（报告却打印着正确路径，看着像成功）。
+#   现在直接用脚本自身目录，层级怎么变都不会错。
+DST = os.path.dirname(os.path.abspath(__file__))
 SRC = [
     (os.path.join(HOME, '.dsh', 'AGENTS.md'), 'AGENTS.md'),
     (os.path.join(HOME, '.dsh', 'docs', 'COT-PERSONA.md'), 'COT-PERSONA.md'),

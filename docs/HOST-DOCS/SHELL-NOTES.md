@@ -17,7 +17,7 @@
 转头就在 `pwsh` 里**内联**了一段带 heredoc 的长命令：
 
 ```powershell
-& 'D:\software\Git\bin\bash.exe' -lc 'cd /d/software/skill && export PYTHONIOENCODING=utf-8 && python - <<PYEOF
+& 'D:\software\Git\bin\bash.exe' -lc 'cd /d/software/skill/music-gen && export PYTHONIOENCODING=utf-8 && python - <<PYEOF
 ...
 PYEOF'
 ```

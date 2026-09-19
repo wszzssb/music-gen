@@ -54,7 +54,7 @@ WSL 未安装发行版，不可用。
 
 发现"以后对话还能用"的东西（自检脚本 / 守卫 / 踩坑 / 口径 / 流程），主动提醒用户沉淀，
 别只留在临时目录或本次对话里。
-**往哪写、动哪些守卫、怎么验 → `D:\software\skill\docs\CONVENTION.md`**（**先读它再动手**）。
+**往哪写、动哪些守卫、怎么验 → `D:\software\skill\music-gen\docs\CONVENTION.md`**（**先读它再动手**）。
 
 ## 音乐任务 → 先加载 `bgm-studio` 技能再动手
 

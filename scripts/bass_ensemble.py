@@ -231,7 +231,7 @@ def main():
     # 只改**正好 ±12/±24** 的音，别的音程一律不动（可能是和弦内音，或 pyin 自己错）。
     if a.octave_ref:
         import soundfile as sf
-        sys.path.insert(0, r'D:\software\skill\.venv-ml\Lib\site-packages')
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.venv-ml', 'Lib', 'site-packages'))
         import librosa
         y, sr0 = sf.read(a.octave_ref, dtype='float32', always_2d=True)
         y = y.mean(axis=1)

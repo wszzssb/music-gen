@@ -77,7 +77,7 @@
 
 ## 5. 环境与路径
 
-- 工具链 `D:\software\skill`（venv `.venv`；**`mido` 只在 `.venv-ml` 里**）· 面板 `http://127.0.0.1:8765`
+- 工具链 `D:\software\skill\music-gen`（venv `.venv`；**`mido` 只在 `.venv-ml` 里**）· 面板 `http://127.0.0.1:8765`
   （**若面板没在跑：双击 `studio\start.cmd`** —— 会话后台作业起的那份会被带走）
 - 曲库 `songs/`（19 首）↔ 面板库 `D:\test\llm_direct\studio_lib\songs`（**junction，单一数据源**）
 - 旧 18 首备份：`D:\test\llm_direct\songs_backup_20260918\songs\`（⚠ 是**改名前**的目录名：

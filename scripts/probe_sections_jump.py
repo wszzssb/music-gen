@@ -15,7 +15,9 @@ import sys
 
 import numpy as np
 
-ROOT = r'D:\test\galgame\music-gen'
+# 仓库根由本文件位置推导（原来写死的是更早的 D:\test\galgame\music-gen —— 仓库一搬就坏，
+# 这次改成自动定位，下次再搬也不用改）。
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
 os.chdir(ROOT)
 import metrics  # noqa: E402
