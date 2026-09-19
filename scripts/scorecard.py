@@ -36,6 +36,61 @@ def ref_path(spec):
     return os.path.join(REFS, stem + '.json')
 
 
+def ref_dir():
+    """参考素材目录：`BGM_REF_DIR`（`INSTALL.md` / `rehearsal.py` 的既定约定）优先，
+    其次 `studio/.refdir` 里那行（与 `studio/.libpath` 同一种"这台机器的偏好"做法，
+    省得为了面板上一个按钮去配环境变量）。都没有就返回空串。"""
+    env = os.environ.get('BGM_REF_DIR', '')
+    if env:
+        return env
+    p = os.path.join(ROOT, 'studio', '.refdir')
+    try:
+        if os.path.isfile(p):
+            return open(p, encoding='utf-8').read().strip()
+    except OSError:
+        pass
+    return ''
+
+
+def ref_audio(spec):
+    """参考画像 → **参考音频的真实路径**（找不到返回 None，调用方**必须**降级）。
+
+    为什么单独一条：画像里的 `file` 常常只是**文件名**（实测 50 份里 46 份如此，
+    如 `'BGM01.ogg'`）—— 素材因版权不随仓库分发，只记文件名。谁要是拿它直接
+    `open()`/`sf.read()`，拿到的是相对 cwd 的路径 → 必然失败。2026-09-19 实测：
+    面板的「🧬 候选搜索」崩在 `LibsndfileError: Error opening 'aggregate(6 refs)'`、
+    「参考曲 A/B」恒 404，都是这个原因。聚合画像（`aggregate(N refs)`）还要先落到
+    成员的单份画像上再解析。
+    """
+    try:
+        img = spec if isinstance(spec, dict) else load_ref(spec)
+    except Exception:                                        # noqa: BLE001
+        return None
+    if not img:
+        return None
+    d = ref_dir()
+    names = []
+    f = img.get('file') or ''
+    if f:
+        names.append(f)
+    for m in (img.get('members') or []):                     # 聚合画像 → 成员画像
+        try:
+            sub = load_ref(m.get('ref') or '')
+        except Exception:                                    # noqa: BLE001
+            sub = None
+        if sub and sub.get('file'):
+            names.append(sub['file'])
+            break
+    for n in names:
+        cands = [n]
+        if d:
+            cands.append(os.path.join(d, os.path.basename(n)))
+        for c in cands:
+            if c and os.path.isfile(c):
+                return c
+    return None
+
+
 def load_ref(spec):
     p = ref_path(spec)
     if not os.path.exists(p):

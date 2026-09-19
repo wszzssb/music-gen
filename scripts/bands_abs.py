@@ -46,10 +46,15 @@ def band_power(S, f, lo, hi):
 
 
 def resolve(arg):
-    """参数 → 音频路径：① 直接是音频文件 ② refs/<名>.json 里的 file ③ 曲目目录的 render.json"""
+    """参数 → 音频路径：① 直接是音频文件 ② 画像里的 file ③ 曲目目录的 render.json。
+
+    画像路径走 `scorecard.ref_path`（唯一真源）：聚合混音画像在 `refs/mix_targets/` 下，
+    只拼 `refs/<名>.json` 会让 `bands_abs.py <主题>_mix` 报"找不到"（2026-09-19 修）。
+    """
     if os.path.isfile(arg) and arg.lower().endswith(('.wav', '.ogg', '.flac', '.mp3')):
         return arg
-    ref = os.path.join(ROOT, 'refs', '%s.json' % arg)
+    import scorecard as _sc
+    ref = _sc.ref_path(arg)
     if os.path.isfile(ref):
         d = json.load(open(ref, encoding='utf-8'))
         if d.get('file') and os.path.isfile(d['file']):

@@ -137,7 +137,11 @@ def cmd_mixfit(a):
     d = song_engine.load(a.song_json)
     cfg = render_cfg(a.song_json)
     ref_name = a.ref or cfg.get('ref') or 'BGM16c'
-    rp_path = os.path.join(MG, 'refs', '%s.json' % ref_name)
+    # ⚠ 画像查找必须与 `scorecard.ref_path` 同一条路（2026-09-19 修，与下面 `cmd_metrics`
+    #   同一处病）：主题聚合画像落在 `refs/mix_targets/<名字>.json`，只拼 `refs/<名字>.json`
+    #   会"找不到参考画像" —— 面板 🎚自动配平就是这么坏的。
+    import scorecard as _sc
+    rp_path = _sc.ref_path(ref_name)
     if not os.path.isfile(rp_path):
         raise SystemExit('找不到参考画像: %s' % rp_path)
     rp = json.load(open(rp_path, encoding='utf-8'))
@@ -249,7 +253,10 @@ def cmd_metrics(a):
     ref_name = a.ref or (render_cfg(a.song_json).get('ref') or 'BGM16c')
     mine = band_table(mine_p)
     ref, diff = None, {}
-    rp_path = os.path.join(MG, 'refs', '%s.json' % ref_name)
+    # 同一处病（见 `cmd_mixfit` 与 `server.py` 的 `/api/ref-audio`）：面板 🎚自动配平靠
+    # 这个 `metrics` 子命令拿参考带；画像读成空 → `m['ref']` 为 None → 按钮直接 TypeError。
+    import scorecard as _sc
+    rp_path = _sc.ref_path(ref_name)
     if os.path.isfile(rp_path):
         rp = json.load(open(rp_path, encoding='utf-8'))
         ref_file = rp.get('file')

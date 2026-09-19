@@ -148,7 +148,11 @@ def main():
     cfg = json.load(open(os.path.join(folder, 'render.json'), encoding='utf-8')) \
         if os.path.isfile(os.path.join(folder, 'render.json')) else {}
     ref_name = cfg.get('ref') or 'BGM16c'
-    rp_path = os.path.join(MG, 'refs', '%s.json' % ref_name)
+    # 画像路径走 `scorecard.ref_path`（唯一真源）：聚合画像在 `refs/mix_targets/` 下，
+    # 只拼 `refs/` 会读成空 → 直接抛"参考画像缺 bands"（面板 🧬候选搜索点了就报错）。
+    sys.path.insert(0, os.path.join(MG, 'scripts'))
+    import scorecard as _sc
+    rp_path = _sc.ref_path(ref_name)
     rp = json.load(open(rp_path, encoding='utf-8')) if os.path.isfile(rp_path) else {}
     align = rp.get('align_bands') or [k for k in (rp.get('bands') or {})
                                       if not k.startswith('20-40')]
@@ -161,11 +165,18 @@ def main():
     bar = 4 * 60.0 / song['bpm']
     t0 = sum(secs[:idx]) * bar
     dur = min(a.bars, secs[idx]) * bar
-    ref_file = rp.get('file')
+    # 参考音频一律走 `scorecard.ref_audio`（唯一真源）：聚合画像的 `file` 是占位串
+    # （`aggregate(N refs)`），单份画像的 `file` 常常也**只是文件名**（素材不随仓库分发，
+    # 靠 `BGM_REF_DIR` / `studio/.refdir` 指过去）。取不到就**不做参考切片**（`use_occ`
+    # 天然可降级），而不是拿占位串去 `sf.read`。2026-09-19 实测：面板 🧬候选搜索就是
+    # 这么坏的（`LibsndfileError: Error opening 'aggregate(6 refs)'`）。
+    sys.path.insert(0, os.path.join(MG, 'scripts'))
+    import scorecard as _sc
+    ref_file = _sc.ref_audio(rp)
     tmp = os.path.join(tempfile.gettempdir(), 'bgm-studio-audio', 'search_' + a.sid)
     os.makedirs(tmp, exist_ok=True)
     ref_wav = os.path.join(tmp, 'ref_%d_%d.wav' % (int(t0 * 1000), int(dur * 1000)))
-    if not os.path.isfile(ref_wav):
+    if ref_file and not os.path.isfile(ref_wav):
         import soundfile as sf
         x, sr = sf.read(ref_file, dtype='float32', always_2d=True)
         i0, i1 = int(t0 * sr), int((t0 + dur) * sr)
@@ -174,10 +185,14 @@ def main():
         sf.write(ref_wav, x[i0:i1], sr)
     ref_rel = {k: v for k, v in rp['bands'].items() if k in align}
     ref_occ = None
-    try:
-        ref_occ = occ(ref_wav, '10000-18000')
-    except Exception:                                        # noqa: BLE001
-        ref_occ = None
+    # ⚠ 只在**真有参考切片**时才量：`occ()` 找不到文件时抛的是 `SystemExit`
+    #   （不是 `Exception`），下面那个 `except` 拦不住它 —— 2026-09-19 实测，
+    #   面板 🧬候选搜索就是崩在"找不到音频文件: ...\ref_7272_1454.wav"。
+    if ref_file and os.path.isfile(ref_wav):
+        try:
+            ref_occ = occ(ref_wav, '10000-18000')
+        except BaseException:                                # noqa: BLE001
+            ref_occ = None
     use_occ = ref_occ is not None
     print('搜索目标：%s 第 %d 段（%d 小节 / %.1fs），参考 %s，对齐带 %d 个，预算 %d 次渲染 / %.0fs，%d 路并行'
           % (a.sid, idx, min(a.bars, secs[idx]), dur, ref_name, len(align), a.budget, a.time,

@@ -80,7 +80,11 @@ def hints_for(m, bands, tol=3.0, limit_keys=()):
 
 
 def aligned_bands(ref_name):
-    p = os.path.join(MG, 'refs', '%s.json' % ref_name)
+    # 画像路径走 `scorecard.ref_path`（唯一真源）：聚合画像在 `refs/mix_targets/` 下，
+    # 只拼 `refs/` 会读成空 → 调用处 `m['ref']['name']` 直接 TypeError（面板按钮点了报错）。
+    sys.path.insert(0, os.path.join(MG, 'scripts'))
+    import scorecard as _sc
+    p = _sc.ref_path(ref_name)
     rp = json.load(open(p, encoding='utf-8')) if os.path.isfile(p) else {}
     return rp.get('align_bands') or [k for k in (rp.get('bands') or {})
                                      if not k.startswith('20-40')]

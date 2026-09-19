@@ -912,11 +912,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self._file(p)
             if u.path == '/api/ref-audio':
                 r = read_json(os.path.join(song_dir(sid), 'render.json')) or {}
-                rp = os.path.join(ROOT, 'refs', '%s.json' % (r.get('ref') or 'BGM16c'))
-                ref = read_json(rp) or {}
-                f = ref.get('file')
-                if not f or not os.path.isfile(f):
-                    return self._err('参考曲音频不可用（画像里没有 file）', 404)
+                # 画像路径走 `scorecard.ref_path`（唯一真源）：聚合画像在
+                # `refs/mix_targets/` 下，只拼 `refs/` 会让"参考曲 A/B"拿不到音频。
+                sys.path.insert(0, os.path.join(TOOLCHAIN, 'scripts'))
+                import scorecard as _sc
+                # 参考音频一律走 `scorecard.ref_audio`（唯一真源）：画像里的 `file` 常常
+                # **只是文件名**（素材因版权不随仓库分发），要按 `BGM_REF_DIR` /
+                # `studio/.refdir` 解析；聚合画像还得先落到成员画像上。直接把 `file`
+                # 当路径用 → 这个按钮对所有主题曲目恒 404（2026-09-19 实测）。
+                f = _sc.ref_audio(r.get('ref') or 'BGM16c')
+                if not f:
+                    return self._err(
+                        '参考曲音频不可用：画像只记了文件名，素材不随仓库分发 —— '
+                        '设环境变量 BGM_REF_DIR，或在 studio/.refdir 里写一行素材目录'
+                        '（见 INSTALL.md）', 404)
                 return self._file(f)
             if u.path == '/api/metrics':
                 args = [BRIDGE, 'metrics', os.path.join(song_dir(sid), 'song.json')]
