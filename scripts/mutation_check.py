@@ -238,6 +238,11 @@ def main():
         return Mut(IR, 'cross_check', fake)
     results.append(case('识别交叉判读永远说一致', 'identify_cross_rules', _always_agree))
 
+    # 0b2. YMT3 改回"整曲一次喂"（实测慢 16.6 倍）—— 防回退守卫必须红
+    def _ymt3_regressed():
+        return Mut(st, '_ymt3_grouped_ok', lambda src: True)
+    results.append(case('YMT3 改回整曲一次喂', 'ymt3_grouped_inference', _ymt3_regressed))
+
     # 0c. 密度起伏被抹平（2026-09-19 修口径后补：判据改量逐小节，注入要能红）
     def _flat_density():
         src = os.path.join(ROOT, 'songs', '41_imitate_b16', 'song.json')

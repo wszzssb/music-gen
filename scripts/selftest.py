@@ -5862,6 +5862,44 @@ def t_identify_cross_rules():
            % (len(cc['agree']), len(cc['conflict']))
 
 
+YM33_SRC = os.path.join(HERE, 'transcribe_ymt3.py')
+
+
+def _ymt3_grouped_ok(src):
+    """YMT3 源码是否还是**分组推理 + 逐组搬 GPU**（抽出来给变异用例注入）。
+
+    实测（2026-09-19，同机同 `bsz=32`，BGM16 282.3s）：
+      · 整曲 138 段**一次**喂 → **3.92 s/段 · 543.8s**
+      · 分 5 组（每组 ≤29 段）**逐组搬** → **0.216 s/段 · 32.7s**（16.6 倍，音符数一字不差）
+    根因是"138 段常驻显存（约 6GB）→ 换出/分页"，不是 GPU 降频（跑任务时 2842MHz/84W/P0）。
+    "一次喂"的写法**看起来更简洁**，正是它容易被改回去的原因 —— 所以立个守卫。
+    """
+    if 'auto_chunk(' not in src or '.to("cuda"' not in src:
+        return False
+    for bad in ('segments = segments.to("cuda")', 'segments.to("cuda").unsqueeze'):
+        if bad in src:                       # 又把全部段一次搬上 GPU
+            return False
+    return True
+
+
+@check
+def t_ymt3_grouped_inference():
+    """**YMT3 转录必须分组推理 + 逐组搬 GPU**（退回"整曲一次喂"会慢 16.6 倍）。
+
+    依据见 `_ymt3_grouped_ok` 的 docstring。判据**读源码、不跑模型**（秒级）。
+    **判据自证**：去掉 `auto_chunk(` 或加回"一次全搬"那一行 → 必须判坏。
+    """
+    src = open(YM33_SRC, encoding='utf-8').read()
+    assert _ymt3_grouped_ok(src), (
+        'transcribe_ymt3.py 退回了"整曲一次喂"（或丢了 auto_chunk）—— 实测慢 16.6 倍'
+        '（543.8s → 32.7s），见 ML.md「长曲必须分组推理」')
+    assert not _ymt3_grouped_ok(src.replace('auto_chunk(', 'XXX(')), \
+        '判据自证失败：去掉 auto_chunk 仍判通过'
+    assert not _ymt3_grouped_ok(src + '\nsegments = segments.to("cuda")\n'), \
+        '判据自证失败：加回"一次全搬"仍判通过'
+    return 'YMT3 分组推理在位（auto_chunk + 逐组搬 GPU）'
+
+
 ONSET_TVD_MAX = 0.65      # 每段落点分布与画像的 TVD 上限
 BASS_FLOOR = 24           # Bass 轨音高下界 = C1(32.7Hz)（真值见 t_bass_register）
 # 段界"过渡/留白"的门（真值见 t_section_transition）：
