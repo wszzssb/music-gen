@@ -89,6 +89,12 @@ def main():
     ap.add_argument('--midi', default=None, help='我的 MIDI（查力度/时值维度）')
     ap.add_argument('--json', action='store_true')
     a = ap.parse_args()
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    try:
+        import studio_guard
+        studio_guard.ensure_panel()
+    except Exception as _e:                                        # noqa: BLE001
+        print('  （面板守卫跳过：%s）' % str(_e)[:80])
 
     ref = _find_audio(a.ref)
     mine = _find_audio(a.mine)

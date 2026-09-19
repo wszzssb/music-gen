@@ -131,6 +131,12 @@ def main():
     ap.add_argument('--full', action='store_true', help='写 patterns.notes_extra_full')
     ap.add_argument('--out', default=None, help='输出 song.json 路径（默认 songs/<name>/）')
     a = ap.parse_args()
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    try:
+        import studio_guard
+        studio_guard.ensure_panel()
+    except Exception as _e:                                        # noqa: BLE001
+        print('  （面板守卫跳过：%s）' % str(_e)[:80])
 
     bar_sec = 4 * 60.0 / a.bpm
     bounds = [float(x) for x in a.boundaries.split(',') if x.strip()]

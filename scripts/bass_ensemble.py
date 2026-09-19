@@ -80,6 +80,12 @@ def main():
                     help='pyin 置信度下限。实测扫描（BGM29 bass 全曲一致率）：'
                          '0.35→64.9%% · **0.20→69.9%%** · 0.12→70.1%%（拐点在 0.20，再放宽没收益）')
     a = ap.parse_args()
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    try:
+        import studio_guard
+        studio_guard.ensure_panel()
+    except Exception as _e:                                        # noqa: BLE001
+        print('  （面板守卫跳过：%s）' % str(_e)[:80])
 
     srcs = {}
     for spec in a.source:

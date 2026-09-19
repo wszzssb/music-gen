@@ -76,6 +76,12 @@ def main():
     ap.add_argument("-m", "--model", default="both",
                     choices=["htdemucs", "htdemucs_6s", "both"], help="分离模型")
     a = ap.parse_args()
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    try:
+        import studio_guard
+        studio_guard.ensure_panel()
+    except Exception as _e:                                        # noqa: BLE001
+        print('  （面板守卫跳过：%s）' % str(_e)[:80])
     outroot = a.out or os.path.join(os.path.dirname(os.path.abspath(a.audio)), "stems")
     os.makedirs(outroot, exist_ok=True)
     models = ["htdemucs", "htdemucs_6s"] if a.model == "both" else [a.model]

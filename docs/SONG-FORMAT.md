@@ -1,5 +1,10 @@
 # song.json 格式与风格预设（写歌时才需要读）
 
+> **这份只管"数据格式"**，不区分路径 —— 三条路最后都落在同一个 `song.json`：
+> **直接作曲**（`docs/THEME-PACK.md`）· **仿写**（`docs/IMITATE-PATH.md`）·
+> **提取 MIDI / 还原**（`docs/RESTORE-METHOD.md`）。
+
+
 > 从 README 拆出来（只有"写/改歌"才用得上）。校验一律 `scripts\check_song.py`；
 > 想写更短的 spec（和弦走向+旋律骨架）用 `scripts\build_song.py`，见 `CHEATSHEET.md`。
 

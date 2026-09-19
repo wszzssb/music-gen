@@ -29,6 +29,12 @@ def main():
     ap.add_argument("--fmin", type=float, default=32.7)
     ap.add_argument("--fmax", type=float, default=2093.0)
     a = ap.parse_args()
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    try:
+        import studio_guard
+        studio_guard.ensure_panel()
+    except Exception as _e:                                        # noqa: BLE001
+        print('  （面板守卫跳过：%s）' % str(_e)[:80])
 
     import numpy as np
     import soundfile as sf

@@ -19,6 +19,12 @@ REFS = os.path.join(os.path.dirname(HERE), 'refs')
 
 
 def main():
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    try:
+        import studio_guard
+        studio_guard.ensure_panel()
+    except Exception as _e:                                        # noqa: BLE001
+        print('  （面板守卫跳过：%s）' % str(_e)[:80])
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     if not args:
         print(__doc__)

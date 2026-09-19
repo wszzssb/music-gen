@@ -102,6 +102,12 @@ def main():
     ap.add_argument("--bpm", type=float, default=150.0, help="输出 BPM（默认 150）")
     ap.add_argument("--bass-max", type=int, default=47, help="低于此音高且时值长者归 Bass")
     a = ap.parse_args()
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    try:
+        import studio_guard
+        studio_guard.ensure_panel()
+    except Exception as _e:                                        # noqa: BLE001
+        print('  （面板守卫跳过：%s）' % str(_e)[:80])
 
     mode = a.weight or ("sup" if a.ref else "unsup")
     thr = a.thr if a.thr is not None else (0.50 if mode == "sup" else 0.90)

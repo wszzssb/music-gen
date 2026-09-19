@@ -122,7 +122,13 @@ def roman_of(root_pc, quality, key_pc):
     return base
 
 
-def main(path, force_bars=None, brief=False):
+def main(path, force_bars=None, brief=False):
+    # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
+    try:
+        import studio_guard
+        studio_guard.ensure_panel()
+    except Exception as _e:                                        # noqa: BLE001
+        print('  （面板守卫跳过：%s）' % str(_e)[:80])
     m, sr = load_mono(path)
     dur = len(m) / sr
     flux, dt = flux_env(m, sr)
