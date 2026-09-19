@@ -893,6 +893,11 @@ function bind(){
   $('loopChk').onchange=applyLoop; $('loopA').onchange=applyLoop; $('loopB').onchange=applyLoop;
   document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
   $('btnLoadStems').onclick=loadStems; $('btnApplyMix').onclick=applyMixToSong;
+  if($('seek')) $('seek').oninput=()=>{
+    const d=ENG.state().dur||0;
+    ENG.seek(($('seek').value/1000)*d);
+    drawWave(); syncSeek();
+  };
   $('btnRenderMix').onclick=async()=>{ if(await saveSong(true)) startJob('render','渲染（合并成品）'); };
   $('btnMixfit').onclick=()=>startJob('mixfit','自动配平（解方程 + 实测校验）');
   $('btnPreview').onclick=previewSection;
@@ -957,7 +962,7 @@ function rAF(){
     /* 波形/电平表降频到 ~12fps：这个循环现在常驻（播放与否都跑），
      * 而 `drawWave` 每次都重设 canvas 尺寸并重画 1200 根柱子 —— 60fps 白烧 CPU。 */
     tick++;
-    if(st.playing || (tick % 5) === 0) { drawWave(true); drawMeters(); }
+    if(st.playing || (tick % 5) === 0) { drawWave(true); drawMeters(); syncSeek(); }
     const d=st.dur||0, p=ENG.position();
     $('posInfo').textContent=num(p).toFixed(1)+' / '+num(d).toFixed(1)+'s';
     requestAnimationFrame(step);
@@ -1002,8 +1007,14 @@ function applyLoop(){
 }
 function bindWave(){
   const c=$('wave'); let dragging=false, shift=false;
+  /* 波形现在与卷帘**同一坐标系**（见 drawWave 的注释），所以点击定位也要按视窗算：
+     否则"点波形跳到的位置"和"红线画的位置"会差一整个视窗。 */
   const pos=(e)=>{ const r=c.getBoundingClientRect();
-    return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)) * (ENG.state().dur||0); };
+    const f=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+    const spb=60/((S.song&&S.song.bpm)||120);
+    const rg=rollGeom();
+    if(rg && rg.v && rg.v.span>0) return (rg.v.st + f*rg.v.span) * spb;
+    return f * (ENG.state().dur||0); };
   c.onmousedown=(e)=>{ shift=e.shiftKey; dragging=true; if(shift){$('loopA').value=pos(e).toFixed(1);} else ENG.seek(pos(e)); };
   c.onmousemove=(e)=>{ if(!dragging) return; if(shift){ $('loopB').value=pos(e).toFixed(1); $('loopChk').checked=true; applyLoop(); } else ENG.seek(pos(e)); drawWave(); };
   window.addEventListener('mouseup',()=>{dragging=false;});
@@ -1020,29 +1031,58 @@ function log(msg){
   if(l.textContent.length>6000) l.textContent=l.textContent.slice(-6000);
   l.scrollTop=l.scrollHeight;
 }
+/* 秒 → m:ss（进度条右侧的时间） */
+function fmtSec(s){
+  s=Math.max(0, Math.round(s||0));
+  return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+}
+/* 整曲进度条（用户 2026-09-19 要求"加一个进度条功能和编辑器一样"）。
+ * 分工：**进度条 = 整曲概览 + 定位**；波形 = 当前视窗（与卷帘同一时间轴，红线对齐）。
+ * 拖动时不要回写（否则会被播放循环每 5 帧覆盖掉，手感变成"拖不动"）。 */
+function syncSeek(){
+  const el=$('seek'); if(!el) return;
+  const d=ENG.state().dur||0;
+  if(document.activeElement!==el){
+    el.value=String(Math.round(ENG.position()/Math.max(1e-6,d)*1000));
+  }
+  const info=$('seekInfo');
+  if(info) info.textContent=fmtSec(ENG.position())+' / '+fmtSec(d);
+}
 function drawWave(light){
   const c=$('wave'); if(!c) return;
   const W=c.width=c.clientWidth*devicePixelRatio, H=c.height=56*devicePixelRatio;
   const g=c.getContext('2d'); g.clearRect(0,0,W,H); g.fillStyle='#0f1117'; g.fillRect(0,0,W,H);
   const d=ENG.state().dur||0;
-  /* ⚠ **时间轴必须与卷帘一致**（2026-09-19）：音频比 MIDI 长（段末留白 + 混响尾巴，
-     实测 122.72s vs 120.00s），原先按**音频时长**铺满整宽 → 波形与播放头比卷帘"快"
-     2.3%，末尾对不上（用户截图报"速度不匹配"）。改用**卷帘覆盖的秒数**当分母。 */
-  const axis = (totalBeats() * 60 / ((S.song && S.song.bpm) || 120)) || d || 1;
-  const p=ENG.peaks(1200);
+  const spb=60/((S.song&&S.song.bpm)||120);
+  /* **时间轴必须与卷帘同一坐标系**（用户 2026-09-19："钢琴卷帘上下两个有进度时红线对齐"）。
+   * 原来这里按**整曲**归一化（`sec/axis*W`，axis = 全曲秒数），而卷帘的播放头走 `drawPlayhead`
+   * 里的 `g.x(pos/spb)`（**当前视窗**）—— 两个坐标系，红线永远对不齐：波形那条快速扫过，
+   * 卷帘那条在视窗里慢慢挪。现在两边都用 `rollGeom().v`（视窗起始拍 + 跨度拍）当分母。
+   * 视野外的柱子不画；拿不到几何（曲目还没载入）时回退整曲铺满，至少不空着。 */
+  const rg=rollGeom();
+  const win = (rg && rg.v && rg.v.span>0) ? rg.v : null;
+  const beat2x = win ? ((b) => (b - win.st) / win.span * W)
+                     : ((b) => b / ((totalBeats()*spb)||d||1) * W);
+  const p=ENG.peaks(2400);
   if(p){
     g.fillStyle='#3a4152';
     for(let i=0;i<p.length;i++){
-      const sec = i/p.length*d;                   // 这根柱子对应的音频秒
-      if(sec>axis) break;                         // 超出 MIDI 长度的尾巴不画
-      const h=p[i]*H*0.9; g.fillRect(sec/axis*W, (H-h)/2, 1, h);
+      const sec = i/p.length*d;
+      const x = beat2x(sec/spb);
+      if(x<-2 || x>W+2) continue;                  // 视野外不画
+      const h=p[i]*H*0.9; g.fillRect(x, (H-h)/2, 1, h);
     }
   }
   if(d){
     const [a,b]=ENG.state().loop;
-    if(a!=null&&b!=null){ g.fillStyle='rgba(92,200,255,.12)'; g.fillRect(a/axis*W,0,(b-a)/axis*W,H); }
-    const x=ENG.position()/axis*W;
-    g.fillStyle='#ff6b6b'; g.fillRect(x-1,0,2,H);
+    if(a!=null&&b!=null){
+      const x1=beat2x(a/spb), x2=beat2x(b/spb);
+      g.fillStyle='rgba(92,200,255,.12)';
+      g.fillRect(Math.max(0,x1), 0, Math.min(W,x2)-Math.max(0,x1), H);
+    }
+    const x=beat2x(ENG.position()/spb);
+    g.fillStyle='#ff6b6b';
+    if(x>=0 && x<=W) g.fillRect(x-1,0,2,H);        // 视野外不画（卷帘那边也是隐藏）
   }
   if(!light) g.fillStyle='#6f7690';
 }

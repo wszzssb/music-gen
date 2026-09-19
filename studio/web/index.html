@@ -55,7 +55,12 @@
     <div id="secStrip"></div>
     <div id="secEdit"></div>
     <h2>钢琴卷帘 <span class="dim" id="rollHint">（拖拽=移动，空白处拖=新建，右键=删除；只对 Melody 可编辑）</span></h2>
-    <canvas id="wave" height="56" title="拖动波形定位；Shift+拖 = 设循环区间"></canvas>
+    <div class="row">
+      <input type="range" id="seek" min="0" max="1000" value="0" step="1" style="flex:1;min-width:120px"
+             title="整曲进度：拖动定位（与编辑器顶部那条一样）">
+      <span class="dim" id="seekInfo">0:00 / 0:00</span>
+    </div>
+    <canvas id="wave" height="56" title="拖动波形定位（与卷帘同一时间轴，红线对齐）；Shift+拖 = 设循环区间"></canvas>
     <!-- ⚠ 播放头必须是**独立叠加层**：它原来由 drawPlayhead() 每帧画在卷帘画布上而**从不擦除**
          （只在当前位置补一条 2px 红线）→ 播放时残留叠成红带，**拖进度条时位置跳跃 → 旧的线全留下
          = 满屏红色竖条**（用户报"拖动进度条之后还有显示bug"）。现在它是 DOM 元素，只移动不改画布。 -->
@@ -120,7 +125,7 @@
      从不 play()，且用户点过 ⏹ 后它是 null，`S.player.src=` 会抛异常）。
      试听/播放统一走 WebAudio 引擎（`engine.js`），所以删掉了。 -->
 <script src="/engine.js?v=14"></script>
-<script src="/app.js?v=20"></script>
+<script src="/app.js?v=21"></script>
 <!-- 中英切换：i18n.js 按系统语言自动选（localStorage bgmLang → navigator.language），
      右上角 🌐 按钮手动切。放在 app.js 之后，靠 MutationObserver 兜住动态生成的文案。 -->
 <script src="/i18n.js?v=1"></script>
