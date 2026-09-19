@@ -1138,6 +1138,7 @@ async function doImport(file) {
   log('导入 ' + file.name + '：' + r.summary.tracks.length + ' 轨 / ' + r.summary.stats.notes + ' 音符 / ' +
       (r.summary.bpm || 0).toFixed(1) + ' BPM / ' + (r.summary.timesig || []).join('/'));
   setStatus('已导入 ' + file.name);
+  autoRenderAudio();
 }
 /* **按服务端路径导入**（用户口径"希望主面板像编辑器那样"）：
    与 doImport 的区别只有一处 —— **不上传文件内容**，直接把路径交给服务端读（限工具链/曲库内），
@@ -1156,6 +1157,7 @@ async function doImportPath(path) {
   log('导入 ' + path + '：' + r.summary.tracks.length + ' 轨 / ' + r.summary.stats.notes + ' 音符 / ' +
       (r.summary.bpm || 0).toFixed(1) + ' BPM');
   setStatus('已导入 ' + nm);
+  autoRenderAudio();
 }
 async function doExport(fmt) {
   if (!S.model) return log('先导入文件');
@@ -1264,6 +1266,23 @@ async function loadAudio(url, sec, fp) {
   updateAudioInfo();
   log('已切换到真音源（' + (sec ? sec.toFixed(1) + ' 秒' : '时长未知') + '）—— 点播放即可试听');
   return true;
+}
+/* 导入后**自动去取真音源**（不弹窗、不打断编辑）。
+ *
+ * 为什么（用户 2026-09-19："播放有问题卡卡的，声音还很奇怪，甚至远远不如主页面的分轨播放"）：
+ * **主页面分轨播放放的是真音源渲染出来的 OGG**（`bridge stems`，GeneralUser GS），
+ * 而编辑器默认放的是 `ed.js` 里实时合成的振荡器音 —— 两条完全不同的管线，
+ * 合成音无论怎么调都不可能追平真音源（它的定位只是"改一个音符立刻听个响"）。
+ * 编辑器的真音源入口一直是「🎧 渲染音频」（`renderAudio` → `render_midi.py`，与引擎面板
+ * **同一条渲染管线**），但没人会主动去点它，于是大家听到的永远是那个合成音。
+ * 现在导入后自动走一次：**命中缓存是秒切**（`render-audio` 带指纹），没缓存就后台渲染
+ * 几十秒，期间合成音照常能听、能继续编辑，渲染好自动切过去。 */
+function autoRenderAudio() {
+  if (!S.model || S.renderTask) return;         // 没有模型 / 已有渲染在跑
+  if (S.audioMode === 'media') return;          // 已经是真音源
+  log('正在取真音源（GeneralUser GS 渲染，与引擎面板同一条管线；命中缓存则秒切）——'
+      + '渲染期间先用合成音试听');
+  renderAudio();
 }
 async function renderAudio() {
   if (!S.model) return log('先导入文件');
