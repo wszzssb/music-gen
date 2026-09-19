@@ -70,6 +70,9 @@ def main():
     ap.add_argument('--layer', default='Bass', help='被替换的轨名（默认 Bass）')
     ap.add_argument('--thr', type=float, default=0.90, help='跨来源支持率阈值')
     ap.add_argument('--max-dur', type=float, default=1.6, help='单音最长时值（秒）')
+    ap.add_argument('--min-beats', type=float, default=0.0,
+                    help='时值下限（**拍**）：<= 它的音拉到该值。0=不拉。'
+                         '实测 v5 认可版时值中位 0.47 拍，而集成产物只有 0.14 → 听感「不流畅」')
     ap.add_argument('--program', type=int, default=None, help='替换后该轨的 GM 音色号')
     ap.add_argument('--sub', action='store_true', help='额外生成低八度 sub 层（补 20-40Hz）')
     ap.add_argument('--octave-ref', default=None,
@@ -175,6 +178,10 @@ def main():
     print('  阈值 %.2f（归一化，权重总和 %.3f）→ 保留 %d 音 · 砍 %d'
           % (a.thr, W_TOTAL, kept, dropped))
 
+    # 截断下限（秒）：`--min-beats` 给了就按它，否则退回原来的 0.01 秒
+    _FLOOR = (a.min_beats * (60.0 / float(midi_file.import_midi(a.base).get('bpm') or 120.0))
+              if getattr(a, 'min_beats', 0) > 0 else 0.01)
+
     def dedup(byp):
         """同音高截断，避免重叠（重叠会被音源吞音：note-off 只带音高不带 id）"""
         for p, lst in byp.items():
@@ -190,11 +197,33 @@ def main():
                     if gap < 0.02:
                         continue
                     if cur[1] > gap - 0.005:
-                        cur[1] = max(0.01, gap - 0.005)
+                        # ⚠ 下限不能写死 0.01：同音高密集重复时 gap 极小，
+                        #   长音会被截成 0.025 拍 —— 实测这抵消了 `--min-beats`
+                        #   （打印"拉长 978 音"但产物时值中位一动不动）。
+                        #   用 `_FLOOR`（由 --min-beats 定），宁可让相邻同音高重叠。
+                        cur[1] = max(_FLOOR, gap - 0.005)
                 out.append(cur)
             lst[:] = out
 
     dedup(by_pitch)
+
+    # **时值下限**（opt-in `--min-beats`，2026-09-19）：<=
+    #   实测（用户："16/23/29 太杂乱、不流畅"）：集成产物时值中位 0.14~0.18 拍、
+    #   碎音 57~61%，而认可版 v5_source 是 **0.47 拍 / 37.9%** → 音符太碎。
+    #   BP 的转录天然给短时值，`max()` 也拉不回来，只能显式给下限。
+    #   按**拍**给（各曲 BPM 差一倍多：71 vs 150）。拉长后可能撞出新重叠 → 再 dedup。
+    if a.min_beats > 0:
+        # ⚠ 这里在 `base = import_midi(...)` **之前**，不能引用 base —— 直接读一次
+        _spb2 = 60.0 / float(midi_file.import_midi(a.base).get('bpm') or 120.0)
+        _min_s = a.min_beats * _spb2
+        _n = 0
+        for _p, _lst in by_pitch.items():
+            for _it in _lst:
+                if _it[1] < _min_s:
+                    _it[1] = _min_s
+                    _n += 1
+        print('  时值下限 %.2f 拍 → 拉长 %d 音' % (a.min_beats, _n))
+        dedup(by_pitch)
 
     # ── 八度校正（opt-in，--octave-ref 给了才做）────────────────────────────
     # 依据：pyin 在参考低音分轨上提的基频是**独立方法**，三方（YMT3/BP4/BP6）都错才会同时错；

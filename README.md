@@ -160,7 +160,9 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `extract_theme_timbres.py` | **主题模板的实际音色与配器**（2026-09-18）：扫 8~10 首同主题模板的**轨名 + program**（轨名优先；音域**只在整首都没有可识别轨名时**兜底 —— 否则纯钢琴曲的左手低音会被凭空判成"贝斯声部"）→ `--inject` 把每个声部的音色池写进 `refs/themes/<主题>.json` 的 `arrangement.prog_pool`。⚠ **只改这一个字段**：`mix_target.energy_gain` / `calibration` 是标定流程写的，重跑 `theme_pack.py` 会整包重建、把它们冲掉。`new_song.theme_programs` 靠它把"乐器选择"从 5 套风格预设换成模板真值（classic → 管钟/双簧管；battle → 排箫/钢弦吉他；neon → 方波主音） |
 | `transcribe_ymt3.py` / `bp_transcribe.py` | **两个转录模型**：YourMT3+（整段混音直接出多轨 MIDI，`--bsz auto`；⚠ 必须用本脚本，官方 `bsz=8` 慢 2.3×）与 Basic Pitch（Spotify，ONNX 后端，跑在**独立 venv** `D:\test\bp-venv`，不碰 `.venv-ml` 的 torch）。⚠ 二者错误**互不相关**才是价值所在 |
 | `eval_transcription.py` / `ensemble_transcribe.py` | **转录评估与集成**：前者是被评 MIDI 对参照的**音符级 F1**（逐段列，`--self-test` 量尺子天花板、`--shift` 判"只是错位"）；后者**多来源交叉验证**后合成一份（实测单来源 0.333 → 集成 0.532）。⚠ 集成修不掉**系统性**错误，要独立方法当尺子 |
-| `extract_vocals.py` / `imitate_ref.py` | 人声提取（差分法 + 只修段间过门杂音）与**九段还原链**（第 9 段 = ①识别体检 → ②逐带体检） |
+| `extract_vocals.py` / `imitate_ref.py` | 人声提取（差分法 + 只修段间过门杂音）与**九段还原链**（第 9 段 = ①识别体检 → ②逐带体检）。⚠ 收尾会**拒绝**"成品路径 == 参考路径"（否则会覆盖参考原曲，见 PITFALLS 208）；`stale()` 是**真比时间戳**的（改了 `song.mid` 会自动重渲染，见 PITFALLS 207） |
+| `merge_tracks.py` | **并轨 + 时值下限**（还原链第 5 段末）：把 YMT3 的合成器/键盘通道并进 Piano（`--from "Synth Pad,Organ,…"` → 集成后 9 轨收敛成 5 轨），并给全轨拉时值下限 `--min-beats`（**延长、不删 onset**）。听感"杂乱/不流畅"的两条量化病根见 PITFALLS 206 |
+| `bass_ensemble.py` | **多来源集成**：同音高/同 0.1s 格合并 + 按跨来源支持率归一化打分（`--thr`）→ 替换或 `--merge` 合并；`--min-beats` 给时值下限、`--octave-ref` 用 pyin 校八度、`--sub` 补低八度层。⚠ 阈值须**归一化**（`sum(w)/W_TOTAL`）：原写法在三来源权重只有 0.44/0.40/0.07 时，**三源全共识**才 0.908 —— 实测整条 Bass 轨只剩 2 音 |
 | `arrange_probe.py` | 编配诊断：逐段音高分布、音符密度、亮度指数 |
 | `noise_probe.py` | 杂音体检：6-16k 尾巴电平 + 谱平坦度（噪声高、纯音≈0）+ 爆音检测 |
 | `midi_probe.py` | MIDI 解析：轨名/音色/速度/音域/音符数/小节数 |

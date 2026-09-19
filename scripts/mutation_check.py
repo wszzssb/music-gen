@@ -1476,6 +1476,50 @@ def main():
             st.HERE = self.old
     results.append(case('生成脚本绕开面板守卫', 'panel_guard_wired', NoPanelGuard))
 
+    # ㉓ 时值下限被关掉（`mb=_DF` → `mb=0`）→ `dur_floor_wired` 必须抓到。
+    #    这条参数是"听感 = 杂乱 / 不流畅"那轮的产物（PITFALLS 206），最容易被
+    #    "参数不该写死"退回默认关 —— 关掉后旋律轨时值中位会跌回 0.10~0.19s
+    #    （认可版是 0.264~0.344s），而**所有音符级指标都看不出异常**。
+    #    拆在临时目录的副本上（不动真文件）。
+    if not os.path.isdir(TMP):
+        os.makedirs(TMP, exist_ok=True)
+
+    class _CopyWith:
+        """把两个脚本拷进临时目录、按 pairs 改坏其中某个，再把 `st.HERE` 指过去"""
+        def __init__(self, fname, pairs):
+            self.fname, self.pairs = fname, pairs
+        def __enter__(self):
+            import shutil
+            self.old = st.HERE
+            d = tempfile.mkdtemp(dir=TMP)
+            for nm in ('imitate_ref.py', 'merge_tracks.py'):
+                shutil.copy2(os.path.join(self.old, nm), d)
+            p = os.path.join(d, self.fname)
+            s = open(p, encoding='utf-8').read()
+            for a, b in self.pairs:
+                assert a in s, '变异锚点没找到：%r' % a[:60]
+                s = s.replace(a, b)
+            open(p, 'w', encoding='utf-8').write(s)
+            st.HERE = d
+        def __exit__(self, *a):
+            st.HERE = self.old
+
+    results.append(case('时值下限被关（mb=_DF → 0）', 'dur_floor_wired',
+                        lambda: _CopyWith('imitate_ref.py', [('mb=_DF', 'mb=0')])))
+
+    # ㉔ 并轨步骤被摘掉 → 集成后又是 9 条轨（Synth Pad / Organ / Chromatic Percussion /
+    #    Synth Lead 全留着，碎音 68~84%），而认可版只有 5 条轨 → 必须抓到
+    results.append(case('并轨步骤被摘掉', 'dur_floor_wired',
+                        lambda: _CopyWith('imitate_ref.py',
+                                          [('merge_tracks.py', 'merge_DISABLED.py')])))
+
+    # ㉕ `stale()` 退回"只看文件在不在" → "改了 MIDI 却渲染旧音频"（PITFALLS 207，
+    #    三首一起跑 18 秒就"完成"了，用户听到的是上一版音频）→ 必须抓到。
+    #    这里直接换掉**模块函数**（守卫里 `ir.needs_redo(...)` 调的正是它）。
+    import imitate_ref as _ir
+    results.append(case('stale 退回只看文件在不在', 'dur_floor_wired',
+                        lambda: Mut(_ir, 'needs_redo', lambda *a, **k: False)))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

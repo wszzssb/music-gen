@@ -98,6 +98,27 @@ def low_strategy(ref):
     return hp, sub, rel
 
 
+def needs_redo(path, force_tags, tag, up=()):
+    """产物是否要重做 —— **真的比时间戳**，不是"文件在不在"。
+
+    ⚠ 2026-09-19 修（这条是"改了却听不到"的静默陷阱）：原实现只有
+    `return tag in force or not have(path)` —— **名字叫 stale 却不看时间**。
+    实测后果：`--force bass` 重跑集成、`song.mid` 已改写，而第 6/7/8 段照样打印
+    "已存在，跳过" → 命令 `exit=0`、日志写"== 完成 =="，**成品音频还是上一版**
+    （三首 18 秒跑完就是这么来的）。用户听到旧音频，只会得出"改了没用"。
+    现在：任一上游产物比它新 → 重做（`up` = 该阶段的上游列表）。
+
+    抽成**模块级**函数是为了能被单测（原来它是 `main()` 里的闭包，只能靠读源码猜）。
+    """
+    if tag in (force_tags or ()) or not os.path.exists(path):
+        return True
+    try:
+        mt = os.path.getmtime(path)
+    except OSError:
+        return True
+    return any(os.path.exists(u) and os.path.getmtime(u) > mt for u in (up or ()))
+
+
 def main():
     ap = argparse.ArgumentParser(description='参考曲模仿流水线')
     ap.add_argument('ref', help='参考音频（ogg/wav/flac/mp3）')
@@ -119,6 +140,12 @@ def main():
                     help='渲染高通频率（缺省 = 按参考曲低频含量自适应）')
     ap.add_argument('--bsz', type=int, default=0,
                     help='YourMT3 推理 batch；**0 = auto**（按显存自动挑，8GB 卡 → 24）')
+    ap.add_argument('--dur-floor', type=float, default=0.55,
+                    help='时值下限（拍）——对**每条旋律轨**生效（鼓/打击轨不动）。'
+                         '实测依据见下（用户"太杂乱、不流畅"那次的量化）；0 = 关')
+    ap.add_argument('--absorb', default='Synth Pad,Organ,Synth Lead,Chromatic Percussion',
+                    help='并进 Acoustic Piano 的轨名（逗号分隔）——YMT3 的合成器/键盘通道。'
+                         '**给空串 = 不并**（保留原轨数）')
     a = ap.parse_args()
     # ⚠ 2026-09-19：原来 default=32 且**显式传给子进程** —— 于是 `transcribe_ymt3.pick_bsz`
     #   的 8GB 档自动下调（32→24）**根本走不到**。实测 8GB 卡上 bsz=32 吃 7.68/8.15GB（94%）
@@ -154,14 +181,15 @@ def main():
     def stage(i, tag):
         return i >= started or tag in a.force
 
-    def stale(path, tag):
-        return tag in a.force or not have(path)
+    def stale(path, tag, up=()):
+        """→ `needs_redo`（模块级，可被单测；语义见那里的 docstring）"""
+        return needs_redo(path, a.force, tag, up)
 
     # ── 1 分轨 ──────────────────────────────────────────────────────────────
     s4 = os.path.join(stems, 'htdemucs', stem_name)
     s6 = os.path.join(stems, 'htdemucs_6s', stem_name)
-    if stage(0, 'stems') and (stale(os.path.join(s6, 'bass.wav'), 'stems')
-                              or stale(os.path.join(s4, 'bass.wav'), 'stems')):
+    if stage(0, 'stems') and (stale(os.path.join(s6, 'bass.wav'), 'stems', [ref])
+                              or stale(os.path.join(s4, 'bass.wav'), 'stems', [ref])):
         print('\n[1/9] 分轨（htdemucs + htdemucs_6s）')
         sh([PY_ML, os.path.join(HERE, 'stem_split.py'), ref, '-o', stems, '-m', 'both'], 'stems')
     else:
@@ -169,7 +197,7 @@ def main():
 
     # ── 2 整曲转录 ──────────────────────────────────────────────────────────
     ymt_mid = os.path.join(ymt, '%s_ymt3.mid' % name)
-    if stage(1, 'ymt3') and stale(ymt_mid, 'ymt3'):
+    if stage(1, 'ymt3') and stale(ymt_mid, 'ymt3', [ref]):
         print('\n[2/9] YourMT3 整曲转录')
         sh([PY_ML, os.path.join(HERE, 'transcribe_ymt3.py'), ref, '-o', ymt,
             '--name', '%s_ymt3' % name] + _BS, 'ymt3')
@@ -179,7 +207,7 @@ def main():
     # ── 3 bass 分轨单独转录（低音补强的关键一步）────────────────────────────
     yb_mid = os.path.join(ymt, '%s_bass_ymt3.mid' % name)
     bass_wav = os.path.join(s4, 'bass.wav')
-    if stage(2, 'ymt3bass') and stale(yb_mid, 'ymt3bass'):
+    if stage(2, 'ymt3bass') and stale(yb_mid, 'ymt3bass', [bass_wav]):
         print('\n[3/9] YourMT3 对 bass 分轨单独转录')
         sh([PY_ML, os.path.join(HERE, 'transcribe_ymt3.py'), bass_wav, '-o', ymt,
             '--name', '%s_bass_ymt3' % name] + _BS, 'ymt3bass')
@@ -197,7 +225,8 @@ def main():
                 ('other4', os.path.join(s4, 'other.wav'), 'other'),
                 ('bass4', os.path.join(s4, 'bass.wav'), 'bass')]
         todo = [(t, w, k) for (t, w, k) in jobs
-                if stage(3, 'bp') and os.path.isfile(w) and stale(os.path.join(bpdir, 'bp_%s.mid' % t), 'bp')]
+                if stage(3, 'bp') and os.path.isfile(w)
+                and stale(os.path.join(bpdir, 'bp_%s.mid' % t), 'bp', [w])]
         if todo:
             print('\n[4/9] Basic Pitch（%d 条分轨）' % len(todo))
             for tag, wav, kind in todo:
@@ -221,7 +250,9 @@ def main():
           % (rel2040, hp_hz, '开' if sub_on else '关'))
 
     song = os.path.join(P, 'song.mid')
-    if stage(4, 'bass') and stale(song, 'bass'):
+    # ⚠ 集成的上游是三条转录产物；**参数（--dur-floor / --absorb / --merge-thr）变了它看不出**
+    #   —— 改这些参数时用 `--force bass`（本次就是这么重跑的）。
+    if stage(4, 'bass') and stale(song, 'bass', [ymt_mid, yb_mid]):
         print('\n[5/9] 多声部集成（Bass / Piano / Guitar / Strings × 多来源%s）'
               % (' + sub 层' if sub_on else ''))
         # ── 2026-09-19 扩：原来只集成 **Bass 一条**，而第 4 段跑的 6 条 BP 分轨转录里
@@ -234,12 +265,16 @@ def main():
         def _bp(tag):
             return os.path.join(bpdir, 'bp_%s.mid' % tag)
 
-        def _ens(layer, srcs, cur_in, out, thr, merge=False, extra=None):
+        def _ens(layer, srcs, cur_in, out, thr, merge=False, extra=None, mb=0.0):
             cmd = [PY_ML, os.path.join(HERE, 'bass_ensemble.py'),
                    '--base', cur_in, '--out', out, '--layer', layer, '--thr', str(thr)]
             for nm, p, lo, hi in srcs:
                 if have(p):
                     cmd += ['--source', '%s=%s|%d|%d' % (nm, p, lo, hi)]
+            # 时值下限（`--dur-floor`）：**只给旋律层** —— 鼓/打击轨本来就该是碎音
+            # （认可版 v5 的 Perc 轨碎音也是 100%，时值 0.03 拍），拉长鼓会糊成一团。
+            if mb > 0:
+                cmd += ['--min-beats', '%g' % mb]
             if merge:
                 cmd += ['--merge']
             if extra:
@@ -249,34 +284,53 @@ def main():
 
         cur = ymt_mid
         tmp = lambda i: os.path.join(P, 'ens_%d.mid' % i)                     # noqa: E731
+        # 时值下限：**只给旋律层**（鼓/打击轨走 YMT3 原样 —— 认可版 v5 的 Perc 也是
+        # 0.03 拍 / 碎音 100%，拉长鼓只会糊成一团）。数值依据（2026-09-19 逐轨量）：
+        #   我的 BGM16 → Piano 0.38 拍/碎音 30.4% · Bass 0.35/22.1% · Guitar 0.20/92.5%
+        #   认可版 v5   → Piano 0.66 拍/碎音  2.7% · Bass 0.58/ 2.7% · Guitar 0.86/ 3.9%
+        # 单轨验证过：Piano 加 `--min-beats 1.0` → 碎音 30.4% → **0.0%**（flag 确实生效）。
+        _DF = a.dur_floor
         # ① 低音：三源交叉 + 八度校正 + 可选 sub。**也走 merge + 低阈值** ——
         #    实测走历史链的 thr=0.90 只剩 386 音（v5 是 1677），而 0.30+merge 能追回来。
         cur = _ens('Bass',
                    [('ymt3b', yb_mid, 24, 60), ('bass4', _bp('bass4'), 24, 60),
                     ('bass6', _bp('bass6'), 24, 60)],
-                   cur, tmp(0), a.merge_thr, merge=True,
+                   cur, tmp(0), a.merge_thr, merge=True, mb=_DF,
                    extra=(['--sub'] if sub_on else []) +
                          (['--octave-ref', bass_wav] if os.path.isfile(bass_wav) else []))
         # ② 钢琴（YMT3 的 Acoustic Piano 轨由 `--merge` 并入来源）
         cur = _ens('Acoustic Piano',
                    [('bp_piano6', _bp('piano6'), 21, 108),
                     ('bp_other6', _bp('other6'), 21, 108)],
-                   cur, tmp(1), a.merge_thr, merge=True)
+                   cur, tmp(1), a.merge_thr, merge=True, mb=_DF)
         # ③ 吉他：**只用 6s 模型的 guitar 轨** —— 曾误加 `bp_other4`（4s 的 other 是
         #    钢琴/弦乐/其它混在一起），实测把 Guitar 顶到 2253 音（v5 只 254，多 8.9 倍）。
         cur = _ens('Guitar (clean)',
                    [('bp_guitar6', _bp('guitar6'), 40, 88)],
-                   cur, tmp(2), a.merge_thr, merge=True)
+                   cur, tmp(2), a.merge_thr, merge=True, mb=_DF)
         # ④ 弦乐
         cur = _ens('Strings',
                    [('bp_other6', _bp('other6'), 36, 96)],
-                   cur, song, a.merge_thr, merge=True)
+                   cur, song, a.merge_thr, merge=True, mb=_DF)
+        # ⑤ 并轨（2026-09-19 新增）：把 YMT3 的**合成器/键盘通道**并进 Piano。
+        #    实测病根：集成后仍有 9 条轨 —— Synth Pad 637 音（碎音 68%）、Organ 294（81%）、
+        #    Chromatic Percussion 315（84%）、Synth Lead 159（21%），**而认可版 v5 只有 5 条轨**
+        #    （Piano / Perc / Bass / Strings / Guitar），这些音是被并进 Piano 的。
+        #    并完正好 5 轨（我的 Drums 2004 + Piano 3084 + Bass 910 + Guitar 268 + Strings 193）。
+        #    放在**最后**：合成器轨没经过 ①~④ 的集成，只有并进来才一起吃到 `--min-beats`。
+        _abs = [s.strip() for s in (a.absorb or '').split(',') if s.strip()]
+        if _abs:
+            sh([PY_MAIN, os.path.join(HERE, 'merge_tracks.py'), song,
+                '--into', 'Acoustic Piano', '--from', ','.join(_abs),
+                '--min-beats', '%g' % _DF] if _DF > 0 else
+               [PY_MAIN, os.path.join(HERE, 'merge_tracks.py'), song,
+                '--into', 'Acoustic Piano', '--from', ','.join(_abs)], 'absorb')
     else:
         print('\n[5/9] 多声部集成 —— 已存在，跳过')
 
     # ── 6 渲染（高通频率由参考曲低频含量决定）──────────────────────────────
     raw = os.path.join(P, 'render.wav')
-    if stage(5, 'render') and stale(raw, 'render'):
+    if stage(5, 'render') and stale(raw, 'render', [song]):
         print('\n[6/9] 渲染（高通 %.0fHz）' % hp_hz)
         sh([PY_MAIN, os.path.join(HERE, 'render_midi.py'), song, os.path.join(P, 'render'),
             '--width', '1.4', '--rms', '-16.0', '--shelf', '6.0', '--hp', '%g' % hp_hz,
@@ -286,7 +340,7 @@ def main():
 
     # ── 7 band_match 两遍 ───────────────────────────────────────────────────
     bm2 = os.path.join(P, 'render_bm2.wav')
-    if stage(6, 'match') and stale(bm2, 'match'):
+    if stage(6, 'match') and stale(bm2, 'match', [raw]):
         print('\n[7/9] band_match ×2')
         bm1 = os.path.join(P, 'render_bm.wav')
         sh([PY_MAIN, os.path.join(HERE, 'band_match.py'), raw, ref, bm1, '--max-gain', '6'], 'match1')
@@ -296,7 +350,20 @@ def main():
 
     # ── 8 收尾：宽度 → RMS → ogg ────────────────────────────────────────────
     out_ogg = os.path.join(P, '%s.ogg' % name)
-    if stage(7, 'finish') and stale(out_ogg, 'finish'):
+    # ⚠ **自我覆盖拦截**（2026-09-19 实测踩到，代价是全项目数据被污染）：
+    #   成品名默认 = 曲名 = 参考文件名，`-o` 目录若也放着参考音频（很自然的做法：
+    #   把原曲拷进项目目录），收尾这一步就会**用成品覆盖参考**。
+    #   实测后果链：`BGM16.ogg`（原曲 5,274,147 B）被写成成品（9,360,725 B）→
+    #   下一次跑拿它当 ref → band_match 把成品对齐到"上一版成品"而不是原曲；
+    #   更糟的是**当时看不出任何异常**（exit=0、日志"== 完成 =="）。
+    #   拦在这里而不是改名：参考**不该**躺在输出目录里（用绝对路径引用原曲即可）。
+    if os.path.abspath(out_ogg) == ref:
+        raise SystemExit(
+            '成品路径与参考音频是同一个文件：%s\n'
+            '  收尾会**覆盖参考原曲**（自我覆盖）。请二选一：\n'
+            '   · 参考用原曲的绝对路径（推荐，输出目录里只放成品）\n'
+            '   · 或给 `--name` 换个成品名' % out_ogg)
+    if stage(7, 'finish') and stale(out_ogg, 'finish', [bm2]):
         print('\n[8/9] 收尾（宽度 → RMS → ogg）')
         sh([PY_ML, os.path.join(HERE, 'master_finish.py'), bm2, os.path.join(P, '%s.wav' % name),
             ref, '--rms', str(a.rms)] + ([] if a.width is None else ['--width', str(a.width)]),

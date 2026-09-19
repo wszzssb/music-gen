@@ -2291,7 +2291,8 @@ def t_panel_guard_wired():
                'imitate_ref.py', 'identify_ref.py', 'imitate_plan.py',
                'transcribe_ymt3.py', 'transcribe_to_song.py', 'stem_split.py',
                'bp_transcribe.py', 'ensemble_transcribe.py', 'bass_ensemble.py',
-               'profile_ref.py', 'analyze_chords.py', 'audit.py'):
+               'profile_ref.py', 'analyze_chords.py', 'audit.py',
+               'merge_tracks.py'):
         s = open(os.path.join(HERE, nm), encoding='utf-8').read()
         # **必须先剥掉注释再匹配**：否则"把调用注释掉"（`# studio_guard.ensure_panel()`）
         # 会骗过这条检查 —— 首版就是这么写的，变异用例（注入的正好是一行注释）
@@ -2309,6 +2310,117 @@ def t_panel_guard_wired():
     sk.close()
     assert sg.panel_alive(port=dead_port, timeout=0.5) is False, \
         'panel_alive 对没人听的端口 %d 也返回 True —— 探活是装饰品' % dead_port
+
+
+@check
+def t_dur_floor_wired():
+    """**时值下限 + 并轨必须接在流水线上**（2026-09-19 落，用户"杂乱/不流畅"那次）。
+
+    为什么写进硬形式：这是"听感反馈 → 逐轨量化 → 改参数"的闭环产物，
+    最容易被"参数不该写死"或新开对话退回默认关。逐轨实测（BGM16，同一把尺子）：
+      时的我的 → Piano 0.38 拍 / 碎音 30.4% · Bass 0.35 / 22.1% · Guitar 0.20 / 92.5%
+      认可版 v5 → Piano 0.66 拍 / 碎音  2.7% · Bass 0.58 /  2.7% · Guitar 0.86 /  3.9%
+    另：集成后仍有 9 条轨（Synth Pad 637 音碎音 68% / Organ 294 / 81% /
+    Chromatic Percussion 315 / 84% / Synth Lead 159），而认可版 v5 **只有 5 条轨**。
+
+    判据：① 四个旋律层**每层**都吃到下限（`mb=_DF` 至少 4 处，且真的传给了子进程）；
+    ② 并轨调用在；③ 两个默认值没被改成"关"；④ `merge_tracks.py` 自己接了 `--min-beats`。
+    ⚠ 与 `RESTORE-METHOD.md` §2 那条"碎片合并 ≤40ms → F1 反而变差"**不矛盾**：
+      那边反对的是**删掉 onset**，这里只**延长时值**（所有音起点不动）。
+    """
+    src = open(os.path.join(HERE, 'imitate_ref.py'), encoding='utf-8').read()
+    code = '\n'.join(ln.split('#')[0] for ln in src.splitlines())      # 剥注释再匹配
+    n_mb = code.count('mb=_DF')
+    assert n_mb >= 4, ('imitate_ref 的四个旋律层应**每层**都吃到时值下限（mb=_DF），'
+                       '实得 %d 处 —— 少的那层会退回碎音' % n_mb)
+    assert "'--min-beats', '%g' % mb" in code, \
+        '_ens 没把时值下限传给 bass_ensemble'
+    assert 'merge_tracks.py' in code and "'--into'" in code, \
+        'imitate_ref 没有并轨步骤（集成后会多出合成器轨）'
+    assert 'default=0.55' in src, '--dur-floor 默认值被改掉了（等于默认关掉时值下限）'
+    assert "default='Synth Pad,Organ,Synth Lead,Chromatic Percussion'" in src, \
+        '--absorb 默认清单被清空（并轨默认失效）'
+    mt = open(os.path.join(HERE, 'merge_tracks.py'), encoding='utf-8').read()
+    assert "'--min-beats'" in mt, 'merge_tracks.py 没接 --min-beats'
+
+    # ⑤ **`stale()` 必须真比时间戳**（2026-09-19 · "改了却听不到"的静默陷阱）：
+    #   原实现只有 `tag in force or not have(path)`，于是改完 `song.mid` 后
+    #   渲染/匹配/收尾照样"已存在，跳过" → 命令 exit=0、日志"== 完成 =="，
+    #   **成品音频还是上一版**（用户只会得出"改了没用"）。这里做**行为测试**
+    #   （建真文件 + 造 mtime 差），不是读源码猜 —— 闭包测不了，所以判定抽成了
+    #   `imitate_ref.needs_redo`。
+    import time as _t
+    import imitate_ref as ir
+    _d = os.path.join(TMP, 'stale_probe')
+    os.makedirs(_d, exist_ok=True)
+    _up = os.path.join(_d, 'up.mid')
+    _out = os.path.join(_d, 'out.wav')
+    with open(_up, 'wb') as _f:
+        _f.write(b'x')
+    with open(_out, 'wb') as _f:
+        _f.write(b'y')
+    _old = _t.time() - 100.0
+    os.utime(_out, (_old, _old))                      # 产物旧
+    assert ir.needs_redo(_out, (), 'render', [_up]) is True, \
+        '上游比产物新时 stale 必须判"要重做" —— 否则改了 song.mid 会渲染旧的'
+    os.utime(_up, (_old, _old))                       # 上游也旧
+    os.utime(_out, None)                              # 产物最新
+    assert ir.needs_redo(_out, (), 'render', [_up]) is False, \
+        '产物比上游新时不该重做（否则每跑一次都全量重算，缓存等于没有）'
+    assert ir.needs_redo(os.path.join(_d, 'nope.wav'), (), 'render', [_up]) is True, \
+        '产物不存在时必须重做'
+    assert ir.needs_redo(_out, ('render',), 'render', [_up]) is True, \
+        '--force 必须能强制重做'
+
+
+
+@check
+def t_merge_tracks_semantics():
+    """`merge_tracks.py`：并轨后**音数守恒** · 源轨不再有声 · 时值下限生效 · 同音高不重叠。
+
+    为什么单测它：这是"听感修复"链上唯一**动成品 MIDI** 的环节，三种错法都很静默 ——
+    ① 少并（音丢了，听感是"少了声部"）② 源轨没隐藏（轨数没减，等于白做）
+    ③ 拉长过头（同音高重叠 → GM 音源吞音，听感是"某些音莫名其妙没了"）。
+    """
+    import midi_file
+    model = {'format': 1, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+             'end_beat': 8.0, 'title': 'mg',
+             'tracks': [
+                 {'index': 0, 'name': 'Acoustic Piano', 'channel': 0, 'program': 0,
+                  'drum': False, 'mute': False, 'solo': False, 'hidden': False,
+                  'notes': [[float(i), 0.10, 60 + i, 90] for i in range(6)],
+                  'ccs': [], 'program_changes': [], 'markers': []},
+                 {'index': 1, 'name': 'Synth Pad', 'channel': 1, 'program': 88,
+                  'drum': False, 'mute': False, 'solo': False, 'hidden': False,
+                  'notes': [[float(i) + 0.25, 0.10, 72 + i, 70] for i in range(4)],
+                  'ccs': [], 'program_changes': [], 'markers': []}]}
+    p = os.path.join(TMP, 'merge_tracks_unit.mid')
+    midi_file.export_midi(model, p)
+    r = subprocess.run([sys.executable, os.path.join(HERE, 'merge_tracks.py'), p,
+                        '--into', 'Acoustic Piano', '--from', 'Synth Pad',
+                        '--min-beats', '0.5'], capture_output=True, text=True,
+                       encoding='utf-8', errors='replace')
+    assert r.returncode == 0, ('merge_tracks 退出码 %d\n%s'
+                               % (r.returncode, (r.stderr or '')[-400:]))
+    out = midi_file.import_midi(p)
+    live = [t for t in out['tracks'] if t.get('notes')]
+    assert len(live) == 1, ('并轨后应只剩 1 条有声轨，实得 %d：%s'
+                            % (len(live), [t['name'] for t in live]))
+    ns = live[0]['notes']
+    assert len(ns) == 10, '音数应守恒 10，实得 %d（并轨时音被吞了）' % len(ns)
+    ds = [float(n[1]) for n in ns]
+    assert min(ds) >= 0.49, ('时值下限 0.5 拍没生效：最短音 %s 拍（原本 0.10）'
+                            % min(ds))
+    byp = {}
+    for n in ns:
+        byp.setdefault(int(n[2]), []).append((float(n[0]), float(n[1])))
+    for pt, lst in byp.items():
+        lst.sort()
+        for j in range(len(lst) - 1):
+            end = lst[j][0] + lst[j][1]
+            assert end <= lst[j + 1][0] + 1e-9, \
+                ('音高 %d 上出现重叠（%s 拖到 %s，下一个音在 %s）—— 重叠会被音源吞音'
+                 % (pt, lst[j][0], end, lst[j + 1][0]))
 
 
 @check
