@@ -980,17 +980,20 @@ async function prepAudio(){
 /* 任何"可能不是有限数"的值 → 安全数字（NaN/undefined/null/Infinity 一律 0） */
 const num = (x, dflt) => (Number.isFinite(Number(x)) ? Number(x) : (dflt === undefined ? 0 : dflt));
 function setMode(m){
+  /* 两条都踩过（2026-09-19 用户口径："分轨播放操作很奇怪"）：
+   * ① 原来**无条件** `togglePlay()` —— 只想切个模式看看，一按就突然出声；切到还没载入分轨的
+   *    "分轨混音"更是立刻弹一句"还没有音源"。当初是为了修"这三个按了没有用"（点了只换样式），
+   *    但修过了头。现在只在**本来就在播**时才接着放；没在播就只切样式 —— 要听按 ▶，
+   *    该模式缺音源由 ▶ 说明原因（`noSourceHint`）。
+   * ② 原来用 `ENG.stop()` —— 它把 `st.offset` 归零，于是"切个模式"= **回到开头**。
+   *    改用 `ENG.pause()`：保留播放位置，换完音源从原处接着放。 */
+  const was=ENG.state().playing;
+  ENG.pause();
   S.mode=m;
   document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
-  const was=ENG.state().playing;
-  ENG.stop();
-  /* 用户口径："主混音 / 分轨混音 / 参考曲 这三个按了没有用"。
-   * 原来只在**本来就在播放**时才 `togglePlay()` —— 于是没在播的时候点它只换个样式，
-   * 看着毫无反应。现在：**切完立刻尝试播放**（`ENG.stop()` 已把 playing 置 false，
-   * 所以 togglePlay 一定走"播放"分支）；该模式没音源时由 togglePlay 写日志说明原因。 */
-  togglePlay();
+  if(was) togglePlay();
   drawWave();
-  log('播放模式 → '+m+(was?'（播放中，已切过去）':''));
+  log('播放模式 → '+m+(was?'（播放中，已换音源接着放）':''));
 }
 function applyLoop(){
   const a=parseFloat($('loopA').value), b=parseFloat($('loopB').value);
@@ -1058,8 +1061,12 @@ async function loadStems(){
   await ENG.loadStems(d.tracks);
   S.stemLoaded=true;
   for(const t of Object.keys(d.tracks)) if(!ENG.mix[t]) ENG.mix[t]={gain:1,pan:0,mute:false,solo:false};
-  info.textContent='· 已载入 '+Object.keys(d.tracks).length+' 轨（切到"分轨混音"就能边听边调）';
-  renderStrips(); drawWave();
+  info.textContent='· 已载入 '+Object.keys(d.tracks).length+' 轨';
+  renderStrips();
+  /* 载入分轨的意图就是"听分轨" → 直接切过去。原来只提示一句"切到分轨混音就能边听边调"，
+   * 用户还得再点一次，而那一按（旧 setMode）又会突然出声。`setMode` 自己决定要不要接着播。 */
+  setMode('stems');
+  drawWave();
 }
 function renderStrips(){
   const box=$('strips'); box.innerHTML='';

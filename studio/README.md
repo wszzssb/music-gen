@@ -95,6 +95,7 @@ studio\stop.cmd           # 按端口杀进程树
 node studio\tools\smoke_ui.js   # 引擎面板：初始化/混音台写回/撤销/分轨播放/卷帘拖删缩放/搜索采纳表
 node studio\tools\smoke_ed.js   # 编辑器：导入真实 .mid（走真实 HTTP）→ 编辑 → 和弦 → 导出往返
 node studio\tools\smoke_i18n.js # 中英切换：真浏览器切 en → 断言按钮/标签页标题 + 数残留汉字（需服务在 8791）
+node studio\tools\smoke_mode.js # 播放模式：没在播时切模式**不许自动出声**、播放中切模式**位置不归零**（真浏览器）
 node studio\tools\browser_check.js  # 真浏览器：音轨卡/残影/播放头定位
 ```
 

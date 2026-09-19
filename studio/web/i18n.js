@@ -113,7 +113,7 @@
     '选择曲目': 'Choose song',
     '逐轨渲染成 OGG（bridge stems），缓存到临时目录': 'Render each track to OGG (bridge stems), cached in temp',
     '逐轨渲染成 OGG（合并前的一轨一文件）': 'Render each track to OGG (one file per track before mixing)',
-    '分轨实时混音（先': 'Real-time stem mixing (first',
+    '分轨实时混音（先点「⬇ 载入分轨」）': 'Real-time stem mixing (click ⬇ Load stems first)',
 
     /* ── MIDI 编辑器 ed.html：按钮与标签 ── */
     'MIDI Studio — 导入 / 编辑 / 导出': 'MIDI Studio — import / edit / export',
