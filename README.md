@@ -21,7 +21,7 @@ BGM 制作与分析的完整管线。**任何新对话（或新的人）从这�
 > | **要新增文档/工具/坑**（往哪写、动哪些守卫） | **`docs/CONVENTION.md`** |
 > | 要改引擎/加工具 · 想知道可信到什么程度 | §2 工具清单 + §6 渲染参数 + `selftest.py` · 「验证状态与残余风险」 |
 >
-> 目录在 §0，产物命名在 §3，参考曲画像在 §5。**排查问题才需要 `PITFALLS.md`，写歌不需要。**
+> 目录在 §0，产物命名在 §3，画像在 §5。**排查才需要 `PITFALLS.md`，写歌不需要。**
 
 ---
 
@@ -29,12 +29,10 @@ BGM 制作与分析的完整管线。**任何新对话（或新的人）从这�
 
 ```
 music-gen\
-├── README.md            本文件（总索引，**按顶部地图按需读**）
-├── INSTALL.md / setup.cmd  安装：clone 后先双击 setup.cmd（建环境 + 取音源 + 自检）
-├── CHEATSHEET.md        命令速查（按需查，别整篇读）
-├── PITFALLS.md          踩坑台账（出症状时按编号查；旧条目在 PITFALLS-ARCHIVE.md）
-├── HISTORY.md           开发经过 + 修过的全部 bug（写代码/排查才看）
-├── ML.md                ML 工具链（Demucs / YourMT3 / matchering）的用法
+├── README.md            本文件（按顶部地图按需读）
+├── INSTALL / setup.cmd  安装：clone 后先双击 setup.cmd（建环境 + 音源 + 自检）
+├── CHEATSHEET / ML      命令速查 / ML 工具链（Demucs·YourMT3·matchering）
+├── PITFALLS(-ARCHIVE)   踩坑台账（出症状按编号查）· HISTORY.md 开发经过（写代码才看）
 ├── .venv\               依赖环境（numpy + soundfile + imageio-ffmpeg）
 ├── .venv-ml\            ML 环境（Python 3.13 + CUDA，可选）
 ├── vendor\              外部二进制：fluidsynth.exe + GeneralUser GS 音源
@@ -50,10 +48,9 @@ music-gen\
 **每曲的 `notes.md` 写了调性/速度/结构/复现命令/实测对比**，接手先读它。
 `render.json` 存该曲的渲染参数（`make_song.py` 直接读，不用在命令行重复）。
 
-**⚠ 曲库可以在仓库外**：`studio\.libpath` 里那一行路径就是**面板的曲库根** —— 本机指向
-`D:\test\llm_direct\studio_lib\songs`（32 首），而仓库内 `songs\` 是 28 首，两边同名曲目是
-**各自独立的两份文件**。面板只改 `song.json`，所以两条路结果一致；但 **`selftest` 查的是
-仓库内 `songs\`**，别拿面板里看到的那首去对照自检结果。
+**⚠ 曲库可以在仓库外**：`studio\.libpath` 那一行就是**面板的曲库根** —— 本机指向
+`D:\test\llm_direct\studio_lib\songs`（32 首）；仓库内 `songs\` 是 28 首，同名曲目是**两份独立文件**。
+面板只改 `song.json`（两条路结果一致），但 **`selftest` 只查仓库内那份**。
 
 **clone 后先双击 `setup.cmd`**（自动建环境 + 取音源 + 自检），细节见 `INSTALL.md`；运行时一律用 `.venv\Scripts\python.exe`。
 
@@ -61,11 +58,10 @@ music-gen\
 
 ## 1. 一分钟上手（**新歌只写一个 JSON，不写代码**）
 
-> **面板是唯一入口**（2026-09-19 起的 A′）：手敲 `new_song.py` / `make_song.py` 会**默认把任务
-> 委托给面板 API**（`scripts\studio_guard.py`：生成前自动探活、没在跑就 detached 拉起）——
-> 于是任务在 GUI 里全程可见、产物立刻能听，也顺手治好了"CLI 在跑、面板没接上"的老毛病。
-> 面板 = `studio\start.cmd` → http://127.0.0.1:8765（用法见 `studio\README.md`）。
-> 两个开关：批量 / CI 用 `BGM_CLI_DIRECT=1` 直连；整段跳过用 `BGM_NO_PANEL=1`。
+> **面板是唯一入口**（2026-09-19 起 A′）：手敲 `new_song.py` / `make_song.py` 会**默认把任务委托给
+> 面板 API**（`studio_guard.py`：先探活、没在跑就 detached 拉起），于是任务在 GUI 里全程可见、
+> 产物立刻能听。面板 = `studio\start.cmd` → 127.0.0.1:8765（用法见 `studio\README.md`）。
+> 开关：`BGM_CLI_DIRECT=1` 批量直连 · `BGM_NO_PANEL=1` 整段跳过。
 
 > **先选路径（三条，依据不同，混用会静默走样）**：
 > ① **直接作曲**（"来一首 BGM"）= 本节四步，依据**主题模板包**；
@@ -101,8 +97,8 @@ music-gen\
 **这两步省的是大头**：主题模板包让"和声/速度/节奏/配器"一次到位；`make_song --check`
 渲染前 2 秒查完数据判据，可先 `check_song.py <曲> --fix` 自动修（和弦音集/强拍）。
 
-完整的命令示例（含 `--no-tune`、分段拟合流程）见 **`CHEATSHEET.md`**。
-**改完编配觉得"没变化"** → 先跑 `bands_abs.py`（绝对口径 + 占用率）与 `probe_timbre.py --solo`（谁在整混里真响），见坑 103。
+完整的命令示例（含 `--no-tune`、分段拟合）见 **`CHEATSHEET.md`**。**改完编配觉得"没变化"** → 先跑
+`bands_abs.py`（绝对口径 + 占用率）与 `probe_timbre.py --solo`（谁在整混里真响），见坑 103。
 
 **自动调参是省 token 的核心**：`make_song.py` 内部闭环「渲染 → 与画像比 → 修 EQ/宽度/响度
 → 再渲染」，≤6 轮、通常 1–2 轮 `✓ 达标`（各频段差 <1.5dB），参数写回 `render.json`，**不占对话轮次**。
@@ -134,8 +130,8 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `build_song.py` | **紧凑 spec → song.json**：只写和弦走向+旋律骨架，时值/排列/编制自动推；`--to-spec` 反向导出 |
 | `new_song.py` | 新歌脚手架：`--theme <主题>` 按**主题模板包**出 song.json（含跑 melody_gen、填混音目标）；`--from` 只用于复现/改歌 |
 | `theme_pack.py` | **主题模板包**：同主题 ≥8 首 MIDI 模板（来源白名单 + 可溯源）聚合成和声/节奏/配器/曲式/旋律画像 + **混音目标** → `refs/themes/` |
-| `imitate_plan.py` | **模仿写歌的段落层入口**（2026-09-19）：按**单首参考曲**的实测结构（`--plan` 结构表：进行 / 每段 density / 编配 / 主奏音色）重写 `songs/<曲>/song.json` 的 sections+chords+patterns。写盘前**硬校验**：段名只能用 A–E（`role_of_section` 取段名里第一个 a–e 字母，`Rise`/`Peak` 会全落 `E`）、同角色 = 同进行 + 同旋律、段数/和弦数/参数范围；和弦没变时**保留旋律**。留痕 `basis.structure_source="imitate:<参考曲>"`（守卫 `t_imitate_path_marked` 照它判"结构改过却没走模仿路径"）→ 口径见 `docs/IMITATE-PATH.md` |
-| `identify_ref.py` | **参考曲识别**（2026-09-19，调 `.venv-ml` 的 Demucs + YourMT3）：两路独立来源交叉 —— ① Demucs 6s 分离（GPU ≈40s/首）给逐声部**能量占比/活跃度**；② YourMT3+ 转录（≈75s/首）给 **13 通道音符数**（通道名从转录 MIDI 的轨名读，不猜）。名次差 ≤1 才算"一致"，冲突时**默认信 ymt3**（BGM35 实测：钢琴 demucs 判 7.0%、ymt3 判 27.4%、真值 29.4%）→ `refs/identify/<名字>.json`。**别再用转录通道名或 `probe_timbre --solo` 的高频段推配器** |
+| `imitate_plan.py` | **模仿写歌的段落层入口**（2026-09-19）：按**单首参考曲**的实测结构（`--plan`：进行 / 每段 density / 编配 / 主奏音色）重写 `songs/<曲>/song.json` 的 sections+chords+patterns。写盘前**硬校验**：段名只能用 A–E（`role_of_section` 取段名里第一个 a–e 字母，`Rise`/`Peak` 会全落 `E`）、同角色 = 同进行 + 同旋律、段数/和弦数/范围；和弦没变时**保留旋律**。留痕 `basis.structure_source="imitate:<参考曲>"`（守卫 `t_imitate_path_marked` 判"结构改过却没走模仿路径"）→ 见 `docs/IMITATE-PATH.md` |
+| `identify_ref.py` | **参考曲识别**（2026-09-19，`.venv-ml` 的 Demucs + YourMT3）：两路独立来源交叉 —— ① Demucs 6s 分离（GPU ≈40s/首）给逐声部**能量占比**；② YourMT3+ 转录（≈75s/首）给 **13 通道音符数**（通道名从转录 MIDI 轨名读，不猜）。名次差 ≤1 才算一致，冲突时**默认信 ymt3**（BGM35：钢琴 demucs 7.0% / ymt3 27.4% / 真值 29.4%）→ `refs/identify/<名字>.json`。**别用转录通道名或 `probe_timbre --solo` 高频段推配器** |
 | `make_song.py` | **一条命令**：作曲 → 渲染 → 对标成绩单（`--check` 先验数据） |
 | `scorecard.py` | 成品 vs 画像 → 一屏差距表 + 调参建议 + 可粘贴重跑命令（`--bpm N` 给真实速度） |
 | `rehearsal.py` | **新歌预演**：全新参考曲 × 5 套风格 + 边界情况端到端（对齐 dB 只打印，坑 105） |
@@ -147,14 +143,14 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `metrics.py` | 共用度量内核（上面两个工具都用它，保证口径一致） |
 | `setup_wizard.py` | **一步步的环境向导**（**中/英按系统语言自动切**）：主工具链 → 音源 → 自检 → 写第一首 → ML 环境（约 5.4GB）→ 模型代码+权重 → 试扒一首。`--yes` 全自动 · `--only 5,6` 只跑某几步 · `--lang en` 强制英文；**每步幂等**，随时可重跑 |
 | `cli_utf8.py` | 控制台编码兜底（GBK 下打印 `✓` 会崩）——所有入口脚本启动即调用，见坑 58 |
-| `studio_guard.py` | **面板守卫 + A′「面板是唯一入口」**：① 生成开工前探活 `127.0.0.1:8765`，不在跑就 **detached** 拉起（`start.cmd` 是阻塞前台，从脚本里调会连生成一起卡）—— 接在 `new_song` / `make_song` / `melody_gen` 的 `main()`；② **默认把生成/渲染委托给面板 API**（`/api/new`、`/api/job?kind=render-tune`）：手敲 CLI 就等于在面板里建任务，GUI 全程可见、产物立刻能听。开关：`BGM_STUDIO_INNER=1` 面板内部走原生（**防递归**）· `BGM_CLI_DIRECT=1` 批量直连 · `BGM_NO_PANEL=1` 整段跳过。判据：自检 `panel_guard_wired` / `panel_is_only_entry` |
-| `i18n_check.py` | **面板中英切换的覆盖率守卫**：抓 `studio/web/{index,ed}.html` 里每一条含汉字的文案（文本 + `title`/`placeholder`）逐条比对 `studio/web/i18n.js` 的字典，**漏一条退出码 1**。存在的理由：漏翻**只有英文环境看得见**，中文系统下怎么点都不暴露（详见 `studio/README.md`） |
+| `studio_guard.py` | **面板守卫 + A′「面板是唯一入口」**：① 生成开工前探活 `127.0.0.1:8765`，不在跑就 **detached** 拉起（`start.cmd` 会阻塞前台，不能直接调）—— 接在 `new_song` / `make_song` / `melody_gen` 的 `main()`；② **默认把生成/渲染委托给面板 API**（`/api/new`、`/api/job?kind=render-tune`）：手敲 CLI = 在面板里建任务，GUI 全程可见。开关：`BGM_STUDIO_INNER=1` 面板内部走原生（**防递归**）· `BGM_CLI_DIRECT=1` 批量直连 · `BGM_NO_PANEL=1` 整段跳过。判据：`panel_guard_wired` / `panel_is_only_entry` |
+| `i18n_check.py` | **面板中英切换的覆盖率守卫**：抓 `studio/web/{index,ed}.html` 里每一条含汉字的文案（文本 + `title`/`placeholder`）比对 `studio/web/i18n.js` 的字典，**漏一条退出码 1**。理由：漏翻**只有英文环境看得见**，中文系统下怎么点都不暴露（见 `studio/README.md`） |
 | `melody_profile.py` | **扒"旋律语言"**（音级/音程/时值/落点）+ **调内率自检**（<80% 就报"别用"）。在 Demucs 的 other 声部上跑：66%→93% |
 | `melody_gen.py` | **按画像生成旋律**：句长/落点/时值/音程都从画像的**分布**抽样（句末留休止），强拍强制吸附和弦音；`--avoid`+`--candidates` 与库里已有旋律去重；每首一组个性参数 |
 | `probe_melody_lang.py` / `probe_melody_health.py` | **旋律体检**：①语言分布重合度（≥85%=孪生）②形态——密度/同音/最长同音串/碎音/强拍 |
 | `stem_compare.py` / `layer_exp.py` | **分轨体检 / 层次实验**：占用率+动态逐声部对比（判"像不像"的主尺子）；离线叠层测"加这层有没有用" |
 | `similarity.py` / `band_match.py` | **还原度总分 0–100**（和弦/节奏格/密度/倍频程/音色/段间变化六轴，改前先拿基线）；`band_match` 对齐**成片**的频谱倾斜（孤立一两带差是编配问题，别硬填，见 `docs/MAKE-IT-SOUND-ALIKE.md`） |
-| `audit.py` | **全维度体检**（用户 2026-09-16："最开始就发现所有要注意的元素"）：结构/频谱/演奏/编配四层一次跑完，逐项给"达标/偏差/**测不到**"三态；`--midi` 才查力度与时值。参考线与 8 条必须人耳的项见 `docs/AUDIT-CHECKLIST.md`（调研与落地方案见 `docs/UNMEASURABLE-SOLUTIONS.md`） |
+| `audit.py` | **全维度体检**（用户 2026-09-16："最开始就发现所有要注意的元素"）：结构/频谱/演奏/编配四层一次跑完，逐项给"达标/偏差/**测不到**"三态；`--midi` 才查力度与时值。参考线 + 8 条必须人耳的项见 `docs/AUDIT-CHECKLIST.md`（方案见 `docs/UNMEASURABLE-SOLUTIONS.md`） |
 | `groove_probe.py` / `section_gain.py` | **微时序探针**（起音偏离最近 16 分格的量 → 逐格偏移表；实测 BGM35 是贴格子的直拍 −4.9ms、无 swing）；**逐段响度对齐**（把每 4/8 小节的响度压到参考曲上；⚠ 实测**全段对齐会压平 `variation`** 84.6→34.9，默认不接渲染链） |
 | `song_density.py` / `inject_density_curve.py` | **段间密度曲线**：从同主题多份模板 MIDI 量"每 8 小节音符数"→ `arr.density` 档；`inject_*` 只往现有主题包补这条曲线、**不动其他字段**（直接重建主题包会连旋律画像一起重算 → 旧曲子与新画像不匹配） |
 | `bands_abs.py` | **绝对口径对照**：段电平看**绝对 dB**（成绩单那列会被低频厚度平移）+ **占用率**（墙/点）→ 坑 103 |
@@ -162,7 +158,7 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `probe_peaks.py` | **谱峰扒谱**：逐小节低音峰/音级/根音锚定和弦（按 bin 归音级会被低频泄漏带偏） |
 | `sf2_lib.py` / `kick_probe.py` | 读音源内部表（`--drums` 列每个鼓组每个键的采样名与秒数）；候选音色渲染单音、量 40–160Hz 尾巴长度 |
 | `song_events.py` | **逐轨音符事件出口**（JSON）：面板卷帘 / 排查某轨弹了哪些音 |
-| `studio/` | **可视化面板**（`studio\start.cmd` → http://127.0.0.1:8765）：音轨/混音台/卷帘/指标/试听本段/配平/搜索/导出（用法见 `studio/README.md`） |
+| `studio/` | **可视化面板**（`studio\start.cmd` → 127.0.0.1:8765）：音轨/混音台/卷帘/指标/试听本段/配平/搜索/导出（用法见 `studio/README.md`） |
 | `selftest.py` | **全链路自检**（改完东西先跑它） |
 | `mutation_check.py` | **变异测试**：注入故障验证自检**真会报警**（改过检查项就跑它；新检查必须配注入用例） |
 | `render_midi.py` | **MIDI → 真音源 → WAV → OGG 渲染管线**（搁架/搁低/高通→软限幅→响度归一→中侧加宽→q8 编码） |
@@ -178,12 +174,12 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `analyze_structure.py` | **按音乐自适应切段**（2026-09-18）：四特征 novelty（响度/亮度/起音/和声）→ 平滑 → 峰值检测 → 边界吸附小节线。`--target-segments N` 控制段数；段长**跟随音乐**，不固定 8 小节（用户口径"古典规整、现代多不等，要看情况"） |
 | `transcribe_to_song.py` | **转录 → `song.json`**（还原/扒带的正道入口）：`--auto` 一键串起**段落切分 + 逐小节鼓型 + 逐音力度 + 配额抽样**；五条契约（段内/全局小节号 · 和弦数=小节数 · 一段一键 · 轨名白名单 · `notes_extra` 完整形式） |
 | `extract_drum_grid.py` / `measure_velocity.py` | **鼓型提取**（逐小节 `drum_grid.per_bar` —— 引擎 Perc 音数**主要由它决定**，不是 `perc_style`/`arr.perc`）与**逐音力度量取**（分位校准；缺它 = 打字机听感） |
-| `extract_theme_timbres.py` | **主题模板的实际音色与配器**（2026-09-18）：扫 8~10 首同主题模板的**轨名 + program**（轨名优先；音域**只在整首都没有可识别轨名时**兜底 —— 否则纯钢琴曲的左手低音会被凭空判成"贝斯声部"）→ `--inject` 把每个声部的音色池写进 `refs/themes/<主题>.json` 的 `arrangement.prog_pool`。⚠ **只改这一个字段**：`mix_target.energy_gain` / `calibration` 是标定流程写的，重跑 `theme_pack.py` 会整包重建、把它们冲掉。`new_song.theme_programs` 靠它把"乐器选择"从 5 套风格预设换成模板真值（classic → 管钟/双簧管；battle → 排箫/钢弦吉他；neon → 方波主音） |
-| `transcribe_ymt3.py` / `bp_transcribe.py` | **两个转录模型**：YourMT3+（整段混音直接出多轨 MIDI，`--bsz auto`；⚠ 必须用本脚本，官方 `bsz=8` 慢 2.3×）与 Basic Pitch（Spotify，ONNX 后端，跑在**独立 venv** `D:\test\bp-venv`，不碰 `.venv-ml` 的 torch）。⚠ 二者错误**互不相关**才是价值所在 |
+| `extract_theme_timbres.py` | **主题模板的实际音色与配器**（2026-09-18）：扫 8~10 首同主题模板的**轨名 + program**（轨名优先；音域只在整首都没可识别轨名时兜底，否则纯钢琴曲的左手低音会被判成"贝斯声部"）→ `--inject` 把各声部音色池写进 `refs/themes/<主题>.json` 的 `arrangement.prog_pool`。⚠ **只改这一个字段**：`mix_target.energy_gain` / `calibration` 是标定流程写的，重跑 `theme_pack.py` 会整包重建冲掉。`new_song.theme_programs` 靠它把"乐器选择"从 5 套风格预设换成模板真值（classic → 管钟/双簧管；neon → 方波主音） |
+| `transcribe_ymt3.py` / `bp_transcribe.py` | **两个转录模型**：YourMT3+（混音直接出多轨 MIDI，`--bsz auto`；⚠ 必须用本脚本，官方 `bsz=8` 慢 2.3×）与 Basic Pitch（Spotify ONNX，跑在**独立 venv** `D:\test\bp-venv`，不碰 `.venv-ml` 的 torch）。⚠ 二者错误**互不相关**才是价值所在 |
 | `eval_transcription.py` / `ensemble_transcribe.py` | **转录评估与集成**：前者是被评 MIDI 对参照的**音符级 F1**（逐段列，`--self-test` 量尺子天花板、`--shift` 判"只是错位"）；后者**多来源交叉验证**后合成一份（实测单来源 0.333 → 集成 0.532）。⚠ 集成修不掉**系统性**错误，要独立方法当尺子 |
 | `extract_vocals.py` / `imitate_ref.py` | 人声提取（差分法 + 只修段间过门杂音）与**九段还原链**（第 9 段 = ①识别体检 → ②逐带体检）。⚠ 收尾会**拒绝**"成品路径 == 参考路径"（否则会覆盖参考原曲，见 PITFALLS 208）；`stale()` 是**真比时间戳**的（改了 `song.mid` 会自动重渲染，见 PITFALLS 207） |
 | `merge_tracks.py` | **并轨 + 时值下限**（还原链第 5 段末）：把 YMT3 的合成器/键盘通道并进 Piano（`--from "Synth Pad,Organ,…"` → 集成后 9 轨收敛成 5 轨），并给全轨拉时值下限 `--min-beats`（**延长、不删 onset**）。听感"杂乱/不流畅"的两条量化病根见 PITFALLS 206 |
-| `bass_ensemble.py` | **多来源集成**：同音高/同 0.1s 格合并 + 按跨来源支持率归一化打分（`--thr`）→ 替换或 `--merge` 合并；`--min-beats` 给时值下限、`--octave-ref` 用 pyin 校八度、`--sub` 补低八度层。⚠ 阈值须**归一化**（`sum(w)/W_TOTAL`）：原写法在三来源权重只有 0.44/0.40/0.07 时，**三源全共识**才 0.908 —— 实测整条 Bass 轨只剩 2 音 |
+| `bass_ensemble.py` | **多来源集成**：同音高/同 0.1s 格合并 + 按跨来源支持率归一化打分（`--thr`）→ 替换或 `--merge` 合并；`--min-beats` 给时值下限、`--octave-ref` 用 pyin 校八度、`--sub` 补低八度层。⚠ 阈值须**归一化**（`sum(w)/W_TOTAL`）：原写法在三来源权重 0.44/0.40/0.07 时**三源全共识**才 0.908 —— 实测整条 Bass 轨只剩 2 音 |
 | `note_dur_stats.py` | **时值体检**：逐轨量音数 / 时值中位（秒）/ **碎音率**（≤0.25 拍占比），可对照参照 MIDI。判读：旋律轨碎音率 <5% 且中位 ≥0.25s；**打击轨 ~100% 是正常的**。听感"杂乱/不流畅"先查它（PITFALLS 206）|
 | `arrange_probe.py` | 编配诊断：逐段音高分布、音符密度、亮度指数 |
 | `noise_probe.py` | 杂音体检：6-16k 尾巴电平 + 谱平坦度（噪声高、纯音≈0）+ 爆音检测 |
@@ -242,19 +238,17 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
     实测差距常在 5–20dB（慢速参考曲如 64BPM 的 BGM01/BGM10 更明显；"无打击乐段落"实测
     18.8→15.0dB）—— 拿它当门就是用测不准的尺子判分。现在判据是 **`tune_error`**（`autotune`
     真正优化的**分组**误差之和）"确实变小了，或本来就 ≤3.0"，对齐 dB 只打印并标注"仅供参考"（坑 105）。
-11. **旋律"同质化"（已治本）**：根因不是"画像少"而是**生成器把画像差异吃掉了**（换画像只值 42%）。
-    已改成真读画像**分布** + 每首一份画像 + 个性参数 + 候选去重：**孪生对 5→0**。
-    守卫 `melody_distinct` / `melody_lang_diverse` / `melody_matches_profile`；见坑 109–116。
+11. **旋律"同质化"（已治本）**：根因不是"画像少"，而是**生成器把画像差异吃掉了**（换画像只值 42%）。
+    已改成真读画像**分布** + 每首一份画像 + 个性参数 + 候选去重：**孪生对 5→0**；
+    守卫 `melody_distinct` / `melody_lang_diverse` / `melody_matches_profile`（坑 109–116）。
 12. **没有"LLM 直出音乐"这条路（LLM 已在作曲位）**：LLM（或人）只写 `song.json` 的
-    `chords`/`melody`/`sections`，编排/织体/CC7/音色由 `song_engine.py` 展开、FluidSynth
-    出音频 —— **LLM 不直接产出音频或 MIDI**，也**没接** Suno/Udio/MusicGen 等外部音乐生成
-    （模板须可溯源，见 §1）。**没做过的对照**：LLM 直写 MIDI 跳过引擎差多少
-    （会丢 9 轨编排与 `check_song` 全部校验）。
-13. **自检有 1 条未过，而且它是对"曲子"而不是对"代码"的判据**（2026-09-19 收尾实测）：
-    `density_dynamic_range` —— 仓库内 `40_imitate_b35` 的逐小节密度起伏只有 **4.6 倍**，
-    判据要 ≥8 倍（参考侧实测 22 倍）。同轮另两条已修掉（`i18n_check.py` 的编码兜底写法
-    不合判据、`index.html` 两条文案漏翻）→ 修完是 **133/134**。要让这条转绿只能**改这首曲子的
-    编配**（补极静 / 极密小节），属音乐内容改动，本轮没动 —— **别把它当代码回归红灯**。
+    `chords`/`melody`/`sections`，编排/织体/CC7/音色由 `song_engine.py` 展开、FluidSynth 出音频
+    —— **不直接产出音频或 MIDI**，也**没接** Suno/Udio/MusicGen（模板须可溯源，见 §1）。
+    没做过的对照：LLM 直写 MIDI 跳过引擎差多少（会丢 9 轨编排与 `check_song` 全部校验）。
+13. **自检有 1 条未过，而且它判的是"曲子"不是"代码"**（2026-09-19 收尾实测）：
+    `density_dynamic_range` —— 仓库内 `40_imitate_b35` 逐小节密度起伏 4.6 倍 < 判据 8 倍
+    （参考侧 22 倍）。同轮另两条已修（编码兜底写法、面板文案漏翻）→ 修完 **133/134**。
+    要转绿只能改这首曲子的编配（补极静/极密小节），本轮没动 —— **别当代码回归红灯**。
 
 
 ## 3. 产物
@@ -262,21 +256,19 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 ```
 songs\40_imitate_b35\    imitate_b35.mid / _sf.ogg / _sf.wav + song.json + render.json + notes.md
                          （仿写 BGM35：207 小节 / 331 秒，`imitate_plan.py` 路径）
-songs\01_morning_light\  morning_light.mid / _sf.ogg / _sf.wav + song.json + render.json + notes.md
-                         （主题模板包路径；同目录另有 `compose.py` = 本曲的生成入口）
+songs\01_morning_light\  morning_light.mid / _sf.ogg / _sf.wav + song.json + …（主题模板包路径）
 songs\90_new_battle\     主题路径的变体曲（同批生成，用于 A/B 与风格对比）
 ```
 
-**每曲目录固定这几样**：`song.json`（唯一要手写的）+ `compose.py`（可复现的生成入口）
-+ `.mid`（谱面）+ `_sf.ogg` / `_sf.wav`（真音源成品）+ `render.json`（本曲渲染参数）+ `notes.md`。
-仓库内 `songs\` 现 **28 首**：01–19（主题路径）· 40–43（`imitate_plan` 仿写）· 90_*（变体）。
+**每曲固定这几样**：`song.json` + `compose.py` + `.mid` + `_sf.ogg`/`_sf.wav` + `render.json` + `notes.md`
+（只有 `song.json` 要手写）。仓库内现 **28 首**：01–19（主题路径）· 40–43（仿写）· 90_*（变体）。
 
-**质量分级「很好」的曲目才带成品音频**（开箱可听）；其余只带谱面与文档 —— 跑 `make_song.py <曲目>` 即出音频。
+**仓库内 28 首目前都带 `_sf.ogg` 成品**（开箱可听）—— 这也是"面板里点 ▶ 就有声"的前提。
 
 命名约定：`_sf` = 真音源版（FluidSynth + GeneralUser GS）；不带 `_sf` 的是自写合成器试听版。
 **MIDI 是上限最高的交付**（可换任何更好的音源），OGG 是能直接听的成品，WAV 可重编码。
 
-## 4. 踩过的坑（完整台账见 `PITFALLS.md`（现行 81–104）+ `PITFALLS-ARCHIVE.md`（1–80），按编号查）
+## 4. 踩过的坑（完整台账见 `PITFALLS.md` + `PITFALLS-ARCHIVE.md`，按编号查）
 
 > 这里只留最常踩的 11 条；**其余按症状去 `PITFALLS.md` 查编号**，别整篇读。
 
@@ -307,17 +299,15 @@ songs\90_new_battle\     主题路径的变体曲（同批生成，用于 A/B �
     速度判错 → 小节类指标全错位、成绩单还会误报"!! 速度不一致，先改 BPM"。
     现在：`make_song` 从 MIDI 读真实速度（`midi_bpm`）传给 `measure` 与 `scorecard --bpm`，
     只有拿不到速度时才退回测速。
-58. **"换个目录/换台机器就崩"是编码问题，不是玄学**：Windows 默认控制台是 GBK，
-    脚本打印 `✓`（U+2713，不在 GBK 里）直接 `UnicodeEncodeError` —— **崩在自动调参中途**。
-    本地一直没暴露，因为跑之前都设了 `chcp 65001` / `PYTHONIOENCODING=utf-8`；
-    一旦在别的对话、别的目录、普通终端里跑就必现（我实测抓到的就是这条）。
-    修法：所有入口脚本调用 `cli_utf8.setup()` 把 stdout/stderr 切成 UTF-8 + `errors='replace'`
-    （编码不了就降级成 `?`，绝不为一个装饰性字符中断渲染）；捕获子进程输出也统一
-    `encoding='utf-8'`（否则父进程按 GBK 解码子进程的 UTF-8 → 乱码，检查项会误判）。
-    守卫：自检项 `console_encoding_safe` —— 起真进程（`PYTHONIOENCODING=gbk`）验证救得回来、
-    **反向对照**验证不加固确实会崩（防止检查空转）、并静态要求每个入口脚本都调用它。
+58. **"换个目录/换台机器就崩"是编码问题，不是玄学**：Windows 默认控制台是 GBK，脚本打印 `✓`
+    （U+2713，不在 GBK 里）直接 `UnicodeEncodeError` —— **崩在自动调参中途**；本地没暴露是因为
+    跑之前都设了 `chcp 65001` / `PYTHONIOENCODING=utf-8`。修法：入口脚本调 `cli_utf8.setup()`
+    把 stdout/stderr 切成 UTF-8 + `errors='replace'`（编码不了降级成 `?`，绝不为装饰字符中断渲染）；
+    捕获子进程输出统一 `encoding='utf-8'`（否则父进程按 GBK 解码 → 乱码，检查项会误判）。
+    守卫 `console_encoding_safe`：起真进程（`PYTHONIOENCODING=gbk`）验证救得回来 + **反向对照**
+    验证不加固确实会崩（防检查空转）+ 静态要求每个入口脚本都调用它。
 
-其余 47 条（渲染/DSP、MIDI、调参、测量、工具流程）在 `PITFALLS.md`。
+其余按症状查 `PITFALLS.md`（渲染/DSP、MIDI、调参、测量、工具流程）。
 
 ## 5. 参考曲画像与渲染参数
 
