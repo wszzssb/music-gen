@@ -157,14 +157,14 @@ const SPEED={fast:{bars:4,budget:24,time:60},normal:{bars:8,budget:48,time:120},
 function renderSearchSec(){
   const sel=$('searchSec');
   sel.options = sel.options || [];
-  if(sel.options.length!==(S.song.sections||[]).length){
+  if(sel.options.length!==((S.song&&S.song.sections)||[]).length){
     sel.innerHTML='';
-    (S.song.sections||[]).forEach((s,i)=>{
+    ((S.song&&S.song.sections)||[]).forEach((s,i)=>{
       const o=document.createElement('option'); o.value=i;
       o.textContent=s.name+'（'+s.bars+' 小节）';
       sel.appendChild(o);
     });
-    const worst=(S.song.sections||[]).map((s,i)=>[s.bars,i]).sort((a,b)=>b[0]-a[0])[0];
+    const worst=((S.song&&S.song.sections)||[]).map((s,i)=>[s.bars,i]).sort((a,b)=>b[0]-a[0])[0];
     if(worst) sel.value=worst[1];
   }
   const sp=SPEED[$('searchSpeed').value]||SPEED.normal;
@@ -391,7 +391,7 @@ function renderTracks(){
 /* ---------------- 段落编辑 ---------------- */
 function renderStrip(){
   const st=$('secStrip'); st.innerHTML='';
-  (S.song.sections||[]).forEach((sec,i)=>{
+  ((S.song&&S.song.sections)||[]).forEach((sec,i)=>{
     const d=document.createElement('div'); d.className='sec'+(i===S.sec?' sel':'');
     d.style.width = Math.max(44, sec.bars*14)+'px';
     d.innerHTML = `<b>${sec.name}</b>${sec.bars}小节`;
@@ -407,7 +407,7 @@ function renderStrip(){
   });
 }
 function renderSecEdit(){
-  const sec=(S.song.sections||[])[S.sec]; const box=$('secEdit');
+  const sec=((S.song&&S.song.sections)||[])[S.sec]; const box=$('secEdit');
   if(!sec){box.innerHTML='';return;}
   const chords=Object.keys(S.song.chords||{});
   let h = `<div class="row"><b>${sec.name}</b>
@@ -463,12 +463,12 @@ function barBeats(){
   const m = (S.song && S.song.meter) || [4,4];
   return (m[0] * 4) / m[1];
 }
-function totalBeats(){return (S.song.sections||[]).reduce((a,s)=>a+s.bars*barBeats(),0);}
-function sectionStartBeats(i){let t=0;for(let k=0;k<i;k++)t+=S.song.sections[k].bars*barBeats();return t;}
-function sectionOfBeat(b){let t=0;const a=S.song.sections||[];
+function totalBeats(){return ((S.song&&S.song.sections)||[]).reduce((a,s)=>a+s.bars*barBeats(),0);}
+function sectionStartBeats(i){let t=0;for(let k=0;k<i;k++)t+=((S.song&&S.song.sections)||[])[k].bars*barBeats();return t;}
+function sectionOfBeat(b){let t=0;const a=(S.song&&S.song.sections)||[];
   for(let i=0;i<a.length;i++){ if(b>=t&&b<t+a[i].bars*barBeats()) return i; t+=a[i].bars*barBeats(); } return -1;}
 function chordAtBeat(b){const i=sectionOfBeat(b); if(i<0)return null;
-  const sec=S.song.sections[i], rel=b-sectionStartBeats(i);
+  const sec=((S.song&&S.song.sections)||[])[i], rel=b-sectionStartBeats(i);
   return (sec.chords||[])[Math.floor(rel/barBeats())]||null;}
 function chordTones(name){const c=(S.song.chords||{})[name]; if(!c)return [];
   return (c[1]||[]).map(m=>m%12);}
@@ -477,8 +477,15 @@ function isStrongBeat(b){ // 与 selftest 的判据一致：4/4 每小节第 1�
   if(Math.abs(bg-4)<1e-9) return Math.abs(inBar-0)<1e-6||Math.abs(inBar-2)<1e-6;
   return Math.abs(inBar-0)<1e-6;}
 function melodyNotes(){
+  /* ⚠ **纯音频目录（没有 song.json）时 `S.song` 是 null**（2026-09-20 用户实测：
+     面板切到 `…\variants` 这类只有 .ogg/.mid 的目录后，日志被
+     `Cannot read properties of null (reading 'sections') @app.js:481` 刷屏 —— 每帧一次）。
+     ⚠ 原来写的是 `S.song.sections||[]`：**`||[]` 防的是 `sections` 为空、防不了 `S.song` 是 null**。
+     ⚠ 而 `paintRoll()` 里那句 `if(!S.song)` 的兜底**轮不到执行** —— 崩溃发生在它之前
+       （这条路径根本不过 paintRoll）。所以防御必须加在**取数据的地方**，不是画图的地方。 */
+  if(!S.song) return [];
   const out=[]; let t0=0; const bg=barBeats();
-  (S.song.sections||[]).forEach((sec,i)=>{
+  ((S.song&&S.song.sections)||[]).forEach((sec,i)=>{
     const key=sec.melody, arr=(S.song.melody||{})[key];
     if(Array.isArray(arr)) for(const n of arr) out.push({sec:i,beat:t0+n[0]*bg+(n[1]||0),
       dur:n[2]||1,pitch:n[3],vel:96*((sec.arr.vel)||1),editable:true,raw:n});
@@ -595,7 +602,7 @@ function paintRoll(g){
   }
   // ② 段落底色 + 边界 + 和弦名
   let t0=0;
-  (S.song.sections||[]).forEach((sec,i)=>{
+  ((S.song&&S.song.sections)||[]).forEach((sec,i)=>{
     const x0=g.x(t0), x1=g.x(t0+sec.bars*bg);
     ctx.fillStyle=(i%2)?'rgba(255,255,255,.02)':'rgba(255,255,255,.05)';
     ctx.fillRect(x0,0,Math.max(0,x1-x0),H);
@@ -704,9 +711,9 @@ function rollDown(e){
     pushUndo();
     const snapped=Math.round(hit.beat*2)/2;
     const bg=barBeats();                     // ⚠ 拍号：原来写死 4（3/4 会写错位置）
-    const secStart=sectionStartBeats(secIdx), secBars=S.song.sections[secIdx].bars;
+    const secStart=sectionStartBeats(secIdx), secBars=((S.song&&S.song.sections)||[])[secIdx].bars;
     const rel=Math.max(0,Math.min(secBars*bg-0.5,snapped-secStart));
-    const mel=(S.song.sections[secIdx].melody)||'';
+    const mel=(((S.song&&S.song.sections)||[])[secIdx].melody)||'';
     if(!Array.isArray(S.song.melody[mel])) S.song.melody[mel]=[];
     const raw=[Math.floor(rel/bg), +(rel-Math.floor(rel/bg)*bg).toFixed(2), 1, hit.pitch];
     S.song.melody[mel].push(raw); S.dirty=true;
@@ -722,7 +729,7 @@ function rollMove(e){
   const g=rollGeom();
   const beat=g.v.st+mx/g.W*g.v.span, pitch=Math.round(g.ppy(my));
   const raw=d.note.raw; if(!raw) return;
-  const start=sectionStartBeats(d.note.sec), secBars=S.song.sections[d.note.sec].bars;
+  const start=sectionStartBeats(d.note.sec), secBars=((S.song&&S.song.sections)||[])[d.note.sec].bars;
   const bg=barBeats();                       // ⚠ 拍号：原来写死 4
   if(d.mode==='move'){
     let b=Math.round(beat*2)/2; b=Math.max(start,Math.min(start+secBars*bg-0.5,b));
@@ -881,9 +888,15 @@ function bind(){
     ev.preventDefault();
     const nm=a.dataset.play;
     try{
-      await ENG.loadMaster('/api/audio?id='+encodeURIComponent(S.sid)
+      const ok=await ENG.loadMaster('/api/audio?id='+encodeURIComponent(S.sid)
         +'&kind=mix&f='+nm+'&t='+Date.now());
-      log('试听：'+decodeURIComponent(nm));
+      if(!ok){ log('!! 试听失败：拿不到 '+decodeURIComponent(nm)); return; }
+      /* ⚠ **载完必须真的播**（2026-09-20 用户实测："在面板点试听…听不到声音"）：
+         原来只有 `loadMaster` + `log`，旁边的注释写的是"把主播放器切到该文件" ——
+         可按钮文案是"▶ 试听"，用户当然以为点了就响；而且**纯音频 A/B 目录里这是唯一的听法**，
+         载入不播 = 这个入口等于坏的。写法照 `playPreview()`：stop → play。 */
+      ENG.stop(); await ENG.play('master');
+      log('试听：'+decodeURIComponent(nm)+'（正在播放）');
     }catch(e){ log('!! 试听失败：'+(e&&e.message?e.message:e)); }
   });
   _b('btnLib',()=>openPath());
@@ -1349,7 +1362,7 @@ function openChordEditor(){
     const oldNames=[...m.querySelectorAll('#ctab tr[data-n]')].map(tr=>tr.dataset.n);
     const newNames=[...m.querySelectorAll('#ctab tr[data-f=name]')].map(i=>i.value.trim());
     S.song.chords=out;
-    (S.song.sections||[]).forEach(sec=>{
+    ((S.song&&S.song.sections)||[]).forEach(sec=>{
       sec.chords=(sec.chords||[]).map(cn=>{
         const k=oldNames.indexOf(cn); return (k>=0 && newNames[k]) ? newNames[k] : cn;
       });
