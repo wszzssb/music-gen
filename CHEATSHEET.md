@@ -15,6 +15,8 @@ $py = ".\.venv\Scripts\python.exe"
 & $py scripts\theme_pack.py seaside --calibrate            # 标定段间曲线的阻尼系数（出探针曲→渲染→写回包）
 # ② 依据模板包出歌：和声/速度/调式/节奏音型/配器/段落 + 旋律语言画像（自动跑 melody_gen）
 & $py scripts\new_song.py 35_x --theme seaside --ref BGM16c   # 省略 --ref = 用包里的**混音目标**
+#   BPM：默认在**主题模板的 p25~p75 真实范围**内按 seed 取（旧行为是固定中位数 →
+#   同主题每首一样，实测 battle 3 首全 139、daily 4 首全 128）；要钉死加 `--bpm 150`
 #   --energy-gain 1.0（默认）= 段间能量曲线的阻尼系数（0=不写曲线，1=照抄目标起伏）
 #   混音目标 = 对齐到哪份真实音频画像（BPM/打击感/调式挑），**不是模板依据**
 # ③ 只改 songs\35_x\song.json（chords / melody / sections）

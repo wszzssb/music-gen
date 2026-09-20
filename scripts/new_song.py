@@ -580,6 +580,32 @@ def theme_guitar_arp(pack):
     return [0, 1, 3, 2]                       # 窄音型（密集邻音回旋，留在中音区）
 
 
+def _bpm_from_pack(pack, seed):
+    """按主题模板包的**真实 BPM 范围**取一个值（不再固定用中位数）。→ (bpm, 来源说明)
+
+    ⚠ 为什么改（2026-09-20，用户："主题的 bpm 怎么是固定的"）：
+      旧行为无条件取 `pack['bpm']['median']` → **同一主题生成的每首曲子 BPM 完全一样**
+      （实测 battle 3 首全 139.0 · classic 3 首全 110.0 · daily 4 首全 128 · neon 2 首全 140）；
+      而模板本身的跨度很宽（daily 88~161、battle 60~165）—— 中位数把这个信息**压成了一个点**。
+      这正是 SKILL §0 那句"**真差距是「同质化」**"最直接的来源之一。
+    ⚠ 为什么用 **p25~p75** 而不是 min~max：两端多是**记谱层级**问题（实测 battle 有 60、
+      classic 有 40/190 —— 半速/倍速记谱），落进去会得到"速度层级错"的曲子（SKILL §2 第 6 条）。
+    ⚠ 为什么按 seed 定点取：**同 seed 必须复现同一首**（自检 `determinism_and_bytes` 守这一点）。
+      这里用 LCG 自算 [0,1)，**不 import random** —— 免得动到全局随机状态、影响 melody_gen
+      等其它随机源（那是"改了 A 却动了 B"的经典坑）。
+    """
+    b = pack.get('bpm') or {}
+    med = float(b.get('median') or 120.0)
+    lo, hi = b.get('p25'), b.get('p75')
+    if lo and hi and float(hi) == float(lo):
+        return float(lo), '命令行 --bpm 指定'          # theme_mode 把范围塌缩成了一点
+    if not lo or not hi or float(hi) < float(lo):
+        return med, '主题中位数 %g（包内没有 p25/p75 范围）' % med
+    x = (int(seed) * 1103515245 + 12345) & 0x7FFFFFFF
+    v = int(round(float(lo) + (float(hi) - float(lo)) * (x / float(0x80000000))))
+    return float(v), '主题模板范围 %g~%g（按 seed=%s 定点取）' % (float(lo), float(hi), seed)
+
+
 def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     """主题模板包 → song.json 数据（**作曲依据全在包里**）"""
     import build_song
@@ -736,8 +762,10 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     if _hb:
         print('  音色平衡补偿（按 2.5-5kHz 实测）：%s'
               % ' · '.join('%s %+.1fdB' % (k, v) for k, v in sorted(_hb.items())))
+    _bpm, _bpm_src = _bpm_from_pack(pack, seed)
+    print('  BPM %g —— %s' % (_bpm, _bpm_src))
     d = {'name': short,
-         'bpm': float((pack.get('bpm') or {}).get('median') or 120.0),
+         'bpm': _bpm,
          'meter': list(pack.get('meter') or [4, 4]),
          'desc': '%s（依据主题模板包 %s：%d 首同主题模板）'
                  % (pack.get('label', ''), pack['theme'], pack.get('template_count', 0)),
@@ -921,10 +949,16 @@ def dry_compose(song_json):
 
 
 def theme_mode(new, theme, ref_name=None, seed=7, ncand=4, energy_gain=None,
-                force=False):
+                force=False, bpm=None):
     """`--theme` 路径：按主题模板包生成一首新歌"""
     import theme_pack as tp
     pack = tp.load_pack(theme)
+    # ⚠ `--bpm` = **显式指定**：把主题的 BPM 范围"塌缩成一点"，`_bpm_from_pack` 自然取到它
+    #   —— 不必把参数一路透传到 `build_from_theme`（少改一处就少一处出错的机会）。
+    if bpm:
+        # 这里**不打印** —— `build_from_theme` 会打印"BPM x —— 命令行 --bpm 指定"，
+        # 两处都打就成了重复行（实测第一版就是这样）。
+        pack['bpm'] = {'median': float(bpm), 'p25': float(bpm), 'p75': float(bpm)}
     probs = tp.validate_pack(pack)
     if probs:
         print('✗ 主题包 %s 不合规，先修再生成：' % theme)
@@ -957,7 +991,9 @@ def theme_mode(new, theme, ref_name=None, seed=7, ncand=4, energy_gain=None,
           % (theme, '/'.join(pack.get('styles') or []), pack.get('template_count', 0),
              ', '.join('%s×%d' % (k, v)
                        for k, v in (pack.get('source_kinds') or {}).items())))
-    print('  和声：%s（来源 %s）· 速度 %.0f BPM · 调 %s %s'
+    # ⚠ 这里打印的是**主题包的速度中位数**，不是本曲生成的 BPM（那行由 `_bpm_from_pack` 打）。
+    #   两处都叫"BPM"会让人以为"生成的速度=128 固定" —— 实测就是这么被绕进去的。
+    print('  和声：%s（来源 %s）· 主题速度中位 %.0f BPM · 调 %s %s'
           % (' '.join((pack.get('harmony') or {}).get('primary') or []),
              (pack.get('harmony') or {}).get('primary_source'),
              (pack.get('bpm') or {}).get('median', 0),
@@ -1044,7 +1080,7 @@ def write_notes(dst, new, data, pack, ref):
              % (pack.get('template_count', 0), pack['theme']),
              '| 主题→风格 | %s（引擎预设 %s） |'
              % ('/'.join(pack.get('styles') or []), pack.get('engine_style')),
-             '| 速度·调式 | %.0f BPM · %s %s（模板中位） |'
+             '| 速度·调式 | 主题中位 %.0f BPM · %s %s（**本曲速度**按 seed 在模板 p25~p75 内取，见 `song.json`） |'
              % ((pack.get('bpm') or {}).get('median', 0),
                 (pack.get('key') or {}).get('tonic'), (pack.get('key') or {}).get('mode')),
              '| 和声 | %s（来源 %s） |'
@@ -1185,10 +1221,15 @@ def main():
         if '--candidates' in sys.argv else 4
     egain = float(sys.argv[sys.argv.index('--energy-gain') + 1]) \
         if '--energy-gain' in sys.argv else None
+    # ⚠ `--bpm <值>`（2026-09-20 加）：**显式钉死速度**。不加时 BPM 在主题模板的
+    #   **p25~p75 真实范围**里按 seed 取 —— 旧行为是固定用中位数，同一主题每首一样
+    #   （实测 battle 3 首全 139、daily 4 首全 128），是"同质化"的直接来源。
+    cli_bpm = float(sys.argv[sys.argv.index('--bpm') + 1]) \
+        if '--bpm' in sys.argv else None
     force = '--force' in sys.argv
     if theme:
         rc = theme_mode(new, theme, ref_name=ref_name, seed=seed, ncand=ncand,
-                        energy_gain=egain, force=force)
+                        energy_gain=egain, force=force, bpm=cli_bpm)
         # ⚠ **挂曲库必须跟着 `theme_mode` 的出口**：main 末尾那处调用**走不到这里**
         #   —— `--theme` 路径在下面这样一行就 return 了。第一版我把调用写在 main 末尾，
         #   实测 3 首变体全是 404、日志里也没有"已挂面板曲库"（加了 ≠ 生效）。
