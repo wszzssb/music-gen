@@ -128,6 +128,57 @@ def _strict_downbeats(path):
     return bad
 
 
+def _pad_layer_hint(path):
+    """**垫子写法**告警（2026-09-20 加，用户实测"音符延长得太奇怪"之后）。
+
+    垫子写法：某段开着 `arr.pad`/`arr.strings`（引擎给这两层写**长音** —— 时值写死
+    一小节 ≈4.1 拍），**而那一轨的音色是"靠衰减收尾"的族**（钢琴/拨弦/钟琴/贝斯）。
+    弦乐/合成垫上长音是对的；套到钢琴上就是"和弦被按住整整一小节不放" ——
+    用户原话"音符延长得太奇怪"。现场：`20_piano_rain` 的 Pad/Strings 时值中位
+    **3.565s（4.1 拍）**，钢琴音色下每个和弦糊到小节末。
+
+    ⚠ **第一版写错了**：当时去扫 `melody` 里的时值 —— 可 `Pad`/`Strings` 是**引擎生成**的
+    轨，`song.json` 的 `melody` 里根本没有它们（对照实验当场证伪：把 pad 全打开，检查一声不吭）。
+    判据必须在**数据层能看见**的地方：`arr` 开关 + `programs` 里的 GM 音色族。
+
+    为什么不是 FAIL：真实弦乐编配**本来就该**有长音层。所以只提示 + 说清怎么改。
+    """
+    d = json_io.load(path)
+    progs = d.get('programs') or {}
+    # 垫子轨 → 对应 `arr` 开关（键名见 `song_engine.ARR_KEYS` / 引擎里 pad_part/strings_part 的用法）
+    PADS = (('Pad', 'pad'), ('Strings', 'strings'))
+    # "靠衰减收尾"的族（GM 音色族）：钢琴 0-7 · 拨弦 24-31 · 钟琴/音高打击 8-15 · 贝斯 32-39
+    DECAY = [(0, 7), (8, 15), (24, 31), (32, 39)]
+    out = []
+    for tr, key in PADS:
+        on = [s['name'] for s in d.get('sections', []) if (s.get('arr') or {}).get(key)]
+        if not on:
+            continue
+        prog = (progs.get(tr) or [None])[0]
+        if prog is None:
+            continue
+        decay = any(lo <= int(prog) <= hi for lo, hi in DECAY)
+        if decay:
+            out.append('%s 段开着 arr.%s，但 programs.%s 是 GM %d（靠衰减收尾的音色族）'
+                       '→ 该层会被写成一小节长音' % ('/'.join(on[:3]), key, tr, int(prog)))
+    return out
+
+
+def _harmony_fitness(path):
+    """**和谐体检** —— 判据收在 `scripts/harmony_check.py`（**别在这里再写一份**）。
+
+    用户 2026-09-21："以后生成音乐最后检查是否和谐" + "生成期间也要注意"。
+    判据三项（音区间距 / 撞音 / 长音层）与实测数字见 `harmony_check.py` 的 docstring
+    与 `PITFALLS.md` 219。
+
+    ⚠ **为什么改成薄包装**：我第一版在这里又写了一份判据，结果同一条曲子上
+    两个工具的结论**不一致**（本文件报 `Piano+Hook+Arp+Glock` 四轨，模块报 `Piano+Hook` 两轨）
+    —— 正是 `CONVENTION.md` §1「抄一份 = 埋一处漂移」。现在只有一份实现。
+    """
+    import harmony_check as _hc
+    return _hc.check(json_io.load(path))
+
+
 def _brief(items, head=5, tail=90):
     """一屏可读：只列前 head 条，其余折叠成计数（坏和弦会一口气带出几十条）"""
     if len(items) <= head:
@@ -414,6 +465,28 @@ def main():
             print('  · %s: %s' % (s, msg))
         print('  项目判据是"强拍弦内音 ≥70%%"（自检 melody_chord_fit）；100%% 是我方的自我要求，'
               '加 --strict 才会当门')
+    # **垫子写法提示**（见 `_pad_layer_hint`）：单乐器（尤其钢琴）编配的头号听感陷阱
+    for s in songs:
+        pads = _pad_layer_hint(os.path.join(SONGS, s, 'song.json'))
+        if pads:
+            print('提示（**垫子写法**，不是错误，但单乐器编配要当心）：')
+            for msg in pads:
+                print('  · %s: %s' % (s, msg))
+            print('  垫子轨在弦乐/合成垫上是正常的；若该轨音色是**钢琴/拨弦/钟琴**这类'
+                  '"靠衰减收尾"的，听感会变成"和弦被按住一整小节"（用户实测原话'
+                  '"音符延长得太奇怪"）→ 把 `arr.pad`/`arr.strings` 关掉，'
+                  '细节见 `PITFALLS.md` 219')
+    # **和谐体检**（用户 2026-09-21："以后生成音乐最后检查是否和谐"）——
+    # 放在生成链的收尾：`make_song` 每步都会调 `check_song`，所以这里必然跑到。
+    for s in songs:
+        hz = _harmony_fitness(os.path.join(SONGS, s, 'song.json'))
+        if hz:
+            print('提示（**和谐体检**，三项有一项没过 —— 用户要求"最后必须检查"）：')
+            for msg in hz:
+                print('  · %s: %s' % (s, msg))
+            print('  三项 = ① 旋律↔和弦音区间距（正统钢琴 5–22 半音）② 跨轨同刻同音高撞音 '
+                  '③ 长音层（垫子/shimmer）。依据与实测数字见 `PITFALLS.md` 219·'
+                  '`SKILL.md` §3 第 15 条。')
     if vacuous:
         print('跳过（%d 项，**沙箱样本不足 → 本曲不适用**；完整 selftest 或 --all 会判定）：'
               % len(vacuous))

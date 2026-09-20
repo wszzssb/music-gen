@@ -71,3 +71,10 @@ refs/midi2/_broken/
 # 公开仓库不能收（用户 2026-09-19 要求提交时当场发现 studio_lib/songs/60_b35_imitate/
 # 下有 00_原曲_BGM35.ogg）
 studio_lib/
+
+# **公有领域古典 MIDI**（2026-09-21 加）：与 refs/midi2 分开存放 ——
+#   这一支**只收许可明确的**：Mutopia（PD/CC）与 HuggingFace
+#   `TiMauzi/imslp-midi-cc0-1.0` 里**逐行 license=cc0-1.0** 的条目。
+#   用户口径："可以抓的都抓，转录许可不明不用，按照风格分类"。
+#   来源与许可逐首记在 `refs/classical_pd/_index_*.json`。
+!refs/classical_pd/**/*.mid

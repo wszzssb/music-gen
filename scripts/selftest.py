@@ -785,17 +785,33 @@ def t_midi_probe_all():
 
 @check
 def t_probe_guards():
-    """section_probe 对过短文件要提示而不是给错数据"""
+    """section_probe 对过短文件要提示而不是给错数据；段落地图要能从 song.json 动态取。
+
+    2026-09-20 改：原来断言找字面量 `'SECS'`（硬编码地图的痕迹）。现在地图可以来自
+    `song.json`，所以判据改成 **① 短文件必须提示"不适用" ② 真实长文件必须打出地图来源**；
+    两处都用 `main(path, bar=None)`（让工具自己去同目录找 song.json）。
+    """
     import section_probe
     short = os.path.join(TMP, 'short.wav')
     sf.write(short, np.zeros((44100, 2), dtype=np.float32), 44100)
-    _, out = quiet(section_probe.main, short, 1.6)
-    assert '段落地图不适用' in out or 'SECS' in out, '过短文件没提示'
-    # 夹具音频：任意一首带成品的曲目都行（仓库可能不带音频 → 有就查，没有就跳过）
-    wavs = sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*_sf.wav')))
-    if wavs:
-        _, out2 = quiet(section_probe.main, wavs[0], 1.6)
-        assert 'SECS' in out2, '长文件缺少段落地图提示'
+    _, out = quiet(section_probe.main, short)
+    assert '段落地图不适用' in out, '过短文件没提示（实测报错 %r）' % out[-200:]
+    # 夹具音频：**必须同目录带 song.json** 才能验动态地图（实测验过：随便取 `wavs[0]`
+    # 可能落在没有 song.json 的目录上，那样这条断言就成了"看运气"）。
+    pairs = [(w, os.path.join(os.path.dirname(w), 'song.json'))
+             for w in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*_sf.wav')))]
+    pairs = [(w, s) for w, s in pairs if os.path.exists(s)]
+    if pairs:
+        w, sib = pairs[0]
+        _, out2 = quiet(section_probe.main, w, None, sib)
+        assert '段落地图' in out2, '长文件缺少段落地图提示'
+        assert '段落地图来自' in out2, '用了 song.json 却没在输出里交代来源：%r' % out2[:200]
+        # **动态地图必须真的生效**：段数/连续性都要来自数据
+        secs, bar = section_probe.build_map(sib, None)
+        assert len(secs) >= 2, 'song.json 在场却没读出多段地图（%d 段）' % len(secs)
+        assert secs[0][1] == 0 and all(a[2] == b[1]
+                                       for a, b in zip(secs, secs[1:])), \
+            '段落地图不连续（小节区间有洞或重叠）：%s' % secs[:4]
 
 
 @check
@@ -3938,6 +3954,10 @@ def t_melody_health():
         return base
     assert MH.issues(fake(maxrun=6)), '连续 6 个同音必须判为问题'
     assert MH.issues(fake(dens=1.0)), '密度 1.0 音/小节必须判为问题'
+    # **同音率**（2026-09-20 补，实测踩过）：批量改音高把一段旋律写成同一个音高时，
+    # 那些音散在各小节 → 串长只有 2~3，`maxrun` 看不见；同音率 100% 才是它的真身。
+    assert MH.issues(fake(same=100.0)), '同音率 100% 必须判为问题（压平的真判据）'
+    assert not MH.issues(fake(same=18.0)), '同音率 18%（全库最大）不该被判为问题'
     assert not MH.issues(fake()), '干净的旋律不该被判为问题'
     bad = ['%s: %s' % (r['name'], '、'.join(MH.issues(r)))
            for r in rows if MH.issues(r)]

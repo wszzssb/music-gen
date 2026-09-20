@@ -1612,6 +1612,20 @@ def main():
         # 默认 0 时不写字段 → 旧曲的 song.json 逐字节不变。
         **({'step_bias': step_bias} if step_bias else {}),
     }
+    # **`--dry-run`**（2026-09-20 加，实测事故后）：这个脚本是**写盘**工具 ——
+    # 它的 `json_io.save` 会把 `song.json` 的 `melody` **整段换掉**（手写的引子/尾声、
+    # 逐段微调过的音、变奏加音全部不再存在），而且**不报错**。
+    # 现场：把它当"只读诊断"跑（想复现 `melody_step_bias` 的非零退出），当场覆盖了
+    # 一首已定稿曲目的 5 支旋律；`git` 没追踪那首曲子，只能从覆盖前渲染的 MIDI 抢救
+    # （`tools/restore_melody_from_midi.py`）。
+    # 所以：**只想看数字就加 `--dry-run`** —— 它把结果打印出来但不落盘。
+    if '--dry-run' in sys.argv:
+        print('\n[dry-run] **没有写盘**（旋律结果只在内存里）。当前 song.json 的旋律会是：')
+        for _k, _v in d['melody'].items():
+            _old = (json.load(open(song, encoding='utf-8')).get('melody') or {}).get(_k) or []
+            print('  %-8s 新 %3d 音 / 盘上现有 %3d 音' % (_k, len(_v), len(_old)))
+        print('  想真写盘：去掉 --dry-run 重跑（会覆盖上面列出的每一支旋律）。')
+        return 0
     json_io.save(song, d)
     # **落盘重读复核**（坑 114）：一律不信生成过程中的统计 —— 出口处可能还有第二套裁剪。
     # 实测那次正是"内存里没有碎音、落盘有 9 个"，绕三轮才找到出口那句 min()。

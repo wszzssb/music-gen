@@ -1054,6 +1054,17 @@ def main():
     results.append(case('旋律形态阈值被改坏（上限 0）',
                         'melody_health',
                         lambda: Mut(_mh, 'MAX_RUN', 0)))
+    # ③ **压平**（2026-09-20 补）：批量改音高把一段旋律写成同一个音高时，那些音散在各小节
+    # → 串长只有 2~3，`maxrun` 抓不到，**同音率 100%** 才是它的真身。
+    # 这条用例的现场就是本轮的 20_piano_rain（16 个音写死同一个 98，串长 2~3）。
+    _flat = dict(name='注入的被压平曲子', notes=16, dens=2.0, same=100.0, maxrun=3, chop=0.0,
+                 grids=4, onbeat=60.0, fit=100.0, bpm=69.0, gen=None, bars=8)
+    results.append(case('注入"同音率 100% 但串长 3"的压平曲目（串长判据抓不到）',
+                        'melody_health',
+                        lambda: Mut(_mh, 'collect', lambda *a, **k: [dict(_flat)])))
+    results.append(case('同音率阈值被改坏（上限 100）',
+                        'melody_health',
+                        lambda: Mut(_mh, 'MAX_SAME', 100.0)))
     # ① sub 层音高下限被拆掉（= 旧行为：`bass − 12` 无条件）→ 贝斯掉进次声波，必须被抓
     results.append(case('贝斯 sub 层掉进次声波（SUB_FLOOR 归零）',
                         'bass_register',
@@ -1067,6 +1078,14 @@ def main():
                         'arr_role_variety',
                         lambda: Mut(_se, 'ARR_KEYS',
                                     tuple(k for k in _se.ARR_KEYS if k != 'perc_in'))))
+    # ⑤ `section_probe` 的段落地图被换回"一份硬编码地图" → 必须被抓
+    # （2026-09-20 加：实测它原来就是硬编码的，对任何别的曲子只打印"不适用"）
+    import section_probe as _sp
+    results.append(case('section_probe 段落地图退回硬编码',
+                        'probe_guards',
+                        lambda: Mut(_sp, 'build_map',
+                                    lambda song_json=None, bar=None: (
+                                        [('Intro', 0, 4), ('A', 4, 12)], 10060.0 / 40))))
     # ③ 引子渐入被绕过（`perc_part` 忽略 `inbars`）→ 前 2 小节又敲起来，必须被抓
     _perc_orig = _se.perc_part
     results.append(case('引子渐入被绕过（perc_in 失效）',

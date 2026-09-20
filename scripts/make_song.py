@@ -256,6 +256,25 @@ def autotune(cfg, ref, mid_path, out_base, max_iter=6, data=None):
                       '而不是继续加大别的轨')
             regress_warned = True
         last = mine
+        # **生成期间的和谐体检**（用户 2026-09-21："以后生成音乐最后检查是否和谐" +
+        #   "生成期间也要注意"）。放在**每轮渲染之后**：调参动的是混音参数，但
+        #   "调参把某轨推得盖住旋律 / 编配本身音区撞车"这类不和谐，只有在这里才当场看得见。
+        #   判据收在 `scripts/harmony_check.py`（与 `check_song` 共用一份，别抄）。
+        if data and (it == 0 or it == max_iter - 1):
+            try:
+                import harmony_check as _hc
+                _hz = _hc.check(data)
+            except Exception as _e:                              # noqa: BLE001
+                _hz, _ = ['（和谐体检跑不起来：%s）' % type(_e).__name__], None
+            if _hz:
+                print('  ⚠ 和谐体检（第%d轮）：%d 个问题' % (it + 1, len(_hz)))
+                for _x in _hz[:4]:
+                    print('      · %s' % _x)
+                if it == max_iter - 1:
+                    print('      （生成链收尾仍不和谐 → 改 `song.json` 的编配/音区，'
+                          '细节见 `SKILL.md` §3 第 15 条）')
+            elif it == 0:
+                print('  ✓ 和谐体检：三项都过（音区间距 / 撞音 / 长音层）')
         gaps = target_gaps(mine, ref)
         # 震荡保护：上一轮调过的参数，若目标误差反而变大 → 回退+冻结
         # **没进展也冻结**：误差几乎不动（<0.1dB）说明这个方向已经到底（或到顶），
@@ -455,6 +474,15 @@ def main():
 
     print('[3/3] 成绩单')
     wav = out + '.wav'
+    # **音频与 MIDI 的同步检查**（2026-09-20 加，实测踩过）：这是上面那条
+    # 「song.json 比 MIDI 新」的**姊妹坑** —— 收尾只要动过 song.json（例如跑
+    # `json_io.py` 规范化、或某个改数据的小脚本），MIDI 会重生成而**音频还停在旧版**，
+    # 于是"文件都在、时间戳也对"，交付出去的却是旧声音。现场：piano_rain.mid 比
+    # `_sf.ogg` 新 4 分钟，是人工比对 mtime 才发现的。
+    if os.path.exists(wav) and os.path.getmtime(mid) > os.path.getmtime(wav) + 1:
+        print('  !! **音频比 MIDI 旧**（%.0f 秒）：%s 不含最新数据 ——'
+              % (os.path.getmtime(mid) - os.path.getmtime(wav), os.path.basename(wav)))
+        print('     交付前必须重渲染：把 song.json 的改动落回音频（去掉 --no-compose 重跑）。')
     if os.path.exists(wav):
         argv = ['scorecard.py', wav, '--ref', ref_name,
                 '--render', os.path.relpath(mid, ROOT)]

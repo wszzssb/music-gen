@@ -1,15 +1,47 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """分段体检：找出哪一段弱（响度/亮度/低频/宽度/起音密度）
-用法: python section_probe.py <file> [小节长秒数]
+用法: python section_probe.py <file> [小节长秒数] [歌曲目录]
+
+段落地图（2026-09-20 修，实测踩过）：
+  原来 `SECS` 是**按某首 40 小节曲子硬编码**的，换曲子直接打印
+  「!! 段落地图不适用：SECS 需要 10060.0s，文件只有 251.5s」——等于对任何
+  其它曲子都不可用（实测写钢琴曲时被迫另写一个脚本）。
+现在优先顺序：① `<歌曲目录>/song.json` 的 sections（最准：段名/段数/BPM 全来自数据）
+  ② 命令行的「小节长秒数」+ 默认 6 段 ③ 都没有才退回旧硬编码 SECS。
 """
+import json
+import os
 import sys
 
 import numpy as np
-import soundfile as sf
 
 SECS = [('Intro', 0, 4), ('A', 4, 12), ('B', 12, 20), ("A'", 20, 28),
         ("B'", 28, 36), ('Outro', 36, 40)]
+
+
+def build_map(song_json=None, bar=None):
+    """段落地图：返回 [(段名, 起始小节, 结束小节)] 与每小节秒数。
+
+    给了 `song.json` 就**完全按数据**算（BPM 也从里面读，不再要求手给 bar）——
+    这样 `section_probe.py <曲目录>/xxx_sf.wav <曲目录>/song.json` 一步到位。
+    """
+    if song_json and os.path.exists(song_json):
+        d = json.load(open(song_json, encoding='utf-8'))
+        spb = 60.0 / float(d['bpm'])
+        mt = d.get('meter') or [4, 4]
+        bsec = float(mt[0]) * 4.0 / float(mt[1]) * spb
+        out, b0 = [], 0
+        for s in d.get('sections') or []:
+            n = int(s.get('bars') or 0)
+            out.append((str(s.get('name') or '?'), b0, b0 + n))
+            b0 += n
+        if out:
+            return out, bsec
+    if bar:
+        return SECS, float(bar)
+    return SECS, 1.6
+
 
 
 def avg_spectrum(m, sr, n=8192):
@@ -33,19 +65,24 @@ def band(S, sr, lo, hi):
     return 20 * np.log10(max(1e-12, np.sqrt((S[k] ** 2).mean())))
 
 
-def main(path, bar):
+def main(path, bar=None, song_json=None):
     x, sr = metrics.read_audio(path, dtype='float32')
     dur = len(x) / sr
-    need = SECS[-1][2] * bar
+    secs, bar = build_map(song_json, bar)
+    need = secs[-1][2] * bar
     if need > dur + 0.5:
-        print('!! 段落地图不适用：SECS 需要 %.1fs，文件只有 %.1fs\n'
-              '   SECS 是按某首曲子硬编码的（40 小节 × 1.6s）。换曲子请改脚本里的 SECS，\n'
-              '   或改用 analyze_ref2.py / scorecard.py（不依赖小节数）。' % (need, dur))
+        print('!! 段落地图不适用：需要 %.1fs，文件只有 %.1fs\n'
+              '   给一个 song.json（段名/小节数/BPM 从数据来）或命令行的小节秒数。'
+              % (need, dur))
         return
     print('%-7s %7s %8s %8s %10s %7s %8s' %
           ('段落', 'RMS', '质心Hz', '6-16k', '低频40-160', '宽度', '起音/秒'))
-    print('  (段落地图 SECS 按 40 小节 × %.3fs 硬编码；换曲子请改 SECS 或改用 scorecard.py)' % bar)
-    for name, b0, b1 in SECS:
+    if song_json:
+        print('  (段落地图来自 %s：%d 段 × %.3fs/小节)'
+              % (os.path.relpath(song_json), len(secs), bar))
+    else:
+        print('  (段落地图：命令行 %.3fs/小节 + 默认 6 段；给 song.json 更准)' % bar)
+    for name, b0, b1 in secs:
         seg = x[int(b0 * bar * sr):int(b1 * bar * sr)]
         if len(seg) < 4096:
             continue
@@ -69,5 +106,29 @@ def main(path, bar):
 
 import cli_utf8 as _cu; _cu.setup()   # 控制台编码兜底（GBK 下打印 ✓ 会崩）
 import metrics      # noqa: E402  # 统一音频读取（含 ffmpeg 兜底）
+
+
+def _cli(argv):
+    """命令行：`<音频> [小节秒数 | song.json]`。
+
+    第 2 个参数是**数字**时 = 用户显式指定小节秒数 → **不再自动找 song.json**
+    （否则显式值会被同目录的 song.json 静默盖掉，实测就是这么踩的：
+    `section_probe.py x.wav 3.478` 打出来的还是 song.json 的地图）。
+    不给第 2 个参数时才自动找同目录的 song.json。
+    """
+    path = argv[1]
+    bar = sj = None
+    for a in argv[2:]:
+        try:
+            bar = float(a)
+        except ValueError:
+            sj = a
+    if sj is None and bar is None:
+        cand = os.path.join(os.path.dirname(os.path.abspath(path)), 'song.json')
+        if os.path.isfile(cand):
+            sj = cand
+    return path, bar, sj
+
+
 if __name__ == '__main__':
-    main(sys.argv[1], float(sys.argv[2]) if len(sys.argv) > 2 else 1.6)
+    main(*_cli(sys.argv))

@@ -1568,7 +1568,11 @@ def build_events(d):
                     # 原曲这种段落连钟琴都没有（第 1 小节实测 0 个 Glock 事件），
                     # 而这条路径会给**每个旋律音**加一个 +12 —— 听 MIDI 是"到处在叮"。
                     and int(arr.get('density') if arr.get('density') is not None else 2) > 0
-                    and m + 12 <= 127):
+                    # ⚠ **上限用乐器合理音域**（`TR_RANGE['Glock'][1]` = 115），不是 127。
+                    # 2026-09-20 实测踩到：旋律顶到 110 时这一层给出 122，被
+                    # `track_ranges_musical` 判为越界（"可能整体移了一/两个八度"）；
+                    # MIDI 合法（≤127）≠ 乐器合理 —— 上限必须按乐器，否则越界音照样写出去。
+                    and m + 12 <= TR_RANGE['Glock'][1]):
                 bucket['Glock'].append((t, dur * 0.9, m + 12, 54))
         # 副旋律/加厚层（opt-in）：给旋律音配一个**和弦内的低三度**（保证协和），
         # 走 Strings 轨（没有就退到 Hook/Piano）。这是"听起来做得很满"最省的一招。
