@@ -1,0 +1,423 @@
+{
+ "name": "piano_rain",
+ "bpm": 78.0,
+ "meter": [4, 4],
+ "desc": "慢速抒情钢琴独奏（依据主题模板包 tender：10 首同主题模板）——全轨走钢琴族音色，靠织体/音区/段落对比做起伏",
+ "style": "ballad",
+ "programs": {
+  "Melody": [1, 0],
+  "Hook": [0, 1],
+  "Piano": [2, 2],
+  "Arp": [1, 3],
+  "Pad": [0, 4],
+  "Strings": [1, 5],
+  "Bass": [0, 6],
+  "Glock": [8, 7],
+  "Perc": [0, 9]
+ },
+ "mix": {
+  "Melody": [72, 112],
+  "Hook": [80, 60],
+  "Piano": [58, 82],
+  "Arp": [92, 72],
+  "Pad": [64, 52],
+  "Strings": [66, 68],
+  "Bass": [64, 112],
+  "Glock": [96, 112],
+  "Perc": [64, 44]
+ },
+ "patterns": {
+  "bass_style": "simple",
+  "perc_style": "light",
+  "melody_dyn": true,
+  "arr_by_role": false,
+  "arpeggio": [0, 2, 3, 4, 3, 2],
+  "guitar_beats": [0.0, 0.75, 1.5, 2.0, 3.0, 3.5],
+  "guitar_vary": true,
+  "space": true,
+  "avoid_lead": 2,
+  "seg_in": 0.75,
+  "section_gap": 2.5,
+  "seg_fade": true,
+  "range_fix": true,
+  "legato_trim": true,
+  "dyn_vel": 12.0,
+  "mel_vel": 1.02,
+  "mel_vel_center": 86,
+  "sub_gain": 1.3,
+  "sub_dur": 0.8,
+  "staccato": 1.0,
+  "melody_exempt": {
+   "dur": "用户指认旋律不动人 → 选级进62%/碎音1%的候选(验收另一维), 时值维偏离37% vs 画像下限40%; 拉长时值(--dur-bias)实测更差(碎音1%→12%), 故接受该偏离"
+  }
+ },
+ "chords": {
+  "B7": [47, [59, 63, 66, 69]],
+  "Esus4": [40, [52, 57, 59, 64]],
+  "Am7": [45, [57, 60, 64, 67]],
+  "Am": [45, [57, 60, 64, 69]],
+  "Em7": [40, [52, 55, 59, 62]],
+  "A6": [45, [57, 61, 64, 66]],
+  "D6": [50, [62, 66, 69, 71]],
+  "F#m7": [42, [54, 57, 61, 64]],
+  "C#m7": [49, [61, 64, 68, 71]],
+  "Bm6": [47, [59, 62, 66, 68]]
+ },
+ "melody": {
+  "intro": [
+   [0, 0.25, 0.75, 76], [0, 1.75, 0.75, 78], [0, 3.25, 0.75, 81],
+   [1, 0.0, 1.5, 76], [1, 1.5, 0.75, 78], [1, 3.0, 1.0, 76],
+   [2, 0.5, 0.5, 74], [2, 1.25, 0.25, 76], [2, 2.0, 1.0, 76], [2, 3.5, 0.5, 78],
+   [3, 0.5, 2.25, 76]
+  ],
+  "A": [
+   [0, 0.0, 0.75, 66], [0, 1.5, 0.75, 69], [0, 3.0, 0.5, 66], [0, 3.5, 0.75, 69],
+   [1, 1.0, 0.75, 71], [1, 2.5, 0.75, 73],
+   [2, 0.0, 0.5, 76], [2, 0.75, 0.5, 76], [2, 1.5, 0.75, 78], [2, 3.0, 1.0, 76],
+   [3, 1.0, 1.5, 69],
+   [4, 0.5, 0.75, 71], [4, 2.0, 0.75, 75], [4, 3.5, 0.5, 78],
+   [5, 1.0, 0.75, 76], [5, 2.5, 0.75, 78],
+   [6, 0.0, 0.75, 76], [6, 1.75, 0.75, 78], [6, 3.25, 0.75, 73],
+   [7, 1.0, 1.5, 76]
+  ],
+  "B": [
+   [0, 0.5, 0.75, 83], [0, 2.0, 0.75, 86], [0, 3.5, 0.5, 83],
+   [1, 0.0, 2.25, 81],
+   [2, 0.0, 0.75, 78], [2, 1.5, 0.75, 78], [2, 3.0, 1.0, 73],
+   [3, 0.25, 0.75, 76], [3, 1.75, 0.75, 74], [3, 3.25, 0.75, 76],
+   [4, 0.0, 0.75, 83], [4, 1.5, 0.75, 81], [4, 3.0, 1.0, 81],
+   [5, 0.0, 2.25, 81],
+   [6, 0.0, 0.75, 83], [6, 1.5, 0.75, 81], [6, 3.0, 1.0, 78],
+   [7, 0.0, 2.25, 76]
+  ],
+  "C": [
+   [0, 0.25, 0.75, 81], [0, 1.75, 0.5, 85], [0, 2.75, 1.25, 85],
+   [1, 0.0, 1.5, 83],
+   [2, 1.0, 0.75, 85], [2, 2.0, 0.5, 85], [2, 3.75, 1.5, 86],
+   [3, 1.25, 0.75, 83], [3, 2.25, 0.5, 83],
+   [4, 0.5, 0.75, 85], [4, 2.0, 0.5, 85], [4, 3.0, 1.0, 83],
+   [5, 0.0, 1.5, 83],
+   [6, 0.0, 1.5, 81], [6, 1.5, 1.5, 85],
+   [7, 0.0, 1.5, 81]
+  ],
+  "outro": [
+   [0, 1.0, 0.75, 81], [0, 2.0, 0.75, 76],
+   [1, 0.5, 2.25, 76],
+   [2, 0.0, 1.5, 71], [2, 3.0, 1.0, 73],
+   [3, 0.5, 2.25, 69]
+  ]
+ },
+ "sections": [
+  {
+   "name": "Intro",
+   "bars": 4,
+   "chords": ["Esus4", "Am7", "Esus4", "Am7"],
+   "melody": "intro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 0,
+    "perc_in": 0,
+    "melody_prog": 0,
+    "mix": {
+     "Melody": 82,
+     "Piano": 72,
+     "Bass": 76,
+     "Hook": 48
+    }
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A",
+   "bars": 8,
+   "chords": ["B7", "Esus4", "Am7", "Am", "B7", "Esus4", "Esus4", "Am7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1,
+    "melody_prog": 0,
+    "mix": {
+     "Melody": 74,
+     "Piano": 64,
+     "Bass": 68,
+     "Hook": 40
+    }
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A2",
+   "bars": 8,
+   "chords": ["B7", "Esus4", "Am7", "Am", "B7", "Esus4", "Esus4", "Am7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "glock_oct": 24,
+    "glock_from_bar": 2,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "melody_prog": 1,
+    "mix": {
+     "Melody": 86,
+     "Piano": 76,
+     "Bass": 80,
+     "Hook": 52
+    }
+   },
+   "mode": "major"
+  },
+  {
+   "name": "B",
+   "bars": 8,
+   "chords": ["Em7", "A6", "A6", "D6", "Em7", "A6", "Esus4", "Am7"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 3,
+    "melody_prog": 4,
+    "mix": {
+     "Melody": 98,
+     "Piano": 88,
+     "Bass": 92,
+     "Hook": 64
+    }
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A3",
+   "bars": 8,
+   "chords": ["B7", "Esus4", "Am7", "Am", "B7", "Esus4", "Esus4", "Am7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1,
+    "melody_prog": 2,
+    "mix": {
+     "Melody": 72,
+     "Piano": 62,
+     "Bass": 66,
+     "Hook": 38
+    }
+   },
+   "mode": "major"
+  },
+  {
+   "name": "C",
+   "bars": 8,
+   "chords": ["F#m7", "D6", "C#m7", "Bm6", "F#m7", "D6", "Esus4", "Am7"],
+   "melody": "C",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": true,
+    "shimmer": false,
+    "density": 2,
+    "melody_prog": 3,
+    "mix": {
+     "Melody": 92,
+     "Piano": 82,
+     "Bass": 86,
+     "Hook": 58
+    }
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A4",
+   "bars": 8,
+   "chords": ["B7", "Esus4", "Am7", "Am", "B7", "Esus4", "Esus4", "Am7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 2,
+    "melody_prog": 1,
+    "mix": {
+     "Melody": 94,
+     "Piano": 84,
+     "Bass": 88,
+     "Hook": 60
+    }
+   },
+   "mode": "major"
+  },
+  {
+   "name": "B2",
+   "bars": 8,
+   "chords": ["Em7", "A6", "A6", "D6", "Em7", "A6", "Esus4", "Am7"],
+   "melody": "B",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": true,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 4,
+    "melody_prog": 1,
+    "mix": {
+     "Melody": 104,
+     "Piano": 94,
+     "Bass": 98,
+     "Hook": 70
+    }
+   },
+   "mode": "major"
+  },
+  {
+   "name": "A5",
+   "bars": 8,
+   "chords": ["B7", "Esus4", "Am7", "Am", "B7", "Esus4", "Esus4", "Am7"],
+   "melody": "A",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 1,
+    "melody_prog": 1,
+    "mix": {
+     "Melody": 68,
+     "Piano": 58,
+     "Bass": 62,
+     "Hook": 34
+    }
+   },
+   "mode": "major"
+  },
+  {
+   "name": "Outro",
+   "bars": 4,
+   "chords": ["Esus4", "Am7", "Esus4", "Am7"],
+   "melody": "outro",
+   "arr": {
+    "bass": true,
+    "perc": 0,
+    "piano": true,
+    "uku": false,
+    "arp": false,
+    "pad": false,
+    "strings": false,
+    "glock": false,
+    "glock_all": false,
+    "ep": false,
+    "shimmer": false,
+    "density": 0,
+    "ending_fade": 4,
+    "melody_prog": 0,
+    "mix": {
+     "Melody": 58,
+     "Piano": 48,
+     "Bass": 52,
+     "Hook": 24
+    }
+   },
+   "mode": "major"
+  }
+ ],
+ "theme": {
+  "name": "tender",
+  "label": "温柔抒情",
+  "pack": "refs/themes/tender.json",
+  "template_count": 10,
+  "styles": ["ballad", "romantic", "pop"],
+  "source_kinds": {
+   "bitmidi": 10
+  },
+  "primary_source": "window4",
+  "mix_target": "tender_mix",
+  "energy_curve_db": [],
+  "energy_gain": 1.0,
+  "templates": ["ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "ballad/Animal Crossing - KK Ballad Aircheck.mid", "ballad/BALLAD-2.MID", "ballad/A-Very-Special-Love-Song.mid", "pop/IGGY POP.Louie Louie.mid", "pop/Disco Citizens - Footprint.mid", "pop/Disco-Fans.mid", "romantic/Liszt Bach Prelude Transcription.mid", "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid", "romantic/brahms.mid"],
+  "melody_profile": "refs/themes/tender_melody.json",
+  "seed": 20,
+  "melody_reuse": true
+ },
+ "melody_gen": {
+  "profile": "tender",
+  "seed": 20,
+  "dens": 2.6,
+  "candidates": 4,
+  "mode": "motif",
+  "variants": true,
+  "step_bias": 1.0
+ }
+}
