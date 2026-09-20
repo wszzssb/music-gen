@@ -281,6 +281,33 @@ def auto_chunk(free_mb, dur, seg_sec, frames, bsz):
                    budget_mb=round(free_mb * SAFETY), free_mb=free_mb, bsz=bsz)
 
 
+# ── 扒谱开工清单（PITFALLS 209 口径：判据要印在**它起作用的那一刻**）──────────
+# ⚠ 为什么打在转录入口：`RESTORE-METHOD §10` 是**按需读**的文档 —— "写了指针"≠"会去翻"，
+#   而这里打印是**无法回避**的（除非不看输出）。浓缩成 7 行是刻意的，全文在 §10。
+#   ⚠ 也说清**这套清单的边界**：它拦不住"推理层"的错（归因跳步 / 给自己找例外）——
+#   能落成代码的都已经落了（见 RESTORE-METHOD §10 开头的边界说明）。
+_RESTORE_CHECKLIST = (
+    '1) 精度只用**独立方法**量（transcribe_audit / chroma / 谱峰法）—— 同模型多份输出只证明"一致"',
+    '2) **别手工拼 MIDI** —— 走 transcribe_to_song.py（本工具**已默认接续**，--no-song 才绕开）',
+    '3) **归因先列竞争假设**：带差大 ≠ 模型边界（更常见：低音落在别的轨 / 音色不对）',
+    '4) 新指标先拿**已知答案**自检；没自检过的尺子，读数不许用来删数据',
+    '5) 工具不报错 ≠ 生效：改完**读回验证**（program 会被 program_changes 静默盖掉）',
+    '6) **分段是默认**，一刀切要举证（整曲统一 EQ / 粗调 --width 都会在某一头过头）',
+    '7) **度量要直接对着你要回答的问题**（问"该不该分段"就量"分段与不分段的差"）',
+)
+
+
+def _print_restore_checklist():
+    print('┌─ 扒谱开工清单（全文 → docs/RESTORE-METHOD.md §10）' + '─' * 18)
+    for line in _RESTORE_CHECKLIST:
+        print('│ ' + line)
+    print('└' + '─' * 62)
+    print('  ⚠ 这份清单**拦不住你**：能落成代码的都已落（轨名错→报错 · 正路是默认 · '
+          'program 被覆盖→警告 · --width→护栏 · 分段→自动提示）。', flush=True)
+    print('    剩下拦不住的只有 **归因跳步** 与 **给自己找例外** —— 它们没有输入输出契约，'
+          '只能靠"事后能认出自己犯了"。', flush=True)
+
+
 # ── 转录之后的**下一步**：走正路（引擎编配），而不是手工拼 MIDI ──────────────
 # ⚠ 2026-09-20 加的**默认行为**：PITFALLS 185（标注"最大的一条"）与 SKILL §8 都写着
 #   "别手工拼 MIDI，用 transcribe_to_song.py"，而当天那轮会话**读到了仍然手工拼** ——
@@ -419,6 +446,9 @@ def main():
     ap.add_argument("--song-name", default=None,
                     help="接续生成 song.json 的曲目名（默认由音频名推导；会是 songs/<名>/）")
     args = ap.parse_args()
+
+    # ⚠ **扒谱开工清单**：打在入口、无法回避（理由与边界见 `_RESTORE_CHECKLIST` 上方那段）。
+    _print_restore_checklist()
 
     want_dl = getattr(args, "download", False)
     repo = find_repo(args.repo)
