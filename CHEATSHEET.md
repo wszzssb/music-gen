@@ -142,6 +142,10 @@ studio\stop.cmd     # 停
 ```powershell
 & $py scripts\imitate_ref.py <原曲.ogg> -o <项目>   # 九段全链；原曲别放进项目目录（成品同名会覆盖它，PITFALLS 208）
 & $py scripts\note_dur_stats.py <曲.mid> [参考.mid] # 碎音率/时值中位（听感体检）
+& $ml scripts\transcribe_ymt3.py <音频>             # 转录 → **默认接续**出 song.json（引擎编配＝正路）
+& $ml scripts\transcribe_ymt3.py <音频> --no-song   # 只要一份纯 MIDI（**丢掉引擎的编配/音色分配/段落密度**）
+#   ↑ 2026-09-20 起「正路是默认」：绕开要**显式** --no-song（PITFALLS 185 / SKILL §8）
+#     接续链：切轨 → analyze_chords → transcribe_to_song --auto → songs/<名>/song.json
 ```
 
 参数：`--dur-floor`（时值下限，只动旋律层，默认 0.55 拍）· `--absorb-into`（YMT3 的合成器通道并进哪条轨，默认 Strings —— 并进 Piano 会用钢琴音色弹它）· `--thr-extra`（Guitar/Strings 是单来源层，套 `--merge-thr` 会把整层砍掉）；改过参数要 `--from bass --force bass` 重跑。

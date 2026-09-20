@@ -281,6 +281,124 @@ def auto_chunk(free_mb, dur, seg_sec, frames, bsz):
                    budget_mb=round(free_mb * SAFETY), free_mb=free_mb, bsz=bsz)
 
 
+# ── 转录之后的**下一步**：走正路（引擎编配），而不是手工拼 MIDI ──────────────
+# ⚠ 2026-09-20 加的**默认行为**：PITFALLS 185（标注"最大的一条"）与 SKILL §8 都写着
+#   "别手工拼 MIDI，用 transcribe_to_song.py"，而当天那轮会话**读到了仍然手工拼** ——
+#   自我说服是"用户只要一份 MIDI，不用走引擎"；结果那版"不像"**用 EQ 修不回来**
+#   （开头起音密度 21.7 vs 原曲 28.5，见 RESTORE-METHOD §10）。
+#   所以把正路做成**默认**，绕开要**显式** `--no-song`。
+_ENGINE_MAP = {
+    "Acoustic Piano": "Piano",
+    "Bass": "Bass",
+    "Guitar (clean)": "Hook",          # 引擎的"吉他"就叫 Hook
+    "Strings": "Strings",
+    "Chromatic Percussion": "Glock",
+    "Organ": "Pad",
+    "Synth Pad": "Pad",
+    "Synth Lead": "Melody",
+    "Drums": "Drums",
+}
+
+
+def _split_by_engine_track(mid_path, name, out_dir):
+    """多轨转录 → **每引擎轨一个单轨 MIDI**。
+
+    ⚠ 必须拆：`transcribe_to_song.py --mid 轨=文件` 的 `read_notes` 读的是**整个文件**，
+    把多轨 MIDI 直接传进去会把所有声部灌成一条引擎轨。
+    映射到同一引擎轨的源轨（Organ + Synth Pad → Pad）在这里合并且只写一个文件。
+    """
+    import midi_file
+    m = midi_file.import_midi(mid_path)
+    buckets, progs = {}, {}
+    for tr in m.get("tracks", []):
+        eng = _ENGINE_MAP.get(str(tr.get("name") or ""))
+        if not eng or not (tr.get("notes") or []):
+            continue
+        buckets.setdefault(eng, []).extend([list(n) for n in tr["notes"]])
+        progs.setdefault(eng, tr.get("program"))
+    flat = os.path.join(out_dir, name + "_stems")
+    os.makedirs(flat, exist_ok=True)
+    files = {}
+    for eng, notes in buckets.items():
+        notes.sort(key=lambda z: (z[0], z[2]))
+        mm = {"format": 1, "division": int(m.get("division") or 480),
+              "bpm": float(m.get("bpm") or 120.0), "timesig": m.get("timesig") or [4, 4],
+              "title": "%s %s" % (name, eng), "source": "",
+              "end_beat": max(float(n[0]) + float(n[1]) for n in notes),
+              "tracks": [{"index": 0, "name": eng, "channel": 9 if eng == "Drums" else 0,
+                          "program": 0 if eng == "Drums" else int(progs.get(eng) or 0),
+                          "drum": eng == "Drums", "mute": False, "solo": False,
+                          "hidden": False, "notes": notes, "ccs": [],
+                          "program_changes": [], "markers": []}]}
+        p = os.path.join(flat, "%s_%s.mid" % (name, eng))
+        midi_file.export_midi(mm, p)
+        files[eng] = (p, len(notes))
+    return files
+
+
+def _run_song_pipeline(audio_path, mid_path, out_dir, name, song_name=None):
+    """接续走正路：切轨 → 和弦表 → `transcribe_to_song.py --auto` → song.json。
+
+    ⚠ **失败只警告、不中断**（转录产物照旧保留），并把可复制的手工命令打出来。
+    """
+    import re
+    import subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    root = os.path.dirname(here)
+    py = sys.executable
+
+    # ① 真实 BPM **必须钉死**：analyze_chords 自己测一层，可能与转录记谱打架
+    try:
+        import metrics as _mx
+        _m, _sr, _x = _mx.load(audio_path)
+        bpm, _peak, _info = _mx.detect_bpm(_m, _sr)
+    except Exception as e:                                          # noqa: BLE001
+        print("  ! 自动测速失败（%s）—— 跳过接续，MIDI 照旧可用" % str(e)[:70], flush=True)
+        return False
+
+    files = _split_by_engine_track(mid_path, name, out_dir)
+    if not files:
+        print("  ! 没有可映射到引擎轨的声部 —— 跳过接续", flush=True)
+        return False
+    print("  [正路] 切轨 %d 条：%s"
+          % (len(files), ", ".join("%s(%d音)" % (k, v[1]) for k, v in sorted(files.items()))),
+          flush=True)
+
+    # ② 和弦表（analyze_chords 的输出文本，按小节一行）
+    chords_txt = os.path.join(out_dir, name + "_chords.txt")
+    with open(chords_txt, "w", encoding="utf-8") as fh:
+        r = subprocess.run([py, os.path.join(here, "analyze_chords.py"), audio_path,
+                            "--bpm", str(bpm)],
+                           stdout=fh, stderr=subprocess.PIPE,
+                           text=True, encoding="utf-8", errors="replace")
+    if r.returncode != 0:
+        print("  ! analyze_chords 失败：%s" % (r.stderr or "")[-200:], flush=True)
+        return False
+
+    # ③ 引擎编配（--auto：段落跟随音乐 + 逐小节鼓型）
+    sname = song_name or (re.sub(r"[^0-9A-Za-z_]+", "_", name).strip("_")[:40] or "restored")
+    cmd = [py, os.path.join(here, "transcribe_to_song.py"), sname,
+           "--bpm", "%.4f" % bpm, "--chords-log", chords_txt,
+           "--auto", "--audio", audio_path]
+    for eng, (p, _n) in sorted(files.items()):
+        cmd += ["--mid", "%s=%s" % (eng, p)]
+    if "Drums" in files:
+        cmd += ["--drums-mid", files["Drums"][0]]
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", cwd=root)
+    for line in (r.stdout or "").strip().splitlines()[-6:]:
+        print("  [正路] " + line, flush=True)
+    if r.returncode != 0:
+        print("  ! transcribe_to_song 失败（退出码 %d）：%s"
+              % (r.returncode, (r.stderr or "")[-300:]), flush=True)
+        print("  手工命令：\n    %s"
+              % " ".join('"%s"' % c if " " in c else c for c in cmd), flush=True)
+        return False
+    print("  ✓ songs/%s/song.json 已生成 —— **下一步 `make_song.py %s`**"
+          "（引擎编配 + 渲染 + 成绩单）" % (sname, sname), flush=True)
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser(description="YourMT3+ 多乐器转录（加速版）")
     ap.add_argument("audio", help="音频文件或目录（目录则批量处理其下 *.ogg/*.wav/*.flac/*.mp3）")
@@ -293,6 +411,13 @@ def main():
     ap.add_argument("--weights", default=None, help="model.ckpt 路径")
     ap.add_argument("--download", action="store_true",
                     help="缺什么自动拿什么：模型代码（~4MB）+ 权重（516MB），都走 hf-mirror 镜像")
+    ap.add_argument("--no-song", action="store_true",
+                    help="**跳过引擎编配**（只出 MIDI）。⚠ 默认**会**接续走 `transcribe_to_song.py`"
+                         "（正路：切轨 → 和弦表 → `--auto` 定段落与鼓型）；见 SKILL §8 / PITFALLS 185"
+                         " —— 手工链会丢掉引擎的编配/音色分配/段落密度控制，"
+                         "实测那版\"不像\"用 EQ 修不回来。只有确实只要一份纯 MIDI 时才加它")
+    ap.add_argument("--song-name", default=None,
+                    help="接续生成 song.json 的曲目名（默认由音频名推导；会是 songs/<名>/）")
     args = ap.parse_args()
 
     want_dl = getattr(args, "download", False)
@@ -488,6 +613,20 @@ def main():
                        "pitch_max": max(pitches, default=0),
                        "unique_pitches": len(set(pitches)), "per_channel": per_channel,
                        "infer_sec": round(dt, 1), "bsz": bsz})
+
+        # ── 下一步：走**正路**（引擎编配），不是手工拼 MIDI ──────────────────
+        #    ⚠ 默认开（理由见文件头 `_ENGINE_MAP` 上方那段）；绕开要**显式** `--no-song`。
+        if args.no_song:
+            print("\n⚠ --no-song：只出 MIDI，**跳过引擎编配**。\n"
+                  "  ⚠ SKILL §8 / PITFALLS 185：手工链会丢掉引擎的编配 / 音色分配 / "
+                  "段落密度控制 —— 只有确实只要一份纯 MIDI 时才这么走。", flush=True)
+        else:
+            print("\n── 接续正路：转录 → song.json（引擎编配）──", flush=True)
+            try:
+                _run_song_pipeline(path, dst, out_dir, name, args.song_name)
+            except Exception as _e:                                 # noqa: BLE001
+                print("  ! 接续出错（%s）—— 转录音符已保留，MIDI 照旧可用" % str(_e)[:80],
+                      flush=True)
 
     rp = os.path.join(out_dir, "_report.json")
     with open(rp, "w", encoding="utf-8") as fh:
