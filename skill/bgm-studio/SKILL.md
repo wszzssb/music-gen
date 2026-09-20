@@ -133,6 +133,11 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
      + **逐音力度** + `drum_grid` 逐小节鼓型）；骨架实测比例 **Piano 39% / Perc 36% /
      Bass 16%**（三件 91%，Strings/Guitar 只是点缀）—— **堆层反而更难听**；
      渲染后用 `band_match` 对齐，再对响度/宽度。
+      ⚠⚠ **"我只要一份 MIDI" 不构成例外**（2026-09-20 实测踩中；185 早已标"最大的一条"）：
+      用户说"提取 MIDI"时交付物确实是 `.mid`，但**手工链会丢掉引擎的编配 / 音色分配 /
+      段落密度控制** —— 实测那版"不像"用 EQ 修不回来（开头起音密度 21.7 vs 原曲 28.5）。
+      **正解：先走 `transcribe_to_song.py`，交付时再从 `song.json` 导出一份 MIDI**（两者不冲突）。
+      **开工前先过一遍 `docs/RESTORE-METHOD.md` §10 防错清单（6 条）。**
    然后才轮到：**开工先跑 `audit.py` 拿偏差清单**，再改（`docs/AUDIT-CHECKLIST.md` 有全部参考线）：
    `audit.py <参考音频> <我的音频> --bpm N --mine-json <song.json> --midi <我的.mid>`
    六轴里 **`chord`/`grid`/`density` 属"照抄即可"**（做不到是方法问题，别推给音源），
