@@ -479,6 +479,14 @@ def main():
     mid_db = 0.0
     if '--width' in sys.argv:
         width = float(sys.argv[sys.argv.index('--width') + 1])
+        # ⚠ **护栏**（2026-09-20，PITFALLS 215）：>1.8 起"中侧处理"会开始抵消**居中成分**
+        #   （人声/主奏/贝斯都在中间）—— 实测 1.4→2.2：宽度 0.255→0.733（看着达标了），
+        #   但 630–1250Hz 带差从 −0.5 恶化到 **−7.3dB**、RMS 掉 1.2dB、峰值顶到 −0.6dBFS。
+        #   **要精确对齐参考宽度请用 `master_finish.py`**（`set_width_exact`），别靠这个粗旋钮。
+        if width > 1.8:
+            print('  ⚠ --width %.2f 偏大：中侧处理会抵消居中成分（人声/主奏/贝斯在中间）——'
+                  '实测 2.2 时 630–1250Hz 恶化 6.8dB。要对齐参考宽度请用 '
+                  '`master_finish.py`（见 PITFALLS 215）' % width, flush=True)
     if '--rms' in sys.argv:
         rms = float(sys.argv[sys.argv.index('--rms') + 1])
     if '--shelf' in sys.argv:

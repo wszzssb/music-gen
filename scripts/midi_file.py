@@ -151,10 +151,25 @@ def export_midi(model, path, fmt=None):
         elif t.get('name'):
             ev.append((0, W_META, _meta(0x03, (t.get('name') or '').encode('utf-8')[:120])))
         prog = t.get('program')
-        for (bt, p) in (t.get('program_changes') or []):
+        pcs = t.get('program_changes') or []
+        # ⚠ **program 会被 program_changes 覆盖 → 必须提示，绝不静默**（2026-09-20，PITFALLS 213）：
+        #   原写法是"有 program_changes 就不写 program"，于是"改了 program 想换音色"会被轨上
+        #   自带的旧 `[[0, 0]]` **静默盖掉** —— 命令 ok、文件变大、渲染也 ok，只有渲染统计与
+        #   改动前**逐样本相同**才暴露（当天就是这么被骗过去的）。
+        #   ⚠ **为什么不直接报错**：导入的**真实 MIDI** 里 `program`（解析器推断）与
+        #   `program_changes[0]`（文件真值）不同是**常态** —— 实测一报错就误伤编辑器的往返
+        #   自检（`midi_file_editor_roundtrip`：`ABBA.Name of the game K.mid` 是 39 vs 84）。
+        #   这两者该留哪个，工具**猜不出来**（用户那条 `[[0, 0]]` 本来就会覆盖）。
+        #   所以这里**只消除静默**：导出行为一字不改，只把"哪个才生效"印到输出上。
+        if prog is not None:
+            if pcs and int(pcs[0][1]) != int(prog):
+                print('  ⚠ 轨 %r：program=%s **不生效** —— 被 program_changes[0]=%s 覆盖'
+                      '（想固定音色就清空 program_changes；见 PITFALLS 213）'
+                      % (t.get('name'), prog, pcs[0][1]), file=sys.stderr)
+            if not pcs:
+                ev.append((0, W_PROG, bytes([0xC0 | ch, int(prog) & 0x7F])))
+        for (bt, p) in pcs:
             ev.append((tick(bt), W_PROG, bytes([0xC0 | ch, int(p) & 0x7F])))
-        if prog is not None and not (t.get('program_changes') or []):
-            ev.append((0, W_PROG, bytes([0xC0 | ch, int(prog) & 0x7F])))
         for (bt, cc, val) in (t.get('ccs') or []):
             ev.append((tick(bt), W_PROG, bytes([0xB0 | ch, int(cc) & 0x7F,
                                                 max(0, min(127, int(val)))])))

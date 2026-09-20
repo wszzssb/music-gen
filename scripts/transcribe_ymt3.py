@@ -608,6 +608,15 @@ def main():
         print("⑤ %s · 音符 %d · 音域 %d-%d · 唯一音高 %d · 总耗时 %.1fs"
               % (dst, len(notes), min(pitches, default=0), max(pitches, default=0),
                  len(set(pitches)), time.time() - t0), flush=True)
+        # ⚠ **同源警告**（PITFALLS 209 的口径：判据必须印在运行时输出上，不能只写 docstring）——
+        #   本工具的多份输出（含"按分轨各跑一遍"）**同模型同权重**，错误是**相关**的：
+        #   互相印证只证明"一致"、**不证明"对"**（2026-09-20 实测：拿 10 条同源转录的
+        #   支持率 87.2% 当精度证据，把一次真主因判断带偏）。
+        print("   ⚠ 精度提示：本次是**单一模型**输出 —— 多跑几遍、或按分轨多跑，都还是**同源**，"
+              "不能拿「支持率/一致率」当精度证据。\n"
+              "     精度要用**独立方法**量：`transcribe_audit.py <分轨.wav> <我的.mid> "
+              "--tracks \"<真轨名>\"`（pyin 基准）· chroma 对比 · 谱峰法"
+              "（→ docs/RESTORE-METHOD.md §10 第 1 条）", flush=True)
         report.append({"name": name, "midi": dst, "seconds": round(dur, 1), "segments": n_seg,
                        "notes": len(notes), "pitch_min": min(pitches, default=0),
                        "pitch_max": max(pitches, default=0),
