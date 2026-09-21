@@ -1448,14 +1448,52 @@ def main():
     # ⚠ `Mut` 走 getattr/setattr，**只能换对象属性、改不了 dict 的键** ——
     #   所以这里深拷贝整张 `STYLES` 再替换模块属性（第一版写成
     #   `Mut(_se.STYLES['dance']['programs'], 'Hook', ...)`，当场 AttributeError）。
-    import copy as _copy2
-    _ST = _copy2.deepcopy(_se.STYLES)
-    _ST['dance']['programs']['Hook'] = [25, 1]          # 换回钢弦吉他（它会盖住旋律）
+    class _BrightHook:
+        """把**会被 `t_track_balance` 检查到**的那首曲目的 Hook 换成钢弦吉他（program 25）。
+
+        ⚠ 这里原来改的是 `STYLES['dance']['programs']` —— 那是**生成时**的音色预设，
+        而 `song.json` 里各轨的 `programs` 早在生成那一刻就固化了，改预设对"被检查的对象"
+        毫无影响 → 这条用例长期抓不到东西（mutation 158 项里**唯一**一项"漏了"，
+        `t_track_balance` 本身是好的）。现在直接改 `song.json`，用完还原。
+
+        `t_track_balance` 只查 glob 排序后**前 2 首** `style ∈ (dance, daily)` 且有
+        `theme` 的曲目（当前是 `01_morning_light` 与 `04_pulse_city`），所以这里按同一
+        条件挑"第一首"来当夹具 —— 挑法变了它会自动跟着变。
+        """
+        def __enter__(self):
+            self.p, self.txt = None, None
+            for q in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
+                try:
+                    j0 = json.load(open(q, encoding='utf-8'))
+                except Exception:                          # noqa: BLE001
+                    continue
+                if (j0.get('style') or '') in ('dance', 'daily') and j0.get('theme'):
+                    self.p = q
+                    break
+            if not self.p:
+                return
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            j.setdefault('programs', {})['Hook'] = [25, 1]   # 钢弦吉他：拨弦泛音会盖住旋律
+            for s in j.get('sections') or []:                # 还得真在这首曲子里响起来
+                s.setdefault('arr', {})['uku'] = True
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                json.dump(j, f, ensure_ascii=False, indent=1)
+
+        def __exit__(self, *a):
+            if self.p and self.txt is not None:
+                with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                    f.write(self.txt)
+
     results.append(case('平衡：伴奏音色被换亮（盖住旋律）',
-                        'track_balance',
-                        lambda: Mut(_se, 'STYLES', _ST)))
+                        'track_balance', _BrightHook))
     # ㉑ 把主奏换成"起音慢"的音色（dance 的 Melody 木琴 13 → 颤音琴 11，起音 42ms）→
     #    `t_lead_timbre_attack` 必须抓到 —— 用户听感"有一个乐器慢一点不太和谐"
+    # ⚠ `import copy` 原本挂在上一条用例（track_balance）前面，只服务这一条 ——
+    #   2026-09-21 改那条用例的注入方式时**误删了这个 import**，于是 mutation_check
+    #   在这一行直接 NameError 崩掉（整套变异测试跑不完）。改用例时留意**相邻**的
+    #   局部 import/变量属于谁。
+    import copy as _copy2
     _ST2 = _copy2.deepcopy(_se.STYLES)
     _ST2['dance']['programs']['Melody'] = [11, 0]
     results.append(case('音色：主奏换成慢起音（听着慢半拍）',

@@ -22,7 +22,7 @@
  "key": {
   "tonic": "C",
   "pc": 0,
-  "mode": "major",
+  "mode": "minor",
   "confidence": 0.3,
   "scale_degree_weight": [
    2327488.35,
@@ -187,10 +187,10 @@
  },
  "harmony": {
   "primary": [
-   "Csus4",
-   "Gm7",
-   "Csus4",
-   "Gm7"
+   "A#6",
+   "F7",
+   "Am7",
+   "G6"
   ],
   "primary_source": "window2",
   "progressions": [
@@ -618,7 +618,7 @@
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 72,
+  "total_bars": 56,
   "plan": [
    {
     "name": "Intro",
@@ -631,27 +631,12 @@
     "prog": 0
    },
    {
-    "name": "A2",
-    "bars": 8,
-    "prog": 0
-   },
-   {
     "name": "B",
     "bars": 8,
     "prog": 0
    },
    {
-    "name": "A3",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "C",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "A4",
+    "name": "A2",
     "bars": 8,
     "prog": 0
    },
@@ -661,7 +646,12 @@
     "prog": 0
    },
    {
-    "name": "A5",
+    "name": "C",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A3",
     "bars": 8,
     "prog": 0
    },
@@ -673,15 +663,15 @@
   ]
  },
  "melody": {
-  "notes": 1508,
+  "notes": 1552,
   "range": [
-   62,
+   64,
    93
   ],
-  "mean_pitch": 73.92,
-  "notes_per_bar": 2.51,
-  "stepwise_pct": 73.12,
-  "onbeat_pct": 61.69,
+  "mean_pitch": 76.09,
+  "notes_per_bar": 2.58,
+  "stepwise_pct": 72.06,
+  "onbeat_pct": 55.02,
   "diatonic_pct": 91.97,
   "interval_hist": {
    "-19": 7,
@@ -690,14 +680,14 @@
    "-8": 18,
    "-7": 119,
    "-5": 585,
-   "-4": 238,
-   "-3": 366,
-   "-2": 1953,
-   "-1": 717,
-   "0": 1884,
-   "1": 570,
-   "2": 2188,
-   "3": 525,
+   "-4": 259,
+   "-3": 409,
+   "-2": 1329,
+   "-1": 760,
+   "0": 2522,
+   "1": 613,
+   "2": 1983,
+   "3": 567,
    "4": 141,
    "5": 217,
    "7": 191,
@@ -709,39 +699,39 @@
   "dur16_hist": {
    "0": 53,
    "1": 3111,
-   "2": 2361,
-   "3": 209,
+   "2": 2694,
+   "3": 876,
    "4": 737,
    "5": 59,
    "6": 37,
    "7": 85,
-   "8": 587,
+   "8": 87,
    "9": 17,
    "10": 5,
    "11": 133,
    "12": 299,
    "14": 94,
-   "16": 2212
+   "16": 1712
   },
   "onset16_hist": {
-   "0": 3079,
+   "0": 2746,
    "1": 177,
    "2": 148,
-   "3": 250,
+   "3": 416,
    "4": 786,
    "5": 235,
-   "6": 470,
+   "6": 637,
    "7": 330,
-   "8": 1274,
+   "8": 941,
    "9": 130,
    "10": 340,
-   "11": 491,
+   "11": 657,
    "12": 1030,
    "13": 331,
-   "14": 566,
+   "14": 733,
    "15": 362
   },
-  "phrases": 100,
+  "phrases": 98,
   "phrase_bars": [
    3.7,
    3.7,
@@ -853,20 +843,37 @@
     }
    },
    {
-    "ref": "BGM35",
-    "score": 0.705,
+    "ref": "BGM16c_v2",
+    "score": 0.743,
     "bpm": 150.0,
-    "centroid": 3522,
-    "rms_db": -16.1,
-    "width": 0.473,
+    "centroid": 3250,
+    "rms_db": -16.9,
+    "width": 0.51,
     "source": {
      "kind": "project_audio",
      "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM35.ogg",
-     "origin_path": "D:/test/galgame/ピュアソングガーデン！解包/Bgm/BGM35.ogg",
+     "file": "BGM16c.ogg",
+     "origin_path": null,
      "url": null,
      "url_alt": [],
-     "note": "早期画像没记 source（2026-09-21 补）：依据是画像自带 file 字段里的路径，与同批 46 份的来源一致。"
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "bgm16c_new",
+    "score": 0.743,
+    "bpm": 150.0,
+    "centroid": 3250,
+    "rms_db": -16.9,
+    "width": 0.51,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM16c.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
    },
    {
@@ -885,6 +892,23 @@
      "url_alt": [],
      "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
+   },
+   {
+    "ref": "bgm01c",
+    "score": 0.611,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "bgm01c.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
    }
   ],
   "agg_profile": "battle_mix",
@@ -895,59 +919,25 @@
   },
   "perc_style_target": 0.75,
   "energy_curve_db": [
-   -1.75,
-   0.25,
-   0.25,
-   1.25,
-   0.25,
-   0.25,
-   1.25,
-   -1.75
+   -1.12,
+   -0.12,
+   -0.12,
+   0.88,
+   0.88,
+   0.88,
+   0.88,
+   -2.12
   ],
   "structure_db": [
-   -19.0,
+   -18.0,
    -17.0,
    -17.0,
    -16.0,
-   -17.0,
-   -17.0,
+   -16.0,
+   -16.0,
    -16.0,
    -19.0
   ],
-  "density_curve_db": [
-   -1.31,
-   -0.46,
-   0.0,
-   0.05,
-   -0.68,
-   -0.3,
-   0.27,
-   0.8
-  ],
-  "density_meta": {
-   "n": 8,
-   "files": [
-    "7thsaga_town3-1.mid",
-    "7thsaga_cave.mid",
-    "7thsaga_bt1.mid",
-    "7thsaga_bt2_w.mid",
-    "ClassicXG.mid",
-    "T_AVGFighterMAX_YukaThemeGM.mid",
-    "50's-Rock.mid",
-    "A-Hard-Day's-Night-4.mid"
-   ],
-   "abs_curve": [
-    46.38,
-    51.11,
-    53.91,
-    54.25,
-    49.87,
-    52.05,
-    55.59,
-    59.12
-   ],
-   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
-  },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
@@ -1029,7 +1019,41 @@
     "why": "BPM 150.0（差 11.0，0.63）· 打击感 0.66 vs 目标 0.75（0.81）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
+  "density_curve_db": [
+   -1.31,
+   -0.46,
+   0.0,
+   0.05,
+   -0.68,
+   -0.3,
+   0.27,
+   0.8
+  ],
+  "density_meta": {
+   "n": 8,
+   "files": [
+    "7thsaga_town3-1.mid",
+    "7thsaga_cave.mid",
+    "7thsaga_bt1.mid",
+    "7thsaga_bt2_w.mid",
+    "ClassicXG.mid",
+    "T_AVGFighterMAX_YukaThemeGM.mid",
+    "50's-Rock.mid",
+    "A-Hard-Day's-Night-4.mid"
+   ],
+   "abs_curve": [
+    46.38,
+    51.11,
+    53.91,
+    54.25,
+    49.87,
+    52.05,
+    55.59,
+    59.12
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
+  }
  },
  "skipped": []
 }

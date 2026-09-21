@@ -3,31 +3,31 @@
  "file": "aggregate(4 refs)",
  "aggregate": true,
  "theme": "battle",
- "bpm": 150.0,
+ "bpm": 139.8,
  "rms_db": -16.9,
  "width": 0.66,
- "centroid": 3338,
- "duration": 181.7,
+ "centroid": 3284,
+ "duration": 155.6,
  "character": "instrumental",
  "bands": {
-  "10000-18000": -17.8,
-  "1250-2500": -5.7,
-  "160-315": -2.0,
+  "10000-18000": -19.6,
+  "1250-2500": -5.9,
+  "160-315": -2.2,
   "20-40": -16.7,
-  "2500-5000": -7.1,
-  "315-630": -1.6,
-  "40-80": -0.2,
-  "5000-10000": -12.4,
+  "2500-5000": -12.9,
+  "315-630": -3.8,
+  "40-80": 0.0,
+  "5000-10000": -14.3,
   "630-1250": -2.5,
-  "80-160": 0.0
+  "80-160": -1.1
  },
  "structure": [
-  -19.0,
+  -18.0,
   -17.0,
   -17.0,
   -16.0,
-  -17.0,
-  -17.0,
+  -16.0,
+  -16.0,
   -16.0,
   -19.0
  ],
@@ -78,23 +78,6 @@
    }
   },
   {
-   "ref": "BGM35",
-   "score": 0.705,
-   "bpm": 150.0,
-   "centroid": 3522,
-   "rms_db": -16.1,
-   "width": 0.473,
-   "source": {
-    "kind": "project_audio",
-    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM35.ogg",
-    "origin_path": "D:/test/galgame/ピュアソングガーデン！解包/Bgm/BGM35.ogg",
-    "url": null,
-    "url_alt": [],
-    "note": "早期画像没记 source（2026-09-21 补）：依据是画像自带 file 字段里的路径，与同批 46 份的来源一致。"
-   }
-  },
-  {
    "ref": "BGM16b",
    "score": 0.685,
    "bpm": 139.8,
@@ -110,8 +93,36 @@
     "url_alt": [],
     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
    }
+  },
+  {
+   "ref": "bgm01c",
+   "score": 0.611,
+   "bpm": 128.0,
+   "centroid": 3284,
+   "rms_db": -14.3,
+   "width": 0.316,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "bgm01c.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
   }
  ],
- "dedup_skipped": [],
+ "dedup_skipped": [
+  {
+   "ref": "BGM16c_v2",
+   "same_as": "BGM16c",
+   "file": "BGM16c.ogg"
+  },
+  {
+   "ref": "bgm16c_new",
+   "same_as": "BGM16c",
+   "file": "BGM16c.ogg"
+  }
+ ],
  "source_note": "多份真实录音画像的**逐维度中位数**（成员见 members，各自带 source；同一份音频只算一次，被跳过的见 dedup_skipped）—— 单份画像的个性（偏亮/偏厚）不整体带进成品"
 }

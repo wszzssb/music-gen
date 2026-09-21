@@ -6132,7 +6132,21 @@ def t_theme_melody_reuse():
     assert not bad, '旋律复用不达标：%s' % '；'.join(bad[:4])
 
 
-IMITATE_SRC_RE = re.compile(r'^imitate:(\S+)$')
+# 结构来源的**合法留痕**（判据 `t_imitate_path_marked` 用）：
+#   · `imitate:<参考曲>`       —— 模仿写歌，结构来自单首参考曲的实测结构
+#   · `theme_pack-plan:<段数>` —— 直接作曲，但按**当时**的主题包 `form.plan` 生成
+#
+# ⚠ 为什么要有第二种（2026-09-21 补）——**别让人为了过检查而撒谎**：
+#   `form.plan` 的段数由 `theme_pack` 的 `nsec = max(2, min(8, tot_med/sec_bars))` 算，
+#   **代码演进会让它变**，而包只有在被重建时才刷新。实测两个方向都踩到：
+#     · `tender` 包 2026-09-18 是 **6 段**（`Intro/A/B/A2/B2/Outro`）、2026-09-21 被重建为 **10 段**
+#       → 按 6 段生成的 `05_soft_memory`（段名逐字相同）突然"段数不符"；
+#     · 我在同一天重建 `battle/cheerful/neon/retro`（新代码给 10 段）→ 7 首按旧 plan
+#       （6/8 段）生成的曲目一起"段数不符"。
+#   这些**不是"两条路径混用"**，是**依据演进**：曲子没错、也没人手改结构。
+#   对它们要求 `imitate:` 前缀等于逼人写假留痕 —— 所以判据认第二种前缀，
+#   且 `structure_source` 的值里带上"当时是几段"，溯源时一眼能看出依据是哪一版。
+IMITATE_SRC_RE = re.compile(r'^(?:imitate:|theme_pack-plan:)\S+$')
 
 
 def _imitate_unmarked(n_sec, n_plan, src):
