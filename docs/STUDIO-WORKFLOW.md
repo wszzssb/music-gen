@@ -149,6 +149,37 @@ python studio\server.py --port 8765 --lib D:\test\llm_direct\b35_studio
 `LIB/songs/` → **`LIB/song.json` 或 库根有音频 → single** → 遍历子目录找 `<id>/song.json` → flat。
 ⚠ 第 2 步在前，所以**库根一旦有散装音频，容器布局就再也认不出来**。
 
+⚠ **single 布局还有一个更危险的后果**（2026-09-21 实测，**已修** —— 坑 222）：
+`song_dir(sid)` 在 single 下**忽略 sid**（无条件 `d = base`）——
+曲库指向一个"本身就是曲子"的目录（交付目录正是这个长相）时，**任何曲目 id 都解析成它自己**。
+实测：起 `id=44_skip_beat` 的 compose 任务，**实际跑成了该目录里的 `piano_rain`**，
+覆盖了它的 `.mid`。现在 `song_dir` 会校验 `sid == 库目录名`，对不上就报错拒绝。
+**预防**：起面板/CLI 任务**前**先 `GET /api/songs` 看那个 id 在不在列表里（1 秒，挡掉全部错配）。
+
+## 6. 省时顺序（2026-09-21 补 —— 一轮任务里"白烧的时间"都在哪）
+
+同一轮"写歌 + 修 bug"的实测：纯返工约 **30 分钟**，其中**一次 25 分钟**完全是自己造成的。
+按代价排序：
+
+| 浪费 | 代价 | 根因 | 以后怎么做 |
+|---|---|---|---|
+| **猜面板 API 的字段名** | **~25 min**（两次死等到超时） | `POST /api/job` 返回 `{"ok":true,"job":"<id>"}`，我按 `jobId`/`status` 找；而且任务跑完会**从 JOBS 表移除**（GET 变 404）→ 循环永远等不到终态 | **先跑一次最小调用看真实响应**（`curl … \| head -c 300`），1 秒的事 |
+| 曲库错配 → compose 跑成别的曲目 | ~15 min（+ 覆盖了别人的 `.mid`） | 曲库被指到 single 布局，`song_dir` 忽略 id | 起任务前 `/api/songs` 对 id；**代码已强制拒绝**（坑 222） |
+| 用 `json.dump` 直接写 `song.json` | ~2 min + 一轮 check | 非规范格式 → `song_json_canonical` FAIL | 一律走 `scripts\json_io.py` 的 `save()/normalize()` |
+| 改一处 → 渲一次 | ~4 min | 三处开关分三轮改（`density` / `pad` / `drum_grid`） | **一次把要改的项列全再跑链**（SKILL §3 第 1 条） |
+| 注入脚本非幂等 | ~3 min + 重交付 | 脚本把 C 段 `density` 又设回 1 | 改数据的脚本**必须幂等**，验收 = "跑两次 sha256 相同" |
+
+**收益最高的三条**（按量级排）：
+
+1. **先探接口 / CLI 的"真实输出"，再写调用代码** —— 省掉的是"按错误假设空转"的时间，量级最大。
+   任何新 API：先 `curl` 一次看 JSON 结构、看字段名、看**任务结束后是什么状态**。
+2. **改 `song.json` 走 `json_io`；改完先离线验（`build_events` + `check_song`，约 2 秒），
+   绿了才渲染**（整曲 1~3 分钟/轮）—— 离线 2 秒 vs 在线 2 分钟，差 **60 倍**。
+3. **一次列全再跑**：把所有要改的开关（含段级 `arr.perc/density/pad` 与 `patterns.drum_grid`）
+   写进**一个**幂等脚本，跑一次 compose + check，而不是"改一个看一个"。
+
+⚠ **别拿"整曲渲染"当探针**（SKILL 明写）：定方向用面板「⚡ 试听本段」（1~3 秒）或离线算事件。
+
 **两个"判据陷阱"**（我写审计工具时连踩）：
 - **`os.path.islink` 对 Windows 目录 junction 返回 `False`** → 悬空链接会被误判成"散装文件"，
   清理脚本一个都删不掉。用 `os.path.isjunction`（3.12+）或读 `cmd /c dir /AL` 的输出。
