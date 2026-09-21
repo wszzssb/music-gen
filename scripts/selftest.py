@@ -841,6 +841,7 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'SONG-FORMAT.md'),
              os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
              os.path.join(ROOT, 'docs', 'CONVENTION.md'),
+             os.path.join(ROOT, 'docs', 'AUDIO-CRITIC.md'),
              os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
              os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'),
              os.path.join(ROOT, 'studio', 'README.md'),
@@ -3638,6 +3639,11 @@ MELODY_LANG_TWIN_MAX = 2   # 允许的"孪生对"数（语言重合 ≥85% = 同
 MELODY_ACCEPT_MIN = 0.40   # 生成旋律与画像的逐维承接度下限（落点/时值）
 MELODY_ACCEPT_SPARSE = 0.40   # 画像本身很稀疏（<80 个旋律音）时的下限：直方图是稀疏采样
 MIDI_LIB_DIRS = ('refs/midi', 'refs/midi2')   # 模板库（音符层参考素材）目录
+# **Bass 轨允许的音色**（GM 0-based）：32–39 贝斯族 · 42 大提琴 · 43 低音提琴 · 44 弦乐颤音。
+# 用户口径（2026-09-21）："**以后要用 bass 时就这样来**" —— 不许再用钢琴族弹贝斯线
+# （`20_piano_rain` 原来是 `programs.Bass=[0,6]`，引子里钢琴与贝斯同八度弹同一个音高，听感"突兀"）。
+# 提成模块常量是为了**能被变异测试注入**（把集合改小 → 检查必须报警）。
+BASS_LOW_PROGS = frozenset(range(32, 40)) | {42, 43, 44}
 # 本项目会往系统临时目录写东西的前缀 + 卫生阈值（`t_tmp_hygiene` 用）
 TMP_PREFIXES = ('selftest_', 'mutation_', 'rehearsal_')   # 瞬态目录：必须自己清干净
 TMP_CACHE_DIRS = ('bgm-studio-audio',)   # 面板的音频缓存：只报体积，不算失败
@@ -3966,6 +3972,80 @@ def t_melody_health():
     assert not bad, ('旋律形态问题（用户口径："一串同音"/"音太少"/"卡卡的"）：%s —— '
                      '跑 probe_melody_health.py 看细节，重跑 melody_gen 修'
                      % '；'.join(bad[:6]))
+
+
+@check
+def t_audio_critic_contracts():
+    """**"让音频大模型听曲子"的硬约束必须有守卫**（`ask_audio_critic.py`）。
+
+    为什么单独守它：它的三条坑**都会静默出错** —— 不报错，但结论是错的：
+      ① 单段超 30 秒 → 多喂的部分被 `WhisperFeatureExtractor` **静默截断**，模型以为听了整段
+         （坑 227 现场：冒烟时 `--segments 1` 就把 223 秒整曲喂了进去）；
+      ② `audios=` 写成复数 → 音频根本没进 processor，模型照样一本正经评价（同上坑）；
+      ③ 默认采样（模型 `generation_config` 是 `do_sample: true`）→ **同段三次三个答案**，
+         拿它做前后对比就是在比噪声（坑 232）。
+    这里守住**可静态判定**的那部分：单段上限、判据口径、CLI 能渲染。
+    （"音频真进去了"的断言在 `Critic.ask` 里，要真跑模型才触发，不进自检。）
+    """
+    import subprocess
+    import ask_audio_critic as A
+
+    # ① 上限本身是**事实**（WhisperFeatureExtractor 只吃 30 秒），写成字面量守
+    assert A.MAX_SEC == 30.0, \
+        '单段上限被改成 %.0f 秒 —— 模型只吃 30 秒，多喂会被静默截断' % A.MAX_SEC
+    # ② 任何切法都不许越过上限
+    for n in (1, 4, 8, 40):
+        for (_st, du) in A.segment_bounds(223.4, n):
+            assert du <= A.MAX_SEC, \
+                '切 %d 段时出现 %.1f 秒的段（> 上限 %.0f，会被静默截断）' % (n, du, A.MAX_SEC)
+    # ③ 段数太少时**夹到上限**，而不是把整曲喂进去
+    only = A.segment_bounds(223.4, 1)
+    assert len(only) == 1 and abs(only[0][1] - A.MAX_SEC) < 1e-6, \
+        '--segments 1 时该只喂 %.0f 秒，实得 %s（整曲喂进去=模型只听到前 30 秒）' % (A.MAX_SEC, only)
+    # ④ 覆盖性：8 段的起止要接上整曲
+    bs = A.segment_bounds(223.4, 8)
+    assert abs(bs[0][0]) < 1e-6 and abs((bs[-1][0] + bs[-1][1]) - 223.4) < 0.2, \
+        '段边界没覆盖整曲：%s' % bs
+    # ⑤ 判据口径（踩过的坑）："有问题…（末尾）没问题。" 必须算**报了问题**
+    assert A.verdict('没问题') == '没问题', '干净的段该判"没问题"'
+    assert A.verdict('有问题，以下是详细信息：① 和弦过渡生硬；② 某声部被盖住。没问题。') != '没问题', \
+        '报了问题的段被判成"没问题" —— 用 \'没问题\' not in answer 判就是这个坑'
+    assert '生硬' in A.verdict('和弦过渡生硬'), '类别抽取没抓到"生硬"'
+    # ⑥ CLI 至少能渲染 help（argparse 里裸 % 会在这里炸）
+    # ⚠ 必须显式 `encoding='utf-8'`：默认按控制台 GBK 解码，help 里有中文时会
+    #   在 subprocess 的读取线程里抛 UnicodeDecodeError（实测噪音，且会吞掉输出）。
+    r = subprocess.run([sys.executable, os.path.join(HERE, 'ask_audio_critic.py'), '--help'],
+                       capture_output=True, text=True, encoding='utf-8', errors='replace',
+                       timeout=120)
+    assert r.returncode == 0, '--help 打不出来：%s' % ((r.stderr or r.stdout or '')[:200])
+    print('        单段上限 %.0f 秒（任意段数不越界）· 判据口径正确 · --help 可渲染'
+          % A.MAX_SEC)
+
+
+@check
+def t_bass_timbre_is_low():
+    """**Bass 轨必须用低音乐器音色**（用户 2026-09-21 定："以后要用 bass 时就这样来"）。
+
+    现场：`20_piano_rain` 原来是 `programs.Bass = [0, 6]` —— **GM 0 = Acoustic Grand Piano**。
+    那首的设计是"全轨钢琴族"，于是引子里成了**用钢琴在 E2/A2 上弹 1.4 拍长音、力度 96**：
+    低音区 + 长时值 + 钢琴的衰减 = 一坨混浊的低频块；而且 Piano 与 Bass 在**同一八度弹同一个
+    音高**（只差 0.12 拍），两条轨齐奏同一个低音。用户原话："bass 前面突兀了，其实单听还好
+    合起来就不行了" —— 单听任一条都正常，合起来才顶出来。
+    换成 GM 32（Acoustic Bass）+ 引子不用 bass 后用户认可，已并回 `20_piano_rain`。
+
+    判据：`programs.Bass[0]` 必须落在 GM 的低音乐器区（`BASS_LOW_PROGS`）。
+    全库实测：改前 39 首里 31 首本来就合规，**唯一违规的就是这一首** —— 所以这条不会误伤。
+    """
+    bad = []
+    for d in songs_or_fail():
+        j = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
+        b = (j.get('programs') or {}).get('Bass')
+        if b and int(b[0]) not in BASS_LOW_PROGS:
+            bad.append('%s(program %s)' % (os.path.basename(d), b[0]))
+    assert not bad, ('这些曲目的 Bass 轨用了非低音乐器音色（钢琴族弹贝斯线会糊在低音区、'
+                     '还会与钢琴左手撞成一片）：%s —— 把 `programs.Bass[0]` 换到 32–39 / 42–44'
+                     % ', '.join(bad))
+    print('        %d 首的 Bass 音色都在低音乐器区（32–39 / 42–44）' % len(song_dirs()))
 
 
 @check

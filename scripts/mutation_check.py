@@ -1157,6 +1157,24 @@ def main():
                         lambda: Mut(_sc, 'HEARD',
                                     {k: v for k, v in _sc.HEARD.items() if k != '小步率'})))
 
+    # **Bass 音色**（2026-09-21 用户定案："以后要用 bass 时就这样来"）：把"允许的低音乐器"
+    # 集合改成只含 0（钢琴）→ 那些用 GM 32 的曲目必须被判违规 —— 证明这条检查真的在量音色。
+    # ⚠ **不能**靠"改某首 song.json 的 programs"来注入：本检查读的是**磁盘**，
+    #   改内存只会假通过（`form_penalty` 那次踩过，见下方注释）。
+    results.append(case('Bass 允许音色被改小（检查变瞎）', 'bass_timbre_is_low',
+                        lambda: Mut(st, 'BASS_LOW_PROGS', frozenset({0}))))
+
+    # **音频大模型的契约**（2026-09-21）：① 单段上限被抬大 → 整曲会被静默截断（模型只听到前 30 秒）
+    # ② 判据口径被改回 `'没问题' in answer` → **报了问题的段被判成"没问题"**（我踩过的坑）
+    # ⚠ 用例①能打进去的前提是 `segment_bounds` 的默认参数写成 `None` 而不是 `=MAX_SEC`
+    #   （默认参数定义时绑定，改 MAX_SEC 对调用方无效 → 会变成假通过）。
+    import ask_audio_critic as _ac
+    results.append(case('音频大模型单段上限被抬大（静默截断）', 'audio_critic_contracts',
+                        lambda: Mut(_ac, 'MAX_SEC', 600.0)))
+    results.append(case('"报了问题"的判据被改回字符串包含', 'audio_critic_contracts',
+                        lambda: Mut(_ac, 'verdict',
+                                    lambda a: '没问题' if '没问题' in (a or '') else '其它')))
+
     # 主题模板包（用户口径：一次生成依据"很多同主题模板"，来源只许 refs/midi2 或权威网络数据）
     import theme_pack as _tp
     # ① 白名单被放宽成"随便什么站点都算权威" → 来源校验必须失效被抓
