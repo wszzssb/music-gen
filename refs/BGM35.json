@@ -72,5 +72,14 @@
  "meter_assumed": [
   4,
   4
- ]
+ ],
+ "source": {
+  "kind": "project_audio",
+  "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+  "file": "BGM35.ogg",
+  "origin_path": "D:/test/galgame/ピュアソングガーデン！解包/Bgm/BGM35.ogg",
+  "url": null,
+  "url_alt": [],
+  "note": "早期画像没记 source（2026-09-21 补）：依据是画像自带 file 字段里的路径，与同批 46 份的来源一致。"
+ }
 }

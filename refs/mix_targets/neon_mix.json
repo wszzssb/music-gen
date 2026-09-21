@@ -1,33 +1,33 @@
 {
  "name": "neon_mix",
- "file": "aggregate(6 refs)",
+ "file": "aggregate(4 refs)",
  "aggregate": true,
  "theme": "neon",
  "bpm": 150.0,
  "rms_db": -16.9,
- "width": 0.51,
- "centroid": 3250,
- "duration": 124.2,
+ "width": 0.66,
+ "centroid": 3338,
+ "duration": 181.7,
  "character": "instrumental",
  "bands": {
-  "10000-18000": -19.6,
-  "1250-2500": -4.2,
+  "10000-18000": -17.8,
+  "1250-2500": -5.7,
   "160-315": -2.0,
-  "20-40": -18.8,
+  "20-40": -16.7,
   "2500-5000": -7.1,
-  "315-630": -3.8,
-  "40-80": -1.6,
+  "315-630": -1.6,
+  "40-80": -0.2,
   "5000-10000": -12.4,
   "630-1250": -2.5,
   "80-160": 0.0
  },
  "structure": [
-  -18.0,
+  -19.0,
   -17.0,
   -17.0,
   -16.0,
-  -16.0,
-  -16.0,
+  -17.0,
+  -17.0,
   -16.0,
   -19.0
  ],
@@ -78,37 +78,20 @@
    }
   },
   {
-   "ref": "BGM16c_v2",
-   "score": 0.761,
+   "ref": "BGM35",
+   "score": 0.724,
    "bpm": 150.0,
-   "centroid": 3250,
-   "rms_db": -16.9,
-   "width": 0.51,
+   "centroid": 3522,
+   "rms_db": -16.1,
+   "width": 0.473,
    "source": {
     "kind": "project_audio",
     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM16c.ogg",
-    "origin_path": null,
+    "file": "BGM35.ogg",
+    "origin_path": "D:/test/galgame/ピュアソングガーデン！解包/Bgm/BGM35.ogg",
     "url": null,
     "url_alt": [],
-    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-   }
-  },
-  {
-   "ref": "bgm16c_new",
-   "score": 0.761,
-   "bpm": 150.0,
-   "centroid": 3250,
-   "rms_db": -16.9,
-   "width": 0.51,
-   "source": {
-    "kind": "project_audio",
-    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM16c.ogg",
-    "origin_path": null,
-    "url": null,
-    "url_alt": [],
-    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    "note": "早期画像没记 source（2026-09-21 补）：依据是画像自带 file 字段里的路径，与同批 46 份的来源一致。"
    }
   },
   {
@@ -127,24 +110,8 @@
     "url_alt": [],
     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
    }
-  },
-  {
-   "ref": "bgm01c",
-   "score": 0.592,
-   "bpm": 128.0,
-   "centroid": 3284,
-   "rms_db": -14.3,
-   "width": 0.316,
-   "source": {
-    "kind": "project_audio",
-    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "bgm01c.ogg",
-    "origin_path": null,
-    "url": null,
-    "url_alt": [],
-    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-   }
   }
  ],
- "source_note": "多份真实录音画像的**逐维度中位数**（成员见 members，各自带 source）—— 单份画像的个性（偏亮/偏厚）不整体带进成品"
+ "dedup_skipped": [],
+ "source_note": "多份真实录音画像的**逐维度中位数**（成员见 members，各自带 source；同一份音频只算一次，被跳过的见 dedup_skipped）—— 单份画像的个性（偏亮/偏厚）不整体带进成品"
 }

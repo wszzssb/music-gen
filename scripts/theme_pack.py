@@ -1212,6 +1212,7 @@ def aggregate_refs(theme, members, root=None):
     """
     root = root or ROOT
     profs = []
+    seen_src, dedup = {}, []
     for m in members:
         p = os.path.join(root, 'refs', str(m['ref']) + '.json')
         if not os.path.isfile(p):
@@ -1220,8 +1221,22 @@ def aggregate_refs(theme, members, root=None):
             j = json.load(open(p, encoding='utf-8'))
         except Exception:                                  # noqa: BLE001
             continue
-        if j.get('bands'):
-            profs.append((m, j))
+        if not j.get('bands'):
+            continue
+        # ⚠ **同一份音频只算一次**（去重键 = 音频文件名；`members` 已按分数降序 → 先到的是高分那份）。
+        #   依据（2026-09-21 实测）：`cheerful_mix` 的成员里 `BGM16c` / `BGM16c_v2` /
+        #   `bgm16c_new` **三份画像逐字段完全相同**（`source.file` 都是 `BGM16c.ogg`，
+        #   bpm 150.0 / 质心 3250 / rms −16.9）—— 同一首曲子被投了 3 票，占了 6 份成员的
+        #   一半权重，把 bpm 中位从 ~133 拉到 **150**，成绩单因此报"速度不一致：
+        #   本曲 132.0 vs 参考 150.0"，而真实成员其实是 132.4 / 128.0 / 133.9 / 150.0。
+        #   中位数最怕这种"重复投票"：份数虚高、个性反而被放大。
+        key = ((j.get('source') or {}).get('file') or j.get('file')
+               or os.path.basename(p))
+        if key in seen_src:
+            dedup.append({'ref': m['ref'], 'same_as': seen_src[key], 'file': key})
+            continue
+        seen_src[key] = m['ref']
+        profs.append((m, j))
     if not profs:
         return None
     bands = {}
@@ -1262,7 +1277,10 @@ def aggregate_refs(theme, members, root=None):
                      'bpm': j.get('bpm'), 'centroid': j.get('centroid'),
                      'rms_db': j.get('rms_db'), 'width': j.get('width'),
                      'source': j.get('source') or {}} for m, j in profs],
-        'source_note': ('多份真实录音画像的**逐维度中位数**（成员见 members，各自带 source）'
+        # 被去重跳过的画像（同一份音频的其它画像版本）—— 留痕，便于复核"为什么份数变少了"
+        'dedup_skipped': dedup,
+        'source_note': ('多份真实录音画像的**逐维度中位数**（成员见 members，各自带 source；'
+                        '同一份音频只算一次，被跳过的见 dedup_skipped）'
                         '—— 单份画像的个性（偏亮/偏厚）不整体带进成品'),
     }
 
@@ -1298,6 +1316,13 @@ def mix_target(pack, root=None, top=3):
         name = j.get('name') or os.path.basename(p)[:-5]
         if (j.get('character') or 'instrumental') != 'instrumental':
             continue                                        # 人声主导：不是我们的目标
+        # **不可溯源的画像不进候选**（判据前置）。若只在输出端守"成员逐份要有 source"，
+        # 结果是"先被选进成员、再由守卫 FAIL"—— 实测 2026-09-21：重建 battle/neon 后
+        # 新成员 `BGM35` 没有 source 字段（早期画像），`mix_target_aggregate` 当场变红。
+        # 在**挑选**这端挡住，语义也更对："连来源都写不出来"的参考本来就不该参与聚合。
+        _src = j.get('source') or {}
+        if not (_src.get('file') or _src.get('url')):
+            continue
         pp = portrait_perc(j)
         pm = j.get('mode') or portrait_mode(j)
         dbpm = abs((j['bpm'] or 0) - med)
@@ -1844,8 +1869,15 @@ def main():
             continue
         pack, melp = build(t, min_n=min_n, target=target,
                            allow_fetch='--allow-fetch' in argv)
-        probs = validate_pack(pack)
+        # ⚠ **先落盘、再校验**：`validate_pack` 核对"聚合 = 成员中位数""成员逐份有 source"
+        #   时要**读磁盘上的** `refs/mix_targets/<主题>_mix.json`，而那份文件是 `save()`
+        #   里才写的。原来先校验后写盘 → 校验读的是**上一版**聚合画像，于是**刚修好的
+        #   问题仍会被报出来**（实测 2026-09-21：给早期画像 `BGM35` 补上 source、重算
+        #   battle 之后，终端仍打印"混音目标 battle_mix 的成员缺 source：BGM35"，
+        #   而磁盘上的文件其实已经是对的 —— 这种"警告与事实不符"最耽误排查）。
+        #   `build()` 出错会抛异常、根本走不到这里，所以先写盘不会留下半成品。
         pp, mpp = save(pack, melp)
+        probs = validate_pack(pack)
         print('✓ %s（%d 首模板）→ %s'
               % (t, pack['template_count'], os.path.relpath(pp, ROOT)))
         if probs:

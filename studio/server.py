@@ -245,7 +245,23 @@ def song_dir(sid, need_json=True):
         raise FileNotFoundError('曲库目录不存在：%s' % LIB)
     if mode == 'none':
         raise FileNotFoundError('曲库根里找不到任何曲子（song.json 或音频文件）：%s' % LIB)
-    d = base if mode == 'single' else os.path.join(base, sid)
+    if mode == 'single':
+        # ⚠ **single 布局下 sid 必须与"库里那一首"对得上**（id 取目录名，见 `songs_list`）。
+        #   原来是无条件 `d = base`：曲库指向一个"本身就是曲子"的目录时，**任何 id 都解析成
+        #   它自己** —— 实测把一个曲目 id（44_skip_beat）的 compose 任务跑成了该目录里的
+        #   **另一首**曲子，直接覆盖了它的 `.mid`（曲子是 `D:\test\piano_rain_交付`，
+        #   而那个交付目录被当成了曲库）。现在对不上就报错说清，而不是静默写错文件。
+        want = os.path.basename(os.path.abspath(base))
+        if sid and sid != want:
+            raise FileNotFoundError(
+                '曲库「%s」是**单曲目录**（里面直接有 song.json），它的曲目 id 是 "%s"，'
+                '不是你给的 "%s" —— 这个 id 在本曲库下不存在，为避免写错文件已拒绝。\n'
+                '  要么用 id "%s"，要么把曲库切到含 songs/<曲目>/song.json（工具链标准）'
+                '或含 <曲目>/song.json（一层子目录）的目录。'
+                % (base, want, sid, want))
+        d = base
+    else:
+        d = os.path.join(base, sid)
     if not os.path.isdir(d):
         raise FileNotFoundError('找不到曲目: %s（曲库 %s）' % (sid, LIB))
     if need_json and not os.path.isfile(os.path.join(d, 'song.json')):

@@ -4522,12 +4522,20 @@ def t_melody_step_bias():
 
         def run(bias):
             io.open(sf, 'w', encoding='utf-8').write(json.dumps(song))
-            r = subprocess.run([sys.executable, os.path.join(ROOT, 'scripts', 'melody_gen.py'),
+            # ⚠ 脚本路径必须用 `HERE`（**本文件所在目录**），不能用 `ROOT`：
+            #   `check_song.run_checks_on` 会把 `st.ROOT` 换成**沙箱目录**（那里没有 `scripts/`），
+            #   于是这条检查在 check_song 下必然"非零退出"，而且原因打在 stderr —— 原来只打印
+            #   stdout，报错信息就只剩一句空荡荡的"melody_gen 非零退出："（实测：check_song
+            #   长期报这一项"未通过"，查不到任何原因）。
+            #   本文件其余 6 处子进程调用（transcribe_to_song / analyze_structure /
+            #   measure_velocity / merge_tracks / …）本来就都用 `HERE`，这里是唯一一处漏网的。
+            r = subprocess.run([sys.executable, os.path.join(HERE, 'melody_gen.py'),
                                 sf, pf, '--seed', '11', '--candidates', '4',
                                 '--dens', '2.5', '--step-bias', '%.2f' % bias],
                                capture_output=True, text=True, encoding='utf-8',
                                errors='replace', cwd=ROOT)
-            assert r.returncode == 0, 'melody_gen 非零退出：%s' % (r.stdout or '')[-300:]
+            assert r.returncode == 0, 'melody_gen 非零退出：%s' % (
+                ((r.stdout or '') + (r.stderr or ''))[-400:])
             cands = [int(x) for x in re.findall(r'级进 (\d+)%', r.stdout or '')]
             d = json.load(io.open(sf, encoding='utf-8'))
             return sw_of(d['melody']), cands, d.get('melody_gen') or {}
@@ -5973,6 +5981,24 @@ def t_mix_target_aggregate():
             if want is not None and abs(v - want) > 0.01:
                 bad.append('%s: 频段 %s 的聚合值 %.2f ≠ 成员中位数 %.2f'
                            % (th, k, v, want))
+        # ④ **同一份音频不许重复投票**（去重键 = `source.file`，退回 `file` / 成员名）。
+        #    依据（2026-09-21 实测）：`cheerful_mix` 的 6 份成员里 `BGM16c` / `BGM16c_v2` /
+        #    `bgm16c_new` **三份画像逐字段完全相同**（`source.file` 都是 `BGM16c.ogg`，
+        #    bpm 150.0 / 质心 3250 / rms −16.9）—— 同一首曲子被投了 3 票、占了一半权重，
+        #    把 bpm 中位从真实成员的 133.9 拉到 **150.0**，成绩单因此长期报
+        #    "速度不一致：本曲 132.0 vs 参考 150.0"。**中位数最怕重复投票**：
+        #    份数虚高，而"多方参考要削掉的单份个性"恰恰被放大 —— 与聚合的初衷相反。
+        #    实测 4 个主题中招（battle / cheerful / neon / retro），修后 cheerful 的
+        #    bpm 150.0 → **133.9**。（`aggregate_refs` 里已按来源去重，这里守住输出口径。）
+        _keys = {}
+        for m in mem:
+            _s = m.get('source') or {}
+            _k = _s.get('file') or m.get('file') or m.get('ref') or '?'
+            _keys[_k] = _keys.get(_k, 0) + 1
+        _dup = {k: n for k, n in _keys.items() if n > 1}
+        if _dup:
+            bad.append('%s: 成员里有同一份音频被重复计入（中位数会被重复投票拉跑）：%s'
+                       % (th, ', '.join('%s×%d' % (k, n) for k, n in _dup.items())))
     assert checked >= 10, '夹具太少（%d 个主题）—— 这条检查会空转' % checked
     # **判据自证**：门槛抬到 2.0（合格成员为空）→ 兜底只取 1 份 → ② 必须失败
     _rel, _min = tp.MIX_MEMBER_REL, tp.MIX_MIN_MEMBERS

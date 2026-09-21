@@ -1327,6 +1327,49 @@ def main():
                 f.write(self.txt)
     results.append(case('混音：聚合成员抹掉来源（不可溯源）',
                         'mix_target_aggregate', _NoSource))
+    # ⑭-b 把同一个成员**再塞一份**（同一份音频重复投票）→ 守卫的判据 ④ 必须抓到。
+    #      现场：`cheerful_mix` 原来 6 份成员里 `BGM16c`/`BGM16c_v2`/`bgm16c_new`
+    #      逐字段相同（都是 `BGM16c.ogg`）→ bpm 中位被拉到 150，成绩单长期报"速度不一致"。
+    class _DupSource:
+        """复制一份成员 → **同一份音频投两票**。
+
+        ⚠ **必须让判据 ③（聚合值 = 成员中位数）仍然通过**，否则它会被 ③ 先抓走、
+        ④ 永远得不到验证 —— 第一版就是这样：日志显示"抓到了"，但报的是
+        "频段 160-315 的聚合值 ≠ 成员中位数"，证明不了 ④ 坏得起来（等于装饰性检查）。
+        做法：复制成员后**按含重复成员的全体重算各频段中位数并写回** ——
+        这正是"去重逻辑被摘掉"时 `aggregate_refs` 会写出来的东西，
+        于是 ③ 通过、只有 ④ 能报。
+        """
+        def __enter__(self):
+            import theme_pack as _tp
+            self.p = os.path.join(ROOT, 'refs', 'mix_targets', 'cheerful_mix.json')
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            mem = j.get('members') or []
+            if mem:
+                mem.append(dict(mem[0]))           # 同一份音频投两票
+            bands = {}
+            for k in (j.get('bands') or {}):
+                vals = []
+                for m in mem:
+                    q = _tp.find_ref_file(str(m.get('ref')))
+                    if q:
+                        try:
+                            vals.append(json.load(open(q, encoding='utf-8'))['bands'].get(k))
+                        except Exception:              # noqa: BLE001
+                            pass
+                v = _tp._med(vals)
+                if v is not None:
+                    bands[k] = round(v, 2)
+            j['bands'] = bands
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                json.dump(j, f, ensure_ascii=False, indent=1)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(self.txt)
+    results.append(case('混音：同一份音频被重复计入（重复投票）',
+                        'mix_target_aggregate', _DupSource))
     # ⑮ 段落旋律命名换回"每段一个新名字"（旧行为）→ 同名段落不再共用旋律 →
     #    `theme_melody_reuse` 的自证分支必须抓到（复用彻底消失）
     results.append(case('曲式：段落旋律换回"每段一支"',
