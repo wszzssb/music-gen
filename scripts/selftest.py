@@ -3969,6 +3969,63 @@ def t_melody_health():
 
 
 @check
+def t_selfcheck_outliers():
+    """**"嘴替"工具（`selfcheck.py`）必须真报得出离群量，且方向算对**。
+
+    为什么单独守它（2026-09-21）：`selfcheck.py` 是用户口径"把听到的问题翻译成
+    我能动手改的描述"的入口（SKILL §3 第 16 条）—— 它的**全部价值**就在
+    "报离群量、不报问题"。一旦空转（清单为空 / 方向算反），用户看到的是
+    "没什么离群"这类**比没有更坏**的话。三道自证：
+      ① **不空转**：全库真跑一次必须解析出表，每首必须正好 `len(COLS)` 个数
+         （`probe_melody_health` 加维度而这里没跟上 = 静默漏报一维）。
+      ② **方向算对**：用**合成表**（10 首取值 0~9）—— 把某首抬到 100 必须全报「偏高」、
+         压到 −100 必须全报「偏低」、中位那首偏离必须最小。合成表让判据不依赖某首真曲。
+      ③ **每维要么有听感、要么登记留空**：`COLS ⊆ HEARD ∪ NO_HEARD` ——
+         新加一维却忘了写听感时，那项永远显示"—"，用户拿不到"听起来会像什么"。
+    ⚠ 本检查**必须 import 模块直接调用**（不能 subprocess 跑 `selfcheck.py`）：
+    变异用例注入的是模块内存（`_pct_rank` / `COLS` / `HEARD`），子进程看不到 → 会变成假漏。
+    """
+    import selfcheck as sc
+
+    table = sc._run_melody_health()
+    assert table, '解析 probe_melody_health 输出得到空表 —— 这条检查会空转'
+    for nm, vals in table.items():
+        assert len(vals) == len(sc.COLS), (
+            '%s 解析出 %d 个数，而 COLS 声明 %d 维' % (nm, len(vals), len(sc.COLS)))
+    for col in sc.COLS:
+        assert col in sc.HEARD or col in sc.NO_HEARD, (
+            'COLS 的「%s」既没有听感映射也没登记进 NO_HEARD —— 那一项只会显示"—"，'
+            '用户拿不到"听起来会像什么"（新加维度时要么写 HEARD，要么写进 NO_HEARD）' % col)
+
+    # ② 方向自证（合成表：10 首取值 0~9，只把待测那首拉出去）
+    n = len(sc.COLS)
+    synth = {'s%d' % i: [float(i)] * n for i in range(10)}
+    synth['hi'] = [100.0] * n
+    synth['lo'] = [-100.0] * n
+    got = {}
+    for nm in ('hi', 'lo', 's5'):
+        _, s = quiet(sc.report, synth, nm, True)
+        got[nm] = json.loads(s)['items']
+        assert got[nm], '合成表里的 %s 报出空清单（它明明是全库最高或最低）' % nm
+    for nm, want in (('hi', '偏高'), ('lo', '偏低')):
+        wrong = sorted({it['side'] for it in got[nm] if it['side'] != want})
+        assert not wrong, '%s 该全报「%s」，实得 %s' % (nm, want, wrong)
+        assert min(it['dev'] for it in got[nm]) >= 40, (
+            '%s 的偏离度只有 %.1f（全库最高/最低应接近 50）—— 百分位被算平了'
+            % (nm, min(it['dev'] for it in got[nm])))
+    assert max(it['dev'] for it in got['s5']) < min(it['dev'] for it in got['hi']), \
+        '中位那首的偏离没有小于全库最高那首 —— "离群度"算反了'
+
+    # ③ `--all`（面板/批量入口）必须覆盖全库且真按离群总分降序
+    ranked = sc.rank_all(table)
+    assert len(ranked) == len(table), '--all 漏了曲目：%d/%d' % (len(ranked), len(table))
+    scores = [s for _, s in ranked]
+    assert scores == sorted(scores, reverse=True), '--all 没有按离群总分降序'
+    print('        %d 首 · %d 维 · 最离群 %s（%.1f）'
+          % (len(table), len(sc.COLS), ranked[0][0], ranked[0][1]))
+
+
+@check
 def t_theme_pack_valid():
     """**主题模板包必须是"多个同主题模板聚合 + 白名单来源"**（用户口径的守卫）。
 

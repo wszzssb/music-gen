@@ -1143,6 +1143,20 @@ def main():
                         'melody_health',
                         lambda: Mut(_mh, 'collect', lambda *a, **k: [dict(_stag)])))
 
+    # **"嘴替"（`selfcheck.py`，2026-09-21）**：它报的是"离群量 + 方向"，两个要害都能打：
+    #   ① 百分位被算平/算反 → 清单变"人人都不离群"（用户于是以为没问题，**比没有更坏**）
+    #   ② COLS / HEARD 与探针脱节 → 静默少报一维、或那一项永远没有听感映射
+    # ⚠ 注入的是**模块内存**，所以 `t_selfcheck_outliers` 必须 import 调用；
+    #   若它哪天改成 subprocess 跑 CLI，这三条会集体"漏"——那时不要改判据，改回调用方式。
+    import selfcheck as _sc
+    results.append(case('离群百分位被拍平（人人都在中位）', 'selfcheck_outliers',
+                        lambda: Mut(_sc, '_pct_rank', lambda xs, v: 50.0)))
+    results.append(case('离群清单维度与探针对不上（COLS 少一维）', 'selfcheck_outliers',
+                        lambda: Mut(_sc, 'COLS', _sc.COLS[:-1])))
+    results.append(case('听感映射被改名（那项永远报不出听感）', 'selfcheck_outliers',
+                        lambda: Mut(_sc, 'HEARD',
+                                    {k: v for k, v in _sc.HEARD.items() if k != '小步率'})))
+
     # 主题模板包（用户口径：一次生成依据"很多同主题模板"，来源只许 refs/midi2 或权威网络数据）
     import theme_pack as _tp
     # ① 白名单被放宽成"随便什么站点都算权威" → 来源校验必须失效被抓

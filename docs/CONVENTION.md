@@ -78,6 +78,10 @@ $py = "<工具链根>/venv/python.exe"; cd <工具链根>
 & $py scripts\mutation_check.py       # 新检查是否"坏得起来"
 ```
 
+⚠ **别把 `selftest` 与 `mutation_check` 并发跑**：变异测试会真渲染、占用临时目录与引擎状态，
+实测并发时 `determinism_and_bytes` 会**假 FAIL**（"已交付的 .mid 与当前引擎输出不一致"），
+串行重跑即 PASS。要么串行，要么错开跑。
+
 > 判据：**只读这一份就知道往哪写、动哪些守卫、怎么验**。读完还得问 = 约定漏了，补进来。
 
 ## 6. 宿主级 vs 仓库级（**别混**）
