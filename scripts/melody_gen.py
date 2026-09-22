@@ -719,6 +719,100 @@ def motif_stats(melody, sections, chords=None, tonic=None):
     }
 
 
+# ===================== 节奏细胞层（2026-09-22 新增；见 PITFALLS 237）=====================
+# 为什么要有它：落点一直是**逐音从画像分布独立采样**（动机层只管音高图式），于是
+# 实测引擎产出的落点是「人类单声主奏」的 2~3 倍散：
+#     弱格(16分 e/a) 26.8% vs 人类 12.9% · IOI 熵 0.646 vs 0.310 · 邻小节同型 0% vs 3.1%
+# 用户原话："音符的位置有点乱没有规律或者规律不好听"。人类旋律靠**同一个节奏细胞反复**
+# 建立规律；逐音抽样给不出这个。做法：每小节把落点换成反复出现的细胞（正拍为主 +
+# 每 8 小节约 3 个 16 分装饰 = 弱格 ~11%），**音高顺序不动**（旋律轮廓/和声关系全保留）。
+# ⚠ 第一版细胞把弱格压到 0（落点熵 0.49 vs 人类 0.75）= 修过头成"太方"，故保留装饰音。
+# ⚠ 形态门（`t_melody_form_rules`）：末落点≥8 格的小节 ≥65%、格 0 占比 ≤22% —— 所以细胞
+#   **每一条的末落点都 ≥ 第 2 拍**，且只有约 1/3 的变体从正拍（格 0）起（旧版全从 0 起，
+#   实测格 0 冲到 41%、末落点 52% → 两条门当场破）。
+CELLS_BY_N = {              # key = 该小节的音数；值是候选落点组（4/4 基准，按 spb/4 缩放）
+    # ⚠ 每个列表**只有 1/6 的变体带一个 16 分装饰** —— 组织成 4~5 个变体时实测弱格冲到
+    #   18.8%（每段），超人类 11% 太多；1/6 落在 ~8~12%。
+    1: [[2.0], [3.0], [1.5], [2.75], [2.5], [3.5]],
+    2: [[0.5, 3.0], [1.0, 2.5], [0.0, 2.0], [1.5, 3.0], [0.5, 2.5], [0.75, 2.75]],
+    3: [[0.5, 1.5, 3.0], [1.0, 2.0, 3.0], [0.0, 1.0, 2.0], [1.0, 1.5, 3.0],
+        [0.5, 2.0, 3.5], [0.0, 1.5, 2.75]],
+    4: [[0.0, 1.0, 2.0, 3.0], [0.5, 1.5, 2.0, 3.0], [1.0, 1.5, 2.0, 3.0],
+        [0.5, 1.0, 2.0, 3.0], [1.0, 2.0, 2.5, 3.0], [0.0, 0.75, 2.0, 3.0]],
+    5: [[0.0, 1.0, 2.0, 2.5, 3.0], [0.5, 1.0, 2.0, 2.5, 3.0], [1.0, 1.5, 2.0, 2.5, 3.0],
+        [0.5, 1.5, 2.0, 2.5, 3.0], [0.0, 1.0, 1.5, 2.0, 3.0], [0.5, 1.0, 2.0, 2.75, 3.0]],
+    6: [[0.0, 0.5, 1.0, 2.0, 2.5, 3.0], [0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
+        [1.0, 1.5, 2.0, 2.5, 3.0, 3.5], [0.5, 1.0, 1.5, 2.0, 2.75, 3.5]],
+}
+RHYTHM_EXTRA = [0.5, 1.5, 2.5, 0.75]     # 音数超过 6 时的补充落点（都在 8 分/16 分格上）
+
+
+def apply_rhythm_cells(notes, spb=None):
+    """把一节旋律的**落点**换成反复出现的节奏细胞；音高按原先后顺序贴上（轮廓不变）。
+
+    返回新的 `[[bar, beat, dur, pitch], ...]`。`spb` 缺省取当前拍号写进全局的 `SPB`。
+    时值 = 到下一个落点的距离 × 0.95（末音到小节末）—— 顺带把 IOI 熵压回人类区间。
+    门（与 `t_melody_form_rules` / `t_melody_motif_rules` 同源）：
+    · 末落点 ≥8 格的小节 100%（门 65%）· 格 0 占比 ≤15%（门 22%）· 弱格 ~10%
+    · **每 4 小节窗口的末音原样保留**（落点/时值都不动）—— 守卫的"句末收束"要求它是
+      长音 + 和弦音；一律套细胞会把它压到 1 拍以内，实测收束率 85% → 0%，当场破门。
+    """
+    b = float(SPB if spb is None else spb)
+    k = b / 4.0
+
+    def snap(x):
+        return round(min(b - 0.25, max(0.0, x)) * 4) / 4.0     # 吸到 16 分格，且不越小节
+
+    by_bar = {}
+    for n in notes:
+        by_bar.setdefault(int(n[0]), []).append(n)
+    out = []
+    for bar, ns in sorted(by_bar.items()):
+        ns = sorted(ns, key=lambda x: x[1])                    # 音高出现的先后 = 轮廓
+        tail = ns[-1] if (bar % 4 == 3 and len(ns) > 1) else None
+        body = ns[:-1] if tail is not None else ns
+        if body:
+            cnt = len(body)
+            variants = CELLS_BY_N.get(cnt) or CELLS_BY_N[6]
+            v = variants[bar % len(variants)]
+            limit = float(tail[1]) if tail is not None else b
+            # ⚠ 保留末音时，**正身的落点必须全部排在末音之前**：否则 `out.sort()` 之后
+            #   音高的先后被换掉 → 跳后反向率实测 0.81 → 0.44（破门 `MOTIF_MIN_REVERSE`）。
+            cell = sorted({snap(p * k) for p in v if snap(p * k) < limit - 0.24})
+            if len(cell) < cnt:
+                cell = [snap(limit * (i + 1) / (cnt + 1.0)) for i in range(cnt)]
+            j = 0
+            while len(cell) < cnt:
+                cell.append(snap(RHYTHM_EXTRA[j % len(RHYTHM_EXTRA)] * k))
+                j += 1
+            onsets = sorted(cell)[:cnt]
+            for i, o in enumerate(onsets):
+                nxt = onsets[i + 1] if i + 1 < len(onsets) else limit
+                out.append([bar, o, round(max(0.25, nxt - o) * 0.95, 3), body[i][3]])
+        if tail is not None:                                   # 乐句末音：原样保留
+            out.append([tail[0], tail[1], tail[2], tail[3]])
+    out.sort()
+    return out
+
+
+def rhythm_cell_stats(notes, spb=None):
+    """落点体检（守卫口径）：on8 = 落 8 分格比例 · weak = 落 16 分弱格比例。"""
+    import math
+    b = float(SPB if spb is None else spb)
+    hist = [0] * 16
+    for n in notes:
+        hist[int(round(((n[0] % 1) * b + n[1]) * 4)) % 16] += 1
+    tot = sum(hist) or 1
+    ent = 0.0
+    for h in hist:
+        if h:
+            p = h / tot
+            ent -= p * math.log2(p)
+    return (100.0 * sum(h for i, h in enumerate(hist) if i % 2 == 0) / tot,
+            100.0 * sum(h for i, h in enumerate(hist) if i % 4 in (1, 3)) / tot,
+            ent / math.log2(16))
+
+
 def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None,
                 motif=None):
     """给一个段落生成旋律：返回 [(bar, beat, dur, pitch)]
@@ -1557,6 +1651,8 @@ def main():
     base_scale = infer_scale(d, tonic)
     use_motif = '--motif' not in sys.argv or \
         sys.argv[sys.argv.index('--motif') + 1] not in ('off', '0', 'none')
+    # **节奏细胞**（opt-in，2026-09-22）：默认关 = 与旧版逐字一致；`new_song` 对新歌默认加。
+    use_cells = '--rhythm-cells' in sys.argv
 
     # 同名旋律只生成一次：段落按名复用旋律是设计意图（A' 复用 A），
     # 若每个 section 都重新生成，最后一个会覆盖前面的、且拿别的段落和弦去对，必然打架。
@@ -1583,6 +1679,10 @@ def main():
                                  n=(4 if dens > CELL_N_DENSE else 3)) \
                 if use_motif else None
             m = gen_section(sec, chords, prof, rng, scale, tonic, per, dens, motif=cmotif)
+            # 节奏细胞（opt-in `--rhythm-cells`；`new_song` 会给新歌默认带上）：
+            # 必须在 `_enforce_strong` **之前**——换完落点，强拍上的音才由它统一核准。
+            if use_cells:
+                m = apply_rhythm_cells(m)
             nfix += _enforce_strong(m, sec, chords, per['range'][0], per['range'][1])
             # 复用同一支旋律的其它段落：和弦若不同就无法同时满足 → 计数（不静默）
             for si in idxs[1:]:
@@ -1624,6 +1724,11 @@ def main():
             best = (score, mel, per, ci, nfix, clash)
             best_sw = sw
     d['melody'] = best[1]
+    if use_cells:                     # 落点体检（守卫口径：on8 ≥ 85% / 弱格 ≤ 15%）
+        for _k, _m in d['melody'].items():
+            _o8, _wk, _ent = rhythm_cell_stats(_m)
+            print('  ✓ 节奏细胞 %-6s on8 %.0f%% · 弱格 %.0f%% · 落点熵 %.2f'
+                  % (_k, _o8, _wk, _ent))
     if step_bias:
         print('  ✓ 级进偏好 %.2f 生效：选中候选级进 %.0f%%（候选 %d 条里挑）'
               % (step_bias, best_sw * 100, max(1, ncand)))

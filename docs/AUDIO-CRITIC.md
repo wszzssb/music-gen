@@ -218,3 +218,30 @@ $ml = ".venv-ml\Scripts\python.exe"
 
 > ⚠ `D:\test\_tmp\music-critic\` 是**临时目录**（按工作区约定可清理）——
 > 需要长期保留的脚本/结果，先搬进仓库再清。
+
+## 10. CLAP 分段情绪走向（判"前悲后喜"这类设计有没有被听出来，2026-09-22）
+
+与 §1–§9 的 Qwen2-Audio「逐段列指控」**分工不同**：Qwen 报"哪段可疑"，
+CLAP 报**"这段更像哪一类"**（零样本音频-文本相似度，4 个提示词做 softmax）。
+
+```powershell
+$ml = "<根>\.venv-ml\Scripts\python.exe"
+$env:CUDA_VISIBLE_DEVICES = ""                      # ⚠ 本机必需，见下表
+$env:HF_HUB_OFFLINE = "1"; $env:TRANSFORMERS_OFFLINE = "1"
+& $ml scripts\probe_aesthetic.py <音频.ogg> --segments 6            # mood 轴（默认）
+& $ml scripts\probe_aesthetic.py <音频> --segments 8 --prompts mood,style
+```
+
+| 项 | 口径（别记错） |
+|---|---|
+| 模型 | `laion/clap-htsat-unfused`，首次 ~1.6GB（本机已缓存于 `~/.cache/huggingface/hub`） |
+| 每行是什么 | **该段在 4 个提示之间的相对归属**（softmax，行内和 = 1）—— 只看**跨段走向** |
+| ⚠ 只吃前 ~10 秒 | `processor` 的 `max_length`（480000@48k）→ 22 秒的段实际只"听"到开头 10 秒 |
+| ⚠ 不是好听度 | 量的是"像哪一类"，**不是质量**；库内区分度低（39 首里 31 首的 CE 挤在 0.3 内） |
+| **本机坑** | `import torch` 在 `.venv-ml` 会**卡在 CUDA 初始化**（>120s，rc=124）——**不是**网络、不是模型下载；加 `CUDA_VISIBLE_DEVICES=""` 后 **4.1s** 通过（详见 `PITFALLS.md` 240） |
+
+**实测一例**（`50_sad_to_joy` 前悲后喜，6 段）：去掉定音鼓（`perc_style` orchestral→pump）
++ 琶音换竖琴（GM87→GM46）+ 喜段加钢片琴八度加倍后，"喜"半段 **tense 0.67 → 0.34**（腰斩）、
+频谱质心差 **−1423Hz → −85Hz**；但 happy **始终没有**在喜段稳定压过 sad/tense（0.13–0.31 抖动）
+⇒ **"转悲为喜"只做到一半**，最终仍以耳朵为准。
+**用法定位**：适合**同曲改版前后做回归对照**，不适合单独当验收门（与 §5 六条硬约束同源）。

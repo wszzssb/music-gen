@@ -905,7 +905,13 @@ def run_melody_gen(song_json, pack, theme, seed, ncand, step_bias=None):
                # —— 实测 3 首生成曲的时值承接度 40%/31%/（05 的落点）卡在门上，接上这一项后
                # 分别升到 54% / 69%，05 的 Outro 落点 TVD 0.702 → 0.284。
                # 它**只在同批候选之间排序**、不改生成逻辑（同 `onset_tvd` / `form_pen`）。
-               '--dur-bias', '1.0']
+               '--dur-bias', '1.0',
+               # **节奏细胞**（2026-09-22 起新歌默认带；`melody_gen --rhythm-cells`）：
+               # 逐音独立采样出来的落点比人类单声主奏散 2~3 倍（弱格 26.8% vs 12.9%、
+               # IOI 熵 0.646 vs 0.310）→ 用户听感"音符的位置有点乱没有规律"。细胞层把每小节
+               # 落点换成反复出现的节奏型（正拍为主 + 每 8 小节 3 个 16 分装饰），音高顺序不动。
+               # 旧曲重跑 `melody_gen` **不带**这个开关 → 输出与旧版逐字一致（见 PITFALLS 237）。
+               '--rhythm-cells']
         print('  melody_gen：画像 %s（密度 %.2f 音/小节，%d 候选）'
               % (os.path.relpath(prof, ROOT), dens, ncand))
         r = subprocess.run(cmd, cwd=ROOT)
