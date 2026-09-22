@@ -265,6 +265,9 @@ PAT_KEYS = (
     'melody_exempt',
     # 音域与还原
     'range_fix', 'legato_trim', 'notes_extra_full',
+    # 钢琴反拍短音的力度/时值（opt-in，缺省 = 老行为逐字节不变）——
+    # 只影响钢琴轨的**反拍和弦短音**，见 `piano_part` 的 docstring 与 2026-09-22 消融
+    'piano_stab_dur', 'piano_stab_vel', 'hook_stab_vel',
 )
 
 
@@ -716,7 +719,7 @@ def space_on(pat):
     return bool((pat or {}).get('space'))
 
 
-def piano_part(ch, i, B=4.0, thin=False, dense=True):
+def piano_part(ch, i, B=4.0, thin=False, dense=True, stab_dur=None, stab_vel=None):
     """钢琴：反拍和弦短音（含根音） + 高音持续音
 
     **奇数拍（3/4）走华尔兹写法**：和弦落在第 2、3 拍 = "oom-pah-pah" 的 pah（4/4 的反拍写法
@@ -729,6 +732,16 @@ def piano_part(ch, i, B=4.0, thin=False, dense=True):
     再减就撑不住织体（实测 rehearsal 的"无打击乐段落"夹具调参误差卡在 3.5、EQ 补不回）。
     """
     _, tones = ch
+    # **反拍短音的力度/时值可调**（opt-in：`patterns.piano_stab_vel` / `piano_stab_dur`）——
+    # 缺省 = 老行为**逐字节不变**（时值 0.28 拍 · 力度 58，奇数小节 +6）。
+    # 依据（2026-09-22 消融；对象 = 用户指认 `20_piano_rain` 0.385s 的"镫"，只动那一个音）：
+    #   力度 42→26 ：音头 −28.2 → −31.8 dB · 相对前 200ms 背景的**突出 +10.3 → +6.7 dB**
+    #   时值 0.28→0.6 拍：**读数一字未变**（+10.3）→ 时值对"镫"**没有贡献**
+    #   两者都改 = 只降力度的结果（+6.7）；删掉该音 = +4.9（下界，剩下的就是旋律本身）
+    #   ⇒ **要调"镫"只调 `piano_stab_vel`**。⚠ 上一个对话改的正是**时值**（还把力度升到 88），
+    #     方向反了，所以"实测几乎没变"。
+    _sd = 0.28 if stab_dur is None else float(stab_dur)
+    _vb = 58.0 if stab_vel is None else float(stab_vel)
     if int(round(B)) % 2:
         return [(float(b), 0.42, m, 66 if b == 1 else 58)
                 for b in range(1, int(round(B))) for m in tones[:2 if (thin and dense) else 3]]
@@ -738,7 +751,13 @@ def piano_part(ch, i, B=4.0, thin=False, dense=True):
     out = []
     for b in ALT[i % 4]:
         for m in tones[:2 if (thin and dense) else 3]:
-            out.append((b, 0.28, m, 58 + (6 if i % 2 else 0)))
+            # 时值 0.28 拍 · 力度 58（**已回退到原值**）—— 2026-09-22 试过 0.75 拍 / 88 后撤回：
+            #   用户听 `20_piano_rain` 报"前几秒几个噔的音"，先按"Piano 反拍短音太短太轻"改，
+            #   但改后**实测音频几乎没变**（4.64s 那段仍是 0.29 秒 / −35.3 dB，与改前一致），
+            #   ⇒ 用户听到的"噔"**不是这条轨的时值/力度**问题。另：当时的"5 个短响段"是
+            #   用 10ms 能量包络门限数出来的，含**查询窗口盖到下一个起音**的假象，
+            #   那条路线（用包络数音的个数）本身不成立。故原样回退，不留无据改动。
+            out.append((b, _sd, m, max(1, min(127, int(round(_vb + (6 if i % 2 else 0)))))))
     out.append((0.0, 1.5, tone(tones, 3), 54))
     if i % 4 == 3:
         out.append((B - 0.5, 0.4, tone(tones, 2) + 12, 62))
@@ -861,7 +880,7 @@ def bass_part(ch, nxt, i, pat, B=4.0):
     return out
 
 
-def ep_part(ch, i, B=4.0, thin=False, dense=True):
+def ep_part(ch, i, B=4.0, thin=False, dense=True, stab_vel=None):
     """电钢琴：反拍切分和弦（走 Hook 轨）。奇数拍同样改成华尔兹的 pah-pah（见 `piano_part`）
 
     ⚠ 2026-09-14 **`thin`（opt-in，`patterns.space`）**：每拍 3 个和弦音（12 音/小节）
@@ -872,10 +891,23 @@ def ep_part(ch, i, B=4.0, thin=False, dense=True):
         return [(float(b), 0.36, m, 62 if b == 1 else 54)
                 for b in range(1, int(round(B))) for m in tones[1:3 if (thin and dense) else 4]]
     acc = B / 2.0 + 0.5                        # 4/4 → 2.5（原来的重音位）
+    # 力度基准可调（opt-in `patterns.hook_stab_vel`，缺省 54/62 = 老行为**逐字节不变**）。
+    # 依据 `20_piano_rain` 2026-09-22：C 段这批 0.22 拍反拍音**比同刻主奏响 +20 dB**
+    # （Hook 轨是 GM 0 钢琴，音头过冲 +9~+18dB，压在已换成持续型的 GM 4 主奏之上）——
+    # 用户原话"还有镫一下的"。同族实测：**只降力度有效、加长时值无效**（PITFALLS 236）。
+    _vb = 54 if stab_vel is None else int(stab_vel)
     out = []
     for b in [k + 0.5 for k in range(max(1, int(round(B))))]:
         for m in tones[1:3 if (thin and dense) else 4]:
-            out.append((b, 0.22, m, 62 if b == acc else 54))
+            # 时值 0.22 拍（**保持原值** —— 2026-09-22 试过 0.45 做 A/B，见下）。
+            #   由来：用户听 `20_piano_rain` 报"有很多响了 0.几秒就没了的音会影响听感"，
+            #   定位到 C 段（37–44 小节）Hook 轨每个反拍 77 个音、时值恒 0.22 拍（0.168s）。
+            #   ⚠ **真值不支持"太短"**：tender 模板合并 42349 音的中位时值就是 0.25 拍、
+            #   ≤0.25 拍占 55%；本曲全曲 ≤0.25 拍仅 7%（比模板**更不短**），相邻同音高率
+            #   1% vs 模板 1–24%（最不像机械重复）。⇒ 这是**编配风格**选择，不是统计离群。
+            #   已做 0.45 拍（= 模板短音时值中位、占"反拍→下一正拍"的 90%）的 A/B 片段，
+            #   等听感定夺再决定动不动；结论与片段路径记在 docs/AUDIO-CRITIC.md §8。
+            out.append((b, 0.22, m, _vb + (8 if b == acc else 0)))
     if i % 4 == 3:
         out.append((B - 0.75, 0.2, tone(tones, 4), 66))
     return out
@@ -1286,7 +1318,8 @@ def build_events(d):
                     bucket['Hook'].append((t0 + b, dd * sc, m, v))
             if arr.get('ep'):                      # 电钢琴反拍切分（Hook 轨）
                 for (b, dd, m, v) in ep_part(ch, i, B, thin=_thin,
-                                             dense=bool(arr.get('perc'))):
+                                             dense=bool(arr.get('perc')),
+                                             stab_vel=pat.get('hook_stab_vel')):
                     # **+12**：它与吉他分解共用 Hook 轨、落点都压在 0.5 拍、音高取自
                     # 同一个和弦音池 → 实测撞出 96 处"同轨同音高同时发声"
                     # （FluidSynth 会留悬空 voice）。移高八度即解。
@@ -1300,7 +1333,9 @@ def build_events(d):
                     _pev = list(piano_part(
                             ch, i, B,
                             thin=(_thin or (_dens >= 0 and _dens <= 1)),
-                            dense=bool(arr.get('perc'))))
+                            dense=bool(arr.get('perc')),
+                            stab_dur=pat.get('piano_stab_dur'),
+                            stab_vel=pat.get('piano_stab_vel')))
                     if _bare:
                         _pev = _pev[:1]          # 极简：一小节只留一个钢琴长音
                     for (b, dd, m, v) in _pev:

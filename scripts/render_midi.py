@@ -301,7 +301,15 @@ def encode_ogg(out_base):
 
     单独开这个口子，是因为**自动调参要"循环里不编码、定稿只编一次"**：
     5 分钟的歌编码一次 ~8s（含 null test 回读），而中间轮次的 OGG 马上会被下一轮覆盖。
-    OGG 的命名规则仍然只在本模块里出现一次（`render` 也走它）。"""
+    OGG 的命名规则仍然只在本模块里出现一次（`render` 也走它）。
+
+    ⚠ **`BGM_NO_OGG=1` 时直接返回 None**（自检 / 变异等"只要 wav"的场景）：
+    实测单次渲染 5.9s 里 **转 ogg 占 2.2s（37%：ffmpeg + null test 回读两个文件）**，
+    而验证链里绝大多数检查根本不看 ogg —— 跳过它能把全量自检从 ~10 分钟压到 ~6 分钟。
+    **成品渲染不受影响**（默认不设这个变量；`make_song` 也没设）。
+    """
+    if os.environ.get('BGM_NO_OGG') == '1':
+        return None
     return to_ogg.convert(out_base + '.wav')
 
 

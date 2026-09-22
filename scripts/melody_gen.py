@@ -1356,6 +1356,24 @@ def onset_tvd(mel, prof):
     return 0.5 * sum(abs(h.get(k, 0) / tot - (P.get(str(k), 0) / pt)) for k in keys)
 
 
+def onset_tvd_worst(mel, sections, prof, min_notes=8):
+    """**逐段**算落点 TVD，返回最坏的一段 —— 与守卫 `t_melody_onset_spread` **同源同门**。
+
+    守卫是**逐段**判的（每段 notes vs 主题画像，门 `ONSET_TVD_MAX = 0.65`），而候选打分
+    原来只看**全曲** TVD（见 `main` 里的 `ot = onset_tvd(mel, prof)`）—— 两者不同源：
+    实测 `20_piano_rain` 的候选全曲只有 **0.199**（看着很好），可它的 Intro 段是 **0.679**
+    （破门），**选择时压根没看见**，于是 4 条候选都带着这个毛病被挑进来。
+    段内音数 < `min_notes` 的跳过（守卫也是这么做的，避免小样本虚高）。
+    """
+    worst = 0.0
+    for sec in (sections or []):
+        notes = (mel or {}).get(sec.get('melody')) or []
+        if len(notes) < min_notes:
+            continue
+        worst = max(worst, onset_tvd({'_': notes}, prof))
+    return worst
+
+
 def dur_tvd(mel, prof):
     """**时值**分布与画像 `dur16_hist` 的 TVD（0 = 一致）。与 `onset_tvd` 同族、同纪律。
 
@@ -1383,6 +1401,10 @@ def dur_tvd(mel, prof):
     return 0.5 * sum(abs(h.get(k, 0) / tot - (P.get(str(k), 0) / pt)) for k in keys)
 
 
+# **落点分布的门**（守卫 `t_melody_onset_spread` 用的就是它 —— 单一真源，别在两处各写一份）
+ONSET_TVD_MAX = 0.65
+
+
 def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0.0,
                form_pen=0.0, dur_dist=0.0):
     """候选打分（**越小越好**）：以"不像库里已有旋律"为主，级进偏好为次（opt-in）。
@@ -1403,8 +1425,14 @@ def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0
     末落点 50%）。这些都是**同一批候选里可比较**的量，接进打分即可 —— 不改生成逻辑，
     只改"挑哪条"，风险最小。`form_pen=0` 时与旧版逐字一致。
     """
+    # **落点超门重罚**（2026-09-22）：守卫 `t_melody_onset_spread` 是**硬门**（每段 ≤ `ONSET_TVD_MAX`），
+    #   而这里原来只把 TVD 当"同量级的一项"。实测那次：候选 1（最坏 0.432，达标）输给
+    #   候选 2（最坏 **0.688**，破门），只因对方级进高 0.12 —— 结果成品 Outro 段 0.688 破门。
+    #   落点破门是守卫会 FAIL 的硬伤，不该被"级进好一点"换掉 ⇒ 超门部分按 6 倍罚
+    #   （**只影响候选之间的相对排序，门本身没动** —— 与 `stepwise_pct` 同一条纪律）。
+    onset_pen = 6.0 * max(0.0, onset_dist - ONSET_TVD_MAX)
     return (shape_share * 2.0 + lang_share + clash * 0.5
-            - step_bias * stepwise + onset_dist + form_pen + dur_dist)
+            - step_bias * stepwise + onset_dist + onset_pen + form_pen + dur_dist)
 
 
 def small_step_pct(melody, sections, bar_beats=SPB):
@@ -1567,6 +1595,11 @@ def main():
         sc = _distinct(alln, lib) if lib else (0.0, 0.0)
         sw = stepwise_pct(mel)
         ot = onset_tvd(mel, prof)          # 落点格分布与画像的距离（0 = 一致）
+        # ⚠ **取"全曲 与 逐段最坏"的较大者**（2026-09-22 修）：守卫 `t_melody_onset_spread`
+        #   是**逐段**判的（门 0.65），只算全曲会漏掉"落点全挤在某一段里"——
+        #   实测 `20_piano_rain` 候选全曲 0.199（很好）而 Intro 段 **0.679**（破门），
+        #   选择时看不见，4 条候选全带这个毛病。同源之后才会去挑落点真的分散的那条。
+        ot = max(ot, onset_tvd_worst(mel, d.get('sections'), prof))
         # 形态判据（守卫同源）：末落点/空档/格0 + 跳后反向 → 折成罚分参与挑候选
         fs = form_stats(mel, d['sections']) or {}
         try:

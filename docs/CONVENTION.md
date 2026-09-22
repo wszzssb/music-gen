@@ -38,6 +38,7 @@
 | 一个新**工具** | `README.md` 清单 + `__doc__` | 加自检 + **配变异用例** |
 | **铁律/口径** | `SKILL.md` | **先抬 `LIMITS`**（见文首框）—— 压缩是**最后补的欠账**，**写入时不要删** |
 | 一段**开发经过/决策**（写代码才看） | `HISTORY.md` | 无需改路由 |
+| 一份**新文档** | `docs/` 下新建 | 见 **§4-C**：**别漏 `doc_map.py` 的 `GROUPS`**（漏了地图会出现"未归类"→ 自检 FAIL） |
 
 ## 3. 守卫（改完必跑，会自动抓下面 4 类错）
 
@@ -46,6 +47,7 @@
 | `docs_budget_and_skill_intact` | 文档超预算 / SKILL 丢 frontmatter / **指针超 catalog 显示预算、顺序倒置、漏触发词** | 34/35/35b/35c |
 | `skill_routes_resolve` | 路由表指向不存在的文档（静默失效：agent 读不到 → 只好整篇读 README） | 第 52 条 |
 | `docs_paths` | 文档引用不存在的 `scripts/*.py`；**文档之间的 `.md` 指针腐烂** | 改名实验已验证 |
+| `doc_map_fresh` | **文档地图过期**：改了文档/分类却没重生成 `docs/DOC-MAP.md`；或新文档没进 `GROUPS` | 第 36 组（2 条） |
 | `docs_host_classification` | **分类与路径不自洽**（仓库文件被标宿主级 → 缺失静默跳过；反之换机器崩） | 第 54 条 |
 | `track_ranges_musical` | 轨的音域超出乐器合理区间（如低音成次声波） | 第 57 条 |
 | `song_spec_sync` | `spec.json` 与 `song.json` 漂移（复现失效） | 第 58 条 |
@@ -63,7 +65,11 @@
 **B. 加一条坑**：`PITFALLS.md` 编号追加 → 若属"每次都会犯"，压一行进 `SKILL.md`（删等量腾位）
 
 **C. 加一份新文档**（判据：**同一步骤一份文档能覆盖**）：① `SKILL.md` 路由表加一行（含 ≈体量）
-② `token_audit` 的 DOCS + LIMITS 加一项 ③ `docs_paths` 列表加上它 ④ 自检 + 变异全绿
+② `token_audit` 的 DOCS + LIMITS 加一项 ③ `docs_paths` 列表加上它
+④ **在 `scripts/doc_map.py` 的 `GROUPS` 里归类**（漏了 → 地图出现"未归类"→ `doc_map_fresh` FAIL）
+⑤ 自检 + 变异全绿
+⑥ **改过任何文档后重跑 `python scripts/doc_map.py`** —— 地图是**生成物**、里面全是行号，
+改了正文不重生成就会漂（`doc_map_fresh` 会当场 FAIL，这是设计如此）
 
 **D. 改大文件里的一处精确字符**：**锚点要够长** —— 实测在 `SKILL.md` 用「`·` + 换行」
 **匹配到 4 次**（正文有 4 行以 `·` 结尾）；行尾类锚点经常不唯一 → 用 **≥6 连续字符**或整行。

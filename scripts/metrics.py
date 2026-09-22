@@ -33,10 +33,18 @@ FFMPEG_TIMEOUT = 300
 
 
 def _ffmpeg_exe():
-    """本机 ffmpeg 路径；没有就返回 None（不抛异常，让调用方给友好提示）"""
+    """本机 ffmpeg 路径；没有就返回 None（不抛异常，让调用方给友好提示）。
+
+    ⚠ **不要直接调 `imageio_ffmpeg.get_ffmpeg_exe()`**（2026-09-22 实测）：本机连不上外网时
+    那一行**会卡死** —— 自检项 `t_read_audio_format_fallback` 卡在它上面 **>9 分钟**没返回
+    （它是全量自检最慢的一项），而 ffmpeg 二进制就躺在
+    `.venv\\...\\imageio_ffmpeg\\binaries\\` 里。连带后果：**并行跑时每个 worker 各卡一次**
+    ⇒ 8 路并行反而 **288× 退化**（"越并行越慢"的真凶就是这里，不是 SoundFont）。
+    统一走 `to_ogg._ffmpeg_exe()`（本地优先的单一真源，见那个函数的 docstring）。
+    """
     try:
-        import imageio_ffmpeg
-        exe = imageio_ffmpeg.get_ffmpeg_exe()
+        import to_ogg
+        exe = to_ogg._ffmpeg_exe()
         return exe if exe and os.path.exists(exe) else None
     except Exception:
         return None
@@ -239,13 +247,20 @@ def _bars_of(m, sr, bar):
             for b in range(nbar)], nbar
 
 
-def rhythm(m, sr, bpm, loud_bars=16, level=4):
-    """16 分格节奏型（每格 = 1/4 拍）：取最响的若干小节做平均模板。
-    文件比一小节还短时返回中性值（原来是直接崩：numpy "a cannot be empty"）。"""
+def rhythm(m, sr, bpm, loud_bars=16, level=4, beats_per_bar=4):
+    """每拍 `level` 格的节奏型（默认 4/4 → 16 格）：取最响的若干小节做平均模板。
+
+    ⚠ `beats_per_bar`（2026-09-22 补）：**每小节拍数**，默认 4。
+      原来这里写死 `bar = 4 * beat` 且格数固定 `4 * level`，于是 **3/4 拍的曲子**
+      （本库 2 首圆舞曲）会被按 4 拍切小节、窗口整体错位，格数也应是 12 而非 16。
+      拍号只有调用方知道（`song.json` 的 `meter` / `profile()` 的 `meter` 参数），所以从外面传。
+    文件比一小节还短时返回中性值（原来是直接崩：numpy "a cannot be empty"）。
+    """
     beat = 60.0 / bpm
-    bar = 4 * beat
+    bar = beats_per_bar * beat
+    ncell = beats_per_bar * level
     if len(m) < bar * sr:
-        return '·' * (4 * level), '·' * (4 * level)
+        return '·' * ncell, '·' * ncell
     hop = 256
     n = 1024
 
@@ -261,7 +276,7 @@ def rhythm(m, sr, bpm, loud_bars=16, level=4):
     out = []
     for e in (lo_e, hi_e):
         prof = []
-        for i in range(4 * level):
+        for i in range(ncell):
             s = int((k * bar + i * beat / level) / dt)
             prof.append(float(e[s:s + step].max()) if s < len(e) else 0.0)
         mx = max(prof) or 1.0
@@ -547,8 +562,8 @@ def profile(path, bpm=None, name=None, meter=(4, 4)):
         bpm, periodicity, tempo = detect_bpm(m, sr)
     else:
         periodicity = None
-    bar = 4 * 60.0 / bpm
-    lo, hi = rhythm(m, sr, bpm)
+    bar = meter[0] * 60.0 / bpm
+    lo, hi = rhythm(m, sr, bpm, beats_per_bar=int(meter[0]))
     spec, freqs = _avg_spec(m, sr)          # 只算一次：倍频程与质心共用
     bands = octave_bands(m, sr, spec, freqs)
     char, align = character_of(bands)
@@ -574,9 +589,11 @@ def profile(path, bpm=None, name=None, meter=(4, 4)):
     # 速度**来源**必须写进画像：自动测速的值不许被当真相（实测外部参考曲上与人工钉死的一致率
     # 4%，见坑 106）。下游（scorecard/new_song）读这个字段就知道该不该提醒人复核。
     p['bpm_source'] = 'forced(--bpm)' if tempo is None else 'auto(未核对)'
-    # 分析侧的拍号假设：音频画像无法自己知道拍号，**按 4/4 切小节**。
-    # 非 4/4 的参考曲拿这份画像去比结构/节奏型会算错 —— 所以把假设写进画像，
-    # 并由 `profile_ref.py --meter` 在入口处拒绝非 4/4（作曲侧已支持 3/4、6/8，分析侧还没）。
+    # 分析侧的拍号：**由调用方给**（`meter` 参数）—— 音频画像自己不知道拍号，
+    # 传错就会在**错位的小节网格**上算 `structure` / `quiet_chroma` / `rhythm`。
+    # ⚠ 2026-09-22 起 `meter` 才真的生效：原来 `bar` 与 `rhythm(m, sr, bpm)` 都写死 4 拍，
+    #   于是 3/4 拍的曲子（本库 2 首圆舞曲）必错。`profile_ref.py --meter` 仍拒绝非 4/4
+    #   （保守：3/4 拍的参考画像格数是 12、与主题包的节奏共识口径不同，要放开需单独评估）。
     p['meter_assumed'] = [int(meter[0]), int(meter[1])]
     if tempo:
         if tempo.get('level_ladder'):

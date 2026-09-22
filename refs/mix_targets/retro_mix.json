@@ -26,8 +26,8 @@
   -19.0,
   -17.0
  ],
- "rhythm_low": "★★★·◇★◇◇◇◇★★★★★◇",
- "rhythm_high": "◇◇·★·★◇◇★◇◇★◇◇◇◇",
+ "rhythm_low": "★★◇·◇◇◇·◇★★◇★◇★◇",
+ "rhythm_high": "★★★★◇★◇◇★★★★◇◇◇◇",
  "quiet_chroma": {
   "D#": 1.0,
   "F": 0.81,
@@ -107,17 +107,6 @@
    }
   }
  ],
- "dedup_skipped": [
-  {
-   "ref": "BGM16c_v2",
-   "same_as": "BGM16c",
-   "file": "BGM16c.ogg"
-  },
-  {
-   "ref": "bgm16c_new",
-   "same_as": "BGM16c",
-   "file": "BGM16c.ogg"
-  }
- ],
+ "dedup_skipped": [],
  "source_note": "多份真实录音画像的**逐维度中位数**（成员见 members，各自带 source；同一份音频只算一次，被跳过的见 dedup_skipped）—— 单份画像的个性（偏亮/偏厚）不整体带进成品"
 }

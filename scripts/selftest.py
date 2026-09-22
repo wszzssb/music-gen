@@ -59,6 +59,29 @@ import to_ogg             # noqa: E402
 CHECKS = []
 FAILS = []
 
+# ---- **多进程分片**（用户 2026-09-22："把自检/变异改成多进程并行，理论 5–10×"）----
+# 瓶颈实测：单次渲染 **6.0 秒**（FluidSynth 是**单线程 CPU 合成**；GPU 完全用不上），
+# 而全量自检里有上百次串行渲染 → **>10 分钟、32 核只用 1 个**。
+# 用法：`--jobs N` 起 N 个子进程，各自跑 `--shard i/N`（见 `_run_parallel`）。
+JOBS = 1
+if '--jobs' in sys.argv:
+    try:
+        JOBS = max(1, int(sys.argv[sys.argv.index('--jobs') + 1]))
+    except (IndexError, ValueError):
+        JOBS = 1
+SHARD = None
+if '--shard' in sys.argv:
+    try:
+        _i, _n = sys.argv[sys.argv.index('--shard') + 1].split('/')
+        SHARD = (int(_i), int(_n))
+    except (IndexError, ValueError):
+        SHARD = None
+
+# **必须串行的检查**（会写磁盘 / 替换全局发现机制 → 并行会互踩）。
+# ⚠ 这份名单要**实测**：先按下面的初始集跑 `--jobs 8`，与串行结果逐项对比，
+#   把"只在并行下 FAIL"的项搬进来（CONVENTION 早记过一次假 FAIL 的教训）。
+SERIAL_CHECKS = {'determinism_and_bytes'}
+
 
 def check(fn):
     CHECKS.append(fn)
@@ -764,8 +787,14 @@ def t_tiny_render_and_ogg():
     quiet(song_engine.compose, sp, mid)
     wav, ogg = quiet(render_midi.render, mid, os.path.join(TMP, 'tiny_sf'),
                      -16.9, 2.0, 3.0, 38.0, 0.0, 1.6, 5.0, False, False)[0]
-    for f in (wav, ogg):
-        assert os.path.exists(f) and os.path.getsize(f) > 1000, '产物缺失 %s' % f
+    assert wav and os.path.exists(wav) and os.path.getsize(wav) > 1000, 'WAV 缺失 %s' % wav
+    if ogg is None:
+        # `BGM_NO_OGG=1` 是自检的加速开关（见 `render_midi.encode_ogg` 的 docstring）：
+        # 它让 `encode_ogg` 返回 None ⇒ 本项只验 WAV。第一版没判 None，直接
+        # `os.path.exists(None)` → `TypeError: _path_exists: path should be string ... not NoneType`。
+        print('        （BGM_NO_OGG=1：只验 WAV，跳过 OGG）')
+    else:
+        assert os.path.exists(ogg) and os.path.getsize(ogg) > 1000, 'OGG 缺失 %s' % ogg
     y, sr = sf.read(wav, dtype='float64', always_2d=True)
     assert np.isfinite(y).all(), '渲染结果含 NaN'
     assert np.abs(y).max() <= 1.0, '渲染结果削波'
@@ -838,6 +867,7 @@ def t_docs_paths():
     """README / 技能 里提到的 scripts\\X.py 都要存在"""
     files = [os.path.join(ROOT, 'README.md'),
              os.path.join(ROOT, 'CHEATSHEET.md'),
+             os.path.join(ROOT, 'docs', 'DOC-MAP.md'),
              os.path.join(ROOT, 'docs', 'SONG-FORMAT.md'),
              os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
              os.path.join(ROOT, 'docs', 'CONVENTION.md'),
@@ -860,10 +890,15 @@ def t_docs_paths():
     # 文档之间的 `.md` 指针也要能走通（实测：搬走一节后 README 还指着旧位置，
     # 表现为"agent 按指针去读、发现是空的"）。只查**项目内**的文档名；
     # notes.md / SKILL.md 这类"按输入生成/系统级"的名字在白名单里。
-    OK_GENERIC = {'notes.md', 'SKILL.md', 'README.md'}
+    OK_GENERIC = {'notes.md', 'SKILL.md', 'README.md',
+                  # `docs/DOC-MAP.md` 里登记宿主级文档（`~/.dsh/AGENTS.md`）——
+                  # 它的路径出了仓库，按 ROOT 拼一定不存在，属**误报**（同 SKILL/README 的性质：
+                  # 系统级提供的通用名，不由本仓库保证）。
+                  'AGENTS.md'}
     ptr = re.compile(r'`([A-Za-z0-9/_.\-]+\.md)`')
     dokeys = [os.path.join(ROOT, 'README.md'), os.path.join(ROOT, 'CHEATSHEET.md'),
               os.path.join(ROOT, 'PITFALLS.md'), os.path.join(ROOT, 'PITFALLS-ARCHIVE.md'),
+              os.path.join(ROOT, 'docs', 'DOC-MAP.md'),
               os.path.join(ROOT, 'docs', 'SONG-FORMAT.md'),
               os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
               os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
@@ -886,6 +921,82 @@ def t_docs_paths():
                     or os.path.exists(os.path.join(ROOT, 'docs', m))):
                 dead.append('%s → %s' % (os.path.basename(p), m))
     assert not dead, '文档指针腐烂（搬走了正文却没改指针）: ' + '; '.join(dead)
+
+    # ④ **反向也要查**：`scripts/*.py` 里不许有"**从没被任何文档提到**"的。
+    #    实景（2026-09-21 横向扫描）：`octave_audit.py`（还原第 0 步量八度错误率）、
+    #    `probe_variety.py`、`block_eq.py`、`section_eq.py`、`pitfalls_archive.py`
+    #    五个工具**能被调用、也有实质案例，却不在任何文档里** —— 对使用者等于不存在。
+    #    `CONVENTION.md` §4-A 写的是"新工具 → README 清单加一行"，但此前**没有守卫**强制，
+    #    于是漏登记就是静默的（跟"新文档漏进 GROUPS"是同一类）。
+    #    判据：脚本名出现在**任意一份 md**（含 `songs/*/notes.md`、宿主 SKILL）里就算已登记。
+    ok_unlisted = frozenset()          # 确实不需要登记的内部脚本（目前没有）
+    md_text = []
+    for _base, _dirs, _files in os.walk(ROOT):
+        _dirs[:] = [d for d in _dirs if d not in ('.venv', '.venv-ml', '.git', 'refs',
+                                                  '__pycache__', 'node_modules', 'vendor')]
+        for _f in _files:
+            if _f.lower().endswith('.md'):
+                try:
+                    md_text.append(open(os.path.join(_base, _f), encoding='utf-8',
+                                        errors='replace').read())
+                except OSError:
+                    pass
+    _host_skill = os.path.join(os.path.expanduser('~'), '.dsh', 'skills', 'bgm-studio',
+                               'SKILL.md')
+    if os.path.exists(_host_skill):
+        md_text.append(open(_host_skill, encoding='utf-8', errors='replace').read())
+    _blob = '\n'.join(md_text)
+    unlisted = [f for f in sorted(os.listdir(HERE))
+                if f.endswith('.py') and f not in ok_unlisted and f not in _blob]
+    assert not unlisted, (
+        '这些工具**从没被任何文档提到**（用户/agent 不知道它存在 = 等于没有）: %s —— '
+        '在 `README.md` 的工具清单里加一行（按 `CONVENTION.md` §4-A）；确实不需要登记的，'
+        '加进本检查的 `ok_unlisted` 白名单' % unlisted)
+
+
+@check
+def t_doc_map_fresh():
+    """**文档地图不许过期**（`docs/DOC-MAP.md` 是 `scripts/doc_map.py` 的生成物）。
+
+    为什么要守它：地图里全是**行号**，文档一改行号就漂 —— 手写的索引必然腐烂
+    （实证：`SKILL.md` 路由表里手写的"`docs/THEME-PACK.md` ≈1.6k"早就漂到 **5.3k**，
+    没人发现，因为没有任何东西在校验它）。所以地图是**生成物**，这条 = 重算一遍、
+    与磁盘文件**逐字比对**。
+
+    同时守一条更重要的：**新文档必须归类** —— 生成了"未归类"域 = 有文档没进 `GROUPS`，
+    等于它在地图上不存在（这跟"路由表漏一行 = 文档不存在"是同一类错）。
+
+    ⚠ 地图必须**机器无关**才能这么比：宿主级文档（`~/.dsh/**`）只登记存在性、
+    不写体量与行号，否则换台机器 `--check` 必然误报（`CONVENTION.md` §6）。
+    """
+    import doc_map
+    text = doc_map.build()
+    p = doc_map.OUT
+    assert os.path.exists(p), '文档地图不存在: %s —— 跑 `python scripts/doc_map.py`' % p
+    old = open(p, encoding='utf-8').read()
+    if old != text:
+        old_l, new_l = old.split('\n'), text.split('\n')
+        only_old = [x.strip()[:70] for x in old_l if x not in new_l][:2]
+        only_new = [x.strip()[:70] for x in new_l if x not in old_l][:2]
+        raise AssertionError(
+            '文档地图已过期（改了文档却没重新生成）—— 跑 `python scripts/doc_map.py` 重新生成。'
+            '旧: %s | 新: %s' % (only_old, only_new))
+    assert '## Z. 未归类' not in text, (
+        '有文档没归类（地图上会出现"未归类"域 = 它在地图里不存在）——'
+        '在 scripts/doc_map.py 的 GROUPS 里补上')
+    print('        文档地图 %d 行 / ≈%d tok，与当前文档逐字一致'
+          % (text.count('\n'), doc_map.ta.est(text)))
+
+    # **CLI 每个模式都要跑得通**。踩过（2026-09-21）：给 `sections()` 加了一个"层级"字段
+    # （4 元组 → 5 元组）后忘了改 `--list` 的解包 → 那个模式**直接 ValueError 崩掉**，
+    # 而 `build()` / `--check` 全程正常 —— 也就是说"生成物正确"并不代表"所有入口都能用"。
+    import subprocess
+    dm = os.path.join(HERE, 'doc_map.py')
+    for args in (['--help'], ['--stdout'], ['--list'], ['--check']):
+        r = subprocess.run([sys.executable, dm] + args, capture_output=True, text=True,
+                           encoding='utf-8', errors='replace', timeout=300)
+        assert r.returncode == 0, \
+            'doc_map.py %s 跑不通（rc=%d）：%s' % (args, r.returncode, (r.stderr or '')[:200])
 
 
 @check
@@ -2991,6 +3102,231 @@ def t_song_json_canonical():
 
 
 @check
+def t_host_docs_synced():
+    """**宿主级文档的仓库备份必须与宿主一致**（`docs/HOST-DOCS/` · `skill/bgm-studio/`）。
+
+    这几份是**推送给别人看的版本**（`AGENTS.md` / `SHELL-NOTES` / `COT-PERSONA`），
+    而**真正生效的是宿主那份**（`~/.dsh/**`）。实测（2026-09-21 查疏漏）：
+    `AGENTS.md` 的备份**落后 10 行** —— 用户 2026-09-20 定的三条规矩
+    （分钟级步骤先报"在做什么 + 多久" · 产出给完整绝对路径 · 临时文件先建专用目录）
+    只写进了宿主、备份里没有；而**此前没有任何东西会发现**：这几份不在
+    `token_audit.DOCS` 里（不受预算管），`docs_paths` 也只查"指针走不走得通"、不查内容。
+
+    规则（同 `CONVENTION.md` §6）：宿主文档**不存在就跳过**（换机器/换用户本来就不在）；
+    存在但内容不同 → FAIL，提示跑 `docs/HOST-DOCS/sync_host_docs.py`。
+
+    ⚠ 比对必须**忽略备份顶部那段 HTML 注释**（同步脚本自己加的）——
+    否则永远"不一致"。实测：直接比 md5 会把三份里的两份**误报**成漂移。
+    """
+    import re as _re
+    home = os.path.expanduser('~')
+    pairs = [('AGENTS.md', os.path.join(home, '.dsh', 'AGENTS.md'),
+              os.path.join(ROOT, 'docs', 'HOST-DOCS', 'AGENTS.md')),
+             ('SHELL-NOTES.md', os.path.join(home, '.dsh', 'docs', 'SHELL-NOTES.md'),
+              os.path.join(ROOT, 'docs', 'HOST-DOCS', 'SHELL-NOTES.md')),
+             ('COT-PERSONA.md', os.path.join(home, '.dsh', 'docs', 'COT-PERSONA.md'),
+              os.path.join(ROOT, 'docs', 'HOST-DOCS', 'COT-PERSONA.md')),
+             ('SKILL.md', os.path.join(home, '.dsh', 'skills', 'bgm-studio', 'SKILL.md'),
+              os.path.join(ROOT, 'skill', 'bgm-studio', 'SKILL.md'))]
+
+    def body(p):
+        t = open(p, encoding='utf-8').read()
+        return _re.sub(r'(?s)^\s*<!--.*?-->\s*', '', t).strip()
+
+    drift, skipped = [], []
+    for name, host, repo in pairs:
+        if not (os.path.exists(host) and os.path.exists(repo)):
+            skipped.append(name)
+            continue
+        if body(host) != body(repo):
+            drift.append(name)
+    assert not drift, (
+        '宿主文档的**仓库备份不同步**（推出去的是旧版）: %s —— '
+        '跑 `python docs/HOST-DOCS/sync_host_docs.py`；⚠ 生效的是**宿主那份**，'
+        '要改也改宿主、再同步过来' % drift)
+    print('        宿主文档备份同步: %d 份一致%s'
+          % (len(pairs) - len(skipped), ('（跳过缺失: %s）' % skipped) if skipped else ''))
+
+
+@check
+def t_loop_export_contracts():
+    """**循环素材导出**的契约（`scripts/loop_export.py`）。
+
+    这条链上有三个**静默错**的可能 —— 都不报错，只让成品悄悄变差：
+      ① **小节边界算错**：拿"实测时长 ÷ 小节数"反推会把**尾音**算进去
+         （`20_piano_rain` 实测 223.376/72 = 3.1024，而真值 4×60/78 = 3.0769）
+         → 每循环一次错位一点点，越循环越明显。正确口径与 MIDI 的 tempo map 一致。
+      ② **尾音回绕没生效**（退化成直接裁剪）→ 每循环一次丢掉一截尾音：
+         实测 A 段循环点之后 2.5 秒内的尾音电平只比正片低 **0.3dB**，丢了就是"音尾被剁"。
+      ③ **回绕越界**（动了开头 n 个样本之外的样本）→ 把片段内部也改了。
+    """
+    import numpy as np
+    import loop_export as LE
+
+    s = {'bpm': 78, 'meter': [4, 4]}
+    assert abs(LE.bar_seconds(s) - 3.076923) < 1e-5, \
+        '每小节秒数算错：%.6f（应为 4×60/78；**不许**拿实测时长反推）' % LE.bar_seconds(s)
+    song = {'bpm': 78, 'meter': [4, 4], 'sections': [
+        {'name': 'Intro', 'bars': 4}, {'name': 'A', 'bars': 8}, {'name': 'B', 'bars': 8}]}
+    assert LE.section_span(song, 'A') == (4, 8), \
+        'A 段起始小节算错（应累加前面段落）：%s' % (LE.section_span(song, 'A'),)
+    assert LE.section_span(song, 'B') == (12, 8), 'B 段起始小节算错'
+    assert LE.total_bars(song) == 20, '总小节数算错'
+
+    x = np.zeros(1000, dtype='float32')
+    x[500:600] = 1.0                       # "循环点之后"的尾音
+    y = LE.crop_wrap(x, 100, 500, 50)
+    assert y.shape[0] == 400, '裁剪长度错：%s' % (y.shape,)
+    assert abs(y[0] - 1.0) < 1e-6 and abs(y[49] - 1.0) < 1e-6, \
+        '尾音没叠到开头（实得 %.3f）—— 等于直接裁剪，每循环一次丢一截' % y[0]
+    assert abs(y[50]) < 1e-6, '回绕越界（第 50 个样本不该被改）'
+    assert np.allclose(LE.crop_wrap(x, 100, 500, 0), x[100:500]), \
+        'wrap_n=0 时必须**逐样本等于**纯裁剪（对照版的可信度靠它）'
+    rep = LE.seam_report(y.reshape(-1, 1), 1000, src=x.reshape(-1, 1), i1=500, wrap_n=50)
+    assert 'tail_after_db' in rep and abs(rep['tail_seconds'] - 0.05) < 1e-9, \
+        '尾音判据没量出来：%s' % rep
+    # ⑤ v2（逐轨循环 + 参数绑定清单）的契约
+    assert 0 < LE.ACCENT_RATIO < LE.BASE_RATIO <= 1 and LE.ACTIVE_DROP_DB > 0, \
+        '角色判据的阈值不自洽（应为 0 < ACCENT_RATIO < BASE_RATIO ≤ 1）：%s/%s/%s' % (
+            LE.ACCENT_RATIO, LE.BASE_RATIO, LE.ACTIVE_DROP_DB)
+    sb = LE.section_bounds(song, LE.bar_seconds(song))
+    assert sb[0][0] == 'Intro' and abs(sb[0][1]) < 1e-9, 'section_bounds 首段起点应为 0'
+    assert abs(sb[1][1] - sb[0][2]) < 1e-9 and abs(sb[1][1] - sb[1][2]) > 0, \
+        'section_bounds 段边界没首尾相接：%s' % (sb[:2],)
+    sd = LE.section_rms(np.zeros((1000, 1), dtype='float32'), 1000, [('x', 0.0, 0.5)])
+    # ⚠ 静音段的地板是 `rms_db` 里的 1e-9 → ≈ -180dBFS（**不是** -120，写断言前先算清）
+    assert sd and sd[0][1] <= -100.0, '静音段的 RMS 该是地板值：%s' % sd
+    print('        小节口径 %.4f 秒/小节（4/4@78，与 MIDI tempo 一致）· 段落定位正确'
+          ' · 回绕只动开头 n 样本 · 尾音判据可量 · 段边界首尾相接'
+          % LE.bar_seconds(s))
+
+
+@check
+def t_dead_cli_args():
+    """**声明了却没被读取的 CLI 参数**（静默 bug 一族）。
+
+    实景（2026-09-21，同一天抓到两个）：
+      · `ask_audio_critic.py --start` —— 单段模式永远从 0 开始，文档 §4 里
+        `--start 55 --dur 28` 那个用法**一直问的是文件开头**；
+      · `layer_exp.py --only` —— help 写着"只测这一层，不叠加"，代码从没读过它。
+    这类错**不报错**：只是让你拿到的结果**不是你要的那一段/那一份**。
+
+    判定"用了"的三种写法（都是实测出来的**误报来源**，缺一个就满屏假警报）：
+      ① `a.name` 属性访问；② `getattr(a, 'name', ...)`；③ `['--name', ...]` 传给子进程。
+    确实需要"收下但不用"的，进 `OK_DEAD` 并写明理由（白名单会腐烂，所以只放有据可查的）。
+
+    ⚠ **本检查必须用 `ast` 而不是正则**（第一版用正则、上线即误报）：`mutation_check.py`
+    里为了注入故障而**写在字符串里的** `p.add_argument('--never-read')` 会被正则当成真调用，
+    于是守卫报"mutation_check.py 有死参数"。`ast` 天然区分"代码"与"字符串里的代码"。
+    """
+    import ast as _ast
+    OK_DEAD = {
+        ('setup_wizard.py', 'lang'): '启动时从 sys.argv 提前读（要在定义提示语之前知道语言）',
+        ('imitate_ref.py', 'jobs'): 'help 明写"保留参数（当前各阶段内部已并行）"',
+    }
+
+    def scan(path):
+        src = open(path, encoding='utf-8', errors='replace').read()
+        if 'add_argument' not in src:
+            return []
+        try:
+            tree = _ast.parse(src)
+        except SyntaxError:
+            return []
+        # ⚠ 两遍走：先把"声明自己的那个字符串"标记出来 ——
+        #   `add_argument('--never-read')` 里的 `'--never-read'` **本身就是一个字符串常量**，
+        #   若不过滤，判定 ③（"`'--x'` 出现在代码里 = 传给子进程了"）会把它自己算成"已使用"
+        #   → **自证循环、永远判不出死参数**。
+        #   ⚠ 这正是我第一版 ast 重写时丢掉的（正则版因为"去掉 add_argument 行"天然避开了它），
+        #   是 `mutation_check` 的注入用例把它抓回来的 —— 新守卫必须自证，这一步不能省。
+        skip = set()
+        for node in _ast.walk(tree):
+            if (isinstance(node, _ast.Call)
+                    and getattr(node.func, 'attr', '') == 'add_argument' and node.args):
+                skip.add(id(node.args[0]))
+        calls, names, consts = [], set(), set()
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.Call):
+                f = node.func
+                if getattr(f, 'attr', '') == 'add_argument' and node.args:
+                    a0 = node.args[0]
+                    if isinstance(a0, _ast.Constant) and isinstance(a0.value, str) \
+                            and a0.value.startswith('--'):
+                        dest = None
+                        for kw in node.keywords:
+                            if kw.arg == 'dest' and isinstance(kw.value, _ast.Constant):
+                                dest = kw.value.value
+                        calls.append((a0.value, dest))
+                elif getattr(f, 'id', '') == 'getattr' and len(node.args) >= 2:
+                    a1 = node.args[1]
+                    if isinstance(a1, _ast.Constant) and isinstance(a1.value, str):
+                        names.add(a1.value)                  # getattr(a, 'x')
+            elif isinstance(node, _ast.Attribute):
+                names.add(node.attr)                         # a.x
+            elif isinstance(node, _ast.Constant) and isinstance(node.value, str):
+                if id(node) not in skip:                     # ← 声明自己的那个不算
+                    consts.add(node.value)                   # ['--x', ...] 传给子进程
+        out = []
+        for opt, dest in calls:
+            nm = dest or opt.lstrip('-').replace('-', '_')
+            if (os.path.basename(path), nm) in OK_DEAD:
+                continue
+            if nm in names or opt in consts:
+                continue
+            out.append(opt)
+        return out
+
+    dead, n = [], 0
+    for fn in sorted(os.listdir(HERE)):
+        if fn.endswith('.py'):
+            got = scan(os.path.join(HERE, fn))
+            n += len(got)
+            dead += ['%s %s' % (fn, o) for o in got]
+    n_all = sum(1 for f in os.listdir(HERE) if f.endswith('.py'))
+    assert not dead, (
+        '这些 CLI 参数**声明了却没被读取**（静默失效：你以为传了、其实没生效）: %s —— '
+        '接上它，或删掉声明；确实要"收下不用"的加进本检查的 `OK_DEAD` 白名单并写理由'
+        % ', '.join(dead))
+    print('        %d 个脚本的 CLI 参数都有被真正读取（白名单 %d 项）' % (n_all, len(OK_DEAD)))
+
+
+@check
+def t_notes_speed_matches():
+    """曲目 `notes.md` 的 `| 速度 |` 行必须与 `song.json` 的 `bpm` 一致。
+
+    实景（2026-09-21）：`20_piano_rain/notes.md` 写着 "**69 BPM** · 72 小节 · 250.4 s"，
+    而 `song.json` 是 `bpm: 78`、MIDI tempo 也是 78、渲染音频 **223.4 秒** ——
+    ⚠ 69×72 小节 = 250.4 秒**自洽**，78×72 = 223.4 秒**也自洽**，所以**光看 notes 发现不了**，
+    它是**改曲前的旧快照**（照它复现会得到另一个速度）。`notes.md` 是交付文档，
+    写错不会让任何工具报错 —— 这正是要守卫它的理由。
+
+    ⚠ 只认**精确的 `| 速度 |` 行**：`| 速度·调式 | 140 BPM（**模板中位**） |` 这类合并列
+    记的是**模板依据**、不是本曲参数，按本曲参数判会把 4 首 imitate 曲全误报（实测过）。
+    """
+    import json as _json
+    import re as _re
+    bad, n = [], 0
+    for name in sorted(os.listdir(os.path.join(ROOT, 'songs'))):
+        d = os.path.join(ROOT, 'songs', name)
+        sj, nt = os.path.join(d, 'song.json'), os.path.join(d, 'notes.md')
+        if not (os.path.exists(sj) and os.path.exists(nt)):
+            continue
+        m = _re.search(r'^\|\s*速度\s*\|(.+)$', open(nt, encoding='utf-8').read(), _re.M)
+        if not m:
+            continue
+        b = _re.search(r'(\d+(?:\.\d+)?)\s*BPM', m.group(1))
+        if not b:
+            continue
+        n += 1
+        want = float(_json.load(open(sj, encoding='utf-8')).get('bpm') or 0)
+        if abs(float(b.group(1)) - want) > 1.0:
+            bad.append('%s: notes 写 %s BPM / song.json 是 %s' % (name, b.group(1), want))
+    assert not bad, ('`notes.md` 的 `| 速度 |` 行与 `song.json` 的 `bpm` 不一致'
+                     '（交付文档写错，照它复现会得到另一个速度）: %s' % '; '.join(bad))
+    print('        %d 首曲目的 notes「速度」行与 song.json 一致' % n)
+
+
+@check
 def t_docs_budget_and_skill_intact():
     """文档预算 + 技能文件完整性（"写歌为什么变贵"要有守卫，不能靠自觉）：
     ① SKILL.md 是**每个音乐任务都加载**的，超预算就会让每次写歌都变贵；
@@ -3010,6 +3346,16 @@ def t_docs_budget_and_skill_intact():
         if lim and tok > lim:
             raise AssertionError('%s ≈%d tok，超预算 %d（该拆文档/改格式了）'
                                  % (label, tok, lim))
+    # ⑤ **每份文档都必须有预算**（`CONVENTION.md` §1 第 5 条）。
+    #    踩过（2026-09-21 查疏漏）：`HISTORY.md` 是全库**最大的文档**（38.4k tok），
+    #    却一直不在 `LIMITS` 里 —— 而上面的循环写的是 `if lim and tok > lim`，
+    #    对没预算的项**直接跳过** → 它每轮都在长、没有任何东西会报警。
+    #    "有预算"这件事本身必须有守卫，否则新文档漏登记就是静默失效（同坑 182 那一族）。
+    no_lim = [k for k in token_audit.DOCS if k not in token_audit.LIMITS]
+    assert not no_lim, (
+        '这些文档**没有预算**（写多少都不会报警）: %s —— 在 `token_audit.LIMITS` 里补一项'
+        % no_lim)
+
     if host_missing:
         print('        （宿主级文档未提供，跳过其校验: %s；本机用 DSH_REQUIRE_SKILL=1 强制要求）'
               % ', '.join(host_missing))
@@ -3164,6 +3510,34 @@ def t_skill_routes_resolve():
     miss = [t for t in sorted(targets) if not os.path.exists(os.path.join(ROOT, t))]
     assert not miss, '路由表指向不存在的文档: %s' % ', '.join(miss)
 
+    # ② **手写的体量数字必须与实测相符**（±50%）。
+    #    实测（2026-09-21）：11 行里 **7 行偏差 >30%**，最大 `CHEATSHEET.md ≈0.7k`
+    #    实际 **3.3k（+377%）**。这些数字是**给人（和 agent）选"读哪份、多贵"用的**，
+    #    漂了就等于误导 —— 而它此前**完全没有守卫**（同类：README 手写的"300 行 ≈6k"，
+    #    实际 318 行 ≈9.8k）。
+    import token_audit
+    rowre = _re.compile(r'^\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*≈([\d.]+)k\s*\|\s*$')
+    drift = []
+    for ln in seg.split('\n'):
+        m = rowre.match(ln)
+        if not m:
+            continue
+        said = float(m.group(3)) * 1000.0
+        for c in _re.findall(r'`([^`]+\.md)`', m.group(2)):
+            p = os.path.join(ROOT, c)
+            if not os.path.exists(p):
+                continue
+            real = token_audit.est(open(p, encoding='utf-8').read())
+            if said and abs(real - said) / said > 0.5:
+                drift.append('%s 写 ≈%.1fk、实测 %.1fk（%+.0f%%）'
+                             % (os.path.basename(c), said / 1000.0, real / 1000.0,
+                                (real - said) / said * 100))
+            break
+    assert not drift, (
+        '路由表里的**体量数字漂了**（它是"读哪份"的依据，漂了就误导）: %s —— 按实测改数字'
+        % '; '.join(drift))
+    print('        路由表 %d 份文档都存在 · 体量数字与实测相符（±50%% 内）' % len(targets))
+
 
 @check
 def t_docs_host_classification():
@@ -3191,21 +3565,41 @@ def t_build_song_spec_roundtrip():
     """`build_song` 的 spec→song.json 推导必须**真能跑通**，且**往返保真**。
 
     这条检查的意义：spec 是"省字"的入口，一旦推导规则坏了（时值列错、和弦排列音级不符、
-    旋律丢失），生成出来的歌会静默变样。所以这里做真往返：拿一首现成曲目导出 spec、
-    再生成，要求**旋律逐音一致 + 强拍严判据 0 条**。
+    旋律丢失），生成出来的歌会静默变样。
+
+    ⚠ 2026-09-22 **夹具来源改了**：原来是动态挑"songs/ 里有 `spec.json` 的曲目"
+    （`fixture_song(need='with_spec')`）—— 那类曲目一被删（实测：重新生成 01–19 之后
+    库里就一首都没有了）这条检查就**直接 FAIL（空转）**。现在改成**现场造一份最小 spec**：
+    不依赖曲库内容，测的仍是这条链，而且是**纯 spec 路径**（正是它要覆盖的那种曲目）。
+
+    ⚠ 基准必须是**手算的期望值**、不能拿 `build()` 自己的结果当基准 ——
+    否则注入"时值推导坏掉"时两次 build 一起坏、往返照样一致，**变异就抓不到了**
+    （`mutation_check` 第 55 组正是这个注入）。
     """
     import build_song as bs
-    import check_song as cs
-    # 夹具动态挑：优先带 `spec.json` 的曲目（这类曲目 spec→song.json 往返确定可行），
-    # 不再绑死 17_b73_slow_evening
-    _fix = fixture_song(need='with_spec')
-    if not _fix:
-        raise AssertionError('songs/ 里没有带 spec.json 的曲目可当夹具（这条检查会空转）；'
-                             '放一首由 spec 生成的曲目即可')
-    src = os.path.join(_fix, 'song.json')
-    song = json.load(open(src, encoding='utf-8'))
-    spec = bs.to_spec(song)
-    again = bs.build(spec)
+    spec = {
+        'name': 'selftest_roundtrip', 'bpm': 100.0, 'style': 'ballad',
+        'sections': [
+            {'name': 'A', 'bars': 4, 'chords': 'Am F C G',
+             'melody': {'A': [[0, 0, 69], [0, 2, 72], [1, 0, 76], [2, 0, 74], [3, 0, 72]]}},
+            {'name': 'B', 'bars': 4, 'chords': 'Am F C E7',
+             'melody': {'B': [[0, 0, 69], [1, 0, 71], [2, 0, 72], [3, 0, 76]]}},
+        ],
+        'chords_used': 'auto',
+    }
+    # 手算的期望（规则：时值 = 到下一个音的间距；末音延到小节末 —— 见 melody_from_spec 的 docstring）
+    want_a = [[0, 0, 2.0, 69], [0, 2, 2.0, 72], [1, 0, 4.0, 76], [2, 0, 4.0, 74], [3, 0, 4.0, 72]]
+    want_b = [[0, 0, 4.0, 69], [1, 0, 4.0, 71], [2, 0, 4.0, 72], [3, 0, 4.0, 76]]
+
+    song = bs.build(spec)
+    # ① 推导正确性：与**手写期望**逐音比（含时值）
+    assert song['melody'].get('A') == want_a, \
+        'A 段时值推导不对：%s（期望 %s）' % (song['melody'].get('A'), want_a)
+    assert song['melody'].get('B') == want_b, \
+        'B 段时值推导不对：%s（期望 %s）' % (song['melody'].get('B'), want_b)
+
+    # ② 往返保真：song → spec → song
+    again = bs.build(bs.to_spec(song))
     miss = [k for k in song['melody'] if k not in again['melody']]
     assert not miss, '往返丢了旋律: %s' % miss
     for k, v in song['melody'].items():
@@ -3213,11 +3607,13 @@ def t_build_song_spec_roundtrip():
     assert len(again['sections']) == len(song['sections']), '往返段落数不一致'
     for n, (a, b) in enumerate(zip(song['sections'], again['sections'])):
         assert a['chords'] == b['chords'], '第 %d 段和弦走向不一致' % (n + 1)
-    # 和弦表：用到的都在，且音级与符号自洽
+    # ③ 和弦表：用到的都在，且音级与符号自洽
     for cname, (bass, tones) in again['chords'].items():
         r, slash, want = parse_chord(cname)      # 本模块内的唯一口径
         assert want is not None, '生成的和弦符号解析不了: %s' % cname
         assert set(t % 12 for t in tones) == want, '%s 排列音级不符' % cname
+    print('        spec 往返保真：时值推导 %d+%d 音与手算期望一致 · 段落/和弦一致 · %d 个和弦'
+          % (len(want_a), len(want_b), len(again['chords'])))
 
 
 @check
@@ -4018,8 +4414,113 @@ def t_audio_critic_contracts():
                        capture_output=True, text=True, encoding='utf-8', errors='replace',
                        timeout=120)
     assert r.returncode == 0, '--help 打不出来：%s' % ((r.stderr or r.stdout or '')[:200])
-    print('        单段上限 %.0f 秒（任意段数不越界）· 判据口径正确 · --help 可渲染'
-          % A.MAX_SEC)
+
+    # ⑦ **时间口径**（2026-09-21 实测校正；文档原写"段内相对秒"是错的）
+    #    现场：段 3 的 prompt 给的是"第 55.8 秒到第 83.8 秒"，模型报的是 `56~84`；
+    #    40 段真实输出里，7 个"两域不重叠"的段（段 2~8）**96/96 条全落在整曲域**、
+    #    段内域 **0** 条。所以第一判据必须是"落在段区间内 = 整曲秒"。
+    t, tag = A.to_abs(70.0, 55.8, 28.0)
+    assert (t, tag) == (70.0, 'abs'), \
+        ('段内报 70 秒（段 55.8~83.8）该判成**整曲秒**，实得 %s —— '
+         '若改成"一律加段起点"就成了 125.8 秒（那是文档里被推翻的旧假设）' % ((t, tag),))
+    t, tag = A.to_abs(5.0, 55.8, 28.0)
+    assert (t, tag) == (60.8, 'rel'), \
+        '段内相对秒的兜底分支坏了（换 prompt/换模型时要用）：%s' % ((t, tag),)
+    t, tag = A.to_abs(300.0, 55.8, 28.0)
+    assert t is None and tag == 'out', \
+        '越界的时间必须返回 None（**不许硬映射**成一个假位置），实得 %s' % ((t, tag),)
+
+    # ⑧ 指控解析：真实回答（模型原样输出）必须拆得开、时间解得对
+    ans = ('有问题，以下是详细信息：\n'
+           '问题1：和弦过渡生硬，出现时间29.34秒至30.79秒。\n'
+           '问题2：钢琴旋律听起来不连贯，时断时续，大约在32.30秒至33.79秒。\n'
+           '问题3：低音部分有些模糊，不够清晰，大约从34.32秒至35.76秒。')
+    cls = A.parse_claims(ans, 27.9, 55.8)
+    assert len(cls) == 3, \
+        '该拆出 3 条指控（表头不算），实得 %d：%s' % (len(cls), [c['text'][:18] for c in cls])
+    assert [round(c['t'], 2) for c in cls] == [29.34, 32.3, 34.32], \
+        '整曲时间解错：%s' % [c['t'] for c in cls]
+    assert cls[0]['cat'] == '生硬' and cls[2]['cat'] == '盖住', \
+        '类别抽错：%s' % [c['cat'] for c in cls]
+    assert cls[2]['parts'] == ['低音'], '声部抽错：%s' % cls[2]['parts']
+    assert A.parse_claims('没问题', 0.0, 27.9) == [], '"没问题" 不是指控'
+    assert A.parse_claims('有问题，以下是详细信息：', 0.0, 27.9) == [], '表头不是指控'
+    bad = A.parse_claims('问题1：和弦过渡生硬，出现时间点204-213秒。', 167.5, 195.5)
+    assert len(bad) == 1 and bad[0]['t'] is None and bad[0]['clock'] == 'out', \
+        '越界时间该标 out 且不给整曲秒（模型报 204 秒，而段 7 只到 195.5）：%s' % bad
+
+    # ⑨ 整曲清单（§8-3）：按时间排序；**没给时间的单独列，不许丢**
+    tl = [{'seg': 1, 'start': 0.0, 'end': 27.9,
+           'answer': '问题：和弦过渡生硬，出现时间：第 6.35 秒至第 7.49 秒。没问题。'},
+          {'seg': 3, 'start': 55.8, 'end': 83.8,
+           'answer': '问题：伴奏在背景中显得薄弱且无趣，缺乏层次感。'}]
+    loc, unloc = A.timeline(tl)
+    assert len(loc) == 1 and abs(loc[0]['t'] - 6.35) < 1e-6, '整曲清单时间解错：%s' % loc
+    assert len(unloc) == 1 and unloc[0]['cat'] == '薄弱', \
+        '没给时间的指控必须单列（用户仍要知道"这一段有问题"）：%s' % unloc
+
+    # ⑩ 多数表决（§8-2）：稳定性门槛 + **同一次采样里重复报只算 1 票**
+    def _cl(cat, tt):
+        return {'cat': cat, 'cats': [cat], 'parts': [], 't': tt,
+                'clock': 'abs' if tt is not None else 'notime',
+                'raw_span': None, 'text': cat}
+    rows, _mh = A.vote([[_cl('生硬', 60.0), _cl('生硬', 100.0)]], band=4.0)
+    assert len(rows) == 2, '时间桶没起作用（不同时间的同类指控被并成一条）：%s' % rows
+    lists = [[_cl('生硬', 60.0), _cl('生硬', 61.0)],       # 同一次采样报两遍 → 只算 1 票
+             [_cl('生硬', 60.5)], [_cl('生硬', 60.2)],
+             [_cl('噪音', 130.0)], [_cl('噪音', 130.5)]]
+    rows, mh = A.vote(lists, band=4.0)
+    assert mh == 3, 'N=5 的稳定门槛该是过半 3 票，实得 %d' % mh
+    d = {r['cat']: r for r in rows}
+    assert d['生硬']['hits'] == 3 and d['生硬']['stable'], \
+        '3/5 该算稳定线索，实得 %s' % d['生硬']
+    assert d['噪音']['hits'] == 2 and not d['噪音']['stable'], \
+        '2/5 不该算稳定（这正是"单次读数就是噪声"的过滤）：%s' % d['噪音']
+
+    # ⑪ **不同的越界位置不许合并计票**（2026-09-21 用真采样数据才暴露）：
+    #    段 3 在 5 次采样里报了 `29.46 秒` 与 `240–249 秒`（后者**超过整曲 223.4 秒**）
+    #    两个互不相干的位置；若都归 `None` 桶，它们会**凑够票数 → 假稳定**。
+    c1 = A.parse_claims('问题1：和弦过渡生硬，出现时间点240-249秒。', 55.8, 83.8)[0]
+    c2 = A.parse_claims('问题1：和弦过渡生硬，出现时间点29.46秒至30.96秒。', 55.8, 83.8)[0]
+    assert c1['t'] is None and c2['t'] is None, '这两个位置都该判越界（越界不许硬映射）'
+    vv, _ = A.vote([[c1], [c2]], band=4.0)
+    assert len(vv) == 2, '两个**不同**的越界位置被并成一条（会凑出假稳定）：%s' % vv
+
+    # ⑫ `--min-hits` 的 argparse 默认值 0 == "用默认（过半）"，**不是门槛 0**。
+    #    踩过：`int(0)` 让 1/5、2/5 全被标成"稳定"，而表头还写着"门槛 3 票"
+    #    —— 标题与行为不一致，过滤器等于失效。
+    one = {'cat': 'x', 'cats': ['x'], 'parts': [], 't': 10.0, 'clock': 'abs',
+           'raw_span': None, 'text': 'x'}
+    _rows, mh0 = A.vote([[one]] * 5, band=4.0, min_hits=0)
+    assert mh0 == 3, 'min_hits=0（argparse 默认）该按过半算，实得 %d' % mh0
+
+    # ⑬ 模型的**元评论 / 免责声明**不是指控（实测原话："注：由于音频文件时长不足，
+    #    无法确定是否存在问题1、2在第112秒至第140秒之间" —— 会被当噪声计票）。
+    assert A.parse_claims('注：由于音频文件时长不足，无法确定是否存在问题1在第112秒至第140秒之间。',
+                          111.7, 139.6) == [], '元评论/免责声明不该算指控'
+
+    # ⑭ **`--start` 必须真的生效**。2026-09-21 修的真 bug：它**声明了却从没被用过** ——
+    #    单段模式永远从 0 开始、只把长度夹到 `--dur`，于是文档 §4 里
+    #    `--start 55 --dur 28` 一直问的是**文件开头**（实测拿它问"循环素材的接缝 22.6 秒"，
+    #    输出却写着 `[0.0~4.0 秒]`）。这类"参数收下了但没用"的错**不报错**，
+    #    只会让人对着**另一段音频**下结论。
+    assert A.single_bounds(223.4, 55.0, 28.0) == [(55.0, 28.0)], \
+        '--start 没生效（单段仍从 0 开始）：%s' % (A.single_bounds(223.4, 55.0, 28.0),)
+    assert A.single_bounds(10.0, 5.0, 30.0) == [(5.0, 5.0)], \
+        '单段长度没夹到音频末尾：%s' % (A.single_bounds(10.0, 5.0, 30.0),)
+    _sb = A.single_bounds(223.4, 220.0, 28.0)
+    assert _sb[0][1] <= A.MAX_SEC, '单段长度没夹到 30 秒上限（会静默截断）：%s' % (_sb,)
+
+    # ⑮ "没问题"的识别要覆盖**自定义问法**下的说法（2026-09-21 实测：问"有没有卡顿"，
+    #    它一律答"流畅，没有卡顿"，原来只认"没问题"三字 → 判成"其它"）。
+    #    ⚠ 但顺序不能变：**先抽类别** —— "没有卡顿，但和弦过渡生硬"仍是报了问题。
+    assert A.verdict('流畅，没有卡顿。') == '没问题', \
+        '模型答"流畅，没有卡顿"该判成没问题，实得 %s' % A.verdict('流畅，没有卡顿。')
+    assert A.verdict('没有卡顿，但和弦过渡生硬。') != '没问题', \
+        '"说了不卡顿又报了问题"仍必须判成**报了问题**（先抽类别，再看没问题）'
+
+    print('        单段上限 %.0f 秒（任意段数不越界）· 判据口径正确 · --help 可渲染' % A.MAX_SEC)
+    print('        时间口径 abs/rel/out 三分支正确 · 指控解析 3 条 · 多数表决门槛 3/5')
 
 
 @check
@@ -4103,6 +4604,142 @@ def t_selfcheck_outliers():
     assert scores == sorted(scores, reverse=True), '--all 没有按离群总分降序'
     print('        %d 首 · %d 维 · 最离群 %s（%.1f）'
           % (len(table), len(sc.COLS), ranked[0][0], ranked[0][1]))
+
+
+@check
+def t_theme_pack_agg_pattern():
+    """聚合画像里的**节奏型必须真聚合**（`theme_pack._agg_pattern`）。
+
+    实景（2026-09-22，用户指出"5 个主题字符级完全相同肯定不行"）：`aggregate_refs` 原来
+    对 `rhythm_low/high` 写的是 `profs[0][1].get(...)` —— **直接取"分数最高那份成员"的值**，
+    于是 `daily / folk_tale / lounge / mystery / seaside` 五份全是 `★★◇·★◇··★★··★★◇·`
+    （它们的 `members[0]` 都是 `bgm01c`）；而候选池里明明有 **44 种**不同取值。
+    "多方参考"在这一维等于没做。
+
+    这里钉住**函数契约**（不依赖当时的画像数据，数据会随成员变化）：
+    逐格取中位（★=1 / ◇=0.5 / ·=0）后按 **与 `metrics.rhythm` 同一套阈值**（0.66 / 0.33）分档。
+    """
+    import theme_pack as tp
+    # 三份里两份同档 → 中位取该档
+    assert tp._agg_pattern(['★★··', '★★··', '··◇·']) == '★★··', \
+        '逐格中位不对：%s' % tp._agg_pattern(['★★··', '★★··', '··◇·'])
+    # 三份各在不同格强 → 每格中位都是 ·（孤立主张被抹掉，这正是"聚合"该做的）
+    assert tp._agg_pattern(['★···', '·◇··', '··★·']) == '····', \
+        '孤立强格不该被保留：%s' % tp._agg_pattern(['★···', '·◇··', '··★·'])
+    # 两强一中 → 中位 1.0 / 0.0 → ★ 与 ·（◇ 档在中位口径下取不到，如实验证）
+    assert tp._agg_pattern(['★◇·', '', '★◇·']) == '★◇·', \
+        '空串成员要跳过、且不该把档位改坏：%s' % tp._agg_pattern(['★◇·', '', '★◇·'])
+    assert tp._agg_pattern([]) == '', '空输入该给空串'
+    assert tp._agg_pattern(['★◇·', '★◇·']) == '★◇·', '两份一致时应原样保留'
+    print('        聚合节奏型：逐格中位 + 同口径分档（三档 ★/◇/·）· 空成员跳过')
+
+
+@check
+def t_metrics_meter_aware():
+    """`metrics.rhythm` 的**格数必须随拍号**（2026-09-22 补的缺口）。
+
+    实景：`rhythm(m, sr, bpm)` 原来写死 `bar = 4 * beat`、格数固定 `4 * level` ——
+    于是 3/4 拍的曲子（本库 2 首圆舞曲）被按 4 拍切小节：**窗口整体错位、格数也应是 12 而非 16**。
+    拍号只有调用方知道（`song.json` 的 `meter`），所以从 `beats_per_bar` 传进来；
+    `metrics.profile()` 用它已有的 `meter` 参数往下传，`scorecard` 从 `song.json` 读。
+    """
+    import numpy as np
+    import metrics as M
+    sr, bpm = 8000, 120.0                  # 每拍 0.5 秒
+    x = np.zeros(int(sr * 8), dtype='float32')
+    for t in (0.0, 1.5, 3.0, 4.5):         # 拍在小节线上的低频脉冲
+        i = int(t * sr)
+        x[i:i + 200] = 0.5
+    lo4, hi4 = M.rhythm(x, sr, bpm, beats_per_bar=4)
+    lo3, hi3 = M.rhythm(x, sr, bpm, beats_per_bar=3)
+    assert len(lo4) == 16 and len(hi4) == 16, \
+        '4/4 该出 16 格，实得 %d/%d' % (len(lo4), len(hi4))
+    assert len(lo3) == 12 and len(hi3) == 12, \
+        '3/4 该出 12 格（写死 4 拍就会是 16）：实得 %d/%d' % (len(lo3), len(hi3))
+    assert set(lo3) <= set('★◇·'), '格字符只能是 ★/◇/·：%s' % set(lo3)
+    print('        节奏型随拍号：4/4 → 16 格 · 3/4 → 12 格')
+
+
+@check
+def t_scorecard_meter_source():
+    """`scorecard` 的拍号必须取自 `song.json`，**不能取自 `_song_ctx`**（2026-09-22 补）。
+
+    实景：给 `metrics.rhythm` 补上"格数随拍号"之后，`scorecard.main()` 写成
+    `_cfg0, _song0 = _song_ctx(mine_path)` 再 `_song0.get('meter')` ——
+    而 `_song_ctx` 返回的第二项是 `(programs, mix, arr)` **三元组**、不是 song.json 字典，
+    于是 `make_song.py 20_piano_rain` 在成绩单阶段崩掉（退出码 1）：
+    `AttributeError: 'tuple' object has no attribute 'get'`。
+    **当时 selftest 144/144 全绿**：因为没有任何检查真的调用过 `main()`。
+
+    两件事各钉一颗钉子：① `_meter_of` 的取值与兜底（任何无 meter 的老歌都不能崩）；
+    ② `_song_ctx` 的返回形状 —— 谁再想拿它当 song.json 用，先在这儿被拦下。
+    """
+    import scorecard as SC
+    with tempfile.TemporaryDirectory(prefix='dsh_meter_') as d:
+        mid = os.path.join(d, 'x.mid')        # 不存在的文件名足够：只看所在目录
+        # ① 读得到 meter → 照用（3/4 的圆舞曲就靠这条走对网格）
+        for meter, want in (([3, 4], (3, 4)), ((6, 8), (6, 8))):
+            with open(os.path.join(d, 'song.json'), 'w', encoding='utf-8') as f:
+                json.dump({'meter': meter, 'mix': {}, 'sections': []}, f)
+            got = SC._meter_of(mid)
+            assert got == want, '_meter_of 没读到 song.json 的 %r：实得 %r' % (meter, got)
+        # ② 读不到 / 不合法 → 兜底 4/4（老歌没有 meter 字段，不能因此崩或算错）
+        for bad in ({'meter': 'x'}, {'meter': [4]}, {'meter': None}, {}):
+            with open(os.path.join(d, 'song.json'), 'w', encoding='utf-8') as f:
+                json.dump(bad, f)
+            got = SC._meter_of(mid)
+            assert got == (4, 4), '%r 该兜底 (4, 4)：实得 %r' % (bad, got)
+        os.remove(os.path.join(d, 'song.json'))
+        assert SC._meter_of(mid) == (4, 4), '没有 song.json 时该兜底 (4, 4)'
+        # ③ `_song_ctx` 的第二返回值是三元组，不是 dict —— 拿它 .get 必崩
+        with open(os.path.join(d, 'song.json'), 'w', encoding='utf-8') as f:
+            json.dump({'programs': {'Melody': 0}, 'mix': {'Piano': [0, 0.7]},
+                       'sections': [{'arr': {'Piano': True}}]}, f)
+        _cfg, data = SC._song_ctx(mid)
+        assert isinstance(data, tuple) and len(data) == 3, \
+            '_song_ctx 的第二返回值该是 (programs, mix, arr) 三元组：实得 %r' % (data,)
+        assert not hasattr(data, 'get'), \
+            '_song_ctx 的第二返回值不是 song.json 字典 —— 别拿它取 meter'
+    print('        scorecard 拍号取自 song.json（兜底 4/4）· _song_ctx 是三元组')
+
+
+@check
+def t_scorecard_main_runs():
+    """**真的跑一遍 `scorecard.main()`**（这次崩溃的正是这条路径，2026-09-22 补）。
+
+    `t_scorecard_meter_source` 钉的是取值来源，这条钉的是"整张成绩单跑得完"：
+    找一个有渲染产物的成品，按真实命令行方式跑 `main()`，返回值必须是 0。
+
+    为什么在**进程内**调、而不是 `subprocess` 起新进程：`mutation_check` 是往本进程
+    注入故障后调检查函数，起子进程的话注入打不进去，这条守卫就会永远"漏"。
+    （同一坑见 `mutation_check` 里"用 subprocess 跑 CLI 的检查注入不进去"那条注释。）
+    """
+    if FAST:
+        print('        (--fast：跳过真跑 scorecard.main)')
+        return
+    import scorecard as _sc
+    songs = sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*.ogg')))
+    songs += sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*.wav')))
+    if not songs:
+        print('        (库里没有渲染产物，跳过 —— 跑过 make_song 才会有)')
+        return
+    old_argv = sys.argv
+    buf = io.StringIO()
+    try:
+        sys.argv = ['scorecard.py', songs[0]]
+        with redirect_stdout(buf):
+            rc = _sc.main()
+    except Exception as e:
+        raise AssertionError('scorecard.main() 抛异常（这条路径崩过一次，别再让它裸奔）：'
+                             '%s: %s' % (type(e).__name__, e))
+    finally:
+        sys.argv = old_argv
+    out = buf.getvalue()
+    assert rc == 0, ('scorecard.main() 返回 %r（非 0 = 没跑完）：\n%s'
+                     % (rc, out[-500:]))
+    assert '低频节奏型' in out, \
+        '成绩单没打印低频节奏型，可能是静默空转：\n%s' % out[-500:]
+    print('        scorecard.main() 真跑通：%s' % os.path.basename(songs[0]))
 
 
 @check
@@ -6422,7 +7059,7 @@ def t_ymt3_grouped_inference():
     return 'YMT3 分组推理在位（auto_chunk + 逐组搬 GPU）'
 
 
-ONSET_TVD_MAX = 0.65      # 每段落点分布与画像的 TVD 上限
+ONSET_TVD_MAX = 0.65      # 每段落点分布与画像的 TVD 上限（⚠ 单一真源在 `melody_gen.ONSET_TVD_MAX`）
 BASS_FLOOR = 24           # Bass 轨音高下界 = C1(32.7Hz)（真值见 t_bass_register）
 # 段界"过渡/留白"的门（真值见 t_section_transition）：
 #   段末渐弱或段首渐入 ≥ 4dB，或边界两侧本来就接近（< 3dB）—— 三者居其一才算"不突兀"
@@ -6610,19 +7247,357 @@ def t_intro_gradience():
           % (len(on), len(off), 0))
 
 
+@check
+def t_sustain_criteria():
+    """**"只响 0.几秒"判据坏不坏得起来**（用户 2026-09-22："让以后不出现这种情况，
+    出现了也能很快检查到修好"）。
+
+    判据只有一份、在 `harmony_check`（`check_song` 与 `make_song` 每轮都会跑到它）。
+    这里验四件事，每一件都对应本轮踩过的一个坑：
+      ① 钢琴(GM 0) + 写得长的旋律 → **必须报**（= `20_piano_rain` 改前的病）
+      ② 换成持续型 GM 4 → **不许报**（修好了就不该再响）
+      ③ **未实测**的音色 → **必须判不了**（第一版拿族兜底值当判据，把 6 首管乐误报成
+         "只响 0.几秒"；这条断言就是钉死那个错法）
+      ④ 弦乐 48（起音实测 427ms）→ 必须报"慢半拍"（换持续型时最容易踩的反向坑）
+    再验全库触发率 **<= 30%**（恒真 = 噪声；技能口径 5%~30% 才有区分度）。
+    """
+    import harmony_check as HC
+
+    def _kinds(d):
+        return [x.split('：')[0] for x in HC.check(d)]
+
+    song = {'bpm': 78,
+            'programs': {'Melody': [0, 0], 'Piano': [2, 2]},
+            'sections': [{'name': 'A', 'arr': {'melody_prog': 0, 'piano': True}, 'melody': 'A'}],
+            'melody': {'A': [[0, 0.0, 1.35, 76], [1, 0.0, 1.35, 78]]}}
+    assert '只响 0.几秒' in _kinds(song), \
+        '钢琴(GM 0) + 1.35 拍的长音必须报"只响 0.几秒"（改前的 20_piano_rain 就是这样）'
+    song['programs']['Melody'] = [4, 0]
+    song['sections'][0]['arr']['melody_prog'] = 4
+    assert '只响 0.几秒' not in _kinds(song), 'GM 4 实测"不掉 12dB"，不该报'
+    song['programs']['Melody'] = [73, 0]
+    song['sections'][0]['arr']['melody_prog'] = 73
+    assert '只响 0.几秒' not in _kinds(song), \
+        'GM 73 没实测过 → 必须"判不了"，不许拿族兜底值当判据（那会把管乐误报成衰减型）'
+    song['programs']['Melody'] = [48, 0]
+    song['sections'][0]['arr']['melody_prog'] = 48
+    assert '慢起音' in _kinds(song), '弦乐 48 起音实测 427ms，必须报"慢半拍"'
+
+    n = hit = 0
+    for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
+        n += 1
+        if '只响 0.几秒' in _kinds(json.load(open(p, encoding='utf-8'))):
+            hit += 1
+    assert n >= 20, '曲目太少（%d），这条检查会空转' % n
+    assert hit <= 0.3 * n, \
+        '"只响 0.几秒"触发 %d/%d 首（>30%%）= 恒真噪声，判据要收紧（技能口径 5%%~30%%）' % (hit, n)
+    print('        钢琴+长音必报 · GM4 不报 · 未实测音色判不了 · 弦乐报慢起音'
+          ' · 全库触发 %d/%d' % (hit, n))
+
+
+@check
+def t_melody_register_fix():
+    """**`new_song` 生成后必须把旋律挪进与和弦合宜的音区**（用户 2026-09-22："new_song 修一下"）。
+
+    实测背景：`new_song.py --force` 直接生成的曲子 **8/10 段**违反 `harmony_check` 第 ① 项
+    —— A/A2/A3/A4/A5/Outro 的旋律最低 52–57 **落在和弦最高（渲染后 59）之下**（与左手撞在一起），
+    B/B2 的旋律最低 93 比和弦最高 62 **高 31 半音**（中间空掉）。而 `patterns.range_fix`
+    **管不到它**（那只修"超出乐器合理音域 `TR_RANGE`"的音，同一次实测"移八度 0 个"）——
+    于是每首新曲都得人工逐段修音区（`20_piano_rain` 原版是"修前 A+21/B+26/C+34 → 修后 9–22"磨出来的）。
+
+    这里验三件：① 偏低 / 偏高两种违反都能修进 `GAP_MIN..GAP_MAX`；
+    ② 除音高外**什么都不许动**（起音/时值）；③ 已经合规的**必须幂等**（不许瞎移）。
+    """
+    import harmony_check as HC
+    import new_song as NS
+    base = {'bpm': 94, 'chords': {'Am': [45, [57, 60, 64, 69]]},
+            'sections': [{'name': 'A', 'bars': 8, 'chords': ['Am'], 'melody': 'A'}]}
+    for pitch in (52, 93):
+        song = dict(base, melody={'A': [[0, 0.0, 1.0, pitch]]})
+        g0 = HC.register_gaps(song)[0][3]
+        assert not (HC.GAP_MIN <= g0 <= HC.GAP_MAX), '用例本身没违反，等于没测：gap %+d' % g0
+        NS.fix_melody_register(song, verbose=False)
+        g1 = HC.register_gaps(song)[0][3]
+        assert HC.GAP_MIN <= g1 <= HC.GAP_MAX, \
+            '旋律 %d：gap %+d 没修进 %d~%d（实得 %+d）' % (pitch, g0, HC.GAP_MIN, HC.GAP_MAX, g1)
+        n = song['melody']['A'][0]
+        assert (n[0], n[1], n[2]) == (0, 0.0, 1.0), '除音高外不许动：%r' % (n,)
+    song = dict(base, melody={'A': [[0, 0.0, 1.0, 66]]})
+    NS.fix_melody_register(song, verbose=False)
+    assert song['melody']['A'][0][3] == 66, '已经合规的段落不许动（幂等）'
+    # ⚠ **飘太高**那一侧（用户 2026-09-22："感觉这个音有点高了"）：`register_gaps` 只看最低音，
+    #   94 这种"开头冲到 A6"它判合规 —— 所以 `fix_melody_register` 必须**另修一次最高音**。
+    song = dict(base, melody={'A': [[0, 0.0, 1.0, 93], [2, 0.0, 1.0, 76]]})
+    tg0 = HC.register_top_gaps(song)[0][3]
+    assert tg0 > HC.GAP_MAX, '用例本身没飘太高，等于没测：%+d' % tg0
+    NS.fix_melody_register(song, verbose=False)
+    tg1 = HC.register_top_gaps(song)[0][3]
+    assert tg1 <= HC.GAP_MAX, '飘太高没被修：%+d → %+d（上限 %d）' % (tg0, tg1, HC.GAP_MAX)
+    print('        偏低/偏高都修进 %d~%d · 只动音高 · 合规幂等 · 飘太高也降八度'
+          % (HC.GAP_MIN, HC.GAP_MAX))
+
+
+@check
+def t_melody_prog_pool_order():
+    """**段级主奏音色的池序：引子拿保守音色，模板"特色"音色留给靠后的角色**（用户 2026-09-22）。
+
+    实测背景：池序原来是 `[模板音色, 0, 13, 8, 4, 24, 9]`，而角色按**首次出现顺序**取 ——
+    `intro` 最先出现 → **拿到模板音色**。`20_piano_rain` 重生成时模板给的是 **GM 80
+    （Lead 1 square 方波）**，于是引子成了"高音方波独奏"（首音 93 = A6 · 力度 91），
+    用户原话"**前面部分非常奇怪**"；而池序注释自己写的就是"从保守到特色"。
+
+    钉三件：① 池首必须是保守音色（钢琴 0）；② **模板音色仍留在池里**（不能因改序而白设
+    —— 它若不在池里，`programs.Melody` 会被段级值立刻覆盖）；③ 模板音色不占"引子/主歌"
+    两个位置（前两位）。模板音色本身就是 0 时，① 与 ③ 天然一致，跳过 ③。
+    """
+    import new_song as NS
+    for tpl in (80, 71, 48, 0):
+        pool = NS.melody_prog_pool(tpl)
+        assert pool[0] == 0, '池首必须是保守音色（0 钢琴），实得 %s：%r' % (pool[0], pool)
+        assert tpl in pool, \
+            '模板音色 %d 必须留在池里（否则 programs.Melody 被段级值覆盖 = 白设）：%r' % (tpl, pool)
+        if tpl != 0:
+            assert pool.index(tpl) >= 2, \
+                '模板音色 %d 不该占"引子/主歌"两位（前两位），实得第 %d 位：%r' % (
+                    tpl, pool.index(tpl), pool)
+    print('        池首=保守音色 · 模板音色在池内且不占前两位（试了 80/71/48/0）')
+
+
+@check
+def t_flow_and_sudden_contracts():
+    """**"流畅度"与"突然冒出来的声音"两个量法的判据自证**（用户 2026-09-22：
+    "重要是更流畅，不要有突然的突兀杂音" → "把这两个量法沉淀成正式工具/守卫"）。
+
+    钉四件，每条都对应一次真踩：
+      ① **断开很多**的旋律 → `melody_flow` 必须报出大空隙（需求侧）
+      ② **音长接到下一个音**的旋律 → 空隙必须接近 0（修好之后要看得出来）
+      ③ 音频里**真有孤立脉冲、且没有起音对应** → `sudden_sounds` 必须抓到
+      ④ **起音晚 80ms** 的脉冲（GM 音源 + 混响**实测延迟 42~78ms**）→ **不许**判成突兀声
+         （第一版对齐窗口给 ±40ms，`20_piano_rain` 报的 5 处"杂音"**全是误报**）
+    """
+    import numpy as np
+    import probe_sustain as PS
+    spb = 0.5                                   # 120BPM：1 拍 = 0.5 秒
+    f1 = PS.melody_flow([(i * 1.0, 0.2) for i in range(10)], spb)    # 响 0.2s / 隔 1s
+    assert f1 and f1['gap_gt'] > 0.8, '断开很多的旋律必须报大空隙：%r' % (f1,)
+    f2 = PS.melody_flow([(i * 1.0, 0.95) for i in range(10)], spb)   # 响 0.95s / 隔 1s
+    assert f2 and f2['gap_gt'] == 0.0 and f2['gap_med'] < 0.1, \
+        '连奏后（音长接到下一个音）空隙该接近 0：%r' % (f2,)
+    db = np.full(600, -50.0)                    # 3 秒包络，中间一个 30ms 尖峰
+    db[300:306] = -20.0
+    pl, orp = PS.sudden_sounds(db, onsets=[])
+    assert len(pl) == 1 and len(orp) == 1, '没有起音对应的孤立脉冲必须被抓到：%r' % (pl,)
+    pl2, orp2 = PS.sudden_sounds(db, onsets=[1.50])
+    assert len(pl2) == 1 and not orp2, '有起音对应的脉冲是正常音头，不该算突兀：%r' % (pl2,)
+    pl3, orp3 = PS.sudden_sounds(db, onsets=[1.42])
+    assert len(pl3) == 1 and not orp3, \
+        '起音晚 80ms（GM 实测延迟 42~78ms）不许判成突兀声：%r' % (pl3,)
+    print('        空隙大/连奏后都量得出 · 无起音的脉冲必抓 · 有起音与晚 80ms 都不误报')
+
+
+@check
+def t_ffmpeg_exe_is_local():
+    """**取 ffmpeg 路径不许走联网那一步**（2026-09-22 实测，一次卡掉半小时）。
+
+    现场：本机连不上外网时 `imageio_ffmpeg.get_ffmpeg_exe()` **会卡死**（`timeout 30` 都没返回），
+    而 `.venv\\...\\imageio_ffmpeg\\binaries\\ffmpeg-win-x86_64-v7.1.exe` **本身秒回**
+    （`-version` rc=0）、直接调它转码 rc=0 —— 于是所有 "wav→ogg"（含 `render_midi.encode_ogg`）
+    全卡住；现象像"ffmpeg 慢 / 内存不足"（同一轮还出现过 `Unable to allocate 128 MiB`），
+    **关杀软、加内存都不解决**。根因只是"取路径那一步在联网"。
+
+    钉两件：① `to_ogg._ffmpeg_exe()` 必须返回**本地 binaries 里的 exe**；
+    ② `to_ogg.py` 源码里裸调 `get_ffmpeg_exe()` **最多 1 次**（只允许 `_ffmpeg_exe` 里那个兜底）。
+    """
+    import to_ogg
+    exe = to_ogg._ffmpeg_exe()
+    assert os.path.isfile(exe), '返回的 ffmpeg 不存在：%s' % exe
+    assert '\\imageio_ffmpeg\\binaries\\' in exe.replace('/', '\\').lower(), \
+        '必须优先取本地 binaries 里的 exe（否则本机无网时会联网卡死）：%s' % exe
+    # ⚠ 用 **AST 数真实调用**，别数字符串：第一版用 `src.count(...)`，结果**文档/注释里
+    #   提到那个函数名也被算成"一次裸调"**（实测连续 FAIL 两次 —— 第二次是我在注释里
+    #   解释这件事时又写了一遍全名）。
+    # ⚠ **要查两个文件**：`metrics.py` 也曾直接调它 —— 实测 `t_read_audio_format_fallback`
+    #   因此卡 **>9 分钟**（全量自检最慢的一项，也是"并行 288× 退化"的真凶）。那里已改成
+    #   走 `to_ogg._ffmpeg_exe()`，所以允许次数是 **0**。
+    import ast
+    for fname, allow in (('to_ogg.py', 1), ('metrics.py', 0)):
+        tree = ast.parse(open(os.path.join(ROOT, 'scripts', fname), encoding='utf-8').read())
+        n = sum(1 for node in ast.walk(tree)
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == 'get_ffmpeg_exe')
+        assert n <= allow, (
+            '%s 里 `get_ffmpeg_exe()` 被真实调用 %d 次（只允许 %d 次：`to_ogg._ffmpeg_exe()` '
+            '本地优先、找不到才兜底）—— 多出来的那次在本机无网时会卡死（实测某项卡 >9 分钟）'
+            % (fname, n, allow))
+    print('        ffmpeg 取自本地 binaries（不走联网）· to_ogg 1 次兜底 / metrics 0 次调用')
+
+
+def _worker_run(name):
+    """子进程里跑**单项**（`ProcessPoolExecutor` 的入口）。
+
+    ⚠ 为什么逐项提交、而不是静态分片：实测 `--jobs 8` **比串行还慢**（>18 分钟没完），
+    因为静态分片下**总时长由最慢的那一片决定** —— `track_balance` 这类"渲多首"的检查
+    会把某一片拖死（按索引分片时慢项可能全挤在一片）。逐项提交 = 天然负载均衡。
+    """
+    import importlib
+    st = importlib.import_module('selftest')
+    fn = next((f for f in st.CHECKS if f.__name__[2:] == name), None)
+    if fn is None:
+        return name, 'ERR', '子进程里找不到该检查'
+    buf = io.StringIO()
+    try:
+        with redirect_stdout(buf):
+            fn()
+        return name, 'PASS', ''
+    except AssertionError as e:
+        return name, 'FAIL', str(e)
+    except Exception as e:
+        return name, 'ERR', '%s: %s' % (type(e).__name__, e)
+
+
+def _run_parallel(jobs):
+    """**多进程并行**跑自检（用户 2026-09-22："把自检/变异改成多进程并行，理论 5–10×"）。
+
+    ⚠⚠ **实测：在本机它会变慢，默认别开**（`--jobs` 缺省 1 = 串行）。
+    三组实测数据（`D:\\test\\_tmp\\music-critic\\speed\\`）：
+      · 静态分片 `--jobs 8`：**>18 分钟**没跑完 —— 总时长由**最慢那片**决定
+        （`track_balance` 这类"渲多首"的检查会把某一片拖死）；
+      · 逐项提交（本函数）**4 路**：**1236 秒**，而 **2 路**只要 **4.3 秒** ⇒ **288× 退化**；
+      · 单次渲染 6.0 秒（`BGM_NO_OGG=1` 时 3.9 秒），不是并发能摊薄的瓶颈。
+    原因：FluidSynth 是**单实例单线程**的合成器（官方邮件列表原话 "multi core support
+    not so great"），每个渲染进程都要**重新加载 31MB SoundFont**、再写 **39MB wav** ——
+    多路并发全在同一块盘和同一份 SoundFont 上打架。
+    ⇒ **要真加速请走"少渲染"**（`BGM_NO_OGG=1` 已落地 35%；日常别跑全量、只用
+    `--shard i/N` 或单项），而不是加进程。代码留在这里是为了别再重复踩这一遍。
+    """
+    from concurrent.futures import ProcessPoolExecutor
+    serial = [f for f in CHECKS if f.__name__[2:] in SERIAL_CHECKS]
+    par = [f for f in CHECKS if f.__name__[2:] not in SERIAL_CHECKS]
+    print('自检 %d 项（%d 并行 + %d 串行）%s'
+          % (len(CHECKS), len(par), len(serial), '(--fast，跳过渲染)' if FAST else ''))
+    for fn in serial:
+        _one(fn)
+    with ProcessPoolExecutor(max_workers=jobs) as ex:
+        for name, status, info in ex.map(_worker_run, [f.__name__[2:] for f in par]):
+            if status == 'PASS':
+                print('  PASS  %s' % name)
+            else:
+                FAILS.append((name, info))
+                print('  %s  %s → %s' % ('FAIL' if status == 'FAIL' else 'ERR',
+                                         name, str(info)[:160]))
+    print('\n结果: %d/%d 通过' % (len(CHECKS) - len(FAILS), len(CHECKS)))
+    if FAILS:
+        print('失败项:')
+        for n, m in FAILS:
+            print('  - %s: %s' % (n, m))
+    return 1 if FAILS else 0
+
+
+def _run_parallel_shard(jobs):
+    """（旧方案，保留作对照）**静态分片**并行：总时长由最慢那片决定 —— 实测 8 路 >18 分钟。
+
+    做法：`SERIAL_CHECKS` 里的项在**主进程串行**跑（它们写磁盘/换全局发现机制），
+    其余按 `CHECKS[i::jobs]` 分片、每片起一个**独立子进程**（各自 `TMP = mkdtemp(...)`，
+    天然互不踩临时目录）。子进程只打印各自的 PASS/FAIL 行，主进程汇总裁决。
+
+    ⚠ 每个子进程都会重复"import + 全库扫描"那点固定开销 —— 在 32 核上远小于渲染收益。
+    """
+    import concurrent.futures as cf
+    import re as _re
+    script = os.path.abspath(__file__)
+    serial = [fn for fn in CHECKS if fn.__name__[2:] in SERIAL_CHECKS]
+    par = [fn for fn in CHECKS if fn.__name__[2:] not in SERIAL_CHECKS]
+    print('自检 %d 项（%d 并行分片 + %d 串行）%s'
+          % (len(CHECKS), len(par), len(serial), '(--fast，跳过渲染)' if FAST else ''))
+
+    # ① 串行组（主进程）
+    for fn in serial:
+        _one(fn)
+
+    # ② 并行组（分片 → 子进程）
+    def _run_shard(i):
+        cmd = [sys.executable, script, '--shard', '%d/%d' % (i, jobs)]
+        if FAST:
+            cmd.append('--fast')
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8',
+                           errors='replace', cwd=HERE)
+        return i, (r.stdout or '') + (r.stderr or '')
+
+    out = [''] * jobs
+    with cf.ThreadPoolExecutor(max_workers=jobs) as ex:
+        for i, txt in ex.map(_run_shard, range(jobs)):
+            out[i] = txt
+    done = 0
+    for i, txt in enumerate(out):
+        shard = [fn for k, fn in enumerate(CHECKS)
+                 if fn.__name__[2:] not in SERIAL_CHECKS and k % jobs == i]
+        done += len(shard)
+        for line in txt.splitlines():
+            if _re.match(r'^  (PASS|FAIL|ERR)\b', line) or line.startswith('        '):
+                print(line)
+            elif _re.match(r'^  - ', line) or re.match(r'^  [A-Za-z_]\w* → ', line.strip()):
+                FAILS.append(('(分片%d)' % i, line.strip()[:160]))
+    print('\n结果: %d/%d 通过' % (len(CHECKS) - len(FAILS), len(CHECKS)))
+    if FAILS:
+        print('失败项:')
+        for n, m in FAILS:
+            print('  - %s: %s' % (n, m))
+    return 1 if FAILS else 0
+
+
+_TIMES = []
+
+
+def _one(fn):
+    """跑单项并记录（串行路径与 `main` 共用）。
+
+    `--time` 时把每项耗时记进 `_TIMES`，收尾打印 top 20 —— 优化前先有数据
+    （实测教训：我先后猜过"并行"和"渲染"，两次都错：自检里只有 **2 处**直接渲染，
+    10 分钟根本不在这）。
+    """
+    name = fn.__name__[2:]
+    _t0 = time.perf_counter()
+    try:
+        fn()
+        print('  PASS  %s' % name)
+    except AssertionError as e:
+        FAILS.append((name, str(e)))
+        print('  FAIL  %s → %s' % (name, e))
+    except Exception as e:
+        FAILS.append((name, '%s: %s' % (type(e).__name__, e)))
+        print('  ERR   %s → %s: %s' % (name, type(e).__name__, e))
+    finally:
+        _TIMES.append((time.perf_counter() - _t0, name))
+
+
+def _print_times(top=20):
+    if not _TIMES:
+        return
+    tot = sum(t for t, _ in _TIMES)
+    print('\n== 耗时 top %d（总计 %.1f 秒 / %.1f 分钟）==' % (top, tot, tot / 60.0))
+    for t, n in sorted(_TIMES, reverse=True)[:top]:
+        print('   %7.1fs  %s' % (t, n))
+
+
 def main():
+    if SHARD is not None:
+        i, n = SHARD
+        todo = [fn for k, fn in enumerate(CHECKS)
+                if fn.__name__[2:] not in SERIAL_CHECKS and k % n == i]
+        for fn in todo:
+            _one(fn)
+        _print_times()
+        print('\n结果: %d/%d 通过' % (len(todo) - len(FAILS), len(todo)))
+        if FAILS:
+            for n2, m in FAILS:
+                print('  - %s: %s' % (n2, m))
+        return 1 if FAILS else 0
+    if JOBS > 1:
+        return _run_parallel(JOBS)
     print('自检 %d 项 %s' % (len(CHECKS), '(--fast，跳过渲染)' if FAST else ''))
     for fn in CHECKS:
-        name = fn.__name__[2:]
-        try:
-            fn()
-            print('  PASS  %s' % name)
-        except AssertionError as e:
-            FAILS.append((name, str(e)))
-            print('  FAIL  %s → %s' % (name, e))
-        except Exception as e:
-            FAILS.append((name, '%s: %s' % (type(e).__name__, e)))
-            print('  ERR   %s → %s: %s' % (name, type(e).__name__, e))
+        _one(fn)
+    _print_times()
     print('\n结果: %d/%d 通过' % (len(CHECKS) - len(FAILS), len(CHECKS)))
     if FAILS:
         print('失败项:')

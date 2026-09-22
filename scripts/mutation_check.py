@@ -602,6 +602,165 @@ def main():
                         lambda: DescMut('音乐 触发词 四条铁律 和谐优先 改必须分段 '
                                         'song.json SHA256 8765 venv')))
 
+    # 36. **文档地图过期 / 丢失**（2026-09-21）
+    #     地图全是行号（`docs/DOC-MAP.md` 由 `scripts/doc_map.py` 生成）——
+    #     改了文档或改了分类却不重新生成，行号就全漂，而**看的人不会知道**。
+    #     ⚠ 注入点要挑**真的会改变输出**的：
+    #       ① `GROUPS` 少一个域 = "分类改了/新文档没归类却没重生成"（走内容不一致）；
+    #       ② `OUT` 指到不存在的路径 = "地图被删/改名"（必须报"不存在"，不许静默跳过）。
+    #     反例（实测）：拿 `MIN_SEC_TOK` 注入**打不进去** —— 它只作用于"非巨型且节数 >20"
+    #     的文档，而当前这类文档一个都没有（HISTORY / CASE-BGM35-FINDINGS 都是巨型，
+    #     走 `HUGE_MINS`）→ 注入后输出一字不变，守卫"通过"其实是**假通过**。
+    import doc_map as _dm
+    results.append(case('文档地图过期（分类改了没重生成）', 'doc_map_fresh',
+                        lambda: Mut(_dm, 'GROUPS', _dm.GROUPS[:-1])))
+    results.append(case('文档地图被删/改名', 'doc_map_fresh',
+                        lambda: Mut(_dm, 'OUT', os.path.join(ROOT, 'docs',
+                                                             'no_such_doc_map.md'))))
+    # 36c. **文档漏登记预算**（`LIMITS` 少一项 → 它写多少都不会报警）。
+    #      实景：`HISTORY.md`（全库最大 38.4k）长期不在 `LIMITS` 里，直到 2026-09-21 查疏漏。
+    results.append(case('文档漏登记预算（膨胀无人报警）', 'docs_budget_and_skill_intact',
+                        lambda: Mut(token_audit, 'LIMITS',
+                                    {k: v for k, v in token_audit.LIMITS.items()
+                                     if not k.startswith('HISTORY.md')})))
+
+    # 37. **宿主文档的仓库备份不同步**（改了宿主没同步 → 推送出去的是旧版）。
+    #     实景（2026-09-21 查疏漏）：`AGENTS.md` 备份落后 10 行（用户 2026-09-20 定的三条规矩
+    #     只在宿主里），而此前**没有任何守卫**会发现。
+    #     ⚠ 必须**改磁盘**（守卫读的是磁盘，改内存会假通过）→ 用 try/finally 保证还原，
+    #       否则中途崩掉就把仓库里的备份写坏了。
+    _host_note = os.path.join(os.path.expanduser('~'), '.dsh', 'docs', 'SHELL-NOTES.md')
+    if os.path.exists(_host_note):          # 换机器时宿主机没有这些文档 → 跳过该用例
+
+        class HostSyncMut:
+            def __enter__(self):
+                self.p = os.path.join(ROOT, 'docs', 'HOST-DOCS', 'SHELL-NOTES.md')
+                self.old = open(self.p, encoding='utf-8').read()
+                try:
+                    with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                        fh.write(self.old + '\n（变异：比宿主多一行 → 备份已不同步）\n')
+                except Exception:                             # noqa: BLE001
+                    self.__exit__()
+
+            def __exit__(self, *a):
+                with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                    fh.write(self.old)
+
+        results.append(case('宿主文档备份不同步（推送旧版）', 'host_docs_synced', HostSyncMut))
+
+    # 38. **工具从没被任何文档提到**（= 对使用者不存在）。
+    #     实景（2026-09-21 横向扫描）：`octave_audit` / `probe_variety` / `block_eq` /
+    #     `section_eq` / `pitfalls_archive` 五个工具能被调用、有实质案例，却不在任何文档里。
+    #     ⚠ 注入方式 = 在 `scripts/` 下**真的新建一个**没被引用的脚本（守卫读磁盘，
+    #       改内存会假通过）；`__exit__` 负责删掉。万一进程被杀留下残留：
+    #       文件名带 `zz_` 前缀，一眼能认出来。
+    class ToolUnlistedMut:
+        def __enter__(self):
+            self.p = os.path.join(os.path.dirname(os.path.abspath(st.__file__)),
+                                  'zz_mutation_tool_probe.py')
+            with open(self.p, 'w', encoding='utf-8') as fh:
+                fh.write('# 变异用：一个没被任何文档提到的工具\n')
+
+        def __exit__(self, *a):
+            if os.path.exists(self.p):
+                os.remove(self.p)
+    results.append(case('工具从没被文档提到（等于不存在）', 'docs_paths', ToolUnlistedMut))
+
+    # 39. **路由表的体量数字漂了**（它是选"读哪份、多贵"的依据，漂了就误导）。
+    #     实景（2026-09-21）：11 行里 7 行偏差 >30%，最大 `CHEATSHEET ≈0.7k` 实际 3.3k。
+    #     ⚠ 改的是**宿主 SKILL.md 磁盘文件**（守卫读磁盘），`__exit__` 负责还原。
+    _skill = os.path.join(os.path.expanduser('~'), '.dsh', 'skills', 'bgm-studio', 'SKILL.md')
+    if os.path.exists(_skill):
+
+        class RouteSizeMut:
+            def __enter__(self):
+                self.p = _skill
+                self.old = open(self.p, encoding='utf-8').read()
+                with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                    fh.write(self.old.replace('`CHEATSHEET.md`', '`CHEATSHEET.md`')
+                             .replace('| ≈3.3k |', '| ≈0.7k |', 1))
+
+            def __exit__(self, *a):
+                with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                    fh.write(self.old)
+
+        results.append(case('路由表体量数字漂了（选读哪份的依据失真）',
+                            'skill_routes_resolve', RouteSizeMut))
+
+    # 40. **尾音回绕失效**（退化成直接裁剪）：每循环一次丢掉一截尾音，而**不会报错**
+    #     —— 实测 A 段循环点之后 2.5 秒内的尾音只比正片低 0.3dB。
+    # 41. **小节边界口径被改坏**（拿"实测时长 ÷ 小节数"反推会把尾音算进去）→ 每次循环错位。
+    import loop_export as _le
+    results.append(case('尾音回绕失效（退化成直接裁剪）', 'loop_export_contracts',
+                        lambda: Mut(_le, 'crop_wrap', lambda x, i0, i1, n: x[i0:i1].copy())))
+    results.append(case('小节边界拿实测时长反推（把尾音算进去）', 'loop_export_contracts',
+                        lambda: Mut(_le, 'bar_seconds', lambda s: 223.376 / 72.0)))
+    # 45. **角色判据阈值被改坏**（谁都成 base / 谁都成 accent → 绑定清单失去区分度）。
+    #     实景：第一版用"input 跨度"判，结果四轨全被判成 layered。
+    results.append(case('角色阈值不自洽（base/accent 判据失效）', 'loop_export_contracts',
+                        lambda: Mut(_le, 'ACCENT_RATIO', 2.0)))
+
+    # 42. **单段 `--start` 被忽略**（永远从 0 开始）→ 你以为在问第 55 秒，实际问的是开头，
+    #     而且**输出里看不出**（只会看到段区间是 0~dur）。实景：2026-09-21 修的真 bug。
+    import ask_audio_critic as _ac2
+    results.append(case('单段 --start 被忽略（问错地方却看不出来）', 'audio_critic_contracts',
+                        lambda: Mut(_ac2, 'single_bounds',
+                                    lambda total, start, dur, max_sec=None:
+                                        [(0.0, min(float(dur), _ac2.MAX_SEC))])))
+
+    # 43. **CLI 参数声明了却没被读取**（静默失效）。实景：`ask_audio_critic --start` ·
+    #     `layer_exp --only` —— 同一天抓到两个。
+    #     ⚠ 注入方式 = 在 `scripts/` 下**真的新建**一个带死参数的脚本（守卫读磁盘，改内存会假通过）；
+    #       `__exit__` 负责删掉，名字带 `zz_` 前缀便于识别残留。
+    class DeadArgMut:
+        def __enter__(self):
+            self.p = os.path.join(os.path.dirname(os.path.abspath(st.__file__)),
+                                  'zz_dead_arg_probe.py')
+            with open(self.p, 'w', encoding='utf-8') as fh:
+                fh.write("import argparse\n"
+                         "p = argparse.ArgumentParser()\n"
+                         "p.add_argument('--never-read')\n"
+                         "a = p.parse_args()\n"
+                         "print('ok')\n")
+
+        def __exit__(self, *a):
+            if os.path.exists(self.p):
+                os.remove(self.p)
+    results.append(case('CLI 参数声明了却没读（静默失效）', 'dead_cli_args', DeadArgMut))
+
+    # 44. **notes.md 的「速度」行与 song.json 不一致**（交付文档写错，照它复现会得到另一个速度）。
+    #     实景：`20_piano_rain/notes.md` 写 69 BPM / 250.4 s，而实际是 78 BPM / 223.4 s。
+    #     ⚠ 改**磁盘**（守卫读磁盘）→ `__exit__` 还原。
+    _nt = os.path.join(ROOT, 'songs', '20_piano_rain', 'notes.md')
+    if os.path.exists(_nt):
+
+        class NotesSpeedMut:
+            def __enter__(self):
+                self.p = _nt
+                self.old = open(self.p, encoding='utf-8').read()
+                # ⚠ **不许硬编码旧速度**：原来写死 `'**78 BPM**'`，而 `20_piano_rain`
+                #   2026-09-22 重生成成 **94 BPM** 后那个串根本不存在 → `replace` 什么都没改
+                #   → 用例报"漏了"，看着像防线坏了，其实是**注入没打进去**
+                #   （本文件第 608-613 行警告过的同一类"假通过"）。改成从夹具现读。
+                import re as _re
+                m = _re.search(r'^\|\s*速度\s*\|(.+)$', self.old, _re.M)
+                assert m, '夹具 notes.md 里没有 `| 速度 |` 行，注入无从下手'
+                b = _re.search(r'(\d+(?:\.\d+)?)\s*BPM', m.group(1))
+                assert b, '`| 速度 |` 行里没有 BPM：%r' % m.group(1)[:60]
+                line_new = m.group(0).replace(
+                    b.group(0), '%g BPM' % (float(b.group(1)) + 12), 1)
+                new = self.old.replace(m.group(0), line_new, 1)
+                assert new != self.old, '注入没生效（文本一字未变）'
+                with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                    fh.write(new)
+
+            def __exit__(self, *a):
+                with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                    fh.write(self.old)
+
+        results.append(case('notes 速度与 song.json 不一致（交付文档写错）',
+                            'notes_speed_matches', NotesSpeedMut))
+
     # 36. song.json 又被写成"一个数字一行"
     results.append(case('song.json 被写胖', 'song_json_canonical',
                         lambda: Mut(json_io, 'dumps',
@@ -1174,9 +1333,66 @@ def main():
     results.append(case('"报了问题"的判据被改回字符串包含', 'audio_critic_contracts',
                         lambda: Mut(_ac, 'verdict',
                                     lambda a: '没问题' if '没问题' in (a or '') else '其它')))
+    # ③ **时间口径**（2026-09-21 校正）：文档原假设是"模型报段内相对秒、要加回段起点"，
+    #    实测**推翻**（40 段里 96/96 条落在整曲域）。若哪天退回旧假设 → 整曲秒会被**再加一次**
+    #    段起点（70 秒 → 125.8 秒），清单上的位置全错，而工具不会报错 —— 必须抓。
+    results.append(case('时间口径退回"段内相对秒"旧假设（位置全错）',
+                        'audio_critic_contracts',
+                        lambda: Mut(_ac, 'to_abs',
+                                    lambda v, start, dur, tol=0.6: (start + v, 'rel'))))
+    # ④ **多数表决的键丢掉时间维** → 不同时刻的同类指控被并成一条，
+    #    "只留稳定复现的线索"就退化成了"只留稳定的类别"（位置信息全丢）。
+    results.append(case('多数表决的键丢掉时间维（不同时刻并成一条）',
+                        'audio_critic_contracts',
+                        lambda: Mut(_ac, '_claim_key', lambda cl, band: (cl['cat'], None))))
 
     # 主题模板包（用户口径：一次生成依据"很多同主题模板"，来源只许 refs/midi2 或权威网络数据）
     import theme_pack as _tp
+    # 57. **聚合节奏型退回"取第一名成员"**（2026-09-22 修的真 bug）：
+    #     `aggregate_refs` 原来对 `rhythm_low/high` 写 `profs[0]` → 5 个主题字符级完全相同
+    #     （它们的 `members[0]` 都是 `bgm01c`），而候选池里有 44 种不同取值。
+    results.append(case('聚合节奏型退回"取第一名成员"', 'theme_pack_agg_pattern',
+                        lambda: Mut(_tp, '_agg_pattern',
+                                    lambda pats: (pats[0] if pats else ''))))
+
+    # 58. **节奏型不随拍号**（写死 4 拍）：3/4 拍的曲子会被按 4 拍切小节（本库 2 首圆舞曲）。
+    import metrics as _mtr
+    _orig_rhythm = _mtr.rhythm
+
+    def _fixed4(m, sr, bpm, loud_bars=16, level=4, beats_per_bar=4):
+        return _orig_rhythm(m, sr, bpm, loud_bars, level, 4)   # 永远按 4 拍
+
+    results.append(case('节奏型不随拍号（写死 4 拍）', 'metrics_meter_aware',
+                        lambda: Mut(_mtr, 'rhythm', _fixed4)))
+
+    # 59. **成绩单的拍号改回"从 `_song_ctx` 取"**（2026-09-22 真崩过的原形）：
+    #     `_song_ctx()` 返回的第二项是 `(programs, mix, arr)` 三元组，不是 song.json 字典，
+    #     `.get('meter')` 直接 `AttributeError: 'tuple' object has no attribute 'get'`
+    #     → `make_song.py 20_piano_rain` 退出码 1，而当时 selftest 144/144 全绿。
+    import scorecard as _sc
+
+    def _buggy_meter(path):
+        _cfg, data = _sc._song_ctx(path)
+        return (data or {}).get('meter') or (4, 4)      # 原 bug 的形态
+
+    results.append(case('成绩单拍号改回从 _song_ctx 取（原崩法）',
+                        'scorecard_meter_source',
+                        lambda: Mut(_sc, '_meter_of', _buggy_meter)))
+    # ① 取值点写了却不生效：永远 4/4 ⇒ 3/4 的圆舞曲又回到错位网格 —— 必须抓
+    results.append(case('成绩单拍号写死 4/4（丢拍号）', 'scorecard_meter_source',
+                        lambda: Mut(_sc, '_meter_of', lambda path: (4, 4))))
+    # ② 兜底被拆（无 meter 的老歌直接给 None）⇒ `metrics.rhythm` 会拿到非法拍号
+    results.append(case('拍号兜底被拆（无 meter 给 None）', 'scorecard_meter_source',
+                        lambda: Mut(_sc, '_meter_of', lambda path: None)))
+    # ③ `_song_ctx` 的形状契约失效（变成字典）⇒ 以后又有人拿它当 song.json 用
+    results.append(case('_song_ctx 被改成返回字典（形状失守）',
+                        'scorecard_meter_source',
+                        lambda: Mut(_sc, '_song_ctx',
+                                    lambda path: (None, {'meter': [4, 4]}))))
+    # ④ **整条命令跑不完**：只测函数不测命令，就是这个 bug 逃过 144 项自检的原因
+    results.append(case('成绩单跑不完（main 抛异常）', 'scorecard_main_runs',
+                        lambda: Mut(_sc, '_meter_of', _buggy_meter)))
+
     # ① 白名单被放宽成"随便什么站点都算权威" → 来源校验必须失效被抓
     results.append(case('主题包来源白名单被改坏（人人都是权威）',
                         'theme_pack_valid',
@@ -1718,6 +1934,93 @@ def main():
     import imitate_ref as _ir
     results.append(case('stale 退回只看文件在不在', 'dur_floor_wired',
                         lambda: Mut(_ir, 'needs_redo', lambda *a, **k: False)))
+
+    # ㉖ **"只响 0.几秒"判据坏掉** —— 用户 2026-09-22："让以后不出现这种情况，出现了也能
+    #    很快检查到修好"。把钢琴的实测"掉 12dB 时间"改成"不掉"，判据对钢琴就永远不响，
+    #    等于这道防线没了（`sustain_criteria` 的断言①必须抓到）。
+    import harmony_check as _hcm
+    results.append(case('"只响 0.几秒"判据坏掉（钢琴当持续型）', 'sustain_criteria',
+                        lambda: Mut(_hcm, 'SUSTAIN_DB12',
+                                    {**_hcm.SUSTAIN_DB12, 0: float('inf')})))
+    # ㉖b **未实测音色又被当成"判得了"**（族兜底值复活）→ 管乐 73 会被误报成"只响 0.几秒"。
+    #     这正是本轮第一版的错法（全库从 2 首误报成 8 首）；断言③专钉这个错法。
+    _hcmdb = _hcm.db12
+    results.append(case('未实测音色又用族估值（管乐误报）', 'sustain_criteria',
+                        lambda: Mut(_hcm, 'db12',
+                                    lambda prog, _o=_hcmdb: 0.30 if prog == 73 else _o(prog))))
+
+    # ㉗ **`new_song` 的音区修正被摘掉**（改成 no-op）→ 新生成的曲子又会整片"旋律撞伴奏"。
+    #    用户 2026-09-22 的原话就是"new_song 修一下"（实测那次 8/10 段违反）。
+    import new_song as _ns
+    results.append(case('new_song 音区修正被摘掉', 'melody_register_fix',
+                        lambda: Mut(_ns, 'fix_melody_register', lambda *a, **k: [])))
+    # ㉘ **主奏音色池序退回"模板音色排最前"** → 引子（独奏位）又会拿到模板特色音色
+    #     （实测那次是 GM 80 方波，用户"前面部分非常奇怪"）。
+    results.append(case('主奏音色池序退回"模板音色排最前"', 'melody_prog_pool_order',
+                        lambda: Mut(_ns, 'melody_prog_pool',
+                                    lambda t: tuple(dict.fromkeys(
+                                        [p for p in (t, 0, 13, 8, 4, 24, 9)
+                                         if p is not None])))))
+
+    # ㉙ **"流畅度"与"突兀声"两个量法坏不坏得起来**（用户 2026-09-22 要求沉淀成守卫）。
+    #     ① 突兀声的对齐窗口改窄到 0 → 正常音头（起音延迟 42~78ms）全被判成"没有起音的杂音"
+    #        —— 实测那次 5/5 全是误报；② 流畅度的断开门放到 999 拍 → 断得再多也不报。
+    import probe_sustain as _ps
+    _orig_sud, _orig_flow = _ps.sudden_sounds, _ps.melody_flow
+    results.append(case('突兀声对齐窗口改窄（起音延迟误报）', 'flow_and_sudden_contracts',
+                        lambda: Mut(_ps, 'sudden_sounds',
+                                    lambda db, onsets, **k: _orig_sud(
+                                        db, onsets, **dict(k, align=0.0)))))
+    results.append(case('流畅度断开门放宽（断得再多也不报）', 'flow_and_sudden_contracts',
+                        lambda: Mut(_ps, 'melody_flow',
+                                    lambda notes, spb, **k: _orig_flow(
+                                        notes, spb, gap_beat=999.0))))
+
+    # ㉚ **ffmpeg 路径退回联网那一步** → 本机无网时所有 wav→ogg 卡死（实测一次卡半小时）。
+    #     ⚠ 注入**不能**真的去调 `imageio_ffmpeg.get_ffmpeg_exe()`（那会把变异测试本身卡住），
+    #     所以注入成"返回一个不在 binaries 下的路径"，由断言①抓到。
+    import to_ogg as _to
+    results.append(case('ffmpeg 路径不再指向本地 binaries', 'ffmpeg_exe_is_local',
+                        lambda: Mut(_to, '_ffmpeg_exe',
+                                    lambda: 'C:\\Windows\\notepad.exe')))
+
+    # ㉛ **"飘太高"那一侧不再被修**（把 register_top_gaps 变空）→ 开头冲到 A6 又没人管
+    #     （用户 2026-09-22："感觉这个音有点高了"，实测比伴奏高 34 半音而判据判合规）。
+    import harmony_check as _hc2
+    results.append(case('飘太高不再降八度（最高音侧失守）', 'melody_register_fix',
+                        lambda: Mut(_hc2, 'register_top_gaps', lambda song: [])))
+
+    # ㉜ **落点判据坏掉**（TVD 恒 0）→ "落点挤在少数格子里"再也不报。
+    #     该守卫自带判据自证（把 12 个音全塞进同一个格必须破门）→ 注入后自证会失败 ⇒ 被抓到。
+    import melody_gen as _mg2
+    results.append(case('落点判据坏掉（TVD 恒 0）', 'melody_onset_spread',
+                        lambda: Mut(_mg2, 'onset_tvd', lambda *a, **k: 0.0)))
+
+    # ㉝ **`metrics` 又改回直连取 ffmpeg 路径** → 本机无外网时那一行会卡死，
+    #     实测自检最慢项卡 **>9 分钟**（全量自检从 2 分钟掉回 >20 分钟），
+    #     而且并行时**每个 worker 各卡一次**（288× 退化的真凶）。
+    #     ⚠ 这里**必须改磁盘源码**：守卫 `t_ffmpeg_exe_is_local` 是 **AST 扫源码**的，
+    #     改内存（`Mut`）它看不见。`__exit__` 负责还原；`case()` 的 `with` 保证会调到。
+    _mp = os.path.join(ROOT, 'scripts', 'metrics.py')
+
+    class MetricsNetMut:
+        def __enter__(self):
+            self.p = _mp
+            self.old = open(self.p, encoding='utf-8').read()
+            new = self.old.replace(
+                "        import to_ogg\n        exe = to_ogg._ffmpeg_exe()",
+                "        import imageio_ffmpeg\n"
+                "        exe = imageio_ffmpeg.get_ffmpeg_exe()")
+            assert new != self.old, '注入锚点不在了（`metrics._ffmpeg_exe` 的实现改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.old)
+
+    results.append(case('metrics 又改回直连取 ffmpeg（会卡死）', 'ffmpeg_exe_is_local',
+                        MetricsNetMut))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):

@@ -185,13 +185,20 @@ def main():
     print(band_line('成品', o, d))
     o2, d2 = SC.metrics(lay[:n].mean(axis=1), sr2)
     print(band_line('候选层(%d)' % a.to, o2, d2))
-    py = base[:n] + lay[:n]
-    pk = float(np.abs(py).max())
-    if pk > 0.985:
-        py *= 0.985 / pk
-    o3, d3 = SC.metrics(py.mean(axis=1), sr)
-    print(band_line('叠加后', o3, d3))
-    print('%-22s %s' % ('差（叠加−成品）', ' '.join('%+4.0f' % v for v in (o3 - o))))
+    # ⚠ 2026-09-21 修的静默 bug：`--only`（help：'只测这一层，不叠加'）**声明了却从没被读** ——
+    #   于是"叠加后 / 差"这两行**永远会打**，docstring 里写的那个用法（L15）等于没有。
+    #   这类"参数收下了但没用"的错不报错，只让你拿到**比你要的更多**的输出
+    #   （同族：`ask_audio_critic.py --start` 那次是拿到的**更少/错位**）。
+    if not a.only:
+        py = base[:n] + lay[:n]
+        pk = float(np.abs(py).max())
+        if pk > 0.985:
+            py *= 0.985 / pk
+        o3, d3 = SC.metrics(py.mean(axis=1), sr)
+        print(band_line('叠加后', o3, d3))
+        print('%-22s %s' % ('差（叠加−成品）', ' '.join('%+4.0f' % v for v in (o3 - o))))
+    else:
+        print('（--only：只报这一层本身，跳过"叠加后 / 差"）')
     return 0
 
 

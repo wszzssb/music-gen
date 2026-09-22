@@ -197,8 +197,43 @@ def suggest(mine, ref, cfg=None, data=None):
     if abs(dr) > 1.2:
         s.append('响度差 %+.1fdB → --rms %.1f' % (dr, ref['rms_db']))
     if mine['rhythm_low'] != ref['rhythm_low']:
-        s.append('低频节奏型不一致（见下表）→ 调底鼓/贝斯力度与时值')
+        # ⚠ **2026-09-22 改口径**（原来是 `s.append('低频节奏型不一致（见下表）→ 调底鼓/贝斯力度与时值')`）：
+        #   实测全库 **26 首有参考画像的曲目，没有一首与参考完全相同 → 触发率 100% = 恒真噪声**
+        #   （同 `PITFALLS` 225 那一族："阈值型判据在本库基本失效"）。
+        #   ⚠ 更麻烦的是**方向是反的**：引擎**有意**把低频重心放在反拍
+        #   （见 `song_engine` 里"正拍留给鼓 / 例曲律动 `◇★◇★◇★◇★`"那段），
+        #   而参考画像（真实录音）正拍有 ★★ —— 照旧建议去"调底鼓/贝斯力度"就是把效果改掉。
+        #   → 只报**可跨曲比较的离群量**：差几格 + 正拍/反拍各有几个强格。
+        _lo, _lr = mine['rhythm_low'], ref['rhythm_low']
+        _nn = min(len(_lo), len(_lr))            # ⚠ 3/4 拍是 12 格、4/4 是 16 格，按短的对齐
+        _nd = sum(1 for a, b in zip(_lo[:_nn], _lr[:_nn]) if a != b)
+        _on = sum(1 for i in (0, 4, 8, 12) if i < len(_lo) and _lo[i] == '★')
+        _or = sum(1 for i in (0, 4, 8, 12) if i < len(_lr) and _lr[i] == '★')
+        _fn = sum(1 for i in (2, 6, 10, 14) if i < len(_lo) and _lo[i] == '★')
+        _fr = sum(1 for i in (2, 6, 10, 14) if i < len(_lr) and _lr[i] == '★')
+        s.append('低频节奏型与参考差 **%d/%d** 格 —— ⚠ 全库 26 首**无一相同**，'
+                 '这条本身不构成"有问题"' % (_nd, _nn))
+        s.append('  律动重心（强格数）：正拍 我 %d / 参考 %d · 反拍 我 %d / 参考 %d'
+                 % (_on, _or, _fn, _fr))
     return s
+
+
+def _meter_of(path):
+    """读成品旁边 song.json 的 meter → (分子, 分母)；读不到/不合法给 (4, 4)
+
+    ⚠ 别用 `_song_ctx` 拿 meter（2026-09-22 踩）：它返回的 `data` 是
+    `(programs, mix, arr)` 三元组，不是 song.json 字典 —— `.get('meter')`
+    会以 `AttributeError: 'tuple' object has no attribute 'get'` 崩掉整张成绩单。
+    """
+    folder = os.path.dirname(os.path.abspath(path))
+    try:
+        with open(os.path.join(folder, 'song.json'), encoding='utf-8') as f:
+            m = json.load(f).get('meter')
+        if isinstance(m, (list, tuple)) and len(m) == 2:
+            return (int(m[0]), int(m[1]))
+    except Exception:
+        pass
+    return (4, 4)
 
 
 def _song_ctx(path):
@@ -246,7 +281,12 @@ def main():
     # 我的文件测速：知道真实速度（MIDI tempo / --bpm）就直接用 —— 连奏编配靠音频测速
     # 会误判（gorgeous 编配的 106BPM 实测被读成 154.3），速度判错则节奏型/调式/结构
     # 全在错位的小节网格上算。不知道速度时才自动测速，并按参考速度做倍频吸附。
-    mine = metrics.profile(mine_path, bpm_arg) if bpm_arg else metrics.profile(mine_path)
+    # ⚠ 拍号要从 song.json 传下去（2026-09-22 补）：`metrics.profile` 的 `meter` 参数
+    #   原来是"收下但不生效"（`bar`/`rhythm` 都写死 4 拍），于是 3/4 拍的曲子
+    #   （本库 2 首圆舞曲）在小节网格错位的前提下算 structure/quiet_chroma/rhythm。
+    _meter0 = _meter_of(mine_path)
+    mine = (metrics.profile(mine_path, bpm_arg, None, _meter0) if bpm_arg
+            else metrics.profile(mine_path, None, None, _meter0))
     mine['name'] = os.path.basename(mine_path)
     if bpm_arg is None:
         for k in (2, 3, 4):
@@ -254,7 +294,7 @@ def main():
                 if abs(mine['bpm'] - cand) < max(3.0, cand * 0.04):
                     print('(测速 %.1f 吸附到 %.1f，与参考一致)'
                           % (mine['bpm'], ref['bpm']))
-                    mine = metrics.profile(mine_path, ref['bpm'])
+                    mine = metrics.profile(mine_path, ref['bpm'], None, _meter0)
                     mine['name'] = os.path.basename(mine_path)
                     break
             else:

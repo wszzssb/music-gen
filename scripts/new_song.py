@@ -737,11 +737,8 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     #   ② 只用**起音 ≤20ms** 的音色：颤音琴(11) 42ms 实测"慢半拍"被用户点名淘汰
     #      （`t_lead_timbre_attack` 在守）。
     # 候选池按"与钢琴的距离"排：0 钢琴 → 13 木琴 → 8 钢片琴 → 4 电钢 → 24 尼龙吉他 → 9 钟琴。
-    # ⚠ **模板主奏音色排最前**：否则 `programs.Melody` 会被这里的段级值立刻覆盖、
-    #   等于白设 —— 实测第一版 MIDI `pcs=[71,0,13,8,13,4]`，71（单簧管）只活了一个音。
     _mel_tpl = (theme_programs(pack).get('Melody') or (None,))[0]
-    _MEL_PROGS = tuple(dict.fromkeys(
-        [p for p in (_mel_tpl, 0, 13, 8, 4, 24, 9) if p is not None]))
+    _MEL_PROGS = melody_prog_pool(_mel_tpl)
     _role_at = {}
     for _s in secs:
         _r = song_engine.role_of_section(_s['name'])
@@ -930,6 +927,212 @@ def run_melody_gen(song_json, pack, theme, seed, ncand, step_bias=None):
     return True
 
 
+def fix_melody_register(data, gap_min=None, gap_max=None, verbose=True):
+    """**逐段把旋律挪到与和弦合宜的音区**（生成后修正）—— 量法与 `harmony_check` 同一份。
+
+    为什么必须在**生成时**修：实测 `new_song.py ... --force` 直接生成的曲子，8 个段落全违反
+    `harmony_check` 第 ① 项 —— A/A2/A3/A4/A5/Outro 的**旋律最低 52–57 落在和弦最高
+    (渲染后 59) 之下**（与左手撞在一起），B/B2 的**旋律最低 93 比和弦最高 62 高 31 半音**
+    （中间空掉）。而 `patterns.range_fix` **管不到它** —— 那只修"超出乐器合理音域
+    `TR_RANGE`"的音（同一次实测里"移八度 0 个"）→ 于是每首新生成的曲子都要人工逐段修音区
+    （`20_piano_rain` 原版就是"修前 A+21 / B+26 / C+34 → 修后 9–22"手工磨出来的）。
+
+    修法：**整段移八度**（不改音级 / 和声 / 时值 / 力度 / 音符数 —— 与 `range_fix` 同手法），
+    在 `{0, ±12, ±24}` 里挑让**最多段**落进 `[gap_min, gap_max]` 且位移最小的那个。
+    返回 `[(旋律键, [(段名, 修前 gap, 修后 gap)], 位移)]`。
+    """
+    import harmony_check as HC
+    lo_g = HC.GAP_MIN if gap_min is None else gap_min
+    hi_g = HC.GAP_MAX if gap_max is None else gap_max
+    # ---- ⓪ 先把**飘太高**的音降八度（2026-09-22 补：用户"感觉这个音有点高了"）----
+    #   实测那次 Intro 开头是 93(A6)/88(E6)/90(F#6)，比该段和弦最高音（59=B3）高 **34 半音**
+    #   （近 3 个八度），随后又掉到 76(E5)（17 半音大跳）——而 `harmony_check` 的
+    #   "音区间距"只看**最低音**（74−59=15 → 判合规）⇒ 这一侧是盲区，靠耳朵才发现。
+    #   手法与手工那次一致：只把**超过上限**（和弦最高 + GAP_MAX）的音降八度，
+    #   不动音级 / 时值 / 力度 / 起音。
+    # ⚠ 必须在 `bykey` 之前：它改了音高 ⇒ gap 得按**改后**的算。第一版写在 `bykey` 之后，
+    #   后面那步又按"降八度之前的旧 gap"移了一次 → 过头（自检 `melody_register_fix`
+    #   的 93 那组用例当场报"gap 实得 −12"）。
+    n_low = 0
+    for (nm, _hi, chi, tg) in HC.register_top_gaps(data):
+        if tg <= hi_g:
+            continue
+        limit = chi + hi_g
+        key = next((s.get('melody') for s in data.get('sections', []) if s['name'] == nm), None)
+        if key is None:
+            continue
+        for note in data['melody'].get(key) or []:
+            while int(note[3]) > limit:
+                note[3] = int(note[3]) - 12
+                n_low += 1
+    if verbose and n_low:
+        print('  音区修正：%d 个音**飘太高**（超和弦最高 +%d 半音）→ 降八度' % (n_low, hi_g))
+    bykey = {}
+    for (nm, _lo, _chi, gap) in HC.register_gaps(data):
+        sec = next(s for s in data.get('sections', []) if s['name'] == nm)
+        bykey.setdefault(sec.get('melody'), []).append((nm, gap))
+    fixed = []
+    # ---- ① 先压**音域跨度**（治本）：跨 3~4 个八度的旋律，任何"整段移八度"都无解 ——
+    #   实测 Intro 是 **52–93 = 41 半音**：移 +12 越乐器音域（>103）、移 0 间距仍为负、
+    #   移 −12 又低于下限 → 三个约束互相打架，一个都选不出来。而 `SKILL.md` §13 早把
+    #   "音域跨 4 个八度"列为听感病根。这里以**中位音高**为中心把越界的音折回（±12 整数倍）。
+    SPAN_MAX = 24
+    folded = []
+    for key in list(bykey):
+        notes = data.get('melody', {}).get(key) or []
+        ps = [int(n[3]) for n in notes]
+        if not ps or max(ps) - min(ps) <= SPAN_MAX:
+            continue
+        mid = int(round((max(ps) + min(ps)) / 2.0))
+        lo_t, hi_t = mid - SPAN_MAX // 2, mid + SPAN_MAX // 2
+        nf = 0
+        for note in notes:
+            m = int(note[3])
+            while m > hi_t:
+                m -= 12
+            while m < lo_t:
+                m += 12
+            if m != int(note[3]):
+                note[3] = m
+                nf += 1
+        folded.append((key, nf))
+    if verbose:
+        for (key, nf) in folded:
+            ps = [int(n[3]) for n in data['melody'][key]]
+            print('  音域压缩：旋律 %s 折回 %d 个音 → 跨度 %d 半音（上限 %d）'
+                  % (key, nf, max(ps) - min(ps), SPAN_MAX))
+    for key, items in bykey.items():
+        if key is None or not data.get('melody', {}).get(key):
+            continue
+        if all(lo_g <= g <= hi_g for (_n, g) in items):
+            continue
+        # ⚠ 移八度**必须同时不越出该轨的合理音域**（`song_engine.TR_RANGE`）——
+        #   第一版只看"与和弦的间距"，把 Outro 移了 +24 后旋律最高冲到 **105**，
+        #   当场被 `track_ranges_musical` 抓成 FAIL（Melody 合理上限 103）。
+        #   两者冲突时**音域优先**（硬守卫），间距退而求其次
+        #   （`harmony_check` 只在 gap > 22 或 gap < 0 时报，落在 0~22 之间的都不算违反）。
+        import song_engine as SE
+        rg = SE.TR_RANGE.get('Melody')
+        ps = [int(n[3]) for n in data['melody'][key]]
+        best, best_cost = 0, None
+        for sh in (0, 12, -12, 24, -24):
+            if rg and (min(ps) + sh < rg[0] or max(ps) + sh > rg[1]):
+                continue
+            n_out = sum(1 for (_n, g) in items if not (lo_g <= g + sh <= hi_g))
+            cost = (n_out, abs(sh))
+            if best_cost is None or cost < best_cost:
+                best, best_cost = sh, cost
+        if best == 0:
+            continue
+        for note in data['melody'][key]:
+            note[3] = int(note[3]) + best
+        fixed.append((key, [(n, g, g + best) for (n, g) in items], best))
+    if verbose:
+        for (key, items, sh) in fixed:
+            print('  音区修正：旋律 %s 移 %+d 半音 —— %s'
+                  % (key, sh, ' · '.join('%s %+d→%+d' % (n, a, b) for (n, a, b) in items)))
+        if not fixed:
+            print('  音区修正：各段旋律↔和弦间距都已落在 %d~%d 半音内' % (lo_g, hi_g))
+    # ---- ⓪b 移完八度**再夹一次"飘太高"**（2026-09-22）----
+    #   ⚠ 顺序坑：⓪ 在移八度**之前**做，而移八度（+12/+24）会把最高音又推上去 ——
+    #   实测重生成后 A/A2/A3/A4/A5 五段"旋律最高 83 比和弦最高高 **24** 半音"（上限 22，
+    #   只超 2 半音），就是 ⓪ 降完又被 +24 抬回来的结果。⇒ 移完必须再夹一次。
+    n_low2 = 0
+    for (nm, _hi, chi, tg) in HC.register_top_gaps(data):
+        if tg <= hi_g:
+            continue
+        limit = chi + hi_g
+        key = next((s.get('melody') for s in data.get('sections', []) if s['name'] == nm), None)
+        if key is None:
+            continue
+        for note in data['melody'].get(key) or []:
+            while int(note[3]) > limit:
+                note[3] = int(note[3]) - 12
+                n_low2 += 1
+    if verbose and n_low2:
+        print('  音区修正：移八度后又夹回 %d 个**飘太高**的音' % n_low2)
+    return fixed
+
+
+def melody_prog_pool(mel_tpl):
+    """段级主奏音色的**候选池**（顺序 = 角色首次出现顺序拿到的音色）。
+
+    池序 = **从保守到特色**：0 钢琴 → 13 木琴 → 8 钢片琴 → **模板音色** → 4 电钢 → 24 吉他 → 9 钟琴。
+
+    ⚠ **模板音色不能排池首**（2026-09-22 改，用户："让以后不要发生"）：
+    排最前时，**第一个出现的角色 —— 也就是 `intro`（独奏位）—— 会拿到模板音色**。
+    实测 `20_piano_rain` 重生成时模板给的是 **GM 80（Lead 1 square 方波）**，
+    于是引子成了"高音方波独奏"（首音 93 = A6 · 力度 91），用户原话
+    "**前面部分非常奇怪**"；而这段池序注释自己写的就是"从保守到特色"，
+    把最特色的音色放在最保守的位置上，是自相矛盾。
+
+    原注释的顾虑"模板音色排最前，否则 `programs.Melody` 会被段级值立刻覆盖 = 白设"
+    —— 那个顾虑只要求它**在池子里**，不要求排最前。插在**第 4 位**即可两面都满足：
+    引子/主歌/副歌各拿保守音色，桥段或第二个副歌拿到模板音色。
+    """
+    return tuple(dict.fromkeys([p for p in (0, 13, 8, mel_tpl, 4, 24, 9)
+                                if p is not None]))
+
+
+def legato_melody(data, fill=0.9):
+    """**把旋律的音长接到下一个音**（只改时值、起音一个不动）—— 用户 2026-09-22：
+    "**重要是更流畅**，不要有突然的突兀杂音"。
+
+    实测现场（`20_piano_rain` 重生成版）：旋律 190 音，**音间空隙中位 +0.332s**、
+    **>0.25 拍的空隙占 69%**、**>0.5 拍占 58%、最长 2.27s** —— 听感"一句一句断开"；
+    而真实模板（9 首 tender 旋律轨 4849 音）的空隙中位只有 **0.001s**、≥0.3s 仅 **3%**。
+    上一版是**手工**修的（`legato_melody.py`：55 个音 0.75→1.35 拍，空隙中位
+    0.601→0.157s，用户"流畅度还好"）—— 这里把它做成生成时的默认步骤，别再手工补。
+
+    手法：每条旋律线按 `(小节, 拍)` 排序，**非末音**取
+    `dur = max(dur, 到下一音的距离 × fill)`。`fill=0.9 < 1` ⇒ 不会与下一个音重叠；
+    **起音一个不动** ⇒ 节奏/碎音率不变，只把"断开"补上（用户的诉求就是补这个）。
+
+    ⚠ 与引擎的 `patterns.legato_trim`（去重叠 = **缩短**）方向相反，两者可共存：
+    这里先补空隙，引擎导出时再按需去重叠。
+
+    ⚠ 副作用（与上一版同）：旋律的**时值分布**会离画像更远，`melody_matches_profile`
+    的"时值交叠率"可能掉到门槛 40% 以下 —— 那时按既有做法写 `patterns.melody_exempt.dur`
+    （**必须写实质理由**，空理由自检会拦），因为听感（不断开）优先于该统计量。
+    返回被改长的音数。
+    """
+    B = float((data.get('meter') or [4, 4])[0] or 4)
+    n_fix = 0
+    for key, notes in (data.get('melody') or {}).items():
+        if not notes or len(notes) < 2:
+            continue
+        notes.sort(key=lambda z: (float(z[0]), float(z[1])))
+        for i in range(len(notes) - 1):
+            a, b = notes[i], notes[i + 1]
+            gap = (float(b[0]) * B + float(b[1])) - (float(a[0]) * B + float(a[1]))
+            if gap <= 0:
+                continue
+            want = gap * fill
+            # ⚠ 判据要带容差、写回要 round 到 3 位：否则 `round(want, 4)` 的值可能仍 < want
+            #   → 同一个音每次跑都被"改"一次（实测第二次跑又报"改了 1 个音"，不幂等，
+            #   重复调用会逐次漂移）。
+            if float(a[2]) < want - 5e-4:
+                a[2] = round(want, 3)
+                n_fix += 1
+    if n_fix:
+        # **自动写豁免**：连奏必然把旋律时值分布推离画像（tender 画像的时值中位只有 0.25 拍
+        # = 十六分连奏走句），`melody_matches_profile` 的"时值交叠率"会掉到门槛 40% 以下。
+        # 守卫自己给的出口就是这条（"确属画像如此就写清理由放行该维"），所以**由生成器写**，
+        # 别让每首新曲都留一个 FAIL 等人手工补。理由必须写实（空理由自检会拦）。
+        pat = data.setdefault('patterns', {})
+        pat.setdefault('melody_exempt', {})['dur'] = (
+            '【旋律连奏】按用户口径"重要是更流畅"（2026-09-22）：每条旋律线的**非末音**取 '
+            '`dur = max(dur, 到下一音的距离 × 0.9)` —— **只改时值、起音一个不动** ⇒'
+            '节奏与碎音率不变，只补掉"一句一句断开"（实测空隙中位 0.332s → 0.088s、'
+            '断开 >0.25 拍 69% → 20%、断奏 3% → 0%）。'
+            '代价：时值维交叠率掉到门槛 40% 以下 —— tender 画像的时值中位只有 0.25 拍'
+            '（十六分连奏走句），而本曲旋律音数少、听感要的是长音。'
+            '取舍依据：用户亲耳说"更流畅"是硬诉求，听感 > 该统计量；落点维不受影响。'
+            '⚠ 与旧记录"`--dur-bias` 会加密起音、碎音 1%→12%"**不是同一手法**：'
+            '那个动起音，这个不动。')
+    return n_fix
+
+
 def dry_compose(song_json):
     """干跑一次引擎（写到临时目录，不留垃圾）：能编配出合法 MIDI 吗？
 
@@ -1018,6 +1221,13 @@ def theme_mode(new, theme, ref_name=None, seed=7, ncand=4, energy_gain=None,
               'make_song.py %s --check' % (new, new))
         return 1
     data = json.load(open(song_json, encoding='utf-8'))
+    # **旋律↔和弦的音区**（生成后修正；量法与 `harmony_check` 第 ① 项同一份）——
+    # 不加这步，新生成的曲子在那一项上会整片 FAIL（实测 8/10 段）。
+    fix_melody_register(data)
+    # **旋律连奏**（用户 2026-09-22："重要是更流畅"）—— 只延时值、起音不动。
+    _lm = legato_melody(data)
+    if _lm:
+        print('  旋律连奏：%d 个音的音长接到下一个音（空隙按真值补齐，起音一个不动）' % _lm)
     data['theme'] = data.get('theme') or {}
     data['theme']['melody_profile'] = 'refs/themes/%s_melody.json' % theme
     data['theme']['seed'] = seed
@@ -1080,7 +1290,17 @@ def write_notes(dst, new, data, pack, ref):
              % (pack.get('template_count', 0), pack['theme']),
              '| 主题→风格 | %s（引擎预设 %s） |'
              % ('/'.join(pack.get('styles') or []), pack.get('engine_style')),
-             '| 速度·调式 | 主题中位 %.0f BPM · %s %s（**本曲速度**按 seed 在模板 p25~p75 内取，见 `song.json`） |'
+             # ⚠ **本曲速度必须单独一行、写成精确的 `| 速度 |`**（2026-09-22 补）：
+             #   守卫 `selftest.t_notes_speed_matches` 只认这一种写法 —— 合并列
+             #   `| 速度·调式 |` 记的是**模板依据**（按本曲参数判会把 4 首 imitate 曲误报，
+             #   见该守卫的 docstring）。只写合并列 ⇒ **新生成的曲子根本不在那条守卫的
+             #   覆盖范围内**；实测重生成后的 `20_piano_rain/notes.md` 就缺这一行，
+             #   连变异用例的夹具都注入不进去（`replace('**78 BPM**')` 找不到目标）。
+             '| 速度 | **%.0f BPM**（四分音符）· %s · %d 小节 |'
+             % (float(data.get('bpm') or 0),
+                '/'.join(str(x) for x in (data.get('meter') or [4, 4])),
+                sum(int(s.get('bars') or 0) for s in (data.get('sections') or []))),
+             '| 速度·调式 | 主题中位 %.0f BPM · %s %s（**本曲速度**见上一行；这行是模板依据） |'
              % ((pack.get('bpm') or {}).get('median', 0),
                 (pack.get('key') or {}).get('tonic'), (pack.get('key') or {}).get('mode')),
              '| 和声 | %s（来源 %s） |'

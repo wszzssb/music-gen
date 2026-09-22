@@ -107,9 +107,18 @@ $env:HF_ENDPOINT = 'https://hf-mirror.com'   # HF 直连不通时（镜像实测
 
 ### 音频大模型"听"曲子（**线索生成器，不是判据**）
 
-全部内容在 **`docs/AUDIO-CRITIC.md`**（用法 · 四条硬约束 · 实测数字 · 环境装法 · 下一步）。
+全部内容在 **`docs/AUDIO-CRITIC.md`**（用法 · 硬约束 · 实测数字 · 环境装法 · 交接）。
 一句话口径：**它能定位"哪段可疑"，不能判"这版比那版好"**；且**默认 greedy 才可复现**
 （模型默认在采样，同段连问三次给三个不同答案）。
+
+```powershell
+$ml = "<根>\.venv-ml\Scripts\python.exe"      # ⚠ 主 venv 没有 torch，必须用 .venv-ml
+& $ml scripts\ask_audio_critic.py <音频> --segments 8 --load-4bit       # 逐段扫描（GPU 4bit ≈3 秒/段）
+& $ml scripts\ask_audio_critic.py <音频> --segments 8 --load-4bit --sample --repeat 5
+#   ↑ 同段采样 5 次 → **只留稳定复现的线索**（实测 74 条独立线索里只有 7 条稳定）· --band 桶宽（默认 4 秒）
+& $ml scripts\ask_audio_critic.py --compare a.ogg b.ogg --segments 8    # 同段同问对照
+#   输出：**整曲时间轴上的指控清单**（可直接跳到问题点）+ 稳定线索表；越界 / 没给时间的单列不硬映射
+```
 
 ### 逐轨事件（面板卷帘 / 排查用）
 
@@ -136,6 +145,16 @@ studio\stop.cmd     # 停
 
 **音符层看 MIDI，频谱层看音频画像**：画像的频谱/宽度/响度只能从真实录音拿，MIDI 精确给速度/和声/
 声部/节奏/曲式 —— 两者**互补**。素材自备：公共领域用 Mutopia / IMSLP；动漫游戏 MIDI **版权灰色，不进仓库**。
+### 查文档 / 改文档（长文档别整篇读）
+
+```powershell
+& $py scripts\doc_map.py            # 生成 docs/DOC-MAP.md（大目录=主题域 → 小目录=节 + 行号 + 体量）
+& $py scripts\doc_map.py --stdout   # 查一节 = 先在地图上拿行号，再只读那一段（别整篇读 HISTORY 38k）
+& $py scripts\doc_map.py --check    # 是否过期（守卫 doc_map_fresh 用的就是它）
+& $py scripts\doc_map.py --list     # 盘点所有文档 + 体量 + 标题（新文档归类时用）
+#   ⚠ 改过任何文档后要重跑第 1 条 —— 地图是生成物、里面全是行号，不重生成自检会 FAIL
+```
+
 ### 体检与校验
 
 ```powershell

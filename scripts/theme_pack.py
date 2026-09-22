@@ -1197,6 +1197,33 @@ def _med(xs):
     return v[len(v) // 2] if v else None
 
 
+def _agg_pattern(pats):
+    """多份 16 格三档模式（★/◇/·）→ **逐格取中位**后重新分档。
+
+    ⚠ 2026-09-22 修的真 bug：原来 `rhythm_low/high` 是 `profs[0][1].get(...)`——
+    **直接取"分数最高那份成员"的值**，等于让"多方参考"在这一维退化成单份。
+    现场（用户指出"5 个主题字符级完全相同肯定不行"）：`daily / folk_tale / lounge /
+    mystery / seaside` 五份的 `rhythm_low` 全是 `★★◇·★◇··★★··★★◇·`——
+    而候选池里明明有 **44 种**不同取值；相同的唯一原因是它们的 `members[0]` **都是 `bgm01c`**
+    （`battle/cheerful/neon/retro` 同理，`members[0]` 都是 `BGM15c`）。
+
+    原注释写的理由是"离散字段不是可平均的量"—— **对 `rhythm_low` 不成立**：
+    每格都是归一化后的能量档（★=1 / ◇=0.5 / ·=0），逐格取中位与其它字段口径一致。
+    （`quiet_chroma` 仍走"取最高分那份"，因为它是某一段的音级分布、且下游调式判断依赖它，
+    改它要单独评估。）
+    """
+    vals = {'★': 1.0, '◇': 0.5, '·': 0.0}
+    pats = [p for p in pats if p]
+    if not pats:
+        return ''
+    n = min(len(p) for p in pats)
+    out = []
+    for i in range(n):
+        m = _med([vals.get(p[i], 0.0) for p in pats])
+        out.append('★' if (m or 0) > 0.66 else ('◇' if (m or 0) > 0.33 else '·'))
+    return ''.join(out)
+
+
 def aggregate_refs(theme, members, root=None):
     """多份真实画像 → **一份聚合画像**（逐维度取中位数）。
 
@@ -1266,10 +1293,12 @@ def aggregate_refs(theme, members, root=None):
         'character': 'instrumental',
         'bands': bands,
         'structure': structure,
-        # 离散字段（节奏型 / 音级分布）**不取中位**（它们是某一首的特征，不是可平均的量）——
-        # 取分数最高那份成员的值（`profs` 已按 members 顺序 = 分数降序）。
-        'rhythm_low': profs[0][1].get('rhythm_low') or '',
-        'rhythm_high': profs[0][1].get('rhythm_high') or '',
+        # ⚠ 2026-09-22 改：节奏型**逐格取中位**（见 `_agg_pattern`）——
+        #   原来取 `profs[0]` 让"多方参考"退化成单份，5 个主题因此字符级完全相同。
+        'rhythm_low': _agg_pattern([j.get('rhythm_low') for _m, j in profs]),
+        'rhythm_high': _agg_pattern([j.get('rhythm_high') for _m, j in profs]),
+        # `quiet_chroma` 仍取分数最高那份：它是某一段的音级分布，且下游调式判断依赖它，
+        # 改成聚合要单独评估（本次不动）。
         'quiet_chroma': profs[0][1].get('quiet_chroma') or {},
         'periodicity': _med([j.get('periodicity') for _m, j in profs]),
         # **逐份留痕**：谁参与了聚合、评分多少、来源是什么

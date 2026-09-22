@@ -18,10 +18,34 @@ import soundfile as sf
 DEFAULT_Q = 8.0
 
 
+def _ffmpeg_exe():
+    """取 ffmpeg 可执行文件 —— ⚠ **别直接调 imageio_ffmpeg 的 `get_ffmpeg_exe()`**。
+
+    （守卫 `selftest.t_ffmpeg_exe_is_local` 用 **AST 数真实调用**，只允许下面兜底那 1 次 ——
+    文档/注释里提到这个函数名不会被误算。）
+
+    实测 2026-09-22：本机连不上外网时那个函数**会卡死**（`timeout 30` 都没返回），
+    而 `.venv\\...\\imageio_ffmpeg\\binaries\\ffmpeg-win-x86_64-v7.1.exe` **本身秒回**
+    （`-version` rc=0）、转码 rc=0 —— 于是所有 "wav→ogg"（含 `render_midi.encode_ogg`）
+    全部卡住；现象看着像"ffmpeg 慢 / 内存不足"（同一轮还出现过 `Unable to allocate 128 MiB`），
+    实际是**取路径那一步在联网**。关杀软、加内存都不解决。
+
+    这里先取本地 binaries；取不到才退回它（并打印提示，免得又静默卡住）。
+    """
+    import glob
+    import imageio_ffmpeg
+    here = os.path.dirname(os.path.abspath(imageio_ffmpeg.__file__))
+    hits = [h for h in sorted(glob.glob(os.path.join(here, 'binaries', 'ffmpeg*')))
+            if h.lower().endswith('.exe')]
+    if hits:
+        return hits[0]
+    print('  !! 本地没找到 ffmpeg 二进制，退回 imageio_ffmpeg（本机无网时它会卡住）')
+    return imageio_ffmpeg.get_ffmpeg_exe()
+
+
 def convert(src, dst=None, q=DEFAULT_Q):
     dst = dst or (src.rsplit('.', 1)[0] + '.ogg')
-    import imageio_ffmpeg
-    exe = imageio_ffmpeg.get_ffmpeg_exe()
+    exe = _ffmpeg_exe()
     cmd = [exe, '-hide_banner', '-loglevel', 'error', '-y', '-i', src,
            '-c:a', 'libvorbis', '-q:a', str(q), dst]
     subprocess.run(cmd, check=True)

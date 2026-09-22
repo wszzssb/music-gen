@@ -55,6 +55,13 @@
 `patterns.sub_gain` / `sub_dur`：sub 层强度与长度（**必须短**，长音会把低频节奏糊成块）
 **`patterns.staccato`**：伴奏音长缩放（默认 1.0）；调小 = 在鼓点之间腾出空间
 **`patterns.melody_dyn`**（opt-in，默认关）：旋律的**乐句级力度曲线**（句 2/3 处高点、句末收）
+**`patterns.piano_stab_vel` / `piano_stab_dur`**（opt-in，缺省 = 老行为**逐字节不变**）：钢琴
+  **反拍短音**的力度基准（缺省 58，奇数小节 +6）与时值（缺省 0.28 拍）。用户报"**镫一下**"时
+  **只调力度有效**（实测 58→36 → 跳变 +10.3 → +6.7 dB）；**加长时值毫无作用**（读数一字未变）→ 坑 236
+**`patterns.hook_stab_vel`**：Hook 轨**反拍切分短音**（`ep_part` · 时值 0.22 拍）的力度基准
+  （缺省 54，重音位 +8）。⚠ `20_piano_rain` 实测**它才是全曲最突出的"镫"** —— 比同刻主奏响
+  **+20 dB**（比 Piano 轨那批明显得多）；参数化后取 26，"比主奏 ≥+10dB"从 2 处清零。
+  定位用 `scripts/probe_sustain.py` 的 ② 榜（`harmony_check.stab_candidates`）
 **`sections[i].arr.harmony`**：副旋律/加厚层 —— 给旋律配和弦内的低三度，走 Strings（无则 Hook/Piano）
 **`sections[i].arr.mix`**：段落级 CC7 自动化，如 `{"Strings":80,"Perc":46}`
   —— **做"起伏"最直接的手段**，也是"段间对比"（像不像的关键）的实现方式
