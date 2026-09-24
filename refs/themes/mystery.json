@@ -1,7 +1,7 @@
 {
  "theme": "mystery",
  "label": "神秘",
- "desc": "神秘（主题模板包：10 首同主题模板聚合）",
+ "desc": "神秘（主题模板包：16 首同主题模板聚合）",
  "styles": [
   "film",
   "newage",
@@ -13,32 +13,31 @@
   4
  ],
  "min_templates": 8,
- "template_count": 10,
+ "template_count": 16,
  "bpm": {
   "median": 120.0,
-  "p25": 96.0,
-  "p75": 130.0
+  "p25": 107.0,
+  "p75": 132.0
  },
  "key": {
-  "tonic": "D#",
-  "pc": 3,
-  "mode": "minor",
-  "confidence": 0.3,
+  "tonic": "C",
+  "pc": 0,
+  "mode": "major",
+  "confidence": 0.188,
   "scale_degree_weight": [
-   1337673.44,
-   134562.4,
-   439732.98,
-   413305.12,
-   498897.64,
-   658721.08,
-   70789.83,
-   1078782.08,
-   407150.44,
-   407666.28,
-   387535.92,
-   286868.49
-  ],
-  "mode_source": "human: CASE-BGM35 三条共性（原统计 confidence 仅 0.3）"
+   2005647.8,
+   167054.08,
+   800437.88,
+   499742.68,
+   811773.24,
+   993384.48,
+   194967.4,
+   1625273.96,
+   506197.88,
+   719714.2,
+   545109.24,
+   510051.16
+  ]
  },
  "templates": [
   {
@@ -56,6 +55,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "classical/chopin-sonata11.mid",
+   "style": "classical",
+   "md5": "38a21d60b80c11dd314d0673d7ae4031",
+   "bpm": 107.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 146,
+   "seconds": 326.9,
+   "source": "https://bitmidi.com/uploads/23779.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "classical/chopin-pol53.mid",
    "style": "classical",
    "md5": "b7e9832a94a4bd44acb5977a6285e182",
@@ -67,6 +80,20 @@
    "bars": 184,
    "seconds": 338.3,
    "source": "https://bitmidi.com/uploads/23778.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "classical/Arty & Mat Zo - Mozart.mid",
+   "style": "classical",
+   "md5": "c818d462bb21226bc2ba31bba41917fe",
+   "bpm": 132.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 16,
+   "seconds": 29.1,
+   "source": "https://bitmidi.com/uploads/7830.mid",
    "kind": "bitmidi"
   },
   {
@@ -98,17 +125,17 @@
    "kind": "bitmidi"
   },
   {
-   "file": "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
+   "file": "film/Bwv1066 Orchestral Suite n1 3mov.mid",
    "style": "film",
-   "md5": "519333a9fec699d130245766895583b4",
-   "bpm": 63.0,
+   "md5": "ea80d11180c543e66360792bb566f0b0",
+   "bpm": 60.0,
    "timesig": [
     4,
     4
    ],
-   "bars": 46,
-   "seconds": 172.8,
-   "source": "https://bitmidi.com/uploads/63322.mid",
+   "bars": 145,
+   "seconds": 578.0,
+   "source": "https://bitmidi.com/uploads/27641.mid",
    "kind": "bitmidi"
   },
   {
@@ -123,6 +150,20 @@
    "bars": 70,
    "seconds": 155.4,
    "source": "https://bitmidi.com/uploads/73553.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "film/movie.mid",
+   "style": "film",
+   "md5": "2f09872d62725b39193e740ffa11ff13",
+   "bpm": 113.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 170,
+   "seconds": 359.0,
+   "source": "https://bitmidi.com/uploads/52754.mid",
    "kind": "bitmidi"
   },
   {
@@ -154,17 +195,59 @@
    "kind": "bitmidi"
   },
   {
-   "file": "newage/Accadia - Blind Visions (Accadia Ambient Mix).mid",
+   "file": "newage/Bob Sinclar - New New New (Avicii Remix).mid",
    "style": "newage",
-   "md5": "02f732ea211fee7927819459fe0c45f2",
-   "bpm": 130.0,
+   "md5": "50b194f6a6fa8b209f0c44ac07b2afdb",
+   "bpm": 120.0,
    "timesig": [
     4,
     4
    ],
    "bars": 16,
-   "seconds": 29.5,
-   "source": "https://bitmidi.com/uploads/3624.mid",
+   "seconds": 31.9,
+   "source": "https://bitmidi.com/uploads/18781.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "newage/Age of Empires II The Age of Kings - Menu.mid",
+   "style": "newage",
+   "md5": "a35d7bc191676344bab3dbeafd931460",
+   "bpm": 129.96,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 31,
+   "seconds": 56.5,
+   "source": "https://bitmidi.com/uploads/4280.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "newage/Nola, Novelty piano solo.mid",
+   "style": "newage",
+   "md5": "7f2955ed8dfac73c04a6119d1e7001da",
+   "bpm": 130.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 73,
+   "seconds": 134.8,
+   "source": "https://bitmidi.com/uploads/28310.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "newage/Gammer - Ambient Angels.mid",
+   "style": "newage",
+   "md5": "42f7e3b4b5c48cd6b0fd93d0171b37b2",
+   "bpm": 167.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 16,
+   "seconds": 23.0,
+   "source": "https://bitmidi.com/uploads/48557.mid",
    "kind": "bitmidi"
   },
   {
@@ -183,43 +266,101 @@
   }
  ],
  "source_kinds": {
-  "bitmidi": 10
+  "bitmidi": 16
  },
  "harmony": {
   "primary": [
-   "G#m7",
-   "A#7",
-   "D#m6",
-   "D#sus4"
+   "Cm7",
+   "Gsus4",
+   "Fm7",
+   "Csus4"
   ],
   "primary_source": "window4",
   "progressions": [
    {
     "degrees": [
-     5,
+     0,
      7,
+     5,
+     0
+    ],
+    "romans": [
+     "i7",
+     "Vsus4",
+     "iv7",
+     "Isus4"
+    ],
+    "count": 7,
+    "templates": [
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-pol53.mid",
+     "film/movie.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid"
+    ],
+    "template_share": 0.25,
+    "symbols": [
+     "Cm7",
+     "Gsus4",
+     "Fm7",
+     "Csus4"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     5,
      0,
      0
     ],
     "romans": [
+     "Vsus4",
      "iv7",
-     "V7",
-     "i",
-     "Isus4"
+     "Isus4",
+     "i6"
     ],
-    "count": 4,
+    "count": 6,
     "templates": [
-     "classical/chopin-ballade1.mid",
-     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
-     "film/batman-movie-theme_en.mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"
+     "classical/chopin-pol53.mid",
+     "film/movie.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid"
     ],
-    "template_share": 0.4,
+    "template_share": 0.25,
     "symbols": [
-     "G#m7",
-     "A#7",
-     "D#m6",
-     "D#sus4"
+     "Gsus4",
+     "Fm7",
+     "Csus4",
+     "Cm6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0,
+     0,
+     5
+    ],
+    "romans": [
+     "V7",
+     "Imaj7",
+     "I6",
+     "IV6"
+    ],
+    "count": 5,
+    "templates": [
+     "classical/chopin-pol53.mid",
+     "film/Bwv1066 Orchestral Suite n1 3mov.mid",
+     "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
+     "newage/EarthBound - New Age Retro Hippie.mid"
+    ],
+    "template_share": 0.25,
+    "symbols": [
+     "G7",
+     "Cmaj7",
+     "C6",
+     "F6"
     ],
     "usable": true
    },
@@ -242,94 +383,39 @@
      "classical/chopin-pol53.mid",
      "newage/EarthBound - New Age Retro Hippie.mid"
     ],
-    "template_share": 0.3,
+    "template_share": 0.19,
     "symbols": [
-     "D#6",
-     "D#7",
-     "A#7",
-     "G#7"
+     "C6",
+     "C7",
+     "G7",
+     "F7"
     ],
     "usable": true
    },
    {
     "degrees": [
-     0,
      7,
-     5,
-     0
+     2,
+     7,
+     9
     ],
     "romans": [
-     "I7",
-     "V7",
-     "IV7",
-     "i7"
+     "v",
+     "IIsus4",
+     "v7",
+     "VI7"
     ],
     "count": 5,
     "templates": [
-     "classical/chopin-ballade1.mid",
-     "classical/chopin-pol53.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid"
-    ],
-    "template_share": 0.3,
-    "symbols": [
-     "D#7",
-     "A#7",
-     "G#7",
-     "D#m7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     7,
-     0,
-     5,
-     5
-    ],
-    "romans": [
-     "V6",
-     "I",
-     "IVmaj7",
-     "IVmaj7"
-    ],
-    "count": 4,
-    "templates": [
-     "classical/chopin-ballade1.mid",
+     "classical/chopin-sonata11.mid",
      "film/Metal Gear Solid - Enclosure (Soundtrack).mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "A#6",
-     "D#6",
-     "G#maj7",
-     "G#maj7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     7,
-     7,
-     0,
-     5
-    ],
-    "romans": [
-     "V6",
-     "V6",
-     "I",
-     "IVmaj7"
-    ],
-    "count": 4,
-    "templates": [
-     "classical/chopin-ballade1.mid",
-     "film/Metal Gear Solid - Enclosure (Soundtrack).mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "A#6",
-     "A#6",
-     "D#6",
-     "G#maj7"
+     "Gm7",
+     "Dsus4",
+     "Gm7",
+     "A7"
     ],
     "usable": true
    }
@@ -337,30 +423,88 @@
   "progressions_4": [
    {
     "degrees": [
-     5,
+     0,
      7,
+     5,
+     0
+    ],
+    "romans": [
+     "i7",
+     "Vsus4",
+     "iv7",
+     "Isus4"
+    ],
+    "count": 7,
+    "templates": [
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-pol53.mid",
+     "film/movie.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid"
+    ],
+    "template_share": 0.25,
+    "symbols": [
+     "Cm7",
+     "Gsus4",
+     "Fm7",
+     "Csus4"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     5,
      0,
      0
     ],
     "romans": [
+     "Vsus4",
      "iv7",
-     "V7",
-     "i",
-     "Isus4"
+     "Isus4",
+     "i6"
     ],
-    "count": 4,
+    "count": 6,
     "templates": [
-     "classical/chopin-ballade1.mid",
-     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
-     "film/batman-movie-theme_en.mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"
+     "classical/chopin-pol53.mid",
+     "film/movie.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid"
     ],
-    "template_share": 0.4,
+    "template_share": 0.25,
     "symbols": [
-     "G#m7",
-     "A#7",
-     "D#m6",
-     "D#sus4"
+     "Gsus4",
+     "Fm7",
+     "Csus4",
+     "Cm6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0,
+     0,
+     5
+    ],
+    "romans": [
+     "V7",
+     "Imaj7",
+     "I6",
+     "IV6"
+    ],
+    "count": 5,
+    "templates": [
+     "classical/chopin-pol53.mid",
+     "film/Bwv1066 Orchestral Suite n1 3mov.mid",
+     "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
+     "newage/EarthBound - New Age Retro Hippie.mid"
+    ],
+    "template_share": 0.25,
+    "symbols": [
+     "G7",
+     "Cmaj7",
+     "C6",
+     "F6"
     ],
     "usable": true
    },
@@ -383,94 +527,39 @@
      "classical/chopin-pol53.mid",
      "newage/EarthBound - New Age Retro Hippie.mid"
     ],
-    "template_share": 0.3,
+    "template_share": 0.19,
     "symbols": [
-     "D#6",
-     "D#7",
-     "A#7",
-     "G#7"
+     "C6",
+     "C7",
+     "G7",
+     "F7"
     ],
     "usable": true
    },
    {
     "degrees": [
-     0,
      7,
-     5,
-     0
+     2,
+     7,
+     9
     ],
     "romans": [
-     "I7",
-     "V7",
-     "IV7",
-     "i7"
+     "v",
+     "IIsus4",
+     "v7",
+     "VI7"
     ],
     "count": 5,
     "templates": [
-     "classical/chopin-ballade1.mid",
-     "classical/chopin-pol53.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid"
-    ],
-    "template_share": 0.3,
-    "symbols": [
-     "D#7",
-     "A#7",
-     "G#7",
-     "D#m7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     7,
-     0,
-     5,
-     5
-    ],
-    "romans": [
-     "V6",
-     "I",
-     "IVmaj7",
-     "IVmaj7"
-    ],
-    "count": 4,
-    "templates": [
-     "classical/chopin-ballade1.mid",
+     "classical/chopin-sonata11.mid",
      "film/Metal Gear Solid - Enclosure (Soundtrack).mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "A#6",
-     "D#6",
-     "G#maj7",
-     "G#maj7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     7,
-     7,
-     0,
-     5
-    ],
-    "romans": [
-     "V6",
-     "V6",
-     "I",
-     "IVmaj7"
-    ],
-    "count": 4,
-    "templates": [
-     "classical/chopin-ballade1.mid",
-     "film/Metal Gear Solid - Enclosure (Soundtrack).mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "A#6",
-     "A#6",
-     "D#6",
-     "G#maj7"
+     "Gm7",
+     "Dsus4",
+     "Gm7",
+     "A7"
     ],
     "usable": true
    }
@@ -482,25 +571,28 @@
      0
     ],
     "romans": [
-     "V7",
-     "i6"
+     "v7",
+     "i7"
     ],
-    "count": 41,
+    "count": 82,
     "templates": [
      "classical/Bach-1.mid",
      "classical/chopin-ballade1.mid",
      "classical/chopin-pol53.mid",
-     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
+     "classical/chopin-sonata11.mid",
+     "film/Bwv1066 Orchestral Suite n1 3mov.mid",
      "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
      "film/batman-movie-theme_en.mid",
-     "newage/Accadia - Blind Visions (Accadia Ambient Mix).mid",
+     "film/movie.mid",
+     "newage/Age of Empires II The Age of Kings - Menu.mid",
      "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid"
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid"
     ],
-    "template_share": 0.9,
+    "template_share": 0.75,
     "symbols": [
-     "A#7",
-     "D#m6"
+     "Gm7",
+     "Cm7"
     ],
     "usable": true
    },
@@ -510,24 +602,28 @@
      7
     ],
     "romans": [
-     "I7",
-     "V7"
+     "i7",
+     "v7"
     ],
-    "count": 32,
+    "count": 60,
     "templates": [
      "classical/Bach-1.mid",
      "classical/chopin-ballade1.mid",
      "classical/chopin-pol53.mid",
-     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
+     "classical/chopin-sonata11.mid",
+     "film/Bwv1066 Orchestral Suite n1 3mov.mid",
      "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
      "film/batman-movie-theme_en.mid",
+     "film/movie.mid",
+     "newage/Age of Empires II The Age of Kings - Menu.mid",
      "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid"
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid"
     ],
-    "template_share": 0.8,
+    "template_share": 0.75,
     "symbols": [
-     "D#7",
-     "A#7"
+     "Cm7",
+     "Gm7"
     ],
     "usable": true
    },
@@ -537,49 +633,27 @@
      5
     ],
     "romans": [
-     "I7",
+     "Isus4",
      "IV6"
     ],
-    "count": 23,
+    "count": 36,
     "templates": [
      "classical/chopin-ballade1.mid",
      "classical/chopin-pol53.mid",
-     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
+     "classical/chopin-sonata11.mid",
+     "film/Bwv1066 Orchestral Suite n1 3mov.mid",
      "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
      "film/batman-movie-theme_en.mid",
      "film/doctorwho-movie.mid",
+     "film/movie.mid",
      "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid"
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid"
     ],
-    "template_share": 0.8,
+    "template_share": 0.69,
     "symbols": [
-     "D#7",
-     "G#6"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     2,
-     7
-    ],
-    "romans": [
-     "ii7",
-     "V7"
-    ],
-    "count": 14,
-    "templates": [
-     "classical/chopin-ballade1.mid",
-     "classical/chopin-pol53.mid",
-     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
-     "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
-     "film/batman-movie-theme_en.mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"
-    ],
-    "template_share": 0.6,
-    "symbols": [
-     "Fm7",
-     "A#7"
+     "Csus4",
+     "F6"
     ],
     "usable": true
    },
@@ -590,209 +664,246 @@
     ],
     "romans": [
      "IV6",
-     "Isus4"
+     "I6"
     ],
-    "count": 28,
+    "count": 38,
     "templates": [
      "classical/chopin-ballade1.mid",
      "classical/chopin-pol53.mid",
      "film/batman-movie-theme_en.mid",
+     "film/movie.mid",
+     "newage/Age of Empires II The Age of Kings - Menu.mid",
      "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid"
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Gammer - Ambient Angels.mid",
+     "newage/Nola, Novelty piano solo.mid"
     ],
-    "template_share": 0.5,
+    "template_share": 0.56,
     "symbols": [
-     "G#6",
-     "D#sus4"
+     "F6",
+     "C6"
     ],
     "usable": true
    },
    {
     "degrees": [
-     0,
-     11
+     2,
+     7
     ],
     "romans": [
-     "Imaj7",
-     "viidim"
+     "iim7b5",
+     "V7"
     ],
-    "count": 17,
+    "count": 37,
     "templates": [
      "classical/chopin-ballade1.mid",
-     "film/John_williams_-_Sabrina(Piano),movie-theme1995(fine-tuning-keys-piano).mid",
+     "classical/chopin-pol53.mid",
+     "classical/chopin-sonata11.mid",
+     "film/Bwv1066 Orchestral Suite n1 3mov.mid",
      "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
      "film/batman-movie-theme_en.mid",
-     "film/doctorwho-movie.mid"
+     "film/movie.mid",
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "newage/Nola, Novelty piano solo.mid"
     ],
-    "template_share": 0.5,
+    "template_share": 0.56,
     "symbols": [
-     "D#maj7",
-     "Ddim"
+     "Dm7b5",
+     "G7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     9
+    ],
+    "romans": [
+     "V7",
+     "vi7"
+    ],
+    "count": 30,
+    "templates": [
+     "classical/Bach-1.mid",
+     "classical/chopin-ballade1.mid",
+     "classical/chopin-pol53.mid",
+     "classical/chopin-sonata11.mid",
+     "film/Bwv1066 Orchestral Suite n1 3mov.mid",
+     "film/Metal Gear Solid - Enclosure (Soundtrack).mid",
+     "newage/Nola, Novelty piano solo.mid"
+    ],
+    "template_share": 0.44,
+    "symbols": [
+     "G7",
+     "Am7"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
-   "D#6",
-   "D#maj7",
-   "G#7"
+   "C6",
+   "Cmaj7",
+   "C6",
+   "G7"
   ],
   "pool_progression_romans": [
    "I",
    "Imaj7",
-   "IV7"
+   "I6",
+   "V7"
   ],
   "chord_pool": [
    {
     "degree": 0,
     "roman": "I",
     "suffix": "6",
-    "count": 277,
-    "templates": 10
+    "count": 377,
+    "templates": 16
    },
    {
     "degree": 7,
     "roman": "V",
     "suffix": "7",
-    "count": 113,
-    "templates": 9
+    "count": 276,
+    "templates": 12
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m7",
+    "count": 149,
+    "templates": 10
    },
    {
     "degree": 5,
     "roman": "IV",
     "suffix": "6",
-    "count": 82,
+    "count": 125,
+    "templates": 15
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m7",
+    "count": 112,
     "templates": 9
    },
    {
     "degree": 8,
     "roman": "bVI",
     "suffix": "6",
-    "count": 74,
-    "templates": 4
-   },
-   {
-    "degree": 2,
-    "roman": "II",
-    "suffix": "m6",
-    "count": 70,
-    "templates": 7
-   },
-   {
-    "degree": 9,
-    "roman": "VI",
-    "suffix": "7",
-    "count": 69,
-    "templates": 7
+    "count": 98,
+    "templates": 8
    },
    {
     "degree": 4,
     "roman": "III",
     "suffix": "7",
-    "count": 52,
-    "templates": 8
+    "count": 82,
+    "templates": 10
    },
    {
     "degree": 3,
     "roman": "bIII",
-    "suffix": "7",
-    "count": 46,
-    "templates": 4
-   },
-   {
-    "degree": 11,
-    "roman": "VII",
-    "suffix": "7",
-    "count": 40,
-    "templates": 7
+    "suffix": "6",
+    "count": 79,
+    "templates": 9
    },
    {
     "degree": 10,
     "roman": "bVII",
     "suffix": "6",
-    "count": 39,
-    "templates": 4
+    "count": 48,
+    "templates": 8
+   },
+   {
+    "degree": 11,
+    "roman": "VII",
+    "suffix": "dim",
+    "count": 43,
+    "templates": 8
    },
    {
     "degree": 1,
     "roman": "bII",
     "suffix": "maj7",
-    "count": 26,
-    "templates": 3
+    "count": 27,
+    "templates": 4
    },
    {
     "degree": 6,
     "roman": "bV",
-    "suffix": "m7b5",
-    "count": 8,
-    "templates": 4
+    "suffix": "dim",
+    "count": 11,
+    "templates": 6
    }
   ],
-  "chord_per_bar": 0.88
+  "chord_per_bar": 0.9
  },
  "rhythm": {
-  "low16": "★·★···★·★···★···",
-  "high16": "★★★·★·★★★·★·★★★·",
+  "low16": "★···★···★···★···",
+  "high16": "★···★·★·★·★·★·★·",
   "low_slot_share": [
-   0.8,
-   0.3,
-   0.6,
-   0.4,
+   0.88,
+   0.19,
+   0.31,
+   0.25,
+   0.62,
+   0.31,
    0.5,
+   0.38,
+   0.69,
+   0.25,
    0.5,
-   0.7,
-   0.4,
-   0.8,
-   0.4,
-   0.5,
-   0.3,
-   0.8,
-   0.4,
-   0.5,
-   0.5
+   0.12,
+   0.75,
+   0.25,
+   0.44,
+   0.25
   ],
   "high_slot_share": [
    1.0,
-   0.6,
-   0.6,
-   0.5,
-   1.0,
-   0.5,
-   0.7,
-   0.6,
-   0.8,
-   0.5,
-   0.9,
-   0.5,
-   0.8,
-   0.6,
-   0.7,
-   0.5
+   0.25,
+   0.44,
+   0.44,
+   0.81,
+   0.38,
+   0.56,
+   0.44,
+   0.75,
+   0.38,
+   0.75,
+   0.38,
+   0.88,
+   0.31,
+   0.69,
+   0.38
   ],
-  "low_density": 13.15,
-  "high_density": 16.03,
-  "bass_density": 3.0,
-  "perc_density": 1.96,
+  "low_density": 12.39,
+  "high_density": 15.5,
+  "bass_density": 1.32,
+  "perc_density": 1.65,
   "slots": 16,
-  "bass_style": "sixteenth",
+  "bass_style": "simple",
   "perc_style": "orchestral"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.3,
-   "brass": 0.2,
-   "fx": 0.1,
-   "glock": 0.1,
-   "organ": 0.1,
-   "pad": 0.2,
-   "piano": 0.7,
-   "pipe": 0.2,
-   "reed": 0.2,
-   "strings": 0.3
+   "bass": 0.19,
+   "brass": 0.12,
+   "fx": 0.06,
+   "glock": 0.06,
+   "guitar": 0.06,
+   "organ": 0.12,
+   "pad": 0.06,
+   "piano": 0.88,
+   "pipe": 0.12,
+   "reed": 0.19,
+   "strings": 0.31
   },
   "role_range": {
    "bass": [
-    30,
+    29,
     45
    ],
    "brass": [
@@ -807,105 +918,107 @@
     48,
     108
    ],
+   "guitar": [
+    48,
+    80
+   ],
    "organ": [
-    43,
+    53,
     89
    ],
    "pad": [
     59,
-    71
+    60
    ],
    "piano": [
-    33,
-    91
+    36,
+    88
    ],
    "pipe": [
     77,
     100
    ],
    "reed": [
-    57,
+    56,
     79
    ],
    "strings": [
-    50,
-    100
+    48,
+    89
    ]
   },
   "arr_share": {
-   "bass": 0.3,
-   "piano": 0.7,
-   "uku": 0.0,
-   "strings": 0.2,
-   "pad": 0.2,
-   "glock": 0.1,
-   "ep": 0.2,
+   "bass": 0.19,
+   "piano": 0.88,
+   "uku": 0.06,
+   "strings": 0.12,
+   "pad": 0.06,
+   "glock": 0.06,
+   "ep": 0.12,
    "perc": 0.0
   },
   "arr_on": [
    "piano"
   ],
   "arr_off": [
-   "perc",
-   "uku"
+   "perc"
   ],
   "arr_maybe": [
    "bass",
    "ep",
    "glock",
    "pad",
-   "strings"
+   "strings",
+   "uku"
   ],
-  "track_count": 5.0,
+  "track_count": 4.8,
   "style_mix": {
-   "classical": 3,
-   "film": 4,
-   "newage": 3
+   "classical": 5,
+   "film": 5,
+   "newage": 6
   },
   "prog_pool": {
    "piano": [
     0,
+    6,
     3
    ],
    "ep": [
-    69,
-    68
+    68,
+    69
    ],
    "strings": [
+    48,
     47,
     49,
     55
    ],
    "bass": [
-    35,
     33,
-    38
+    35
    ],
    "glock": [
     14
    ],
+   "uku": [
+    30
+   ],
    "pad": [
-    95,
-    89
+    95
    ]
   }
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 56,
+  "total_bars": 72,
   "plan": [
    {
     "name": "Intro",
-    "bars": 8,
+    "bars": 4,
     "prog": 0
    },
    {
     "name": "A",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "B",
     "bars": 8,
     "prog": 0
    },
@@ -915,9 +1028,9 @@
     "prog": 0
    },
    {
-    "name": "B2",
+    "name": "B",
     "bars": 8,
-    "prog": 0
+    "prog": 1
    },
    {
     "name": "A3",
@@ -925,196 +1038,124 @@
     "prog": 0
    },
    {
-    "name": "Outro",
+    "name": "C",
     "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "Outro",
+    "bars": 4,
     "prog": 0
    }
   ]
  },
  "melody": {
-  "notes": 4803,
+  "notes": 1266,
   "range": [
-   46,
-   82
+   61,
+   89
   ],
-  "mean_pitch": 73.49,
-  "notes_per_bar": 5.5,
-  "stepwise_pct": 54.39,
-  "onbeat_pct": 50.73,
-  "diatonic_pct": 80.33,
+  "mean_pitch": 71.97,
+  "notes_per_bar": 1.53,
+  "stepwise_pct": 57.72,
+  "onbeat_pct": 66.89,
+  "diatonic_pct": 87.01,
   "interval_hist": {
-   "-67": 1,
-   "-55": 1,
-   "-53": 1,
-   "-52": 0,
-   "-51": 0,
-   "-50": 0,
-   "-48": 2,
-   "-47": 1,
-   "-45": 0,
-   "-43": 3,
-   "-41": 6,
-   "-40": 3,
-   "-38": 7,
-   "-36": 33,
-   "-35": 4,
-   "-34": 2,
-   "-33": 11,
-   "-32": 19,
-   "-31": 42,
-   "-30": 5,
-   "-29": 30,
-   "-28": 12,
-   "-27": 10,
-   "-26": 7,
-   "-25": 4,
-   "-24": 128,
-   "-23": 6,
-   "-22": 26,
-   "-21": 12,
-   "-20": 29,
-   "-19": 54,
-   "-18": 13,
-   "-17": 53,
-   "-16": 30,
-   "-15": 28,
-   "-14": 56,
-   "-13": 15,
-   "-12": 176,
-   "-11": 13,
-   "-10": 51,
-   "-9": 72,
-   "-8": 48,
-   "-7": 193,
-   "-6": 31,
-   "-5": 245,
-   "-4": 312,
-   "-3": 371,
-   "-2": 942,
-   "-1": 1777,
-   "0": 642,
-   "1": 910,
-   "2": 1168,
-   "3": 365,
-   "4": 386,
-   "5": 437,
-   "6": 32,
-   "7": 109,
-   "8": 85,
-   "9": 121,
-   "10": 66,
-   "11": 28,
-   "12": 115,
-   "13": 44,
-   "14": 46,
-   "15": 45,
-   "16": 23,
-   "17": 42,
-   "18": 27,
-   "19": 52,
-   "20": 46,
-   "21": 46,
-   "22": 19,
-   "23": 36,
-   "24": 30,
-   "25": 5,
-   "26": 13,
-   "27": 3,
-   "28": 4,
-   "29": 58,
-   "30": 12,
-   "31": 19,
-   "32": 13,
-   "33": 6,
-   "34": 3,
-   "35": 9,
-   "36": 19,
-   "38": 7,
-   "39": 0,
-   "40": 2,
-   "41": 3,
-   "43": 3,
-   "45": 1,
-   "46": 1,
-   "50": 0,
-   "51": 1,
-   "52": 1,
-   "55": 1,
-   "57": 0,
-   "58": 1,
-   "67": 1
+   "-29": 6,
+   "-27": 6,
+   "-24": 69,
+   "-22": 6,
+   "-20": 12,
+   "-14": 21,
+   "-12": 42,
+   "-11": 29,
+   "-10": 41,
+   "-9": 76,
+   "-8": 24,
+   "-7": 232,
+   "-5": 629,
+   "-4": 284,
+   "-3": 677,
+   "-2": 954,
+   "-1": 1390,
+   "0": 1042,
+   "1": 638,
+   "2": 1170,
+   "3": 273,
+   "4": 399,
+   "5": 331,
+   "6": 13,
+   "7": 112,
+   "8": 240,
+   "9": 100,
+   "10": 33,
+   "11": 6,
+   "12": 53,
+   "14": 8,
+   "17": 12,
+   "20": 23,
+   "21": 17,
+   "23": 17,
+   "29": 17
   },
   "dur16_hist": {
-   "0": 971,
-   "1": 3980,
-   "2": 2070,
-   "3": 123,
-   "4": 345,
-   "5": 68,
-   "6": 83,
-   "7": 29,
-   "8": 1534,
-   "9": 11,
-   "10": 38,
-   "11": 16,
-   "12": 31,
+   "0": 63,
+   "1": 2220,
+   "2": 1567,
+   "3": 189,
+   "4": 2059,
+   "5": 76,
+   "6": 100,
+   "7": 65,
+   "8": 1182,
+   "9": 27,
+   "10": 36,
+   "11": 27,
+   "12": 54,
+   "14": 23,
    "15": 16,
-   "16": 686
+   "16": 1295
   },
   "onset16_hist": {
-   "0": 1973,
-   "1": 312,
-   "2": 521,
-   "3": 358,
-   "4": 706,
-   "5": 365,
-   "6": 578,
-   "7": 371,
-   "8": 1668,
-   "9": 336,
-   "10": 524,
-   "11": 314,
-   "12": 726,
-   "13": 370,
-   "14": 569,
-   "15": 311
+   "0": 2697,
+   "1": 199,
+   "2": 185,
+   "3": 212,
+   "4": 862,
+   "5": 191,
+   "6": 260,
+   "7": 263,
+   "8": 1529,
+   "9": 223,
+   "10": 399,
+   "11": 235,
+   "12": 933,
+   "13": 184,
+   "14": 361,
+   "15": 268
   },
-  "phrases": 75,
+  "phrases": 106,
   "phrase_bars": [
-   27.99,
-   0.03,
-   2.88,
-   2.9,
-   0.71,
-   0.03,
-   0.07,
-   0.71,
-   0.03,
-   16.23,
-   2.07,
-   16.51,
-   3.05,
-   4.55,
-   2.24,
-   25.84,
-   0.1,
-   0.1,
-   0.07,
-   0.12,
-   0.13,
-   5.45,
-   11.08,
-   0.08,
-   12.2,
-   43.25,
-   2.7,
-   2.83,
-   7.18,
-   8.46,
-   0.51,
-   0.02,
-   0.02,
-   0.01,
+   3.25,
+   3.75,
+   3.75,
+   3.75,
+   0.5,
    3.08,
    5.06,
    4.04,
@@ -1140,13 +1181,42 @@
    2.31,
    0.06,
    0.06,
-   0.06
+   0.06,
+   0.06,
+   3.0,
+   2.5,
+   5.0,
+   1.0,
+   47.98,
+   3.75,
+   3.75,
+   3.75,
+   6.75,
+   3.75,
+   6.75,
+   48.0,
+   33.0,
+   2.67,
+   1.2,
+   2.66,
+   19.75,
+   4.0,
+   0.25,
+   0.25,
+   0.75,
+   0.25,
+   0.75,
+   0.25,
+   2.75,
+   0.25,
+   0.75,
+   0.25
   ],
-  "bars": 87.2,
-  "templates": 10
+  "bars": 92.1,
+  "templates": 9
  },
  "notes": [
-  "共 10 首模板，来源：bitmidi×10",
+  "共 16 首模板，来源：bitmidi×16",
   "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/mystery_tracks.json"
  ],
  "tool": "theme_pack.py",
@@ -1259,6 +1329,40 @@
      "url_alt": [],
      "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
+   },
+   {
+    "ref": "BGM06",
+    "score": 0.565,
+    "bpm": 133.9,
+    "centroid": 1533,
+    "rms_db": -16.9,
+    "width": 0.261,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM06.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM20",
+    "score": 0.526,
+    "bpm": 101.5,
+    "centroid": 2232,
+    "rms_db": -16.9,
+    "width": 0.338,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM20.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
    }
   ],
   "agg_profile": "mystery_mix",
@@ -1271,11 +1375,43 @@
   "energy_curve_db": [],
   "structure_db": [
    -17.0,
-   -16.0,
-   -16.0,
+   -17.0,
+   -17.0,
    -16.0,
    -16.0
   ],
+  "density_curve_db": [
+   -1.51,
+   -0.82,
+   0.0,
+   1.02,
+   1.94
+  ],
+  "density_meta": {
+   "n": 12,
+   "files": [
+    "chopin-sonata11.mid",
+    "chopin-pol53.mid",
+    "chopin-ballade1.mid",
+    "batman-movie-theme_en.mid",
+    "Bwv1066 Orchestral Suite n1 3mov.mid",
+    "Metal Gear Solid - Enclosure (Soundtrack).mid",
+    "movie.mid",
+    "doctorwho-movie.mid",
+    "Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+    "Age of Empires II The Age of Kings - Menu.mid",
+    "Nola, Novelty piano solo.mid",
+    "EarthBound - New Age Retro Hippie.mid"
+   ],
+   "abs_curve": [
+    34.88,
+    37.75,
+    41.5,
+    46.69,
+    51.88
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
+  },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
@@ -1358,34 +1494,7 @@
     "why": "BPM 123.0（差 3.0，0.90）· 打击感 0.45 vs 目标 0.45（0.99）· 调式 minor≠主题（0.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
-  "density_curve_db": [
-   -8.99,
-   -3.38,
-   0.0,
-   1.02,
-   1.94
-  ],
-  "density_meta": {
-   "n": 7,
-   "files": [
-    "chopin-pol53.mid",
-    "chopin-ballade1.mid",
-    "batman-movie-theme_en.mid",
-    "Metal Gear Solid - Enclosure (Soundtrack).mid",
-    "doctorwho-movie.mid",
-    "Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-    "EarthBound - New Age Retro Hippie.mid"
-   ],
-   "abs_curve": [
-    14.75,
-    28.12,
-    41.5,
-    46.69,
-    51.88
-   ],
-   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
-  }
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
  },
  "skipped": []
 }

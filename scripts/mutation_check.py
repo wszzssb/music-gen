@@ -1618,6 +1618,59 @@ def main():
                 f.write(self.txt)
     results.append(case('混音：同一份音频被重复计入（重复投票）',
                         'mix_target_aggregate', _DupSource))
+    # ⑭-c **非主题画像**不得绕过"多方参考"门槛（2026-09-24 补的自检盲区）。
+    #      现场：`quiet_piano_mix` 是 `aggregate(1 refs)`、`source_note` 却写着"**多份**
+    #      真实录音画像的……中位数"（名不副实），而它是 `refs/mix_targets/` 下**不在
+    #      `tp.THEMES` 里**的画像 → 旧检查只遍历主题表，**永远看不到它**。
+    #      做法：把它标回 `aggregate: True`（成员仍只有 1 份）→ ⑤ 必须抓到。
+    class _NonThemeAgg:
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'refs', 'mix_targets', 'quiet_piano_mix.json')
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            j['aggregate'] = True
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                json.dump(j, f, ensure_ascii=False, indent=1)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(self.txt)
+    results.append(case('混音：非主题画像标成聚合却只有 1 份成员',
+                        'mix_target_aggregate', _NonThemeAgg))
+    # ⑭-d **豁免必须有实质理由**（2026-09-24 新增的两处豁免分支：音域 / 落点 TVD）。
+    #      画像重建后按旧画像生成的曲目会越界，允许"带理由"放行 —— 但**理由空白 = 没写 = 不放行**，
+    #      否则一句空话就能绕过门（同 `t_melody_matches_profile` 的 `_exempt_dims` 口径）。
+    class _BlankSpanExempt:
+        """把 `02_wave_walk` 的 `melody_exempt.span` 改成空白 → 音域判据必须重新 FAIL。"""
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'songs', '02_wave_walk', 'song.json')
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            j['patterns']['melody_exempt']['span'] = '   '
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(json.dumps(j, ensure_ascii=False, indent=1))
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(self.txt)
+    results.append(case('旋律：音域豁免的理由被清空（空话放行）',
+                        'melody_form_rules', _BlankSpanExempt))
+
+    class _BlankOnsetExempt:
+        """把 `14_pixel_quest` 的 `melody_exempt.onset_tvd` 改成空白 → 落点判据必须重新 FAIL。"""
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'songs', '14_pixel_quest', 'song.json')
+            self.txt = open(self.p, encoding='utf-8').read()
+            j = json.loads(self.txt)
+            j['patterns']['melody_exempt']['onset_tvd'] = ''
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(json.dumps(j, ensure_ascii=False, indent=1))
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+                f.write(self.txt)
+    results.append(case('旋律：落点豁免的理由被清空（空话放行）',
+                        'melody_onset_spread', _BlankOnsetExempt))
     # ⑮ 段落旋律命名换回"每段一个新名字"（旧行为）→ 同名段落不再共用旋律 →
     #    `theme_melody_reuse` 的自证分支必须抓到（复用彻底消失）
     results.append(case('曲式：段落旋律换回"每段一支"',

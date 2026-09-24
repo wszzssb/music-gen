@@ -84,3 +84,10 @@ studio_lib/
 #   要上传某一首时**显式例外**：加一行 `!songs/<曲名>/`，别放开整个目录。
 songs/
 !songs/.gitkeep
+# 2026-09-24：曲库**拆成两个独立根**（用户："把直接写的歌和模仿写的歌放不同文件夹"）——
+#   `songs_direct/` = 直接作曲（主题模板包路径）· `songs_imitate/` = 模仿写歌；
+#   而 `songs/` 现在是**指向 `songs_direct/` 的 junction**（兼容层：面板/守卫/脚本的
+#   硬编码 `songs/` 路径全部照常工作）。口径完全不变：**生成的曲目一律不进仓库**。
+#   ⚠ 不加这两行的话 `git add -A` 会把 31 首曲目（含 ogg/wav）一起推上去。
+songs_direct/
+songs_imitate/

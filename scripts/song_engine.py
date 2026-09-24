@@ -172,7 +172,7 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             'glock_from_bar',
             # **`ending_fade`**（2026-09-18）：段内**最后 N 小节逐小节衰减**（收尾用）。
             # 依据 `docs/CASE-BGM36.md:60`（最后 7 小节衰减到 −94.1dB）与
-            # `docs/CASE-BGM35.md:129`（5 小节到 −38dB）；我们的 `section_gap` 只做段末几拍，
+            # 原案例文档（已删 2026-09-24）（5 小节到 −38dB）；我们的 `section_gap` 只做段末几拍，
             # 实测收尾段 RMS 只到 −16.5~−17.4dB（主体 −15.9）→ **量级差 20~77dB**。
             'ending_fade',
             # `glock_starved`（2026-09-16）：**极安静段的"疏而亮"层** ——
@@ -1614,11 +1614,14 @@ def build_events(d):
                     # 原曲这种段落连钟琴都没有（第 1 小节实测 0 个 Glock 事件），
                     # 而这条路径会给**每个旋律音**加一个 +12 —— 听 MIDI 是"到处在叮"。
                     and int(arr.get('density') if arr.get('density') is not None else 2) > 0
-                    # ⚠ **上限用乐器合理音域**（`TR_RANGE['Glock'][1]` = 115），不是 127。
-                    # 2026-09-20 实测踩到：旋律顶到 110 时这一层给出 122，被
-                    # `track_ranges_musical` 判为越界（"可能整体移了一/两个八度"）；
-                    # MIDI 合法（≤127）≠ 乐器合理 —— 上限必须按乐器，否则越界音照样写出去。
-                    and m + 12 <= TR_RANGE['Glock'][1]):
+                    # ⚠ **上下限都按乐器合理音域**（`TR_RANGE['Glock']` = 63~115），不是 0/127。
+                    # 上限：2026-09-20 实测踩到 —— 旋律顶到 110 时这一层给出 122，被
+                    # `track_ranges_musical` 判为越界；MIDI 合法（≤127）≠ 乐器合理。
+                    # 下限：2026-09-24 实测踩到 —— 旋律低到 50 时这一层给出 **62**（低 1 个半音），
+                    # 3 首重写的曲子（07/14/61）被同一条守卫抓到。
+                    # **越界就丢弃、不夹断**（与上限同一处理）——注意 `glock_part._hi` 里那条
+                    # `while m < 63: m += 12` 是**另一条路径**（和弦音 + oct），别混淆。
+                    and TR_RANGE['Glock'][0] <= m + 12 <= TR_RANGE['Glock'][1]):
                 bucket['Glock'].append((t, dur * 0.9, m + 12, 54))
         # 副旋律/加厚层（opt-in）：给旋律音配一个**和弦内的低三度**（保证协和），
         # 走 Strings 轨（没有就退到 Hook/Piano）。这是"听起来做得很满"最省的一招。
@@ -1697,7 +1700,7 @@ def build_events(d):
             _end = (bar0 + nbars) * B
             # **收尾逐小节渐弱**（段级 `arr.ending_fade` = 本段最后 N 小节）——
             # 依据 `docs/CASE-BGM36.md:60`：它最后 **7 个连续小节**一路衰减到 **−94.1dB**；
-            # `docs/CASE-BGM35.md:129` 是 5 小节到 −38dB（`RECIPE-BGM35.md:40` 收尾起音 0.4）。
+            # 原案例文档（已删 2026-09-24） 是 5 小节到 −38dB（原结构配方（已删 2026-09-24） 收尾起音 0.4）。
             # ⚠ 我们原来的 `section_gap` 只做段末几拍，实测收尾段 RMS 只到 **−16.5~−17.4dB**
             #   （主体 −15.9）—— **量级差 20~77dB**，这就是"一首放完直接切下一首"的听感来源。
             # 用**二次**衰减而非线性：dB 上更接近"逐小节掉一截"的指数形。
@@ -1998,6 +2001,32 @@ def build_events(d):
         ev[_tr] = sorted((float(_x[0]) * 4.0 + float(_x[1]), max(0.05, float(_x[2])),
                           int(max(0, min(127, _x[3]))), _vel_of(_x))
                          for _x in _keep)
+    # **音域夹取：本函数返回前兜底（始终生效）** —— 2026-09-24。
+    #   `TR_RANGE` 是"这个乐器**物理上**能合理弹到哪儿"，越界就是错（**MIDI 合法 ≠ 乐器合理**），
+    #   不该由口味开关（`patterns.range_fix`）决定修不修。
+    #   现场：重写后的 `07_hidden_door`/`14_pixel_quest`/`61_gilded_hall` 三首 Glock 出 **62**
+    #   （下界 63）、`08_smoke_jazz` 的 Melody 出 **38**（下界 43）。
+    #   ⚠ **位置踩了两次**：① 先加在 `range_fix` 之前（本函数中段）→ `write_midi` 那条链生效、
+    #   但 `t_track_ranges_musical` 直接调**本函数**取 `ev`，仍读到 62/38；
+    #   ② 再挪到 `write_midi` 里 → 同病（两个入口，各修一半）。
+    #   正解 = **在 `build_events` 的返回值之前**修（`ev` 同时是 `write_midi` 的输入，
+    #   一处修、两个入口都对）。夹取幂等，`write_midi` 里那次重复无害。
+    _n_oct0 = 0
+    for _k, _lst in ev.items():
+        _rg = TR_RANGE.get(_k)
+        if not _rg:
+            continue
+        for _i, (_t, _dd, _m, _v) in enumerate(_lst):
+            _m2 = _m
+            while _m2 < _rg[0]:
+                _m2 += 12
+            while _m2 > _rg[1]:
+                _m2 -= 12
+            if _m2 != _m:
+                _n_oct0 += 1
+                _lst[_i] = (_t, _dd, _m2, _v)
+    if _n_oct0:
+        print('  音域夹取（build_events 出口）：移八度 %d 个' % _n_oct0)
     return ev, bar0
 
 
@@ -2187,6 +2216,32 @@ def write_midi(d, ev, path):
         ccs = [(0.0, 10, pan), (0.0, 7, vol)] + sorted(auto.get(name, []))
         ccs += sorted(aprog.get(name, []), key=lambda z: z[0])
         tracks.append((name, prog, chan, ev[name], ccs))
+    # **音域夹取：写盘前统一兜底（始终生效）** —— 2026-09-24。
+    #   `TR_RANGE` 是"这个乐器**物理上**能合理弹到哪儿"，越界就是错（**MIDI 合法 ≠ 乐器合理**），
+    #   不该由口味开关（`patterns.range_fix`）决定修不修。
+    #   现场：重写后的 `07_hidden_door`/`14_pixel_quest`/`61_gilded_hall` 三首 Glock 出 **62**
+    #   （比下界 63 低一个半音）、`08_smoke_jazz` 的 Melody 出 **38**（下界 43）—— 而它们
+    #   **都开着** `range_fix`，说明中间某步写进了未被覆盖的音。
+    #   ⚠ **位置很关键**：第一版插在 `range_fix` 之前（函数中段），实测**不生效** ——
+    #   `t_track_ranges_musical` 直接调本函数取 `ev`，仍读到 62/38；挪到**组装 tracks 之前**
+    #   （此处）才覆盖全部音（`tracks` 存的是 `ev[name]` 的**列表引用**，改元素即改 tracks）。
+    #   夹取幂等，所以 `range_fix` 里那次重复无害。
+    _n_oct0 = 0
+    for _k, _lst in ev.items():
+        _rg = TR_RANGE.get(_k)
+        if not _rg:
+            continue
+        for _i, (_t, _dd, _m, _v) in enumerate(_lst):
+            _m2 = _m
+            while _m2 < _rg[0]:
+                _m2 += 12
+            while _m2 > _rg[1]:
+                _m2 -= 12
+            if _m2 != _m:
+                _n_oct0 += 1
+                _lst[_i] = (_t, _dd, _m2, _v)
+    if _n_oct0:
+        print('  音域夹取（写盘前兜底）：移八度 %d 个' % _n_oct0)
     if skipped:
         print('  (跳过空轨: %s)' % ', '.join(skipped))
     bs.BPM = d['bpm']

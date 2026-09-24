@@ -1,23 +1,23 @@
 {
  "name": "neon_mix",
- "file": "aggregate(4 refs)",
+ "file": "aggregate(6 refs)",
  "aggregate": true,
  "theme": "neon",
  "bpm": 139.8,
  "rms_db": -16.9,
  "width": 0.66,
- "centroid": 3284,
+ "centroid": 3250,
  "duration": 155.6,
  "character": "instrumental",
  "bands": {
-  "10000-18000": -19.6,
+  "10000-18000": -21.6,
   "1250-2500": -5.9,
-  "160-315": -2.2,
-  "20-40": -16.7,
+  "160-315": -2.1,
+  "20-40": -18.8,
   "2500-5000": -12.9,
   "315-630": -3.8,
-  "40-80": 0.0,
-  "5000-10000": -14.3,
+  "40-80": -1.6,
+  "5000-10000": -15.3,
   "630-1250": -2.5,
   "80-160": -1.1
  },
@@ -25,14 +25,14 @@
   -18.0,
   -17.0,
   -17.0,
-  -16.0,
-  -16.0,
-  -16.0,
-  -16.0,
+  -17.0,
+  -17.0,
+  -17.0,
+  -17.0,
   -19.0
  ],
- "rhythm_low": "★★★·★◇◇·★◇★◇★★★◇",
- "rhythm_high": "◇◇★★·★★◇★◇★★◇★★★",
+ "rhythm_low": "★★◇·★◇◇◇★◇★★★◇★◇",
+ "rhythm_high": "◇◇★★·★◇◇◇◇★★◇★★★",
  "quiet_chroma": {
   "D#": 1.0,
   "F": 0.81,
@@ -41,7 +41,7 @@
   "C#": 0.51,
   "F#": 0.47
  },
- "periodicity": 0.393,
+ "periodicity": 0.121,
  "members": [
   {
    "ref": "BGM15c",
@@ -95,6 +95,23 @@
    }
   },
   {
+   "ref": "t2_BGM16",
+   "score": 0.665,
+   "bpm": 150.0,
+   "centroid": 2826,
+   "rms_db": -17.4,
+   "width": 0.678,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM16.ogg",
+    "origin_path": "D:/test/galgame/ピュアソングガーデン！解包/Bgm/BGM16.ogg",
+    "url": null,
+    "url_alt": [],
+    "note": "早期画像没记 source（2026-09-21 补）：依据是画像自带 file 字段里的路径，与同批 46 份的来源一致。"
+   }
+  },
+  {
    "ref": "bgm01c",
    "score": 0.592,
    "bpm": 128.0,
@@ -105,6 +122,23 @@
     "kind": "project_audio",
     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
     "file": "bgm01c.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM06",
+   "score": 0.588,
+   "bpm": 133.9,
+   "centroid": 1533,
+   "rms_db": -16.9,
+   "width": 0.261,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM06.ogg",
     "origin_path": null,
     "url": null,
     "url_alt": [],

@@ -1,7 +1,7 @@
 {
  "name": "quiet_piano_mix",
- "file": "aggregate(1 refs)",
- "aggregate": true,
+ "file": "single ref (BGM19)",
+ "aggregate": false,
  "theme": "quiet_piano",
  "bpm": 80.1,
  "rms_db": -17.2,
@@ -59,5 +59,5 @@
   }
  ],
  "dedup_skipped": [],
- "source_note": "多份真实录音画像的**逐维度中位数**（成员见 members，各自带 source；同一份音频只算一次，被跳过的见 dedup_skipped）—— 单份画像的个性（偏亮/偏厚）不整体带进成品"
+ "source_note": "**单份**真实录音画像（成员 BGM19），不是\"多方参考\"的聚合目标 —— 保留给手工 `--ref quiet_piano_mix` 用；主题的聚合目标请用 `refs/mix_targets/<主题>_mix.json`。（2026-09-24 修正：原字段写着\"多份…中位数\"，与实际的 1 份矛盾）"
 }

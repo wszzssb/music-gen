@@ -1,37 +1,33 @@
 {
  "name": "seaside_mix",
- "file": "aggregate(6 refs)",
+ "file": "aggregate(8 refs)",
  "aggregate": true,
  "theme": "seaside",
- "bpm": 132.4,
- "rms_db": -16.9,
- "width": 0.369,
- "centroid": 3284,
+ "bpm": 133.9,
+ "rms_db": -17.1,
+ "width": 0.66,
+ "centroid": 2472,
  "duration": 143.9,
  "character": "instrumental",
  "bands": {
-  "10000-18000": -21.6,
-  "1250-2500": -9.4,
-  "160-315": -2.2,
+  "10000-18000": -25.9,
+  "1250-2500": -8.0,
+  "160-315": -2.9,
   "20-40": -14.3,
   "2500-5000": -12.9,
-  "315-630": -3.9,
-  "40-80": 0.0,
-  "5000-10000": -16.0,
-  "630-1250": -7.8,
-  "80-160": -1.1
+  "315-630": -2.2,
+  "40-80": -2.2,
+  "5000-10000": -19.2,
+  "630-1250": -3.8,
+  "80-160": -2.2
  },
  "structure": [
-  -17.0,
-  -17.0,
-  -17.0,
-  -17.0,
-  -16.0,
-  -16.0,
-  -16.0
+  -18.0,
+  -18.0,
+  -17.0
  ],
- "rhythm_low": "★◇◇·◇◇◇◇◇◇◇★◇◇◇◇",
- "rhythm_high": "◇◇★◇◇◇◇◇·◇★★◇★◇◇",
+ "rhythm_low": "★◇◇·◇◇◇◇◇◇◇◇◇◇◇◇",
+ "rhythm_high": "◇◇◇◇··◇◇··★★◇◇◇◇",
  "quiet_chroma": {
   "A": 1.0,
   "D": 0.83,
@@ -40,11 +36,11 @@
   "D#": 0.26,
   "C": 0.23
  },
- "periodicity": 0.123,
+ "periodicity": 0.245,
  "members": [
   {
    "ref": "bgm01c",
-   "score": 0.911,
+   "score": 0.912,
    "bpm": 128.0,
    "centroid": 3284,
    "rms_db": -14.3,
@@ -78,7 +74,7 @@
   },
   {
    "ref": "BGM15c",
-   "score": 0.803,
+   "score": 0.802,
    "bpm": 132.4,
    "centroid": 3338,
    "rms_db": -19.3,
@@ -112,7 +108,7 @@
   },
   {
    "ref": "BGM18",
-   "score": 0.689,
+   "score": 0.688,
    "bpm": 134.7,
    "centroid": 2043,
    "rms_db": -22.2,
@@ -129,7 +125,7 @@
   },
   {
    "ref": "fine_BGM09",
-   "score": 0.664,
+   "score": 0.665,
    "bpm": 123.0,
    "centroid": 3695,
    "rms_db": -17.1,
@@ -144,6 +140,40 @@
      "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
     ],
     "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
+   }
+  },
+  {
+   "ref": "BGM16b",
+   "score": 0.655,
+   "bpm": 139.8,
+   "centroid": 2472,
+   "rms_db": -17.9,
+   "width": 0.77,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM16b.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM18b",
+   "score": 0.598,
+   "bpm": 134.7,
+   "centroid": 1971,
+   "rms_db": -22.1,
+   "width": 0.818,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM18b.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
    }
   }
  ],

@@ -12,7 +12,7 @@
 > **来源**：`D:\test\llm_direct\b35_remake\notes.md`（242 行）+ 活跃工作区
 > `b35_studio\songs\99_b35_remake\`（十几版 `song.json.*.bak`、`_archive/versions/` 十几个
 > 版本 ogg、388 个 `b35_*.py`）。**原文没有正式文档，本文是逆推 + 整理**。
-> 配套：`docs/CASE-BGM35.md`（案例）、`docs/CASE-BGM35-FINDINGS.md`（41+ 条实测）、
+> 配套：原案例文档（已删 2026-09-24）（案例）、原案例实测台账（已按用户要求删除 2026-09-24）（41+ 条实测）、
 > `PITFALLS.md` 165/180/182–190（坑）。
 > ⚠ **本文只讲"怎么做"，不提供模板内容**（成品/配方属另一回事）。
 

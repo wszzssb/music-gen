@@ -1,7 +1,7 @@
 {
  "theme": "lounge",
  "label": "酒馆爵士",
- "desc": "酒馆爵士（主题模板包：10 首同主题模板聚合）",
+ "desc": "酒馆爵士（主题模板包：16 首同主题模板聚合）",
  "styles": [
   "jazz",
   "blues",
@@ -13,7 +13,7 @@
   4
  ],
  "min_templates": 8,
- "template_count": 10,
+ "template_count": 16,
  "bpm": {
   "median": 132.0,
   "p25": 120.0,
@@ -22,23 +22,22 @@
  "key": {
   "tonic": "C",
   "pc": 0,
-  "mode": "minor",
-  "confidence": 0.3,
+  "mode": "major",
+  "confidence": 0.25,
   "scale_degree_weight": [
-   2578554.16,
-   139358.24,
-   634577.68,
-   537794.8,
-   580766.8,
-   1497222.91,
-   151733.8,
-   1469349.97,
-   251371.07,
-   863167.88,
-   586032.12,
-   437478.2
-  ],
-  "mode_source": "human: CASE-BGM35 三条共性（原统计 confidence 仅 0.3）"
+   3390260.11,
+   232539.52,
+   874928.96,
+   639669.89,
+   922871.76,
+   1751471.98,
+   198635.8,
+   2029848.05,
+   429296.23,
+   1060176.6,
+   764968.48,
+   513857.2
+  ]
  },
  "templates": [
   {
@@ -56,6 +55,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "blues/Backfield-Blues.mid",
+   "style": "blues",
+   "md5": "2b5f6e4744e8f80c92c8365e3e04bb3d",
+   "bpm": 110.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 100,
+   "seconds": 217.9,
+   "source": "https://bitmidi.com/uploads/15090.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "blues/Boogie-Woogie.mid",
    "style": "blues",
    "md5": "26e7f6a1ed27d8bd44cc30fb3cff571f",
@@ -67,6 +80,20 @@
    "bars": 113,
    "seconds": 207.5,
    "source": "https://bitmidi.com/uploads/19185.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "blues/Another-Blues.mid",
+   "style": "blues",
+   "md5": "25deedf3173fb277ba307f28c62023d9",
+   "bpm": 175.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 200,
+   "seconds": 273.1,
+   "source": "https://bitmidi.com/uploads/7006.mid",
    "kind": "bitmidi"
   },
   {
@@ -98,31 +125,59 @@
    "kind": "bitmidi"
   },
   {
-   "file": "jazz/Cowboy Bebop - Goodnight Julia.mid",
+   "file": "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
    "style": "jazz",
-   "md5": "7ad90955c59e811ea893bd056013ff11",
+   "md5": "9a3cc9c3b1ff493e4513b6b23cb8da92",
    "bpm": 120.0,
    "timesig": [
     4,
     4
    ],
-   "bars": 44,
-   "seconds": 88.0,
-   "source": "https://bitmidi.com/uploads/25905.mid",
+   "bars": 105,
+   "seconds": 210.0,
+   "source": "https://bitmidi.com/uploads/8049.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "jazz/Cowboy Bebop - Cat Blues.mid",
+   "file": "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
    "style": "jazz",
-   "md5": "949cf1e0dbf59dde0a174c8367ddf01d",
-   "bpm": 144.0,
+   "md5": "a3fe9abebc824bb5b2f2e28f8cc7eb8a",
+   "bpm": 132.0,
    "timesig": [
     4,
     4
    ],
-   "bars": 88,
-   "seconds": 145.8,
-   "source": "https://bitmidi.com/uploads/25903.mid",
+   "bars": 114,
+   "seconds": 205.7,
+   "source": "https://bitmidi.com/uploads/3092.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid",
+   "style": "jazz",
+   "md5": "a31a41a04f7d0015936e7747dc150b53",
+   "bpm": 138.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 102,
+   "seconds": 177.1,
+   "source": "https://bitmidi.com/uploads/4879.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "jazz/bebop.mid",
+   "style": "jazz",
+   "md5": "71250138dd3b9294156ecf9165496c60",
+   "bpm": 156.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 28,
+   "seconds": 43.0,
+   "source": "https://bitmidi.com/uploads/16551.mid",
    "kind": "bitmidi"
   },
   {
@@ -154,6 +209,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "pop/Pop-Vamp.mid",
+   "style": "pop",
+   "md5": "795cb1d8f3adf8f9647c5a17d6fe03b0",
+   "bpm": 125.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 82,
+   "seconds": 157.3,
+   "source": "https://bitmidi.com/uploads/35242.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "pop/Disco Citizens - Footprint.mid",
    "style": "pop",
    "md5": "a15e4ec30d5281e6e10107525742861a",
@@ -165,6 +234,20 @@
    "bars": 16,
    "seconds": 29.1,
    "source": "https://bitmidi.com/uploads/39730.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+   "style": "pop",
+   "md5": "a90d8973d0c7d3bcb385913a0c2ffcad",
+   "bpm": 140.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 8,
+   "seconds": 13.7,
+   "source": "https://bitmidi.com/uploads/40059.mid",
    "kind": "bitmidi"
   },
   {
@@ -183,41 +266,42 @@
   }
  ],
  "source_kinds": {
-  "bitmidi": 10
+  "bitmidi": 16
  },
  "harmony": {
   "primary": [
    "C7",
-   "Gm7",
-   "Fm7",
+   "F7",
+   "C7",
    "F7"
   ],
-  "primary_source": "window4",
+  "primary_source": "window2",
   "progressions": [
    {
     "degrees": [
-     0,
-     4,
-     0,
-     5
+     7,
+     5,
+     5,
+     0
     ],
     "romans": [
-     "I",
-     "III7",
-     "I7",
-     "iv6"
+     "Vsus4",
+     "IVmaj7",
+     "IVmaj7",
+     "I6"
     ],
-    "count": 3,
+    "count": 5,
     "templates": [
      "blues/Boogie-Woogie.mid",
-     "pop/IGGY POP.Louie Louie.mid"
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.19,
     "symbols": [
-     "Csus4",
-     "E7",
-     "C7",
-     "Fm6"
+     "Gsus4",
+     "Fmaj7",
+     "Fmaj7",
+     "C6"
     ],
     "usable": true
    },
@@ -226,25 +310,25 @@
      0,
      7,
      5,
-     5
+     0
     ],
     "romans": [
-     "I7",
-     "v7",
-     "iv7",
-     "IV7"
+     "I",
+     "V",
+     "IV6",
+     "I"
     ],
-    "count": 3,
+    "count": 6,
     "templates": [
-     "blues/Boogie-Woogie.mid",
-     "jazz/Cowboy Bebop - Goodnight Julia.mid"
+     "blues/Backfield-Blues.mid",
+     "blues/Boogie-Woogie.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
      "C7",
-     "Gm7",
-     "Fm7",
-     "F7"
+     "Gsus4",
+     "F6",
+     "C7"
     ],
     "usable": true
    },
@@ -256,75 +340,76 @@
      5
     ],
     "romans": [
-     "i6",
-     "I6",
-     "V7",
+     "I",
+     "I",
+     "V",
      "IV6"
     ],
-    "count": 2,
+    "count": 5,
     "templates": [
-     "blues/Boogie-Woogie.mid",
-     "jazz/Cowboy Bebop - Goodnight Julia.mid"
+     "blues/Backfield-Blues.mid",
+     "blues/Boogie-Woogie.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "Cm6",
-     "C6",
-     "G7",
+     "C7",
+     "C7",
+     "Gsus4",
      "F6"
     ],
     "usable": true
    },
    {
     "degrees": [
-     9,
-     2,
-     2,
-     0
+     5,
+     0,
+     0,
+     7
     ],
     "romans": [
-     "vi7",
-     "iim7b5",
-     "iim7b5",
-     "im7b5"
+     "IV",
+     "I",
+     "I",
+     "V"
     ],
-    "count": 2,
+    "count": 5,
     "templates": [
-     "blues/After-Dinner-Blues.mid",
-     "jazz/Alexander's-Ragtime-Band.mid"
+     "blues/Backfield-Blues.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "Am7",
-     "Dm7b5",
-     "Dm7b5",
-     "Cm7b5"
+     "F7",
+     "C7",
+     "C7",
+     "Gsus4"
     ],
     "usable": true
    },
    {
     "degrees": [
      7,
+     5,
      0,
-     0,
-     6
+     0
     ],
     "romans": [
-     "V6",
-     "I7",
-     "i6",
-     "bvdim"
+     "V",
+     "IV6",
+     "I",
+     "I"
     ],
-    "count": 3,
+    "count": 4,
     "templates": [
-     "blues/After-Dinner-Blues.mid"
+     "blues/Backfield-Blues.mid",
+     "blues/Boogie-Woogie.mid"
     ],
-    "template_share": 0.1,
+    "template_share": 0.12,
     "symbols": [
-     "G6",
+     "Gsus4",
+     "F6",
      "C7",
-     "Cm6",
-     "F#dim"
+     "C7"
     ],
     "usable": true
    }
@@ -332,28 +417,29 @@
   "progressions_4": [
    {
     "degrees": [
-     0,
-     4,
-     0,
-     5
+     7,
+     5,
+     5,
+     0
     ],
     "romans": [
-     "I",
-     "III7",
-     "I7",
-     "iv6"
+     "Vsus4",
+     "IVmaj7",
+     "IVmaj7",
+     "I6"
     ],
-    "count": 3,
+    "count": 5,
     "templates": [
      "blues/Boogie-Woogie.mid",
-     "pop/IGGY POP.Louie Louie.mid"
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.19,
     "symbols": [
-     "Am7",
-     "Dm7b5",
-     "Dm7b5",
-     "Cm7b5"
+     "Gsus4",
+     "Fmaj7",
+     "Fmaj7",
+     "C6"
     ],
     "usable": true
    },
@@ -362,105 +448,106 @@
      0,
      7,
      5,
-     5
-    ],
-    "romans": [
-     "I7",
-     "v7",
-     "iv7",
-     "IV7"
-    ],
-    "count": 3,
-    "templates": [
-     "blues/Boogie-Woogie.mid",
-     "jazz/Cowboy Bebop - Goodnight Julia.mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "Am7",
-     "Dm7b5",
-     "Dm7b5",
-     "Cm7b5"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     0,
-     0,
-     7,
-     5
-    ],
-    "romans": [
-     "i6",
-     "I6",
-     "V7",
-     "IV6"
-    ],
-    "count": 2,
-    "templates": [
-     "blues/Boogie-Woogie.mid",
-     "jazz/Cowboy Bebop - Goodnight Julia.mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "Am7",
-     "Dm7b5",
-     "Dm7b5",
-     "Cm7b5"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     9,
-     2,
-     2,
      0
     ],
     "romans": [
-     "vi7",
-     "iim7b5",
-     "iim7b5",
-     "im7b5"
+     "I",
+     "V",
+     "IV6",
+     "I"
     ],
-    "count": 2,
+    "count": 6,
     "templates": [
-     "blues/After-Dinner-Blues.mid",
-     "jazz/Alexander's-Ragtime-Band.mid"
+     "blues/Backfield-Blues.mid",
+     "blues/Boogie-Woogie.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "Am7",
-     "Dm7b5",
-     "Dm7b5",
-     "Cm7b5"
+     "C7",
+     "Gsus4",
+     "F6",
+     "C7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     0,
+     7,
+     5
+    ],
+    "romans": [
+     "I",
+     "I",
+     "V",
+     "IV6"
+    ],
+    "count": 5,
+    "templates": [
+     "blues/Backfield-Blues.mid",
+     "blues/Boogie-Woogie.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "C7",
+     "C7",
+     "Gsus4",
+     "F6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     0,
+     0,
+     7
+    ],
+    "romans": [
+     "IV",
+     "I",
+     "I",
+     "V"
+    ],
+    "count": 5,
+    "templates": [
+     "blues/Backfield-Blues.mid",
+     "pop/Pop-Vamp.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "F7",
+     "C7",
+     "C7",
+     "Gsus4"
     ],
     "usable": true
    },
    {
     "degrees": [
      7,
+     5,
      0,
-     0,
-     6
+     0
     ],
     "romans": [
-     "V6",
-     "I7",
-     "i6",
-     "bvdim"
+     "V",
+     "IV6",
+     "I",
+     "I"
     ],
-    "count": 3,
+    "count": 4,
     "templates": [
-     "blues/After-Dinner-Blues.mid"
+     "blues/Backfield-Blues.mid",
+     "blues/Boogie-Woogie.mid"
     ],
-    "template_share": 0.1,
+    "template_share": 0.12,
     "symbols": [
-     "G6",
+     "Gsus4",
+     "F6",
      "C7",
-     "Cm6",
-     "F#dim"
+     "C7"
     ],
     "usable": true
    }
@@ -472,25 +559,25 @@
      5
     ],
     "romans": [
-     "I",
-     "iv6"
+     "I7",
+     "IV7"
     ],
-    "count": 32,
+    "count": 39,
     "templates": [
      "blues/After-Dinner-Blues.mid",
+     "blues/Backfield-Blues.mid",
      "blues/Boogie-Woogie.mid",
      "jazz/Alexander's-Ragtime-Band.mid",
      "jazz/Cowboy Bebop - ELM.mid",
-     "jazz/Cowboy Bebop - Goodnight Julia.mid",
      "pop/Disco Citizens - Footprint.mid",
-     "pop/IGGY POP.Louie Louie.mid"
+     "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+     "pop/IGGY POP.Louie Louie.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.7,
+    "template_share": 0.56,
     "symbols": [
-     "Am7",
-     "Dm7b5",
-     "Dm7b5",
-     "Cm7b5"
+     "C7",
+     "F7"
     ],
     "usable": true
    },
@@ -500,22 +587,24 @@
      7
     ],
     "romans": [
-     "I7",
-     "V6"
+     "i6",
+     "Vsus4"
     ],
-    "count": 17,
+    "count": 36,
     "templates": [
      "blues/After-Dinner-Blues.mid",
+     "blues/Another-Blues.mid",
+     "blues/Backfield-Blues.mid",
      "blues/Boogie-Woogie.mid",
-     "jazz/Cowboy Bebop - Cat Blues.mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
      "jazz/Cowboy Bebop - ELM.mid",
-     "jazz/Cowboy Bebop - Goodnight Julia.mid",
-     "pop/Disco-Fans.mid"
+     "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.6,
+    "template_share": 0.5,
     "symbols": [
-     "C7",
-     "G6"
+     "Cm6",
+     "Gsus4"
     ],
     "usable": true
    },
@@ -525,21 +614,24 @@
      0
     ],
     "romans": [
-     "V6",
-     "I7"
+     "v6",
+     "Isus4"
     ],
-    "count": 12,
+    "count": 30,
     "templates": [
      "blues/After-Dinner-Blues.mid",
+     "blues/Another-Blues.mid",
+     "blues/Backfield-Blues.mid",
      "blues/Boogie-Woogie.mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
      "jazz/Cowboy Bebop - ELM.mid",
-     "jazz/Cowboy Bebop - Goodnight Julia.mid",
-     "pop/Disco-Fans.mid"
+     "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid"
     ],
     "template_share": 0.5,
     "symbols": [
-     "G6",
-     "C7"
+     "Gm6",
+     "Csus4"
     ],
     "usable": true
    },
@@ -549,42 +641,23 @@
      0
     ],
     "romans": [
-     "iv6",
-     "I"
+     "IV7",
+     "I6"
     ],
-    "count": 30,
+    "count": 47,
     "templates": [
+     "blues/Backfield-Blues.mid",
      "blues/Boogie-Woogie.mid",
+     "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
      "jazz/Cowboy Bebop - ELM.mid",
-     "jazz/Cowboy Bebop - Goodnight Julia.mid",
-     "pop/IGGY POP.Louie Louie.mid"
+     "pop/IGGY POP.Louie Louie.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.4,
+    "template_share": 0.44,
     "symbols": [
-     "Fm6",
-     "Csus4"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     3,
-     0
-    ],
-    "romans": [
-     "bIII6",
-     "Isus4"
-    ],
-    "count": 13,
-    "templates": [
-     "blues/Boogie-Woogie.mid",
-     "jazz/Cowboy Bebop - Cat Blues.mid",
-     "jazz/Cowboy Bebop - ELM.mid"
-    ],
-    "template_share": 0.3,
-    "symbols": [
-     "D#6",
-     "Csus4"
+     "F7",
+     "C6"
     ],
     "usable": true
    },
@@ -597,186 +670,213 @@
      "I",
      "III7"
     ],
-    "count": 37,
+    "count": 46,
     "templates": [
+     "blues/Another-Blues.mid",
+     "blues/Backfield-Blues.mid",
      "blues/Boogie-Woogie.mid",
+     "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid",
      "pop/IGGY POP.Louie Louie.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.44,
     "symbols": [
-     "Csus4",
+     "C7",
      "E7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     4,
+     0
+    ],
+    "romans": [
+     "III7",
+     "I"
+    ],
+    "count": 38,
+    "templates": [
+     "blues/Another-Blues.mid",
+     "blues/Boogie-Woogie.mid",
+     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
+    "template_share": 0.25,
+    "symbols": [
+     "E7",
+     "C7"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
-   "Am7",
-   "Dm7b5",
-   "Dm7b5",
-   "Cm7b5"
+   "C7",
+   "Csus4",
+   "C7",
+   "C6"
   ],
   "pool_progression_romans": [
    "I",
    "Isus4",
-   "i7",
-   "v7"
+   "I7",
+   "I6"
   ],
   "chord_pool": [
    {
     "degree": 0,
     "roman": "I",
-    "suffix": "sus4",
-    "count": 241,
-    "templates": 10
+    "suffix": "7",
+    "count": 373,
+    "templates": 16
    },
    {
     "degree": 7,
     "roman": "V",
     "suffix": "sus4",
-    "count": 124,
-    "templates": 9
+    "count": 239,
+    "templates": 11
    },
    {
     "degree": 5,
     "roman": "IV",
     "suffix": "7",
+    "count": 171,
+    "templates": 14
+   },
+   {
+    "degree": 6,
+    "roman": "bV",
+    "suffix": "7",
     "count": 115,
     "templates": 8
-   },
-   {
-    "degree": 2,
-    "roman": "II",
-    "suffix": "7",
-    "count": 46,
-    "templates": 5
-   },
-   {
-    "degree": 9,
-    "roman": "VI",
-    "suffix": "m7",
-    "count": 43,
-    "templates": 7
-   },
-   {
-    "degree": 8,
-    "roman": "bVI",
-    "suffix": "maj7",
-    "count": 42,
-    "templates": 4
-   },
-   {
-    "degree": 4,
-    "roman": "III",
-    "suffix": "7",
-    "count": 39,
-    "templates": 3
-   },
-   {
-    "degree": 10,
-    "roman": "bVII",
-    "suffix": "6",
-    "count": 35,
-    "templates": 5
    },
    {
     "degree": 3,
     "roman": "bIII",
     "suffix": "6",
-    "count": 23,
-    "templates": 5
+    "count": 99,
+    "templates": 7
    },
    {
-    "degree": 6,
-    "roman": "bV",
-    "suffix": "dim",
-    "count": 13,
-    "templates": 3
+    "degree": 4,
+    "roman": "III",
+    "suffix": "7",
+    "count": 83,
+    "templates": 7
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "7",
+    "count": 82,
+    "templates": 8
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
+    "suffix": "6",
+    "count": 55,
+    "templates": 6
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m7",
+    "count": 45,
+    "templates": 8
+   },
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "maj7",
+    "count": 43,
+    "templates": 4
    },
    {
     "degree": 1,
     "roman": "bII",
-    "suffix": "",
-    "count": 13,
-    "templates": 4
+    "suffix": "dim",
+    "count": 34,
+    "templates": 6
    },
    {
     "degree": 11,
     "roman": "VII",
-    "suffix": "m7b5",
-    "count": 3,
-    "templates": 3
+    "suffix": "m7",
+    "count": 24,
+    "templates": 5
    }
   ],
-  "chord_per_bar": 0.86
+  "chord_per_bar": 0.89
  },
  "rhythm": {
-  "low16": "★···★···★···★··★",
-  "high16": "★·★·★·★★★·★·★·★★",
+  "low16": "★···★··★★···★··★",
+  "high16": "★·★★★·★★★·★★★··★",
   "low_slot_share": [
-   0.8,
-   0.2,
-   0.4,
-   0.3,
-   0.8,
-   0.2,
-   0.5,
-   0.5,
-   0.7,
-   0.3,
-   0.5,
-   0.3,
-   0.8,
-   0.2,
-   0.4,
-   0.6
+   0.94,
+   0.19,
+   0.31,
+   0.31,
+   0.81,
+   0.12,
+   0.44,
+   0.62,
+   0.81,
+   0.25,
+   0.38,
+   0.31,
+   0.81,
+   0.12,
+   0.31,
+   0.62
   ],
   "high_slot_share": [
-   1.0,
+   0.94,
+   0.38,
+   0.62,
+   0.62,
+   0.94,
+   0.25,
+   0.69,
+   0.62,
+   0.94,
+   0.31,
+   0.62,
+   0.62,
+   0.94,
+   0.25,
    0.5,
-   0.7,
-   0.5,
-   1.0,
-   0.3,
-   0.7,
-   0.6,
-   1.0,
-   0.4,
-   0.7,
-   0.5,
-   1.0,
-   0.3,
-   0.6,
-   0.7
+   0.62
   ],
-  "low_density": 16.04,
-  "high_density": 14.48,
-  "bass_density": 1.56,
-  "perc_density": 5.84,
+  "low_density": 16.24,
+  "high_density": 13.18,
+  "bass_density": 2.13,
+  "perc_density": 6.94,
   "slots": 16,
   "bass_style": "simple",
   "perc_style": "light"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.2,
-   "brass": 0.1,
-   "fx": 0.1,
-   "guitar": 0.1,
-   "lead": 0.1,
-   "perc": 0.1,
-   "piano": 0.8,
-   "pipe": 0.1,
-   "reed": 0.3,
-   "strings": 0.1
+   "bass": 0.38,
+   "brass": 0.12,
+   "fx": 0.06,
+   "guitar": 0.25,
+   "lead": 0.06,
+   "perc": 0.06,
+   "piano": 0.81,
+   "reed": 0.12,
+   "strings": 0.06
   },
   "role_range": {
    "bass": [
-    33,
-    57
+    28,
+    54
    ],
    "brass": [
-    62,
+    64,
     89
    ],
    "fx": [
@@ -784,8 +884,8 @@
     56
    ],
    "guitar": [
-    39,
-    78
+    41,
+    79
    ],
    "lead": [
     53,
@@ -796,16 +896,12 @@
     57
    ],
    "piano": [
-    39,
-    87
-   ],
-   "pipe": [
-    64,
-    96
+    38,
+    82
    ],
    "reed": [
-    50,
-    79
+    60,
+    82
    ],
    "strings": [
     60,
@@ -813,58 +909,60 @@
    ]
   },
   "arr_share": {
-   "bass": 0.2,
-   "piano": 0.8,
-   "uku": 0.1,
-   "strings": 0.1,
+   "bass": 0.38,
+   "piano": 0.81,
+   "uku": 0.25,
+   "strings": 0.12,
    "pad": 0.0,
    "glock": 0.0,
-   "ep": 0.1,
-   "perc": 0.1
+   "ep": 0.0,
+   "perc": 0.06
   },
   "arr_on": [
    "piano"
   ],
   "arr_off": [
+   "ep",
    "glock",
    "pad"
   ],
   "arr_maybe": [
    "bass",
-   "ep",
    "perc",
    "strings",
    "uku"
   ],
-  "track_count": 3.3,
+  "track_count": 3.2,
   "style_mix": {
-   "blues": 3,
-   "jazz": 4,
-   "pop": 3
+   "blues": 5,
+   "jazz": 6,
+   "pop": 5
   },
   "prog_pool": {
    "piano": [
     0,
     1,
+    3,
     2
    ],
-   "ep": [
-    65,
-    66,
-    73,
-    71,
-    80
-   ],
    "bass": [
+    32,
     33,
     38
    ],
-   "uku": [
-    30
+   "ep": [
+    65,
+    71,
+    80
    ],
    "strings": [
+    61,
     62,
     48
+   ],
+   "uku": [
+    26,
+    30
    ],
    "perc": [
     119
@@ -873,7 +971,7 @@
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 32,
+  "total_bars": 72,
   "plan": [
    {
     "name": "Intro",
@@ -886,12 +984,37 @@
     "prog": 0
    },
    {
-    "name": "B",
+    "name": "A2",
     "bars": 8,
     "prog": 0
    },
    {
-    "name": "A2",
+    "name": "B",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A3",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
     "bars": 8,
     "prog": 0
    },
@@ -903,225 +1026,158 @@
   ]
  },
  "melody": {
-  "notes": 5185,
+  "notes": 3526,
   "range": [
-   46,
-   81
+   38,
+   77
   ],
-  "mean_pitch": 68.95,
-  "notes_per_bar": 6.31,
-  "stepwise_pct": 47.71,
-  "onbeat_pct": 49.98,
-  "diatonic_pct": 86.33,
+  "mean_pitch": 62.55,
+  "notes_per_bar": 3.96,
+  "stepwise_pct": 58.03,
+  "onbeat_pct": 58.6,
+  "diatonic_pct": 90.26,
   "interval_hist": {
-   "-70": 1,
-   "-54": 1,
-   "-49": 1,
-   "-48": 1,
-   "-47": 4,
-   "-46": 1,
-   "-45": 9,
-   "-44": 6,
-   "-43": 4,
-   "-42": 4,
-   "-41": 2,
-   "-40": 8,
-   "-39": 5,
-   "-38": 9,
-   "-37": 2,
-   "-36": 16,
-   "-35": 20,
-   "-34": 8,
-   "-33": 21,
-   "-32": 13,
-   "-31": 28,
-   "-30": 17,
-   "-29": 33,
-   "-28": 43,
-   "-27": 26,
-   "-26": 56,
-   "-25": 41,
-   "-24": 46,
-   "-23": 26,
-   "-22": 32,
-   "-21": 47,
-   "-20": 33,
-   "-19": 40,
-   "-18": 11,
-   "-17": 33,
-   "-16": 30,
-   "-15": 40,
-   "-14": 32,
-   "-13": 23,
-   "-12": 243,
-   "-11": 19,
-   "-10": 46,
-   "-9": 93,
-   "-8": 161,
-   "-7": 131,
-   "-6": 31,
-   "-5": 423,
-   "-4": 385,
-   "-3": 341,
-   "-2": 910,
-   "-1": 590,
-   "0": 1422,
-   "1": 830,
-   "2": 1019,
-   "3": 460,
-   "4": 272,
-   "5": 408,
-   "6": 102,
-   "7": 105,
-   "8": 36,
-   "9": 66,
-   "10": 113,
-   "11": 27,
-   "12": 246,
-   "13": 14,
-   "14": 26,
-   "15": 22,
-   "16": 31,
-   "17": 29,
-   "18": 17,
-   "19": 34,
-   "20": 28,
-   "21": 48,
-   "22": 28,
-   "23": 26,
-   "24": 58,
-   "25": 32,
-   "26": 47,
-   "27": 26,
-   "28": 57,
-   "29": 28,
-   "30": 20,
-   "31": 22,
-   "32": 23,
-   "33": 37,
-   "34": 13,
-   "35": 7,
-   "36": 22,
-   "37": 5,
-   "38": 6,
-   "39": 5,
-   "40": 11,
-   "41": 6,
-   "42": 4,
-   "43": 3,
-   "44": 4,
-   "45": 2,
-   "46": 2,
-   "47": 2,
-   "48": 2,
-   "49": 2,
-   "50": 2,
-   "69": 1
+   "-18": 2,
+   "-16": 8,
+   "-15": 7,
+   "-14": 1,
+   "-13": 19,
+   "-12": 165,
+   "-11": 5,
+   "-10": 15,
+   "-9": 23,
+   "-8": 111,
+   "-7": 297,
+   "-6": 32,
+   "-5": 605,
+   "-4": 390,
+   "-3": 345,
+   "-2": 1102,
+   "-1": 938,
+   "0": 1707,
+   "1": 1031,
+   "2": 1026,
+   "3": 419,
+   "4": 486,
+   "5": 634,
+   "6": 74,
+   "7": 312,
+   "8": 28,
+   "9": 13,
+   "10": 92,
+   "11": 5,
+   "12": 91,
+   "13": 1,
+   "14": 2,
+   "15": 3,
+   "16": 1,
+   "17": 3,
+   "18": 2,
+   "24": 1,
+   "26": 4
   },
   "dur16_hist": {
-   "0": 1566,
-   "1": 3401,
-   "2": 2972,
-   "3": 696,
-   "4": 868,
-   "5": 21,
-   "6": 75,
-   "7": 3,
-   "8": 247,
-   "9": 3,
-   "10": 24,
-   "11": 7,
-   "12": 13,
-   "14": 5,
-   "15": 8,
-   "16": 91
+   "0": 97,
+   "1": 2116,
+   "2": 4353,
+   "3": 1319,
+   "4": 1296,
+   "5": 267,
+   "6": 100,
+   "7": 63,
+   "8": 321,
+   "9": 21,
+   "10": 10,
+   "11": 19,
+   "12": 7,
+   "16": 11
   },
   "onset16_hist": {
-   "0": 1370,
+   "0": 1652,
    "1": 217,
-   "2": 693,
-   "3": 367,
-   "4": 1456,
-   "5": 179,
-   "6": 810,
-   "7": 498,
-   "8": 1082,
-   "9": 247,
-   "10": 432,
-   "11": 387,
-   "12": 1092,
-   "13": 173,
-   "14": 462,
-   "15": 535
+   "2": 727,
+   "3": 280,
+   "4": 1669,
+   "5": 83,
+   "6": 871,
+   "7": 219,
+   "8": 1311,
+   "9": 106,
+   "10": 488,
+   "11": 212,
+   "12": 1227,
+   "13": 100,
+   "14": 550,
+   "15": 286
   },
-  "phrases": 137,
+  "phrases": 180,
   "phrase_bars": [
-   76.68,
-   0.07,
-   11.75,
+   0.4,
+   3.0,
+   2.75,
+   1.46,
+   1.94,
+   5.06,
+   3.46,
+   1.16,
+   1.41,
+   2.56,
+   5.29,
+   1.17,
+   6.83,
+   7.79,
+   2.87,
+   1.54,
+   1.2,
+   4.5,
+   4.43,
+   6.19,
+   8.68,
+   2.99,
+   3.66,
+   0.43,
+   2.42,
+   4.57,
+   2.9,
+   2.6,
+   1.37,
+   2.57,
+   3.18,
+   2.46,
+   4.26,
+   0.64,
+   1.67,
+   3.65,
+   2.24,
+   2.87,
    11.56,
-   84.76,
-   48.96,
+   5.01,
+   7.73,
+   5.05,
+   1.78,
+   4.41,
+   0.75,
+   2.8,
+   5.39,
+   0.17,
+   1.94,
+   0.98,
    4.87,
    1.62,
    9.61,
    10.12,
    6.49,
    24.49,
-   5.0,
-   4.1,
-   2.74,
-   5.25,
-   4.26,
-   2.23,
-   1.74,
-   1.74,
-   3.5,
-   1.5,
-   1.5,
-   0.58,
-   0.58,
-   2.0,
-   0.58,
-   2.0,
-   0.58,
-   2.0,
-   0.58,
-   2.0,
-   0.58,
-   2.0,
-   0.58,
-   1.5,
-   1.42,
-   2.0,
-   0.58,
-   2.0,
-   0.58,
-   1.5,
-   2.67,
-   0.75,
-   1.75,
-   1.12,
-   0.25,
-   10.0,
-   0.58,
-   2.0,
-   0.58,
-   2.0,
-   0.58,
-   2.0,
-   0.58,
-   1.5,
-   25.8,
-   63.75,
-   11.9,
-   0.55
+   7.33,
+   1.68,
+   0.46,
+   7.08
   ],
-  "bars": 82.2,
+  "bars": 89.1,
   "templates": 10
  },
  "notes": [
-  "共 10 首模板，来源：bitmidi×10",
+  "共 16 首模板，来源：bitmidi×16",
   "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/lounge_tracks.json"
  ],
  "tool": "theme_pack.py",
@@ -1232,6 +1288,42 @@
      "url_alt": [],
      "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
+   },
+   {
+    "ref": "BGM18b",
+    "score": 0.636,
+    "bpm": 134.7,
+    "centroid": 1971,
+    "rms_db": -22.1,
+    "width": 0.818,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM18b.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "fine_BGM09",
+    "score": 0.627,
+    "bpm": 123.0,
+    "centroid": 3695,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "source": {
+     "kind": "game_bgm",
+     "detail": "仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）",
+     "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
+     "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
+     "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
+     "url_alt": [
+      "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
+     ],
+     "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
+    }
    }
   ],
   "agg_profile": "lounge_mix",
@@ -1243,15 +1335,40 @@
   "perc_style_target": 0.35,
   "energy_curve_db": [],
   "structure_db": [
-   -17.0,
-   -17.0,
-   -17.0,
-   -17.0,
-   -17.0,
-   -17.0,
-   -17.0,
-   -16.0
+   -18.0,
+   -18.0,
+   -17.0
   ],
+  "density_curve_db": [
+   -2.12,
+   0.34,
+   0.0
+  ],
+  "density_meta": {
+   "n": 14,
+   "files": [
+    "After-Dinner-Blues.mid",
+    "Backfield-Blues.mid",
+    "Boogie-Woogie.mid",
+    "Another-Blues.mid",
+    "Boogie-Woogie-Demo.mid",
+    "Cowboy Bebop - ELM.mid",
+    "ASZNAVOUR.Elle a le swing au corps  K.mid",
+    "A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
+    "Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid",
+    "Alexander's-Ragtime-Band.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Pop-Vamp.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid"
+   ],
+   "abs_curve": [
+    27.12,
+    36.0,
+    34.62
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
+  },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
@@ -1336,43 +1453,7 @@
     "why": "BPM 132.4（差 0.4，0.99）· 打击感 0.60 vs 目标 0.35（0.49）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
-  "density_curve_db": [
-   -2.66,
-   0.22,
-   0.0,
-   -0.45,
-   0.11,
-   1.08,
-   0.0,
-   -1.11
-  ],
-  "density_meta": {
-   "n": 10,
-   "files": [
-    "After-Dinner-Blues.mid",
-    "Boogie-Woogie.mid",
-    "Boogie-Woogie-Demo.mid",
-    "Cowboy Bebop - ELM.mid",
-    "Cowboy Bebop - Goodnight Julia.mid",
-    "Cowboy Bebop - Cat Blues.mid",
-    "Alexander's-Ragtime-Band.mid",
-    "IGGY POP.Louie Louie.mid",
-    "Disco Citizens - Footprint.mid",
-    "Disco-Fans.mid"
-   ],
-   "abs_curve": [
-    29.25,
-    40.75,
-    39.75,
-    37.75,
-    40.25,
-    45.02,
-    39.75,
-    35.0
-   ],
-   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
-  }
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
  },
  "skipped": []
 }

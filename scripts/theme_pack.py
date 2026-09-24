@@ -54,7 +54,10 @@ OUT = os.path.join(ROOT, 'refs', 'themes')    # 主题模板包
 NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
 MIN_TEMPLATES = 8            # 用户口径：同主题**至少 8 首**不同模板
-DEF_TEMPLATES = 10           # 默认取 10 首（8 是下限，10 让统计稳一点）
+# 默认取几首模板（8 是下限）。2026-09-24：10 → **16**，用户口径"再加新的、让他们更真实"。
+# 依据：每个主题的可用模板池实测有 **32~72 首**（`refs/midi2/_index.json` 按风格统计），
+# 取 16 首让和声/速度/调式/配器/旋律画像的统计更稳（样本翻倍，单首个性占比减半）。
+DEF_TEMPLATES = 16
 
 # 模板来源白名单：**只允许** refs/midi2 本地库 + 网络权威站点抓来的（带 URL 可溯源）。
 # 之所以按 **主机名** 而不是"有 URL 就算"：URL 谁都能写，"权威"必须落到具体站点。
@@ -1093,6 +1096,16 @@ def portrait_mode(prof):
 
 MIX_MIN_MEMBERS = 3      # 混音目标**至少聚合几份**参考（用户口径："也要多方参考"）
 MIX_MEMBER_REL = 0.6     # 成员门槛：分数 ≥ 最高分 × 这个比例（不把不相关的参考拉进来）
+# **一次聚合最多几份**（2026-09-24：6 → 8）。用户口径："丰富一下，或者重新写一下"。
+# 依据（实测）：候选池按 `source.file` 去重后，15 个主题每个都有 **12~14 份**可用，
+# 而旧上限 6 让 `battle/neon/retro` 只聚到 4 份；取 8 份 → 中位数更稳、单份画像的
+# 个性（偏亮/偏厚）削得更狠（聚合口径见 `aggregate_refs`）。
+MIX_MEMBER_MAX = 8
+# **不进混音目标候选的画像**（用户 2026-09-24："最好的案例是当时写歌、没有指定风格，
+# 不要参考他，去掉这个参考"）。它是**本地素材**里的单曲、别人拿不到，且用户已明确要求
+# 不再拿它当依据 —— 从**挑选端**排除（与下面"不可溯源画像不进候选"同一处），
+# 于是它既不当成员、也不出现在 `candidates` 里。
+MIX_EXCLUDE = ('BGM35',)
 AGG_DIR = 'mix_targets'  # 聚合画像的落盘目录（`refs/mix_targets/<主题>.json`）
 
 
@@ -1345,6 +1358,8 @@ def mix_target(pack, root=None, top=3):
         name = j.get('name') or os.path.basename(p)[:-5]
         if (j.get('character') or 'instrumental') != 'instrumental':
             continue                                        # 人声主导：不是我们的目标
+        if name in MIX_EXCLUDE:
+            continue                                        # 用户要求不再当依据的画像（见 MIX_EXCLUDE）
         # **不可溯源的画像不进候选**（判据前置）。若只在输出端守"成员逐份要有 source"，
         # 结果是"先被选进成员、再由守卫 FAIL"—— 实测 2026-09-21：重建 battle/neon 后
         # 新成员 `BGM35` 没有 source 字段（早期画像），`mix_target_aggregate` 当场变红。
@@ -1377,8 +1392,26 @@ def mix_target(pack, root=None, top=3):
     # 合格的前 N 份一起当目标，逐维度取中位数 —— 单份画像的个性（偏亮/偏薄）不整体带进成品。
     # 门槛两条：绝对分 ≥ 0.45，且 ≥ 最高分 × `MIX_MEMBER_REL`（免得把"速度差 25BPM"
     # 这种勉强及格的参考也拉进来）；合格的不足 `MIX_MIN_MEMBERS` 份时退回"按分数取前 N"。
-    members = [r for r in rows
-               if r['score'] >= 0.45 and r['score'] >= best['score'] * MIX_MEMBER_REL][:6]
+    # ⚠ **去重必须在切片之前**（2026-09-24 改）：`aggregate_refs` 内部虽也按 `source.file`
+    # 去重，但若先 `[:MIX_MEMBER_MAX]` 再交给它，重复画像会**占掉名额** —— 实测
+    # `battle/neon/retro` 的候选前 8 里有 2~3 份是同一音频的不同画像版本
+    # （`BGM16c`/`BGM16c_v2`/`bgm16c_new`）→ 去重后只落到实处 6 份，"扩到 8 份"名不副实。
+    members, _seen = [], {}
+    for r in rows:
+        if not (r['score'] >= 0.45 and r['score'] >= best['score'] * MIX_MEMBER_REL):
+            continue
+        _p = os.path.join(root, 'refs', str(r['ref']) + '.json')
+        try:
+            _j = json.load(open(_p, encoding='utf-8'))
+        except Exception:                                  # noqa: BLE001
+            continue
+        _k = ((_j.get('source') or {}).get('file') or _j.get('file') or r['ref'])
+        if _k in _seen:
+            continue                                       # 同一份音频只投一票
+        _seen[_k] = r['ref']
+        members.append(r)
+        if len(members) >= MIX_MEMBER_MAX:
+            break
     if len(members) < MIX_MIN_MEMBERS:
         members = rows[:MIX_MIN_MEMBERS]
     agg = aggregate_refs(pack.get('theme') or 'theme', members, root=root)

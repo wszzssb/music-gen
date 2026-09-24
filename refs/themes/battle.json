@@ -1,7 +1,7 @@
 {
  "theme": "battle",
  "label": "战斗",
- "desc": "战斗（主题模板包：10 首同主题模板聚合）",
+ "desc": "战斗（主题模板包：16 首同主题模板聚合）",
  "styles": [
   "rock",
   "game16",
@@ -13,30 +13,30 @@
   4
  ],
  "min_templates": 8,
- "template_count": 10,
+ "template_count": 16,
  "bpm": {
   "median": 139.0,
-  "p25": 100.0,
-  "p75": 140.0
+  "p25": 117.0,
+  "p75": 143.0
  },
  "key": {
-  "tonic": "C",
-  "pc": 0,
-  "mode": "minor",
-  "confidence": 0.3,
+  "tonic": "D",
+  "pc": 2,
+  "mode": "major",
+  "confidence": 0.25,
   "scale_degree_weight": [
-   2327488.35,
-   32457.6,
-   471243.7,
-   360448.96,
-   263629.03,
-   627041.69,
-   21814.98,
-   1026023.78,
-   302167.64,
-   294620.87,
-   735546.51,
-   231004.65
+   3347408.79,
+   33123.2,
+   776397.14,
+   667042.28,
+   316858.63,
+   1060951.05,
+   41184.98,
+   1809365.02,
+   435357.64,
+   453491.27,
+   1091619.55,
+   405897.65
   ]
  },
  "templates": [
@@ -52,6 +52,20 @@
    "bars": 63,
    "seconds": 151.2,
    "source": "https://www.vgmusic.com/music/console/nintendo/snes/7thsaga_town3-1.mid",
+   "kind": "vgmusic"
+  },
+  {
+   "file": "game16/Menu.mid",
+   "style": "game16",
+   "md5": "afb48b7ee0aa26daed25c449d9d6879e",
+   "bpm": 117.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 24,
+   "seconds": 49.2,
+   "source": "https://www.vgmusic.com/music/console/nintendo/snes/Menu.mid",
    "kind": "vgmusic"
   },
   {
@@ -83,6 +97,20 @@
    "kind": "vgmusic"
   },
   {
+   "file": "game16/Rules.mid",
+   "style": "game16",
+   "md5": "bd06bb3e2c9803d4932354e1b5d319d8",
+   "bpm": 143.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 32,
+   "seconds": 53.7,
+   "source": "https://www.vgmusic.com/music/console/nintendo/snes/Rules.mid",
+   "kind": "vgmusic"
+  },
+  {
    "file": "game16/7thsaga_bt2_w.mid",
    "style": "game16",
    "md5": "04280452e636e62935073df8c2a7eee7",
@@ -111,6 +139,20 @@
    "kind": "vgmusic"
   },
   {
+   "file": "game32/ace-map.mid",
+   "style": "game32",
+   "md5": "acfc8e4ba08def90830bdb39dfe3105f",
+   "bpm": 130.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 38,
+   "seconds": 68.3,
+   "source": "https://www.vgmusic.com/music/console/sony/ps1/ace-map.mid",
+   "kind": "vgmusic"
+  },
+  {
    "file": "game32/bonusstagecredits.mid",
    "style": "game32",
    "md5": "76426327a367e1a5b0b79fcf6033a589",
@@ -122,6 +164,20 @@
    "bars": 73,
    "seconds": 125.1,
    "source": "https://www.vgmusic.com/music/console/sony/ps1/bonusstagecredits.mid",
+   "kind": "vgmusic"
+  },
+  {
+   "file": "game32/T_AVGFighterMAX_YukaTheme.mid",
+   "style": "game32",
+   "md5": "0affbe06ea9b2f7cb82a0b5b06de9e19",
+   "bpm": 165.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 91,
+   "seconds": 131.1,
+   "source": "https://www.vgmusic.com/music/console/sony/ps1/T_AVGFighterMAX_YukaTheme.mid",
    "kind": "vgmusic"
   },
   {
@@ -153,6 +209,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "rock/ACDC.For those about to rock k.mid",
+   "style": "rock",
+   "md5": "a0c089e1259b19369fe475c639590ab5",
+   "bpm": 112.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 183,
+   "seconds": 391.6,
+   "source": "https://bitmidi.com/uploads/3650.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid",
    "style": "rock",
    "md5": "4f33e52a8367a2dd82630f6662e9929f",
@@ -164,6 +234,20 @@
    "bars": 8,
    "seconds": 14.8,
    "source": "https://bitmidi.com/uploads/55047.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "rock/A-Hard-Day's-Night-2.mid",
+   "style": "rock",
+   "md5": "8f5011eaafbc383e71b984a2a821850e",
+   "bpm": 139.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 86,
+   "seconds": 147.0,
+   "source": "https://bitmidi.com/uploads/3105.mid",
    "kind": "bitmidi"
   },
   {
@@ -182,18 +266,127 @@
   }
  ],
  "source_kinds": {
-  "vgmusic": 7,
-  "bitmidi": 3
+  "vgmusic": 11,
+  "bitmidi": 5
  },
  "harmony": {
   "primary": [
-   "A#6",
-   "F7",
-   "Am7",
-   "G6"
+   "Dmaj7",
+   "D6",
+   "Asus4",
+   "Dm7"
   ],
-  "primary_source": "window2",
+  "primary_source": "chain",
   "progressions": [
+   {
+    "degrees": [
+     2,
+     7,
+     7,
+     9
+    ],
+    "romans": [
+     "II7",
+     "V",
+     "V7",
+     "vim7b5"
+    ],
+    "count": 6,
+    "templates": [
+     "game16/Rules.mid",
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "E7",
+     "Am7",
+     "A7",
+     "Bm7b5"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     5,
+     7,
+     9
+    ],
+    "romans": [
+     "IV7",
+     "IV6",
+     "v7",
+     "vim7b5"
+    ],
+    "count": 8,
+    "templates": [
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "G7",
+     "G6",
+     "Am7",
+     "Bm7b5"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     9,
+     5,
+     5,
+     7
+    ],
+    "romans": [
+     "vim7b5",
+     "IV7",
+     "IV6",
+     "v7"
+    ],
+    "count": 8,
+    "templates": [
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "Bm7b5",
+     "G7",
+     "G6",
+     "Am7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     8,
+     8,
+     9,
+     7
+    ],
+    "romans": [
+     "bVI6",
+     "bVI6",
+     "vi7",
+     "V7"
+    ],
+    "count": 6,
+    "templates": [
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "A#6",
+     "A#6",
+     "Bm7",
+     "A7"
+    ],
+    "usable": true
+   },
    {
     "degrees": [
      10,
@@ -211,12 +404,12 @@
     "templates": [
      "game32/bonusstagecredits.mid"
     ],
-    "template_share": 0.1,
+    "template_share": 0.06,
     "symbols": [
-     "A#6",
-     "F7",
-     "Am7",
-     "G6"
+     "C6",
+     "G7",
+     "Bm7",
+     "A6"
     ],
     "usable": true
    }
@@ -224,6 +417,115 @@
   "progressions_4": [
    {
     "degrees": [
+     2,
+     7,
+     7,
+     9
+    ],
+    "romans": [
+     "II7",
+     "V",
+     "V7",
+     "vim7b5"
+    ],
+    "count": 6,
+    "templates": [
+     "game16/Rules.mid",
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "E7",
+     "Am7",
+     "A7",
+     "Bm7b5"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     5,
+     5,
+     7,
+     9
+    ],
+    "romans": [
+     "IV7",
+     "IV6",
+     "v7",
+     "vim7b5"
+    ],
+    "count": 8,
+    "templates": [
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "G7",
+     "G6",
+     "Am7",
+     "Bm7b5"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     9,
+     5,
+     5,
+     7
+    ],
+    "romans": [
+     "vim7b5",
+     "IV7",
+     "IV6",
+     "v7"
+    ],
+    "count": 8,
+    "templates": [
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "Bm7b5",
+     "G7",
+     "G6",
+     "Am7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     8,
+     8,
+     9,
+     7
+    ],
+    "romans": [
+     "bVI6",
+     "bVI6",
+     "vi7",
+     "V7"
+    ],
+    "count": 6,
+    "templates": [
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "A#6",
+     "A#6",
+     "Bm7",
+     "A7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
      10,
      5,
      9,
@@ -239,12 +541,12 @@
     "templates": [
      "game32/bonusstagecredits.mid"
     ],
-    "template_share": 0.1,
+    "template_share": 0.06,
     "symbols": [
-     "A#6",
-     "F7",
-     "Am7",
-     "G6"
+     "C6",
+     "G7",
+     "Bm7",
+     "A6"
     ],
     "usable": true
    }
@@ -256,86 +558,22 @@
      7
     ],
     "romans": [
-     "IV7",
-     "V7"
-    ],
-    "count": 11,
-    "templates": [
-     "game16/7thsaga_bt1.mid",
-     "game32/ClassicXG.mid",
-     "game32/T_AVGFighterMAX_YukaThemeGM.mid",
-     "game32/bonusstagecredits.mid"
-    ],
-    "template_share": 0.4,
-    "symbols": [
-     "F7",
-     "G7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     7,
-     8
-    ],
-    "romans": [
-     "v7",
-     "bVI6"
-    ],
-    "count": 9,
-    "templates": [
-     "game16/7thsaga_bt1.mid",
-     "game16/7thsaga_town3-1.mid",
-     "game32/ClassicXG.mid"
-    ],
-    "template_share": 0.3,
-    "symbols": [
-     "Gm7",
-     "G#6"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     0,
-     7
-    ],
-    "romans": [
-     "Isus4",
+     "IV6",
      "v7"
     ],
-    "count": 5,
+    "count": 18,
     "templates": [
-     "game16/7thsaga_town3-1.mid",
+     "game16/7thsaga_bt1.mid",
      "game32/ClassicXG.mid",
-     "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid"
-    ],
-    "template_share": 0.3,
-    "symbols": [
-     "Csus4",
-     "Gm7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     7,
-     0
-    ],
-    "romans": [
-     "Vsus4",
-     "I"
-    ],
-    "count": 5,
-    "templates": [
-     "game32/ClassicXG.mid",
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid",
      "game32/bonusstagecredits.mid",
-     "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid"
+     "rock/ACDC.For those about to rock k.mid"
     ],
-    "template_share": 0.3,
+    "template_share": 0.38,
     "symbols": [
-     "Gsus4",
-     "Csus4"
+     "G6",
+     "Am7"
     ],
     "usable": true
    },
@@ -348,52 +586,157 @@
      "vi7",
      "V6"
     ],
-    "count": 19,
+    "count": 26,
     "templates": [
+     "game16/Rules.mid",
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
      "game32/T_AVGFighterMAX_YukaThemeGM.mid",
      "game32/bonusstagecredits.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.25,
     "symbols": [
-     "Am7",
-     "G6"
+     "Bm7",
+     "A6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     0
+    ],
+    "romans": [
+     "II7",
+     "Imaj7"
+    ],
+    "count": 18,
+    "templates": [
+     "game16/7thsaga_town3-1.mid",
+     "game32/ace-map.mid",
+     "rock/50's-Rock.mid",
+     "rock/A-Hard-Day's-Night-2.mid"
+    ],
+    "template_share": 0.25,
+    "symbols": [
+     "E7",
+     "Dmaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     9
+    ],
+    "romans": [
+     "V7",
+     "vim7b5"
+    ],
+    "count": 22,
+    "templates": [
+     "game16/Rules.mid",
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "A7",
+     "Bm7b5"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     10
+    ],
+    "romans": [
+     "V6",
+     "bVII6"
+    ],
+    "count": 18,
+    "templates": [
+     "game16/7thsaga_bt1.mid",
+     "game16/Menu.mid",
+     "game32/bonusstagecredits.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "A6",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     10,
+     0
+    ],
+    "romans": [
+     "bVII7",
+     "Imaj7"
+    ],
+    "count": 13,
+    "templates": [
+     "game32/ClassicXG.mid",
+     "rock/A-Hard-Day's-Night-2.mid",
+     "rock/ACDC.For those about to rock k.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "C7",
+     "Dmaj7"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
-   "Gm7",
-   "G#6",
-   "Gm7",
-   "G#6"
+   "Dmaj7",
+   "D6",
+   "Asus4",
+   "Dm7"
   ],
   "pool_progression_romans": [
-   "v7",
-   "bVI6",
-   "v7",
-   "bVI6"
+   "Imaj7",
+   "I6",
+   "Vsus4",
+   "I"
   ],
   "chord_pool": [
    {
     "degree": 0,
     "roman": "I",
-    "suffix": "sus4",
-    "count": 177,
-    "templates": 7
+    "suffix": "m7",
+    "count": 384,
+    "templates": 11
    },
    {
     "degree": 7,
     "roman": "V",
     "suffix": "m7",
-    "count": 96,
-    "templates": 7
+    "count": 139,
+    "templates": 12
    },
    {
     "degree": 9,
     "roman": "VI",
-    "suffix": "m7",
-    "count": 73,
-    "templates": 5
+    "suffix": "m7b5",
+    "count": 128,
+    "templates": 8
+   },
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "6",
+    "count": 84,
+    "templates": 6
+   },
+   {
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "7",
+    "count": 69,
+    "templates": 9
    },
    {
     "degree": 11,
@@ -403,46 +746,39 @@
     "templates": 2
    },
    {
-    "degree": 8,
-    "roman": "bVI",
-    "suffix": "6",
-    "count": 56,
-    "templates": 4
-   },
-   {
     "degree": 10,
     "roman": "bVII",
     "suffix": "6",
-    "count": 47,
-    "templates": 7
-   },
-   {
-    "degree": 5,
-    "roman": "IV",
-    "suffix": "7",
-    "count": 45,
-    "templates": 5
+    "count": 61,
+    "templates": 11
    },
    {
     "degree": 4,
     "roman": "III",
     "suffix": "dim",
-    "count": 44,
-    "templates": 3
-   },
-   {
-    "degree": 3,
-    "roman": "bIII",
-    "suffix": "6",
-    "count": 18,
-    "templates": 2
+    "count": 57,
+    "templates": 4
    },
    {
     "degree": 2,
     "roman": "II",
     "suffix": "7",
+    "count": 37,
+    "templates": 9
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "6",
+    "count": 32,
+    "templates": 3
+   },
+   {
+    "degree": 6,
+    "roman": "bV",
+    "suffix": "dim",
     "count": 18,
-    "templates": 4
+    "templates": 1
    },
    {
     "degree": 1,
@@ -452,66 +788,68 @@
     "templates": 2
    }
   ],
-  "chord_per_bar": 0.96
+  "chord_per_bar": 0.94
  },
  "rhythm": {
   "low16": "★·★·★·★·★·★·★·★·",
-  "high16": "★·★★★·★·★★★★★·★·",
+  "high16": "★★★★★·★·★★★★★·★·",
   "low_slot_share": [
    1.0,
-   0.2,
-   0.8,
-   0.5,
-   0.9,
-   0.3,
-   0.8,
-   0.4,
+   0.25,
+   0.88,
+   0.44,
+   0.94,
+   0.25,
+   0.88,
+   0.31,
    1.0,
-   0.3,
-   0.8,
-   0.5,
-   0.9,
-   0.3,
-   0.8,
-   0.3
+   0.31,
+   0.88,
+   0.44,
+   0.94,
+   0.31,
+   0.88,
+   0.25
   ],
   "high_slot_share": [
    1.0,
+   0.56,
+   0.75,
+   0.56,
+   0.81,
+   0.19,
+   0.88,
+   0.38,
+   0.94,
+   0.62,
+   0.75,
+   0.56,
+   0.75,
    0.5,
-   0.7,
-   0.6,
-   0.8,
-   0.3,
-   0.9,
-   0.4,
-   0.9,
-   0.6,
-   0.7,
-   0.7,
-   0.7,
-   0.5,
-   0.9,
-   0.5
+   0.88,
+   0.44
   ],
-  "low_density": 23.89,
-  "high_density": 22.64,
-  "bass_density": 5.25,
-  "perc_density": 15.15,
+  "low_density": 25.15,
+  "high_density": 21.08,
+  "bass_density": 5.51,
+  "perc_density": 14.92,
   "slots": 16,
   "bass_style": "sixteenth",
   "perc_style": "dance"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.8,
-   "brass": 0.1,
-   "glock": 0.2,
-   "guitar": 0.3,
-   "lead": 0.3,
-   "organ": 0.4,
-   "piano": 0.7,
-   "pipe": 0.3,
-   "strings": 0.5
+   "bass": 0.81,
+   "brass": 0.12,
+   "glock": 0.25,
+   "guitar": 0.38,
+   "lead": 0.19,
+   "organ": 0.38,
+   "perc": 0.12,
+   "piano": 0.56,
+   "pipe": 0.25,
+   "reed": 0.06,
+   "strings": 0.44
   },
   "role_range": {
    "bass": [
@@ -519,12 +857,12 @@
     52
    ],
    "brass": [
-    40,
+    46,
     90
    ],
    "glock": [
     59,
-    72
+    82
    ],
    "guitar": [
     46,
@@ -535,16 +873,24 @@
     86
    ],
    "organ": [
-    61,
-    89
+    60,
+    91
+   ],
+   "perc": [
+    72,
+    77
    ],
    "piano": [
     57,
     76
    ],
    "pipe": [
-    69,
-    86
+    71,
+    95
+   ],
+   "reed": [
+    48,
+    77
    ],
    "strings": [
     37,
@@ -552,73 +898,79 @@
    ]
   },
   "arr_share": {
-   "bass": 0.8,
-   "piano": 0.7,
-   "uku": 0.3,
-   "strings": 0.1,
+   "bass": 0.81,
+   "piano": 0.56,
+   "uku": 0.38,
+   "strings": 0.12,
    "pad": 0.0,
-   "glock": 0.2,
-   "ep": 0.3,
-   "perc": 0.0
+   "glock": 0.25,
+   "ep": 0.25,
+   "perc": 0.12
   },
   "arr_on": [
    "bass",
    "piano"
   ],
   "arr_off": [
-   "pad",
-   "perc"
+   "pad"
   ],
   "arr_maybe": [
    "ep",
    "glock",
+   "perc",
    "strings",
    "uku"
   ],
-  "track_count": 8.5,
+  "track_count": 8.2,
   "style_mix": {
-   "game16": 4,
-   "game32": 3,
-   "rock": 3
+   "game16": 6,
+   "game32": 5,
+   "rock": 5
   },
   "prog_pool": {
    "ep": [
     75,
     72,
     87,
-    80
+    73,
+    80,
+    65
    ],
    "piano": [
-    4,
     0,
+    4,
     1
    ],
    "bass": [
     32,
-    39,
     35,
     33,
+    39,
     34
-   ],
-   "strings": [
-    48,
-    47,
-    57,
-    50
-   ],
-   "uku": [
-    25,
-    30,
-    28
    ],
    "glock": [
     11
+   ],
+   "strings": [
+    50,
+    48,
+    56,
+    47,
+    57
+   ],
+   "perc": [
+    119
+   ],
+   "uku": [
+    28,
+    30,
+    25
    ]
   }
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 56,
+  "total_bars": 72,
   "plan": [
    {
     "name": "Intro",
@@ -631,27 +983,37 @@
     "prog": 0
    },
    {
-    "name": "B",
-    "bars": 8,
-    "prog": 0
-   },
-   {
     "name": "A2",
     "bars": 8,
     "prog": 0
    },
    {
-    "name": "B2",
+    "name": "B",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A3",
     "bars": 8,
     "prog": 0
    },
    {
     "name": "C",
     "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
     "prog": 0
    },
    {
-    "name": "A3",
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
     "bars": 8,
     "prog": 0
    },
@@ -663,75 +1025,78 @@
   ]
  },
  "melody": {
-  "notes": 1552,
+  "notes": 1982,
   "range": [
-   64,
-   93
+   62,
+   91
   ],
-  "mean_pitch": 76.09,
-  "notes_per_bar": 2.58,
-  "stepwise_pct": 72.06,
-  "onbeat_pct": 55.02,
-  "diatonic_pct": 91.97,
+  "mean_pitch": 75.11,
+  "notes_per_bar": 2.39,
+  "stepwise_pct": 68.45,
+  "onbeat_pct": 56.8,
+  "diatonic_pct": 90.63,
   "interval_hist": {
+   "-38": 10,
    "-19": 7,
+   "-17": 77,
    "-11": 9,
    "-9": 113,
    "-8": 18,
-   "-7": 119,
-   "-5": 585,
-   "-4": 259,
-   "-3": 409,
-   "-2": 1329,
-   "-1": 760,
-   "0": 2522,
-   "1": 613,
-   "2": 1983,
-   "3": 567,
-   "4": 141,
-   "5": 217,
-   "7": 191,
+   "-7": 135,
+   "-5": 857,
+   "-4": 325,
+   "-3": 749,
+   "-2": 2632,
+   "-1": 982,
+   "0": 3086,
+   "1": 761,
+   "2": 2806,
+   "3": 943,
+   "4": 264,
+   "5": 700,
+   "7": 355,
    "8": 4,
    "9": 29,
    "10": 66,
-   "12": 62
+   "12": 62,
+   "33": 10
   },
   "dur16_hist": {
-   "0": 53,
-   "1": 3111,
-   "2": 2694,
-   "3": 876,
-   "4": 737,
-   "5": 59,
-   "6": 37,
+   "0": 91,
+   "1": 5192,
+   "2": 3669,
+   "3": 443,
+   "4": 1021,
+   "5": 102,
+   "6": 48,
    "7": 85,
-   "8": 87,
+   "8": 903,
    "9": 17,
-   "10": 5,
-   "11": 133,
-   "12": 299,
-   "14": 94,
-   "16": 1712
+   "10": 66,
+   "11": 204,
+   "12": 325,
+   "14": 181,
+   "16": 2652
   },
   "onset16_hist": {
-   "0": 2746,
-   "1": 177,
-   "2": 148,
-   "3": 416,
-   "4": 786,
-   "5": 235,
-   "6": 637,
-   "7": 330,
-   "8": 941,
-   "9": 130,
-   "10": 340,
-   "11": 657,
-   "12": 1030,
-   "13": 331,
-   "14": 733,
-   "15": 362
+   "0": 3974,
+   "1": 259,
+   "2": 344,
+   "3": 365,
+   "4": 1144,
+   "5": 330,
+   "6": 833,
+   "7": 459,
+   "8": 1908,
+   "9": 289,
+   "10": 653,
+   "11": 738,
+   "12": 1493,
+   "13": 632,
+   "14": 1047,
+   "15": 530
   },
-  "phrases": 98,
+  "phrases": 155,
   "phrase_bars": [
    3.7,
    3.7,
@@ -745,6 +1110,8 @@
    9.94,
    5.58,
    0.24,
+   1.25,
+   3.75,
    17.0,
    1.0,
    1.0,
@@ -789,16 +1156,14 @@
    0.74,
    0.74,
    0.74,
-   1.98,
-   2.68,
-   2.68,
-   5.34
+   1.25,
+   2.25
   ],
-  "bars": 60.2,
-  "templates": 10
+  "bars": 55.4,
+  "templates": 15
  },
  "notes": [
-  "共 10 首模板，来源：vgmusic×7, bitmidi×3",
+  "共 16 首模板，来源：vgmusic×11, bitmidi×5",
   "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/battle_tracks.json"
  ],
  "tool": "theme_pack.py",
@@ -843,40 +1208,6 @@
     }
    },
    {
-    "ref": "BGM16c_v2",
-    "score": 0.743,
-    "bpm": 150.0,
-    "centroid": 3250,
-    "rms_db": -16.9,
-    "width": 0.51,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16c.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "bgm16c_new",
-    "score": 0.743,
-    "bpm": 150.0,
-    "centroid": 3250,
-    "rms_db": -16.9,
-    "width": 0.51,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16c.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
     "ref": "BGM16b",
     "score": 0.685,
     "bpm": 139.8,
@@ -891,6 +1222,23 @@
      "url": null,
      "url_alt": [],
      "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "t2_BGM16",
+    "score": 0.647,
+    "bpm": 150.0,
+    "centroid": 2826,
+    "rms_db": -17.4,
+    "width": 0.678,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM16.ogg",
+     "origin_path": "D:/test/galgame/ピュアソングガーデン！解包/Bgm/BGM16.ogg",
+     "url": null,
+     "url_alt": [],
+     "note": "早期画像没记 source（2026-09-21 补）：依据是画像自带 file 字段里的路径，与同批 46 份的来源一致。"
     }
    },
    {
@@ -909,6 +1257,23 @@
      "url_alt": [],
      "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
+   },
+   {
+    "ref": "BGM06",
+    "score": 0.607,
+    "bpm": 133.9,
+    "centroid": 1533,
+    "rms_db": -16.9,
+    "width": 0.261,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM06.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
    }
   ],
   "agg_profile": "battle_mix",
@@ -919,25 +1284,65 @@
   },
   "perc_style_target": 0.75,
   "energy_curve_db": [
-   -1.12,
-   -0.12,
-   -0.12,
-   0.88,
-   0.88,
-   0.88,
-   0.88,
-   -2.12
+   -0.62,
+   0.38,
+   0.38,
+   0.38,
+   0.38,
+   0.38,
+   0.38,
+   -1.62
   ],
   "structure_db": [
    -18.0,
    -17.0,
    -17.0,
-   -16.0,
-   -16.0,
-   -16.0,
-   -16.0,
+   -17.0,
+   -17.0,
+   -17.0,
+   -17.0,
    -19.0
   ],
+  "density_curve_db": [
+   -1.31,
+   -0.46,
+   0.0,
+   0.05,
+   -0.68,
+   -0.3,
+   0.27,
+   0.8
+  ],
+  "density_meta": {
+   "n": 14,
+   "files": [
+    "7thsaga_town3-1.mid",
+    "Menu.mid",
+    "7thsaga_cave.mid",
+    "7thsaga_bt1.mid",
+    "Rules.mid",
+    "7thsaga_bt2_w.mid",
+    "ClassicXG.mid",
+    "ace-map.mid",
+    "T_AVGFighterMAX_YukaTheme.mid",
+    "T_AVGFighterMAX_YukaThemeGM.mid",
+    "50's-Rock.mid",
+    "ACDC.For those about to rock k.mid",
+    "A-Hard-Day's-Night-2.mid",
+    "A-Hard-Day's-Night-4.mid"
+   ],
+   "abs_curve": [
+    46.38,
+    51.11,
+    53.91,
+    54.25,
+    49.87,
+    52.05,
+    55.59,
+    59.12
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
+  },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
@@ -1019,41 +1424,7 @@
     "why": "BPM 150.0（差 11.0，0.63）· 打击感 0.66 vs 目标 0.75（0.81）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
-  "density_curve_db": [
-   -1.31,
-   -0.46,
-   0.0,
-   0.05,
-   -0.68,
-   -0.3,
-   0.27,
-   0.8
-  ],
-  "density_meta": {
-   "n": 8,
-   "files": [
-    "7thsaga_town3-1.mid",
-    "7thsaga_cave.mid",
-    "7thsaga_bt1.mid",
-    "7thsaga_bt2_w.mid",
-    "ClassicXG.mid",
-    "T_AVGFighterMAX_YukaThemeGM.mid",
-    "50's-Rock.mid",
-    "A-Hard-Day's-Night-4.mid"
-   ],
-   "abs_curve": [
-    46.38,
-    51.11,
-    53.91,
-    54.25,
-    49.87,
-    52.05,
-    55.59,
-    59.12
-   ],
-   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
-  }
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
  },
  "skipped": []
 }

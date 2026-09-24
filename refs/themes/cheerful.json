@@ -1,7 +1,7 @@
 {
  "theme": "cheerful",
  "label": "欢快",
- "desc": "欢快（主题模板包：10 首同主题模板聚合）",
+ "desc": "欢快（主题模板包：16 首同主题模板聚合）",
  "styles": [
   "pop",
   "latin",
@@ -13,30 +13,30 @@
   4
  ],
  "min_templates": 8,
- "template_count": 10,
+ "template_count": 16,
  "bpm": {
   "median": 132.0,
-  "p25": 120.0,
+  "p25": 125.0,
   "p75": 140.0
  },
  "key": {
-  "tonic": "C",
-  "pc": 0,
+  "tonic": "A",
+  "pc": 9,
   "mode": "major",
-  "confidence": 0.3,
+  "confidence": 0.188,
   "scale_degree_weight": [
-   3196337.99,
-   142966.32,
-   957004.72,
-   310848.96,
-   1376405.67,
-   1600093.77,
-   239281.6,
-   1528672.16,
-   234976.7,
-   1225102.61,
-   506400.57,
-   1040938.65
+   4474351.94,
+   193862.86,
+   1588326.22,
+   512941.27,
+   1630507.91,
+   2232999.92,
+   261557.44,
+   2627694.86,
+   372635.92,
+   1490343.49,
+   856087.55,
+   1198421.67
   ]
  },
  "templates": [
@@ -52,6 +52,20 @@
    "bars": 73,
    "seconds": 146.5,
    "source": "https://bitmidi.com/uploads/18473.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "latin/Disco-Samba-1.mid",
+   "style": "latin",
+   "md5": "06df3df350b1ffb59fb7e6ea89afc991",
+   "bpm": 129.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 196,
+   "seconds": 362.8,
+   "source": "https://bitmidi.com/uploads/39745.mid",
    "kind": "bitmidi"
   },
   {
@@ -83,6 +97,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "latin/Cubana-(Bossa-Nova).mid",
+   "style": "latin",
+   "md5": "587b374ca5eefce1d7dce6badb0fb6cb",
+   "bpm": 144.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 121,
+   "seconds": 200.6,
+   "source": "https://bitmidi.com/uploads/26593.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "latin/Azure-Bossa-Nova.mid",
    "style": "latin",
    "md5": "05116014cac999ae3e7c0af1d89b9881",
@@ -111,6 +139,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "pop/Pop-Vamp.mid",
+   "style": "pop",
+   "md5": "795cb1d8f3adf8f9647c5a17d6fe03b0",
+   "bpm": 125.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 82,
+   "seconds": 157.3,
+   "source": "https://bitmidi.com/uploads/35242.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "pop/Disco Citizens - Footprint.mid",
    "style": "pop",
    "md5": "a15e4ec30d5281e6e10107525742861a",
@@ -122,6 +164,20 @@
    "bars": 16,
    "seconds": 29.1,
    "source": "https://bitmidi.com/uploads/39730.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+   "style": "pop",
+   "md5": "a90d8973d0c7d3bcb385913a0c2ffcad",
+   "bpm": 140.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 8,
+   "seconds": 13.7,
+   "source": "https://bitmidi.com/uploads/40059.mid",
    "kind": "bitmidi"
   },
   {
@@ -153,6 +209,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "rock/ACDC.For those about to rock k.mid",
+   "style": "rock",
+   "md5": "a0c089e1259b19369fe475c639590ab5",
+   "bpm": 112.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 183,
+   "seconds": 391.6,
+   "source": "https://bitmidi.com/uploads/3650.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid",
    "style": "rock",
    "md5": "4f33e52a8367a2dd82630f6662e9929f",
@@ -164,6 +234,20 @@
    "bars": 8,
    "seconds": 14.8,
    "source": "https://bitmidi.com/uploads/55047.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "rock/A-Hard-Day's-Night-2.mid",
+   "style": "rock",
+   "md5": "8f5011eaafbc383e71b984a2a821850e",
+   "bpm": 139.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 86,
+   "seconds": 147.0,
+   "source": "https://bitmidi.com/uploads/3105.mid",
    "kind": "bitmidi"
   },
   {
@@ -182,41 +266,68 @@
   }
  ],
  "source_kinds": {
-  "bitmidi": 10
+  "bitmidi": 16
  },
  "harmony": {
   "primary": [
+   "A6",
    "E7",
-   "C7",
-   "E7",
-   "C7"
+   "A6",
+   "E7"
   ],
   "primary_source": "window2",
   "progressions": [
    {
     "degrees": [
-     9,
-     11,
-     7,
-     11
+     5,
+     0,
+     0,
+     7
     ],
     "romans": [
-     "vi6",
-     "VII7",
-     "Vmaj7",
-     "VII7"
+     "IV7",
+     "I6",
+     "I7",
+     "V7"
     ],
-    "count": 3,
+    "count": 5,
     "templates": [
-     "latin/Azure-Bossa-Nova.mid",
-     "rock/A-Hard-Day's-Night-4.mid"
+     "latin/Blue-Tango.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "Am6",
-     "B7",
-     "Gmaj7",
-     "B7"
+     "D7",
+     "A6",
+     "A7",
+     "E7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     7,
+     0,
+     0
+    ],
+    "romans": [
+     "ii7",
+     "V6",
+     "I",
+     "I6"
+    ],
+    "count": 4,
+    "templates": [
+     "latin/Blue-Tango.mid",
+     "latin/Disco-Samba-1.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "Bm7",
+     "E6",
+     "Am7",
+     "A6"
     ],
     "usable": true
    },
@@ -237,12 +348,12 @@
     "templates": [
      "latin/L.CARLTON.Rio Samba.mid"
     ],
-    "template_share": 0.1,
+    "template_share": 0.06,
     "symbols": [
-     "D7",
-     "C#m7b5",
-     "Cmaj7",
-     "B6"
+     "B7",
+     "A#m7b5",
+     "Amaj7",
+     "G#6"
     ],
     "usable": true
    }
@@ -250,28 +361,55 @@
   "progressions_4": [
    {
     "degrees": [
-     9,
-     11,
-     7,
-     11
+     5,
+     0,
+     0,
+     7
     ],
     "romans": [
-     "vi6",
-     "VII7",
-     "Vmaj7",
-     "VII7"
+     "IV7",
+     "I6",
+     "I7",
+     "V7"
     ],
-    "count": 3,
+    "count": 5,
     "templates": [
-     "latin/Azure-Bossa-Nova.mid",
-     "rock/A-Hard-Day's-Night-4.mid"
+     "latin/Blue-Tango.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "Am6",
-     "B7",
-     "Gmaj7",
-     "B7"
+     "D7",
+     "A6",
+     "A7",
+     "E7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     7,
+     0,
+     0
+    ],
+    "romans": [
+     "ii7",
+     "V6",
+     "I",
+     "I6"
+    ],
+    "count": 4,
+    "templates": [
+     "latin/Blue-Tango.mid",
+     "latin/Disco-Samba-1.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "Bm7",
+     "E6",
+     "Am7",
+     "A6"
     ],
     "usable": true
    },
@@ -292,17 +430,70 @@
     "templates": [
      "latin/L.CARLTON.Rio Samba.mid"
     ],
-    "template_share": 0.1,
+    "template_share": 0.06,
     "symbols": [
-     "D7",
-     "C#m7b5",
-     "Cmaj7",
-     "B6"
+     "B7",
+     "A#m7b5",
+     "Amaj7",
+     "G#6"
     ],
     "usable": true
    }
   ],
   "progressions_2": [
+   {
+    "degrees": [
+     0,
+     7
+    ],
+    "romans": [
+     "I6",
+     "V7"
+    ],
+    "count": 29,
+    "templates": [
+     "latin/Azure-Bossa-Nova.mid",
+     "latin/Blue-Tango.mid",
+     "latin/Disco-Samba-1.mid",
+     "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid",
+     "rock/A-Hard-Day's-Night-2.mid",
+     "rock/ACDC.For those about to rock k.mid",
+     "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid"
+    ],
+    "template_share": 0.5,
+    "symbols": [
+     "A6",
+     "E7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "V7",
+     "I6"
+    ],
+    "count": 35,
+    "templates": [
+     "latin/Blue-Tango.mid",
+     "latin/Disco-Samba-1.mid",
+     "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid",
+     "rock/A-Hard-Day's-Night-2.mid",
+     "rock/ACDC.For those about to rock k.mid",
+     "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid"
+    ],
+    "template_share": 0.44,
+    "symbols": [
+     "E7",
+     "A6"
+    ],
+    "usable": true
+   },
    {
     "degrees": [
      4,
@@ -312,104 +503,18 @@
      "III7",
      "I"
     ],
-    "count": 36,
+    "count": 40,
     "templates": [
+     "latin/Cubana-(Bossa-Nova).mid",
      "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
      "pop/IGGY POP.Louie Louie.mid",
+     "rock/A-Hard-Day's-Night-2.mid",
      "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid"
     ],
-    "template_share": 0.3,
+    "template_share": 0.31,
     "symbols": [
-     "E7",
-     "C7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     11,
-     9
-    ],
-    "romans": [
-     "VII7",
-     "VI7"
-    ],
-    "count": 29,
-    "templates": [
-     "latin/Azure-Bossa-Nova.mid",
-     "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
-     "rock/A-Hard-Day's-Night-4.mid"
-    ],
-    "template_share": 0.3,
-    "symbols": [
-     "B7",
-     "A7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     11,
-     7
-    ],
-    "romans": [
-     "viidim",
-     "V7"
-    ],
-    "count": 24,
-    "templates": [
-     "latin/Azure-Bossa-Nova.mid",
-     "latin/Blue-Tango.mid",
-     "rock/A-Hard-Day's-Night-4.mid"
-    ],
-    "template_share": 0.3,
-    "symbols": [
-     "Bdim",
-     "G7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     9,
-     11
-    ],
-    "romans": [
-     "VImaj7",
-     "viim7b5"
-    ],
-    "count": 23,
-    "templates": [
-     "latin/Azure-Bossa-Nova.mid",
-     "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
-     "rock/A-Hard-Day's-Night-4.mid"
-    ],
-    "template_share": 0.3,
-    "symbols": [
-     "Amaj7",
-     "Bm7b5"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     0,
-     5
-    ],
-    "romans": [
-     "I",
-     "iv6"
-    ],
-    "count": 16,
-    "templates": [
-     "latin/Blue-Tango.mid",
-     "pop/Disco Citizens - Footprint.mid",
-     "pop/IGGY POP.Louie Louie.mid"
-    ],
-    "template_share": 0.3,
-    "symbols": [
-     "C7",
-     "Fm6"
+     "C#7",
+     "Am7"
     ],
     "usable": true
    },
@@ -422,38 +527,85 @@
      "I",
      "III7"
     ],
-    "count": 38,
+    "count": 47,
     "templates": [
+     "latin/Disco-Samba-1.mid",
      "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
-     "pop/IGGY POP.Louie Louie.mid"
+     "pop/IGGY POP.Louie Louie.mid",
+     "rock/A-Hard-Day's-Night-2.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.25,
     "symbols": [
-     "C7",
-     "E7"
+     "Am7",
+     "C#7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     10,
+     0
+    ],
+    "romans": [
+     "bVIImaj7",
+     "I6"
+    ],
+    "count": 31,
+    "templates": [
+     "latin/Disco-Samba-1.mid",
+     "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
+     "rock/A-Hard-Day's-Night-2.mid",
+     "rock/ACDC.For those about to rock k.mid"
+    ],
+    "template_share": 0.25,
+    "symbols": [
+     "Gmaj7",
+     "A6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     10
+    ],
+    "romans": [
+     "Imaj7",
+     "bVII7"
+    ],
+    "count": 29,
+    "templates": [
+     "latin/Disco-Samba-1.mid",
+     "latin/Schuld-War-Nur-Der-Bossa-Nova-2.mid",
+     "rock/A-Hard-Day's-Night-2.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "Amaj7",
+     "G7"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
-   "Cmaj7",
-   "C7",
-   "Cm7b5",
-   "C6"
+   "Am7",
+   "Asus4",
+   "Am7",
+   "Asus4"
   ],
   "pool_progression_romans": [
-   "Imaj7",
-   "I7",
-   "im7b5",
-   "I6"
+   "I",
+   "Isus4",
+   "I",
+   "Isus4"
   ],
   "chord_pool": [
    {
     "degree": 0,
     "roman": "I",
-    "suffix": "7",
-    "count": 277,
-    "templates": 9
+    "suffix": "m7",
+    "count": 607,
+    "templates": 15
    },
    {
     "degree": 11,
@@ -466,43 +618,50 @@
     "degree": 7,
     "roman": "V",
     "suffix": "7",
-    "count": 141,
-    "templates": 6
+    "count": 186,
+    "templates": 11
    },
    {
     "degree": 9,
     "roman": "VI",
     "suffix": "7",
-    "count": 98,
-    "templates": 4
-   },
-   {
-    "degree": 10,
-    "roman": "bVII",
-    "suffix": "7",
-    "count": 60,
-    "templates": 3
-   },
-   {
-    "degree": 4,
-    "roman": "III",
-    "suffix": "7",
-    "count": 55,
-    "templates": 5
-   },
-   {
-    "degree": 5,
-    "roman": "IV",
-    "suffix": "m6",
-    "count": 47,
-    "templates": 6
+    "count": 116,
+    "templates": 7
    },
    {
     "degree": 2,
     "roman": "II",
     "suffix": "7",
-    "count": 38,
+    "count": 99,
+    "templates": 8
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "6",
+    "count": 98,
     "templates": 5
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
+    "suffix": "7",
+    "count": 96,
+    "templates": 6
+   },
+   {
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "6",
+    "count": 79,
+    "templates": 9
+   },
+   {
+    "degree": 4,
+    "roman": "III",
+    "suffix": "7",
+    "count": 72,
+    "templates": 8
    },
    {
     "degree": 6,
@@ -515,89 +674,83 @@
     "degree": 1,
     "roman": "bII",
     "suffix": "",
-    "count": 22,
-    "templates": 2
+    "count": 30,
+    "templates": 4
    },
    {
     "degree": 8,
     "roman": "bVI",
-    "suffix": "7",
-    "count": 11,
-    "templates": 3
-   },
-   {
-    "degree": 3,
-    "roman": "bIII",
-    "suffix": "m7b5",
-    "count": 3,
-    "templates": 2
+    "suffix": "6",
+    "count": 29,
+    "templates": 6
    }
   ],
-  "chord_per_bar": 0.89
+  "chord_per_bar": 0.88
  },
  "rhythm": {
   "low16": "★·★·★·★·★·★·★·★·",
   "high16": "★·★·★·★·★·★·★·★·",
   "low_slot_share": [
-   0.9,
-   0.2,
-   0.6,
-   0.3,
-   0.8,
-   0.3,
-   0.8,
-   0.5,
-   0.9,
-   0.3,
-   0.7,
-   0.3,
-   0.9,
-   0.2,
-   0.7,
-   0.5
+   0.94,
+   0.19,
+   0.62,
+   0.25,
+   0.75,
+   0.25,
+   0.81,
+   0.38,
+   0.81,
+   0.25,
+   0.69,
+   0.25,
+   0.81,
+   0.19,
+   0.69,
+   0.38
   ],
   "high_slot_share": [
-   1.0,
-   0.4,
-   0.8,
-   0.4,
-   0.9,
-   0.2,
-   0.9,
-   0.3,
-   1.0,
-   0.4,
-   0.8,
-   0.4,
-   0.9,
-   0.2,
-   0.9,
-   0.3
+   0.94,
+   0.38,
+   0.75,
+   0.38,
+   0.94,
+   0.19,
+   0.94,
+   0.25,
+   0.94,
+   0.38,
+   0.81,
+   0.38,
+   0.88,
+   0.25,
+   0.81,
+   0.31
   ],
-  "low_density": 22.77,
-  "high_density": 28.35,
-  "bass_density": 3.96,
-  "perc_density": 18.99,
+  "low_density": 22.53,
+  "high_density": 25.56,
+  "bass_density": 3.19,
+  "perc_density": 16.38,
   "slots": 16,
   "bass_style": "sixteenth",
   "perc_style": "dance"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.7,
-   "brass": 0.1,
-   "fx": 0.1,
+   "bass": 0.62,
+   "brass": 0.12,
+   "fx": 0.06,
    "guitar": 0.5,
-   "lead": 0.2,
-   "organ": 0.4,
-   "perc": 0.2,
-   "piano": 0.9,
-   "pipe": 0.1,
-   "strings": 0.2
+   "lead": 0.12,
+   "organ": 0.38,
+   "perc": 0.12,
+   "piano": 0.88,
+   "pipe": 0.06,
+   "reed": 0.06,
+   "strings": 0.19
   },
   "role_range": {
    "bass": [
-    29,
+    28,
     48
    ],
    "brass": [
@@ -617,7 +770,7 @@
     74
    ],
    "organ": [
-    62,
+    59,
     94
    ],
    "perc": [
@@ -625,27 +778,31 @@
     93
    ],
    "piano": [
-    46,
-    81
+    41,
+    80
    ],
    "pipe": [
     67,
     88
    ],
+   "reed": [
+    53,
+    70
+   ],
    "strings": [
-    67,
+    60,
     88
    ]
   },
   "arr_share": {
-   "bass": 0.7,
-   "piano": 0.9,
+   "bass": 0.62,
+   "piano": 0.88,
    "uku": 0.5,
-   "strings": 0.1,
+   "strings": 0.12,
    "pad": 0.0,
    "glock": 0.0,
-   "ep": 0.1,
-   "perc": 0.2
+   "ep": 0.06,
+   "perc": 0.12
   },
   "arr_on": [
    "bass",
@@ -661,43 +818,46 @@
    "perc",
    "strings"
   ],
-  "track_count": 7.7,
+  "track_count": 7.2,
   "style_mix": {
-   "latin": 4,
-   "pop": 3,
-   "rock": 3
+   "latin": 6,
+   "pop": 5,
+   "rock": 5
   },
   "prog_pool": {
    "uku": [
     24,
+    28,
     29,
-    30,
-    28
+    25,
+    30
    ],
    "ep": [
     77,
     81,
+    66,
     80
    ],
    "strings": [
+    48,
     44,
-    62,
-    48
+    57,
+    62
    ],
    "perc": [
     114,
     119
    ],
+   "bass": [
+    32,
+    33,
+    38
+   ],
    "piano": [
     0,
+    1,
     5,
-    2,
-    1
-   ],
-   "bass": [
-    33,
-    32,
-    38
+    2
    ]
   }
  },
@@ -733,7 +893,7 @@
    {
     "name": "C",
     "bars": 8,
-    "prog": 1
+    "prog": 2
    },
    {
     "name": "A4",
@@ -758,84 +918,88 @@
   ]
  },
  "melody": {
-  "notes": 2725,
+  "notes": 3703,
   "range": [
-   64,
-   80
+   35,
+   79
   ],
-  "mean_pitch": 74.1,
-  "notes_per_bar": 2.85,
-  "stepwise_pct": 61.67,
-  "onbeat_pct": 58.46,
-  "diatonic_pct": 87.82,
+  "mean_pitch": 71.16,
+  "notes_per_bar": 2.78,
+  "stepwise_pct": 57.74,
+  "onbeat_pct": 58.97,
+  "diatonic_pct": 87.59,
   "interval_hist": {
-   "-12": 200,
-   "-10": 21,
-   "-9": 43,
-   "-8": 88,
-   "-7": 68,
-   "-6": 89,
-   "-5": 637,
-   "-4": 362,
-   "-3": 484,
-   "-2": 1948,
-   "-1": 728,
-   "0": 1423,
-   "1": 490,
-   "2": 1579,
-   "3": 532,
-   "4": 293,
-   "5": 382,
-   "6": 70,
-   "7": 32,
-   "8": 27,
-   "9": 71,
-   "10": 173,
+   "-17": 1,
+   "-15": 6,
+   "-14": 1,
+   "-13": 4,
+   "-12": 216,
+   "-10": 22,
+   "-9": 50,
+   "-8": 89,
+   "-7": 339,
+   "-6": 96,
+   "-5": 1017,
+   "-4": 483,
+   "-3": 728,
+   "-2": 2366,
+   "-1": 990,
+   "0": 1945,
+   "1": 798,
+   "2": 1983,
+   "3": 828,
+   "4": 432,
+   "5": 531,
+   "6": 77,
+   "7": 412,
+   "8": 28,
+   "9": 82,
+   "10": 174,
    "11": 47,
-   "12": 171,
-   "13": 1,
+   "12": 210,
+   "13": 2,
    "14": 39,
    "19": 1,
    "26": 4
   },
   "dur16_hist": {
-   "0": 103,
-   "1": 1987,
-   "2": 3869,
-   "3": 587,
-   "4": 549,
-   "5": 60,
-   "6": 195,
-   "7": 114,
-   "8": 977,
-   "9": 16,
-   "10": 16,
+   "0": 150,
+   "1": 3032,
+   "2": 5360,
+   "3": 915,
+   "4": 1252,
+   "5": 116,
+   "6": 219,
+   "7": 120,
+   "8": 1021,
+   "9": 21,
+   "10": 22,
    "11": 88,
-   "12": 48,
-   "13": 1,
-   "14": 88,
+   "12": 82,
+   "13": 18,
+   "14": 201,
    "15": 63,
-   "16": 1238
+   "16": 1319
   },
   "onset16_hist": {
-   "0": 2595,
-   "1": 97,
-   "2": 740,
-   "3": 206,
-   "4": 1088,
-   "5": 137,
-   "6": 968,
-   "7": 199,
-   "8": 1489,
-   "9": 65,
-   "10": 333,
-   "11": 290,
-   "12": 676,
-   "13": 216,
-   "14": 692,
-   "15": 209
+   "0": 3221,
+   "1": 140,
+   "2": 930,
+   "3": 259,
+   "4": 1531,
+   "5": 182,
+   "6": 1276,
+   "7": 244,
+   "8": 2142,
+   "9": 108,
+   "10": 671,
+   "11": 335,
+   "12": 1363,
+   "13": 260,
+   "14": 1083,
+   "15": 254
   },
-  "phrases": 224,
+  "phrases": 268,
   "phrase_bars": [
    1.5,
    1.75,
@@ -847,6 +1011,16 @@
    7.75,
    1.25,
    3.38,
+   32.28,
+   29.7,
+   22.25,
+   18.2,
+   26.72,
+   1.71,
+   4.2,
+   3.23,
+   10.47,
+   29.5,
    3.99,
    5.01,
    1.54,
@@ -861,48 +1035,38 @@
    1.52,
    1.0,
    7.88,
-   2.45,
-   1.01,
-   2.66,
-   1.45,
-   2.57,
-   1.26,
-   1.84,
-   0.51,
-   0.44,
-   1.67,
-   2.37,
-   2.15,
-   0.72,
-   0.46,
-   0.46,
-   1.56,
-   1.39,
-   4.6,
-   5.73,
-   2.51,
-   6.43,
-   4.78,
-   4.06,
-   4.75,
-   3.51,
+   2.91,
+   2.9,
+   1.38,
+   3.12,
+   6.38,
    4.12,
-   0.87,
-   0.26,
-   1.1,
-   3.31,
-   0.52,
-   2.07,
-   5.24,
-   0.08,
-   0.9,
-   1.3
+   1.75,
+   1.29,
+   1.38,
+   0.59,
+   1.5,
+   1.38,
+   1.5,
+   0.57,
+   0.96,
+   4.12,
+   1.75,
+   1.29,
+   1.38,
+   0.59,
+   1.5,
+   1.38,
+   1.5,
+   0.57,
+   0.98,
+   0.67
   ],
-  "bars": 95.7,
-  "templates": 10
+  "bars": 95.3,
+  "templates": 14
  },
  "notes": [
-  "共 10 首模板，来源：bitmidi×10",
+  "共 16 首模板，来源：bitmidi×16",
   "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/cheerful_tracks.json"
  ],
  "tool": "theme_pack.py",
@@ -979,6 +1143,23 @@
      "url_alt": [],
      "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
+   },
+   {
+    "ref": "BGM16b",
+    "score": 0.557,
+    "bpm": 139.8,
+    "centroid": 2472,
+    "rms_db": -17.9,
+    "width": 0.77,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM16b.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
    }
   ],
   "agg_profile": "cheerful_mix",
@@ -988,49 +1169,63 @@
    "mode": 0.15
   },
   "perc_style_target": 0.75,
-  "energy_curve_db": [],
+  "energy_curve_db": [
+   -0.62,
+   0.38,
+   0.38,
+   0.38,
+   0.38,
+   0.38,
+   0.38,
+   -1.62
+  ],
   "structure_db": [
+   -18.0,
    -17.0,
    -17.0,
    -17.0,
-   -16.0,
-   -16.0,
-   -16.0,
-   -16.0,
-   -16.0
+   -17.0,
+   -17.0,
+   -17.0,
+   -19.0
   ],
   "density_curve_db": [
-   -6.72,
-   -0.62,
+   -5.38,
+   0.11,
+   -0.31,
+   -1.16,
+   0.34,
    0.0,
-   0.16,
-   -0.23,
-   0.96,
-   -0.6,
-   1.01
+   -0.94,
+   0.62
   ],
   "density_meta": {
-   "n": 9,
+   "n": 14,
    "files": [
     "Blue-Tango.mid",
+    "Disco-Samba-1.mid",
     "L.CARLTON.Rio Samba.mid",
     "Schuld-War-Nur-Der-Bossa-Nova-2.mid",
+    "Cubana-(Bossa-Nova).mid",
     "Azure-Bossa-Nova.mid",
     "IGGY POP.Louie Louie.mid",
+    "Pop-Vamp.mid",
     "Disco Citizens - Footprint.mid",
     "Disco-Fans.mid",
     "50's-Rock.mid",
+    "ACDC.For those about to rock k.mid",
+    "A-Hard-Day's-Night-2.mid",
     "A-Hard-Day's-Night-4.mid"
    ],
    "abs_curve": [
-    37.0,
-    74.7,
-    80.25,
-    81.75,
-    78.12,
-    89.62,
-    74.88,
-    90.12
+    51.12,
+    96.18,
+    91.62,
+    83.11,
+    98.77,
+    94.98,
+    85.19,
+    102.0
    ],
    "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
   },

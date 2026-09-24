@@ -53,6 +53,11 @@ HUGE_MINS = 100           # 巨型文档（只列 `##` 级）的门槛 —— �
 HEAD = re.compile(r'^(#{1,3})\s+(.+?)\s*$')
 # 枚举时跳过的目录：虚拟环境 / 版本库 / 模板库 / 按曲生成的 notes / 第三方仓库
 SKIP_DIRS = {'.venv', '.venv-ml', '.git', 'refs', '__pycache__', 'node_modules', 'songs',
+             # 2026-09-24：曲库拆成两个独立根（用户要求"直接写的歌和模仿写的歌放不同文件夹"）——
+             # `songs` 已改名为 `songs_direct`（`songs/` 保留成指向它的 junction），
+             # 所以这两个新名字也要排除，否则每首曲子的 `notes.md` 会被当成"未归类的新文档"
+             # （实测：`doc_map_fresh` 直接 FAIL，点名 `songs_direct/01_morning_light/notes.md`）。
+             'songs_direct', 'songs_imitate',
              'vendor',
              # `check_song.py` 的沙箱（`lint_dirs` 把根 `*.md`、`docs/`、`refs/`、`studio/`
              # 复制进去跑单曲判据）。**不排除它 → 每次 `check_song` 都假报
@@ -90,9 +95,6 @@ GROUPS = [
         ('docs/MIDI-FIDELITY.md', '力度全平的验证与修法（含"为什么分数几乎不动"）'),
     ]),
     ('E. 案例（具体某一首的实测数字）', [
-        ('docs/CASE-BGM35.md', '公认模板案例：克制 + 交代 · 差距不在混音'),
-        ('docs/CASE-BGM35-FINDINGS.md', 'BGM35 全部实测数字（含七把坏尺子）'),
-        ('docs/RECIPE-BGM35.md', '照 BGM35 的结构做一首：结构/和声配方'),
         ('docs/CASE-BGM36.md', '对照案例：指标与听感背离'),
     ]),
     ('F. 改歌 / 听感修复 / 交接', [

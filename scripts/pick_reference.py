@@ -232,7 +232,7 @@ def main():
         print('  %-10s %.0fs · %d 段 · %.0f BPM'
               % (r.get('name'), r.get('duration') or 0, len(r.get('structure') or []),
                  r.get('bpm') or 0))
-    print('  （`docs/CASE-BGM35.md` 的"克制+交代/逐小节渐弱"属这一类 —— **借结构，别借频谱**）')
+    print('  （原案例文档（已删 2026-09-24） 的"克制+交代/逐小节渐弱"属这一类 —— **借结构，别借频谱**）')
 
     # ③ 和声/调式语言：来自主题模板包（同主题 ≥8 首 MIDI 的聚合），不是单首音频
     print('\n=== ③ 和声/调式/旋律语言 → 用主题模板包（`refs/themes/<主题>.json`）===')

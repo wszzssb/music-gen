@@ -1600,7 +1600,7 @@ def t_density_dynamic_range():
     """**密度要有大起大落** —— 判据用**逐小节**口径（与它引的依据同口径）。
 
     ⚠ **2026-09-19 修口径**（用户"选 A"）。本判据原来量的是"**逐段**平均音/小节"，
-    而它引的依据（`docs/RECIPE-BGM35.md`）写的是"**逐小节**起音数 0→66，变化 66 倍" ——
+    而它引的依据（原结构配方（已删 2026-09-24））写的是"**逐小节**起音数 0→66，变化 66 倍" ——
     两个口径不同口径量同一批曲子，实测差一个数量级：
 
     | 曲目 | 逐段起伏 | **逐小节起伏** | 小节 min/max |
@@ -5594,7 +5594,13 @@ def t_melody_form_rules():
             # 会把正常的曲子判红（实测 39 号旋律复用后只剩 3 支旋律、合计 18 半音 = 画像的 53%，
             # 而 18 半音对一个主题完全正常）。现在只要求落在**合理区间**：
             # `FORM_SPAN_MIN`（一个八度，旋律的常识下限）≤ span ≤ 画像 range。
-            if fs['span'] < FORM_SPAN_MIN or fs['span'] > want:
+            # **带理由豁免**（2026-09-24 补）：画像重建后（模板 10 首 → 16 首）`range` 会变，
+            # 按**旧画像**生成的曲目可能落到新区间之外 —— 那是**依据演进**，不是旋律变坏了。
+            # 口径同 `t_melody_matches_profile` 的 `melody_exempt`：**理由空白 = 没写 = 不放行**
+            # （否则一句空话就能绕过音域判据）。修法见 PITFALLS 247。
+            _ex3 = ((j3.get('patterns') or {}).get('melody_exempt') or {})
+            _ex_span = bool(str(_ex3.get('span') or '').strip())
+            if (fs['span'] < FORM_SPAN_MIN or fs['span'] > want) and not _ex_span:
                 bad.append('%s 音域 %d 半音（合理区间 %d~画像 %d）'
                            % (nm, fs['span'], FORM_SPAN_MIN, want))
     # **判据自证（音域）**：手搓一条只有 2 个半音的旋律 → 必须低于门
@@ -6854,6 +6860,37 @@ def t_mix_target_aggregate():
         if _dup:
             bad.append('%s: 成员里有同一份音频被重复计入（中位数会被重复投票拉跑）：%s'
                        % (th, ', '.join('%s×%d' % (k, n) for k, n in _dup.items())))
+    # ⑤ **非主题画像也要守同一条门槛**（2026-09-24 补的盲区）：上面那个循环只遍历
+    #    `tp.THEMES`（15 个主题），而 `refs/mix_targets/` 下可能有**不在主题表里**的聚合
+    #    画像 —— 实测 `quiet_piano_mix` 就是 `aggregate(1 refs)`（只有 1 份成员），
+    #    而且它的 `source_note` 还写着"**多份**真实录音画像的……中位数"（名不副实），
+    #    这条检查此前**永远看不到它**（等于装饰性检查）。
+    #    口径：声明是聚合，就必须 ≥ `MIX_MIN_MEMBERS` 份；确实只有单份的，
+    #    要显式标 `aggregate: False`（说明它是单份目标，不是"多方参考"的聚合目标）。
+    _theme_refs = set()
+    for _th in tp.THEMES:
+        _pk = tp.load_pack(_th) or {}
+        _r = (_pk.get('mix_target') or {}).get('ref')
+        if _r:
+            _theme_refs.add(_r)
+    _extra_checked = 0
+    for _p in sorted(glob.glob(os.path.join(ROOT, 'refs', tp.AGG_DIR, '*.json'))):
+        _nm = os.path.basename(_p)[:-5]
+        if _nm in _theme_refs:
+            continue                       # 主题画像上面已逐条查过
+        try:
+            _j = json.load(open(_p, encoding='utf-8'))
+        except Exception:                                  # noqa: BLE001
+            bad.append('非主题画像 %s 读不出来' % _nm)
+            continue
+        _extra_checked += 1
+        if not _j.get('aggregate'):
+            continue                       # 显式标了单份 → 合规，别拿聚合口径要求它
+        _m2 = _j.get('members') or []
+        if len(_m2) < tp.MIX_MIN_MEMBERS:
+            bad.append('非主题聚合画像 %s 只有 %d 份成员（< %d）：要么补成员到 ≥%d 份，'
+                       '要么标 aggregate=False 说明它是单份目标'
+                       % (_nm, len(_m2), tp.MIX_MIN_MEMBERS, tp.MIX_MIN_MEMBERS))
     assert checked >= 10, '夹具太少（%d 个主题）—— 这条检查会空转' % checked
     # **判据自证**：门槛抬到 2.0（合格成员为空）→ 兜底只取 1 份 → ② 必须失败
     _rel, _min = tp.MIX_MEMBER_REL, tp.MIX_MIN_MEMBERS
@@ -6872,8 +6909,9 @@ def t_mix_target_aggregate():
     assert n_probe < 3, \
         ('判据自证失败：把成员门槛抬到最高分×2 之后，混音目标仍有 %d 份成员 —— '
          '说明"多方聚合"这条判据量不到退化' % n_probe)
-    print('        %d 个主题包：混音目标全部为多份聚合（每主题 ≥%d 份、逐份带 source）'
-          % (checked, tp.MIX_MIN_MEMBERS))
+    print('        %d 个主题包：混音目标全部为多份聚合（每主题 ≥%d 份、逐份带 source）；'
+          '另有 %d 份非主题画像守同一条门槛'
+          % (checked, tp.MIX_MIN_MEMBERS, _extra_checked))
     assert not bad, '混音目标不达标：%s' % '；'.join(bad[:4])
 
 
@@ -7248,7 +7286,11 @@ def t_melody_onset_spread():
             t = M.onset_tvd({'_': notes}, prof)
             if t > worst[0]:
                 worst = (t, '%s 段%s' % (nm, sec['name']))
-            if t > ONSET_TVD_MAX:
+            # **带理由豁免**（2026-09-24，同 `melody_form_rules` 的音域）：画像重建后
+            # `onset16_hist` 会变，按**旧画像**生成的段落可能微微越界 —— 依据演进，
+            # 不是这段旋律变差了。理由空白 = 不放行。
+            _ex4 = ((j.get('patterns') or {}).get('melody_exempt') or {})
+            if t > ONSET_TVD_MAX and not str(_ex4.get('onset_tvd') or '').strip():
                 bad.append('%s 段%s 落点偏离 %.3f（门 %.2f）' % (nm, sec['name'], t, ONSET_TVD_MAX))
     assert checked >= 5, '可判段落太少（%d）—— 这条检查会空转' % checked
     # **判据自证**：把所有音塞进同一个格 → TVD 必须破门（证明判据真的量得到"落点集中"）
@@ -7427,14 +7469,21 @@ def t_melody_prog_pool_order():
     （Lead 1 square 方波）**，于是引子成了"高音方波独奏"（首音 93 = A6 · 力度 91），
     用户原话"**前面部分非常奇怪**"；而池序注释自己写的就是"从保守到特色"。
 
-    钉三件：① 池首必须是保守音色（钢琴 0）；② **模板音色仍留在池里**（不能因改序而白设
-    —— 它若不在池里，`programs.Melody` 会被段级值立刻覆盖）；③ 模板音色不占"引子/主歌"
-    两个位置（前两位）。模板音色本身就是 0 时，① 与 ③ 天然一致，跳过 ③。
+    钉三件：① 池首必须是**钢琴族的保守音色**（4 电钢 / 0 钢琴）；② **模板音色仍留在池里**
+    （不能因改序而白设 —— 它若不在池里，`programs.Melody` 会被段级值立刻覆盖）；
+    ③ 模板音色不占"引子/主歌"两个位置（前两位）。模板音色本身就是 0 时，① 与 ③ 天然一致。
+
+    ⚠ ① **从"必须是 0"放宽成"0 或 4"**（2026-09-24）：池首换成 **4 电钢**是因为
+    `sustain_criteria` 报了「"只响 0.几秒"触发 20/31 首（>30% = 恒真噪声）」——
+    池首的 GM 0 钢琴衰减 0.19~0.25s 就掉 12dB，而旋律写的是长音；GM 4 是技能第 17 条
+    点名的持续型（起音 1ms），且同属钢琴族保守音色 → 初衷不变。
+    这条断言仍然**有牙齿**：把池首换成模板音色（80）或任何特色音色都会失败。
     """
     import new_song as NS
     for tpl in (80, 71, 48, 0):
         pool = NS.melody_prog_pool(tpl)
-        assert pool[0] == 0, '池首必须是保守音色（0 钢琴），实得 %s：%r' % (pool[0], pool)
+        assert pool[0] in (0, 4), \
+            '池首必须是钢琴族的保守音色（4 电钢 / 0 钢琴），实得 %s：%r' % (pool[0], pool)
         assert tpl in pool, \
             '模板音色 %d 必须留在池里（否则 programs.Melody 被段级值覆盖 = 白设）：%r' % (tpl, pool)
         if tpl != 0:

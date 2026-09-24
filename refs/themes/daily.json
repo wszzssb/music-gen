@@ -1,7 +1,7 @@
 {
  "theme": "daily",
  "label": "日常",
- "desc": "日常（主题模板包：10 首同主题模板聚合）",
+ "desc": "日常（主题模板包：16 首同主题模板聚合）",
  "styles": [
   "pop",
   "folk",
@@ -13,30 +13,30 @@
   4
  ],
  "min_templates": 8,
- "template_count": 10,
+ "template_count": 16,
  "bpm": {
   "median": 128.0,
-  "p25": 103.0,
-  "p75": 156.0
+  "p25": 120.0,
+  "p75": 140.0
  },
  "key": {
-  "tonic": "C",
-  "pc": 0,
+  "tonic": "A",
+  "pc": 9,
   "mode": "major",
-  "confidence": 0.3,
+  "confidence": 0.25,
   "scale_degree_weight": [
-   2977853.04,
-   27104.08,
-   897403.16,
-   95414.28,
-   1153922.0,
-   1177408.24,
-   44583.12,
-   1475138.8,
-   76395.24,
-   880157.76,
-   200580.6,
-   678294.36
+   4200479.87,
+   74894.22,
+   1001345.32,
+   207684.53,
+   1251866.76,
+   1552891.35,
+   56734.64,
+   2000176.28,
+   188792.08,
+   1059475.32,
+   334389.88,
+   774215.24
   ]
  },
  "templates": [
@@ -52,6 +52,20 @@
    "bars": 50,
    "seconds": 135.7,
    "source": "https://bitmidi.com/uploads/102697.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "anime/Animal Crossing - Save Game.mid",
+   "style": "anime",
+   "md5": "f700cbb4ff517189755a911ae9b09c3b",
+   "bpm": 90.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 25,
+   "seconds": 66.7,
+   "source": "https://bitmidi.com/uploads/6855.mid",
    "kind": "bitmidi"
   },
   {
@@ -83,6 +97,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "anime/Action 52 - Game 52 Action Gamemaster Cheetahmen Theme.mid",
+   "style": "anime",
+   "md5": "255041e4abbc2b38e9a9a95dc999c87c",
+   "bpm": 139.98,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 92,
+   "seconds": 157.7,
+   "source": "https://bitmidi.com/uploads/3749.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "anime/ABBA.Name of the game K.mid",
    "style": "anime",
    "md5": "0597bf18743a5aacfedc981eb58c9da9",
@@ -111,6 +139,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "folk/Celtic-Skies.mid",
+   "style": "folk",
+   "md5": "6b96d369bf09a5638891ec42a633953f",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 143,
+   "seconds": 284.9,
+   "source": "https://bitmidi.com/uploads/22796.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "folk/A.JACKSON.Gone country.mid",
    "style": "folk",
    "md5": "70a5389348d5d2bcad714245bd02c5e1",
@@ -122,6 +164,20 @@
    "bars": 126,
    "seconds": 240.9,
    "source": "https://bitmidi.com/uploads/3229.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "folk/American-Folk-(Variation-2).mid",
+   "style": "folk",
+   "md5": "580a2b660f1148a5919d1603fb74a675",
+   "bpm": 128.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 32,
+   "seconds": 59.3,
+   "source": "https://bitmidi.com/uploads/6053.mid",
    "kind": "bitmidi"
   },
   {
@@ -153,6 +209,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "pop/Pop-Vamp.mid",
+   "style": "pop",
+   "md5": "795cb1d8f3adf8f9647c5a17d6fe03b0",
+   "bpm": 125.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 82,
+   "seconds": 157.3,
+   "source": "https://bitmidi.com/uploads/35242.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "pop/Disco Citizens - Footprint.mid",
    "style": "pop",
    "md5": "a15e4ec30d5281e6e10107525742861a",
@@ -164,6 +234,20 @@
    "bars": 16,
    "seconds": 29.1,
    "source": "https://bitmidi.com/uploads/39730.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+   "style": "pop",
+   "md5": "a90d8973d0c7d3bcb385913a0c2ffcad",
+   "bpm": 140.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 8,
+   "seconds": 13.7,
+   "source": "https://bitmidi.com/uploads/40059.mid",
    "kind": "bitmidi"
   },
   {
@@ -182,122 +266,122 @@
   }
  ],
  "source_kinds": {
-  "bitmidi": 10
+  "bitmidi": 16
  },
  "harmony": {
   "primary": [
-   "Em7",
-   "G6",
-   "G7",
-   "C6"
+   "Amaj7",
+   "D6",
+   "Amaj7",
+   "D6"
   ],
-  "primary_source": "window4",
+  "primary_source": "window2",
   "progressions": [
    {
     "degrees": [
-     0,
-     2,
-     7,
+     4,
+     5,
+     5,
      7
     ],
     "romans": [
-     "I6",
-     "II7",
-     "V7",
+     "IIImaj7",
+     "IV7",
+     "IVmaj7",
      "V7"
     ],
-    "count": 2,
+    "count": 4,
     "templates": [
      "anime/ABBA.Name of the game K.mid",
-     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid"
+     "folk/Celtic-Skies.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "C6",
+     "C#maj7",
      "D7",
-     "G7",
-     "G7"
+     "Dmaj7",
+     "E7"
     ],
     "usable": true
    },
    {
     "degrees": [
-     2,
+     0,
+     5,
+     0,
+     2
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6",
+     "Imaj7",
+     "ii6"
+    ],
+    "count": 4,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "Amaj7",
+     "D6",
+     "Amaj7",
+     "Bm6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
      7,
-     7,
+     0,
+     5,
      0
     ],
     "romans": [
-     "II7",
      "V7",
-     "V7",
-     "I7"
+     "Imaj7",
+     "IV6",
+     "Imaj7"
     ],
-    "count": 2,
+    "count": 4,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "E7",
+     "Amaj7",
+     "D6",
+     "Amaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0,
+     5,
+     5
+    ],
+    "romans": [
+     "Vsus4",
+     "I6",
+     "IV7",
+     "IV6"
+    ],
+    "count": 4,
     "templates": [
      "anime/ABBA.Name of the game K.mid",
-     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid"
+     "folk/Celtic-Skies.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
+     "Esus4",
+     "A6",
      "D7",
-     "G7",
-     "G7",
-     "C7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     11,
-     11,
-     7,
-     0
-    ],
-    "romans": [
-     "VII",
-     "VII",
-     "V6",
-     "Isus4"
-    ],
-    "count": 2,
-    "templates": [
-     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
-     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "Bm7",
-     "Bm7",
-     "G6",
-     "Csus4"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     4,
-     7,
-     7,
-     0
-    ],
-    "romans": [
-     "iii",
-     "V6",
-     "V7",
-     "I6"
-    ],
-    "count": 2,
-    "templates": [
-     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
-     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "Em7",
-     "G6",
-     "G7",
-     "C6"
+     "D6"
     ],
     "usable": true
    },
@@ -318,12 +402,12 @@
     "templates": [
      "folk/A.JACKSON.Gone country.mid"
     ],
-    "template_share": 0.1,
+    "template_share": 0.06,
     "symbols": [
-     "F6",
-     "Cmaj7",
-     "Fm6",
-     "Am7"
+     "D6",
+     "Amaj7",
+     "Dm6",
+     "F#m7"
     ],
     "usable": true
    }
@@ -331,109 +415,109 @@
   "progressions_4": [
    {
     "degrees": [
-     0,
-     2,
-     7,
+     4,
+     5,
+     5,
      7
     ],
     "romans": [
-     "I6",
-     "II7",
-     "V7",
+     "IIImaj7",
+     "IV7",
+     "IVmaj7",
      "V7"
     ],
-    "count": 2,
+    "count": 4,
     "templates": [
      "anime/ABBA.Name of the game K.mid",
-     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid"
+     "folk/Celtic-Skies.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "C6",
+     "C#maj7",
      "D7",
-     "G7",
-     "G7"
+     "Dmaj7",
+     "E7"
     ],
     "usable": true
    },
    {
     "degrees": [
-     2,
+     0,
+     5,
+     0,
+     2
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6",
+     "Imaj7",
+     "ii6"
+    ],
+    "count": 4,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "Amaj7",
+     "D6",
+     "Amaj7",
+     "Bm6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
      7,
-     7,
+     0,
+     5,
      0
     ],
     "romans": [
-     "II7",
      "V7",
-     "V7",
-     "I7"
+     "Imaj7",
+     "IV6",
+     "Imaj7"
     ],
-    "count": 2,
+    "count": 4,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "E7",
+     "Amaj7",
+     "D6",
+     "Amaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0,
+     5,
+     5
+    ],
+    "romans": [
+     "Vsus4",
+     "I6",
+     "IV7",
+     "IV6"
+    ],
+    "count": 4,
     "templates": [
      "anime/ABBA.Name of the game K.mid",
-     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid"
+     "folk/Celtic-Skies.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "C6",
+     "Esus4",
+     "A6",
      "D7",
-     "G7",
-     "G7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     11,
-     11,
-     7,
-     0
-    ],
-    "romans": [
-     "VII",
-     "VII",
-     "V6",
-     "Isus4"
-    ],
-    "count": 2,
-    "templates": [
-     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
-     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "D7",
-     "G7",
-     "G7",
-     "C7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     4,
-     7,
-     7,
-     0
-    ],
-    "romans": [
-     "iii",
-     "V6",
-     "V7",
-     "I6"
-    ],
-    "count": 2,
-    "templates": [
-     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
-     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "Em7",
-     "G6",
-     "G7",
-     "C6"
+     "D6"
     ],
     "usable": true
    },
@@ -454,45 +538,17 @@
     "templates": [
      "folk/A.JACKSON.Gone country.mid"
     ],
-    "template_share": 0.1,
+    "template_share": 0.06,
     "symbols": [
-     "F6",
-     "Cmaj7",
-     "Fm6",
-     "Am7"
+     "D6",
+     "Amaj7",
+     "Dm6",
+     "F#m7"
     ],
     "usable": true
    }
   ],
   "progressions_2": [
-   {
-    "degrees": [
-     7,
-     0
-    ],
-    "romans": [
-     "Vsus4",
-     "I"
-    ],
-    "count": 34,
-    "templates": [
-     "anime/ABBA.Name of the game K.mid",
-     "anime/Animal Crossing - Load Game.mid",
-     "anime/Composition - The Anime Medley.mid",
-     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
-     "folk/A.JACKSON.Gone country.mid",
-     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
-     "pop/Disco-Fans.mid"
-    ],
-    "template_share": 0.7,
-    "symbols": [
-     "Bm7",
-     "Bm7",
-     "G6",
-     "Csus4"
-    ],
-    "usable": true
-   },
    {
     "degrees": [
      0,
@@ -502,19 +558,50 @@
      "Imaj7",
      "IV6"
     ],
-    "count": 73,
+    "count": 94,
     "templates": [
      "anime/ABBA.Name of the game K.mid",
      "anime/Composition - The Anime Medley.mid",
      "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
      "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid",
      "pop/Disco Citizens - Footprint.mid",
-     "pop/IGGY POP.Louie Louie.mid"
+     "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+     "pop/IGGY POP.Louie Louie.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.6,
+    "template_share": 0.56,
     "symbols": [
-     "Cmaj7",
-     "F6"
+     "Amaj7",
+     "D6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "Vsus4",
+     "I"
+    ],
+    "count": 42,
+    "templates": [
+     "anime/ABBA.Name of the game K.mid",
+     "anime/Animal Crossing - Load Game.mid",
+     "anime/Composition - The Anime Medley.mid",
+     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
+     "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid"
+    ],
+    "template_share": 0.56,
+    "symbols": [
+     "Esus4",
+     "A"
     ],
     "usable": true
    },
@@ -527,19 +614,22 @@
      "I",
      "Vsus4"
     ],
-    "count": 27,
+    "count": 39,
     "templates": [
      "anime/Animal Crossing - Load Game.mid",
      "anime/Composition - The Anime Medley.mid",
      "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
      "folk/A.JACKSON.Gone country.mid",
+     "folk/American-Folk-(Variation-2).mid",
+     "folk/Celtic-Skies.mid",
      "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
-     "pop/Disco-Fans.mid"
+     "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.6,
+    "template_share": 0.56,
     "symbols": [
-     "C",
-     "Gsus4"
+     "A",
+     "Esus4"
     ],
     "usable": true
    },
@@ -552,18 +642,21 @@
      "IV6",
      "Imaj7"
     ],
-    "count": 67,
+    "count": 91,
     "templates": [
      "anime/ABBA.Name of the game K.mid",
      "anime/Composition - The Anime Medley.mid",
      "folk/A.JACKSON.Gone country.mid",
      "folk/Acid-Folk.mid",
-     "pop/IGGY POP.Louie Louie.mid"
+     "folk/American-Folk-(Variation-2).mid",
+     "folk/Celtic-Skies.mid",
+     "pop/IGGY POP.Louie Louie.mid",
+     "pop/Pop-Vamp.mid"
     ],
     "template_share": 0.5,
     "symbols": [
-     "F6",
-     "Cmaj7"
+     "D6",
+     "Amaj7"
     ],
     "usable": true
    },
@@ -573,20 +666,21 @@
      7
     ],
     "romans": [
-     "II",
-     "V6"
+     "iim7b5",
+     "Vsus4"
     ],
-    "count": 11,
+    "count": 23,
     "templates": [
      "anime/ABBA.Name of the game K.mid",
+     "anime/Action 52 - Game 52 Action Gamemaster Cheetahmen Theme.mid",
      "anime/Composition - The Anime Medley.mid",
      "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
      "pop/Disco-Fans.mid"
     ],
-    "template_share": 0.4,
+    "template_share": 0.31,
     "symbols": [
-     "D7",
-     "G6"
+     "Bm7b5",
+     "Esus4"
     ],
     "usable": true
    },
@@ -599,25 +693,26 @@
      "V7",
      "VIIsus4"
     ],
-    "count": 20,
+    "count": 21,
     "templates": [
      "anime/Composition - The Anime Medley.mid",
      "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
+     "folk/Celtic-Skies.mid",
      "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
     ],
-    "template_share": 0.3,
+    "template_share": 0.25,
     "symbols": [
-     "G7",
-     "Bsus4"
+     "E7",
+     "G#sus4"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
-   "F6",
-   "Cmaj7",
-   "Fm6",
-   "Am7"
+   "A",
+   "Asus4",
+   "A6",
+   "Amaj7"
   ],
   "pool_progression_romans": [
    "I",
@@ -630,15 +725,22 @@
     "degree": 0,
     "roman": "I",
     "suffix": "",
-    "count": 284,
-    "templates": 10
+    "count": 395,
+    "templates": 14
    },
    {
     "degree": 7,
     "roman": "V",
     "suffix": "sus4",
-    "count": 188,
-    "templates": 9
+    "count": 263,
+    "templates": 13
+   },
+   {
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "6",
+    "count": 225,
+    "templates": 13
    },
    {
     "degree": 8,
@@ -648,39 +750,39 @@
     "templates": 4
    },
    {
-    "degree": 5,
-    "roman": "IV",
-    "suffix": "6",
-    "count": 130,
-    "templates": 8
-   },
-   {
     "degree": 9,
     "roman": "VI",
     "suffix": "m7",
-    "count": 77,
-    "templates": 5
+    "count": 83,
+    "templates": 7
    },
    {
-    "degree": 11,
-    "roman": "VII",
-    "suffix": "m7",
-    "count": 56,
-    "templates": 4
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m7b5",
+    "count": 69,
+    "templates": 8
    },
    {
     "degree": 4,
     "roman": "III",
     "suffix": "7",
-    "count": 45,
-    "templates": 4
+    "count": 65,
+    "templates": 6
    },
    {
-    "degree": 2,
-    "roman": "II",
+    "degree": 11,
+    "roman": "VII",
+    "suffix": "m7",
+    "count": 58,
+    "templates": 5
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
     "suffix": "7",
-    "count": 40,
-    "templates": 6
+    "count": 18,
+    "templates": 3
    },
    {
     "degree": 3,
@@ -690,18 +792,11 @@
     "templates": 3
    },
    {
-    "degree": 10,
-    "roman": "bVII",
-    "suffix": "7",
-    "count": 16,
-    "templates": 2
-   },
-   {
     "degree": 1,
     "roman": "bII",
     "suffix": "",
-    "count": 13,
-    "templates": 2
+    "count": 14,
+    "templates": 3
    },
    {
     "degree": 6,
@@ -711,75 +806,75 @@
     "templates": 3
    }
   ],
-  "chord_per_bar": 0.92
+  "chord_per_bar": 0.88
  },
  "rhythm": {
-  "low16": "★·★·★·★·★·★·★·★★",
+  "low16": "★·★·★·★·★·★·★·★·",
   "high16": "★·★·★·★·★·★·★·★·",
   "low_slot_share": [
-   0.9,
-   0.3,
-   0.7,
-   0.4,
-   1.0,
-   0.3,
-   0.7,
-   0.5,
-   0.9,
-   0.4,
-   0.7,
-   0.3,
-   1.0,
-   0.3,
-   0.8,
-   0.6
+   0.81,
+   0.31,
+   0.56,
+   0.44,
+   0.75,
+   0.31,
+   0.69,
+   0.44,
+   0.69,
+   0.44,
+   0.62,
+   0.31,
+   0.75,
+   0.31,
+   0.69,
+   0.5
   ],
   "high_slot_share": [
-   0.9,
-   0.1,
-   0.6,
-   0.3,
-   1.0,
-   0.0,
-   0.8,
-   0.2,
-   0.9,
-   0.1,
-   0.7,
-   0.1,
-   1.0,
-   0.0,
-   0.7,
-   0.3
+   0.81,
+   0.12,
+   0.56,
+   0.25,
+   0.88,
+   0.06,
+   0.81,
+   0.19,
+   0.81,
+   0.12,
+   0.62,
+   0.12,
+   0.88,
+   0.06,
+   0.62,
+   0.25
   ],
-  "low_density": 28.03,
-  "high_density": 15.62,
-  "bass_density": 5.21,
-  "perc_density": 10.63,
+  "low_density": 20.73,
+  "high_density": 12.86,
+  "bass_density": 3.5,
+  "perc_density": 7.58,
   "slots": 16,
   "bass_style": "sixteenth",
   "perc_style": "light"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.5,
-   "brass": 0.3,
-   "fx": 0.1,
-   "glock": 0.1,
-   "guitar": 0.3,
-   "lead": 0.2,
-   "organ": 0.1,
-   "pad": 0.1,
-   "perc": 0.1,
-   "piano": 0.6,
-   "pipe": 0.3,
-   "reed": 0.1,
-   "strings": 0.3
+   "bass": 0.38,
+   "brass": 0.19,
+   "fx": 0.06,
+   "glock": 0.06,
+   "guitar": 0.25,
+   "lead": 0.12,
+   "organ": 0.12,
+   "pad": 0.06,
+   "perc": 0.06,
+   "piano": 0.69,
+   "pipe": 0.19,
+   "reed": 0.06,
+   "strings": 0.19
   },
   "role_range": {
    "bass": [
-    28,
-    48
+    29,
+    52
    ],
    "brass": [
     62,
@@ -794,15 +889,15 @@
     104
    ],
    "guitar": [
-    43,
-    79
+    50,
+    81
    ],
    "lead": [
     53,
     74
    ],
    "organ": [
-    55,
+    71,
     88
    ],
    "pad": [
@@ -815,7 +910,7 @@
    ],
    "piano": [
     38,
-    83
+    81
    ],
    "pipe": [
     52,
@@ -831,21 +926,21 @@
    ]
   },
   "arr_share": {
-   "bass": 0.5,
-   "piano": 0.6,
-   "uku": 0.3,
-   "strings": 0.3,
-   "pad": 0.1,
-   "glock": 0.1,
-   "ep": 0.3,
-   "perc": 0.1
+   "bass": 0.38,
+   "piano": 0.69,
+   "uku": 0.25,
+   "strings": 0.19,
+   "pad": 0.06,
+   "glock": 0.06,
+   "ep": 0.19,
+   "perc": 0.06
   },
   "arr_on": [
-   "bass",
    "piano"
   ],
   "arr_off": [],
   "arr_maybe": [
+   "bass",
    "ep",
    "glock",
    "pad",
@@ -853,11 +948,11 @@
    "strings",
    "uku"
   ],
-  "track_count": 7.8,
+  "track_count": 5.7,
   "style_mix": {
-   "anime": 4,
-   "folk": 3,
-   "pop": 3
+   "anime": 6,
+   "folk": 5,
+   "pop": 5
   },
   "prog_pool": {
    "bass": [
@@ -888,6 +983,7 @@
    ],
    "uku": [
     25,
+    105,
     111,
     30
    ],
@@ -901,8 +997,13 @@
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 40,
+  "total_bars": 72,
   "plan": [
+   {
+    "name": "Intro",
+    "bars": 4,
+    "prog": 0
+   },
    {
     "name": "A",
     "bars": 8,
@@ -916,7 +1017,7 @@
    {
     "name": "B",
     "bars": 8,
-    "prog": 0
+    "prog": 1
    },
    {
     "name": "A3",
@@ -924,137 +1025,114 @@
     "prog": 0
    },
    {
+    "name": "C",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
     "name": "B2",
     "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "Outro",
+    "bars": 4,
     "prog": 0
    }
   ]
  },
  "melody": {
-  "notes": 3685,
+  "notes": 1989,
   "range": [
-   59,
-   91
+   68,
+   96
   ],
-  "mean_pitch": 71.28,
-  "notes_per_bar": 3.57,
-  "stepwise_pct": 47.61,
-  "onbeat_pct": 61.82,
-  "diatonic_pct": 93.03,
+  "mean_pitch": 74.21,
+  "notes_per_bar": 2.58,
+  "stepwise_pct": 54.98,
+  "onbeat_pct": 54.62,
+  "diatonic_pct": 89.89,
   "interval_hist": {
-   "-43": 1,
-   "-40": 15,
-   "-36": 15,
-   "-34": 15,
-   "-31": 4,
-   "-29": 104,
-   "-28": 3,
-   "-27": 8,
-   "-26": 1,
-   "-24": 92,
-   "-23": 2,
-   "-22": 7,
-   "-21": 109,
-   "-20": 34,
-   "-19": 28,
+   "-19": 2,
    "-18": 2,
-   "-17": 30,
-   "-16": 14,
-   "-15": 2,
-   "-14": 43,
+   "-14": 2,
    "-13": 2,
-   "-12": 265,
-   "-11": 5,
-   "-10": 19,
-   "-9": 79,
-   "-8": 173,
-   "-7": 123,
-   "-6": 46,
-   "-5": 590,
-   "-4": 429,
-   "-3": 440,
-   "-2": 874,
-   "-1": 418,
-   "0": 1796,
-   "1": 563,
-   "2": 1111,
-   "3": 396,
-   "4": 409,
-   "5": 480,
+   "-12": 175,
+   "-9": 41,
+   "-8": 115,
+   "-7": 265,
+   "-6": 39,
+   "-5": 612,
+   "-4": 433,
+   "-3": 394,
+   "-2": 813,
+   "-1": 610,
+   "0": 1689,
+   "1": 861,
+   "2": 974,
+   "3": 403,
+   "4": 440,
+   "5": 493,
    "6": 72,
-   "7": 176,
-   "8": 108,
-   "9": 42,
-   "10": 122,
-   "11": 8,
-   "12": 156,
-   "13": 39,
-   "14": 14,
-   "15": 7,
-   "16": 42,
-   "17": 36,
-   "19": 46,
-   "20": 3,
-   "21": 14,
-   "22": 105,
-   "23": 44,
-   "24": 16,
-   "26": 18,
-   "27": 4,
-   "28": 8,
-   "29": 114,
-   "31": 16,
-   "33": 3,
-   "35": 1,
-   "36": 27,
-   "39": 16
+   "7": 261,
+   "8": 75,
+   "9": 5,
+   "10": 106,
+   "11": 4,
+   "12": 73,
+   "13": 36,
+   "17": 2,
+   "26": 4
   },
   "dur16_hist": {
-   "0": 347,
-   "1": 1954,
-   "2": 4941,
-   "3": 517,
-   "4": 862,
-   "5": 52,
+   "0": 131,
+   "1": 1066,
+   "2": 4934,
+   "3": 701,
+   "4": 820,
+   "5": 28,
    "6": 110,
-   "7": 39,
-   "8": 597,
-   "9": 6,
+   "7": 33,
+   "8": 575,
+   "9": 28,
    "10": 4,
    "11": 80,
    "12": 3,
    "14": 40,
    "15": 100,
-   "16": 349
+   "16": 347
   },
   "onset16_hist": {
-   "0": 2216,
-   "1": 64,
-   "2": 764,
-   "3": 240,
-   "4": 1553,
-   "5": 24,
-   "6": 953,
-   "7": 126,
-   "8": 1185,
-   "9": 18,
-   "10": 558,
-   "11": 64,
-   "12": 1228,
-   "13": 39,
-   "14": 807,
-   "15": 161
+   "0": 1823,
+   "1": 239,
+   "2": 774,
+   "3": 135,
+   "4": 1169,
+   "5": 61,
+   "6": 964,
+   "7": 74,
+   "8": 974,
+   "9": 38,
+   "10": 612,
+   "11": 190,
+   "12": 949,
+   "13": 25,
+   "14": 949,
+   "15": 24
   },
-  "phrases": 220,
+  "phrases": 132,
   "phrase_bars": [
    8.11,
-   0.35,
-   1.6,
-   11.6,
-   1.6,
-   1.6,
-   11.6,
-   1.1,
    11.0,
    0.06,
    0.06,
@@ -1093,26 +1171,33 @@
    7.12,
    0.62,
    8.12,
-   6.05,
-   0.77,
-   5.58,
-   0.4,
+   3.98,
+   4.0,
+   5.98,
+   0.6,
+   4.0,
+   1.75,
+   1.54,
+   1.67,
+   1.65,
+   1.64,
+   1.6,
+   59.0,
+   24.0,
+   15.0,
+   0.55,
+   0.65,
    0.76,
-   4.29,
-   2.09,
-   7.33,
-   0.47,
-   0.7,
-   0.23,
-   1.0,
-   0.34,
-   0.65
+   0.55,
+   0.62,
+   0.88,
+   0.64
   ],
-  "bars": 103.2,
-  "templates": 10
+  "bars": 85.7,
+  "templates": 9
  },
  "notes": [
-  "共 10 首模板，来源：bitmidi×10",
+  "共 16 首模板，来源：bitmidi×16",
   "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/daily_tracks.json"
  ],
  "tool": "theme_pack.py",
@@ -1225,6 +1310,23 @@
      "url_alt": [],
      "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
+   },
+   {
+    "ref": "BGM16b",
+    "score": 0.619,
+    "bpm": 139.8,
+    "centroid": 2472,
+    "rms_db": -17.9,
+    "width": 0.77,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM16b.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
    }
   ],
   "agg_profile": "daily_mix",
@@ -1236,14 +1338,53 @@
   "perc_style_target": 0.35,
   "energy_curve_db": [],
   "structure_db": [
+   -18.0,
+   -18.0,
    -17.0,
    -17.0,
    -17.0,
    -17.0,
-   -16.0,
-   -16.0,
-   -16.0
+   -17.0
   ],
+  "density_curve_db": [
+   -5.92,
+   -2.71,
+   0.39,
+   2.5,
+   0.0,
+   2.31,
+   -2.67
+  ],
+  "density_meta": {
+   "n": 15,
+   "files": [
+    "The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
+    "Animal Crossing - Save Game.mid",
+    "Animal Crossing - Load Game.mid",
+    "Composition - The Anime Medley.mid",
+    "Action 52 - Game 52 Action Gamemaster Cheetahmen Theme.mid",
+    "ABBA.Name of the game K.mid",
+    "I-Was-Country-When-Country-Wasn't-Cool.mid",
+    "Celtic-Skies.mid",
+    "A.JACKSON.Gone country.mid",
+    "American-Folk-(Variation-2).mid",
+    "Acid-Folk.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Pop-Vamp.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid"
+   ],
+   "abs_curve": [
+    20.38,
+    29.5,
+    42.13,
+    53.75,
+    40.29,
+    52.56,
+    29.62
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
+  },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
@@ -1328,41 +1469,7 @@
     "why": "BPM 132.4（差 4.4，0.85）· 打击感 0.60 vs 目标 0.35（0.49）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
-  "density_curve_db": [
-   -8.06,
-   0.0,
-   0.04,
-   -0.48,
-   1.71,
-   -0.16,
-   1.37
-  ],
-  "density_meta": {
-   "n": 10,
-   "files": [
-    "The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
-    "Animal Crossing - Load Game.mid",
-    "Composition - The Anime Medley.mid",
-    "ABBA.Name of the game K.mid",
-    "I-Was-Country-When-Country-Wasn't-Cool.mid",
-    "A.JACKSON.Gone country.mid",
-    "Acid-Folk.mid",
-    "IGGY POP.Louie Louie.mid",
-    "Disco Citizens - Footprint.mid",
-    "Disco-Fans.mid"
-   ],
-   "abs_curve": [
-    28.12,
-    71.14,
-    71.46,
-    67.31,
-    86.66,
-    69.87,
-    83.25
-   ],
-   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
-  }
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
  },
  "skipped": []
 }

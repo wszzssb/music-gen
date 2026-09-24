@@ -1,7 +1,7 @@
 {
  "theme": "seaside",
  "label": "海边",
- "desc": "海边（主题模板包：10 首同主题模板聚合）",
+ "desc": "海边（主题模板包：16 首同主题模板聚合）",
  "styles": [
   "newage",
   "folk",
@@ -13,30 +13,30 @@
   4
  ],
  "min_templates": 8,
- "template_count": 10,
+ "template_count": 16,
  "bpm": {
-  "median": 130.0,
+  "median": 129.96,
   "p25": 120.0,
   "p75": 158.0
  },
  "key": {
-  "tonic": "A",
-  "pc": 9,
+  "tonic": "G",
+  "pc": 7,
   "mode": "major",
-  "confidence": 0.3,
+  "confidence": 0.188,
   "scale_degree_weight": [
-   3223193.44,
-   18480.0,
-   941700.92,
-   159198.12,
-   1326766.52,
-   1305504.24,
-   120840.0,
-   1842787.92,
-   158034.72,
-   1071871.64,
-   407593.32,
-   712683.12
+   3871199.95,
+   26580.14,
+   1024623.96,
+   188746.17,
+   1404191.28,
+   1603011.43,
+   132991.52,
+   2215815.4,
+   183020.88,
+   1185231.2,
+   433658.6,
+   759560.0
   ]
  },
  "templates": [
@@ -55,6 +55,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "folk/Celtic-Skies.mid",
+   "style": "folk",
+   "md5": "6b96d369bf09a5638891ec42a633953f",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 143,
+   "seconds": 284.9,
+   "source": "https://bitmidi.com/uploads/22796.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "folk/A.JACKSON.Gone country.mid",
    "style": "folk",
    "md5": "70a5389348d5d2bcad714245bd02c5e1",
@@ -66,6 +80,20 @@
    "bars": 126,
    "seconds": 240.9,
    "source": "https://bitmidi.com/uploads/3229.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "folk/American-Folk-(Variation-2).mid",
+   "style": "folk",
+   "md5": "580a2b660f1148a5919d1603fb74a675",
+   "bpm": 128.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 32,
+   "seconds": 59.3,
+   "source": "https://bitmidi.com/uploads/6053.mid",
    "kind": "bitmidi"
   },
   {
@@ -97,6 +125,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "newage/Bob Sinclar - New New New (Avicii Remix).mid",
+   "style": "newage",
+   "md5": "50b194f6a6fa8b209f0c44ac07b2afdb",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 16,
+   "seconds": 31.9,
+   "source": "https://bitmidi.com/uploads/18781.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "newage/Age of Empires II The Age of Kings - Menu.mid",
    "style": "newage",
    "md5": "a35d7bc191676344bab3dbeafd931460",
@@ -122,6 +164,20 @@
    "bars": 73,
    "seconds": 134.8,
    "source": "https://bitmidi.com/uploads/28310.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "newage/Gammer - Ambient Angels.mid",
+   "style": "newage",
+   "md5": "42f7e3b4b5c48cd6b0fd93d0171b37b2",
+   "bpm": 167.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 16,
+   "seconds": 23.0,
+   "source": "https://bitmidi.com/uploads/48557.mid",
    "kind": "bitmidi"
   },
   {
@@ -153,6 +209,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "pop/Pop-Vamp.mid",
+   "style": "pop",
+   "md5": "795cb1d8f3adf8f9647c5a17d6fe03b0",
+   "bpm": 125.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 82,
+   "seconds": 157.3,
+   "source": "https://bitmidi.com/uploads/35242.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "pop/Disco Citizens - Footprint.mid",
    "style": "pop",
    "md5": "a15e4ec30d5281e6e10107525742861a",
@@ -164,6 +234,20 @@
    "bars": 16,
    "seconds": 29.1,
    "source": "https://bitmidi.com/uploads/39730.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+   "style": "pop",
+   "md5": "a90d8973d0c7d3bcb385913a0c2ffcad",
+   "bpm": 140.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 8,
+   "seconds": 13.7,
+   "source": "https://bitmidi.com/uploads/40059.mid",
    "kind": "bitmidi"
   },
   {
@@ -182,17 +266,45 @@
   }
  ],
  "source_kinds": {
-  "bitmidi": 10
+  "bitmidi": 16
  },
  "harmony": {
   "primary": [
-   "C#m7",
-   "A6",
-   "D6",
-   "Amaj7"
+   "C6",
+   "Gmaj7",
+   "C6",
+   "Gmaj7"
   ],
-  "primary_source": "window4",
+  "primary_source": "window2",
   "progressions": [
+   {
+    "degrees": [
+     5,
+     0,
+     0,
+     7
+    ],
+    "romans": [
+     "IV6",
+     "I6",
+     "I7",
+     "V7"
+    ],
+    "count": 6,
+    "templates": [
+     "folk/Celtic-Skies.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "pop/Pop-Vamp.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "C6",
+     "G6",
+     "G7",
+     "D7"
+    ],
+    "usable": true
+   },
    {
     "degrees": [
      4,
@@ -206,44 +318,72 @@
      "IV",
      "I"
     ],
-    "count": 4,
+    "count": 5,
     "templates": [
+     "folk/Celtic-Skies.mid",
      "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
      "pop/IGGY POP.Louie Louie.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.19,
     "symbols": [
-     "C#m7",
-     "A6",
-     "D6",
-     "Amaj7"
+     "Bm7",
+     "G6",
+     "C6",
+     "G"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5,
+     0,
+     2
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6",
+     "Imaj7",
+     "ii6"
+    ],
+    "count": 4,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "Gmaj7",
+     "C6",
+     "Gmaj7",
+     "Am6"
     ],
     "usable": true
    },
    {
     "degrees": [
      7,
-     5,
      0,
+     5,
      0
     ],
     "romans": [
      "V7",
-     "IV7",
-     "i7",
-     "I6"
+     "Imaj7",
+     "IV6",
+     "Imaj7"
     ],
-    "count": 3,
+    "count": 4,
     "templates": [
-     "newage/EarthBound - New Age Retro Hippie.mid",
-     "newage/Nola, Novelty piano solo.mid"
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "E7",
      "D7",
-     "Am7",
-     "A6"
+     "Gmaj7",
+     "C6",
+     "Gmaj7"
     ],
     "usable": true
    },
@@ -264,12 +404,12 @@
     "templates": [
      "folk/A.JACKSON.Gone country.mid"
     ],
-    "template_share": 0.1,
+    "template_share": 0.06,
     "symbols": [
-     "D6",
-     "Amaj7",
-     "Dm6",
-     "F#m7"
+     "C6",
+     "Gmaj7",
+     "Cm6",
+     "Em7"
     ],
     "usable": true
    }
@@ -277,6 +417,34 @@
   "progressions_4": [
    {
     "degrees": [
+     5,
+     0,
+     0,
+     7
+    ],
+    "romans": [
+     "IV6",
+     "I6",
+     "I7",
+     "V7"
+    ],
+    "count": 6,
+    "templates": [
+     "folk/Celtic-Skies.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "pop/Pop-Vamp.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "C6",
+     "G6",
+     "G7",
+     "D7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
      4,
      0,
      5,
@@ -288,44 +456,72 @@
      "IV",
      "I"
     ],
-    "count": 4,
+    "count": 5,
     "templates": [
+     "folk/Celtic-Skies.mid",
      "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
      "pop/IGGY POP.Louie Louie.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.19,
     "symbols": [
-     "C#m7",
-     "A6",
-     "D6",
-     "Amaj7"
+     "Bm7",
+     "G6",
+     "C6",
+     "G"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5,
+     0,
+     2
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6",
+     "Imaj7",
+     "ii6"
+    ],
+    "count": 4,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "Gmaj7",
+     "C6",
+     "Gmaj7",
+     "Am6"
     ],
     "usable": true
    },
    {
     "degrees": [
      7,
-     5,
      0,
+     5,
      0
     ],
     "romans": [
      "V7",
-     "IV7",
-     "i7",
-     "I6"
+     "Imaj7",
+     "IV6",
+     "Imaj7"
     ],
-    "count": 3,
+    "count": 4,
     "templates": [
-     "newage/EarthBound - New Age Retro Hippie.mid",
-     "newage/Nola, Novelty piano solo.mid"
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
-     "E7",
      "D7",
-     "Am7",
-     "A6"
+     "Gmaj7",
+     "C6",
+     "Gmaj7"
     ],
     "usable": true
    },
@@ -346,12 +542,12 @@
     "templates": [
      "folk/A.JACKSON.Gone country.mid"
     ],
-    "template_share": 0.1,
+    "template_share": 0.06,
     "symbols": [
-     "D6",
-     "Amaj7",
-     "Dm6",
-     "F#m7"
+     "C6",
+     "Gmaj7",
+     "Cm6",
+     "Em7"
     ],
     "usable": true
    }
@@ -366,48 +562,24 @@
      "IV6",
      "Imaj7"
     ],
-    "count": 67,
+    "count": 92,
     "templates": [
      "folk/A.JACKSON.Gone country.mid",
      "folk/Acid-Folk.mid",
+     "folk/American-Folk-(Variation-2).mid",
+     "folk/Celtic-Skies.mid",
      "newage/Age of Empires II The Age of Kings - Menu.mid",
      "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
      "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Gammer - Ambient Angels.mid",
      "newage/Nola, Novelty piano solo.mid",
-     "pop/IGGY POP.Louie Louie.mid"
+     "pop/IGGY POP.Louie Louie.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.7,
+    "template_share": 0.69,
     "symbols": [
-     "C#m7",
-     "A6",
-     "D6",
-     "Amaj7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     7,
-     0
-    ],
-    "romans": [
-     "V6",
-     "I6"
-    ],
-    "count": 18,
-    "templates": [
-     "folk/A.JACKSON.Gone country.mid",
-     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
-     "newage/Age of Empires II The Age of Kings - Menu.mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid",
-     "newage/Nola, Novelty piano solo.mid",
-     "pop/Disco-Fans.mid"
-    ],
-    "template_share": 0.7,
-    "symbols": [
-     "E6",
-     "A6"
+     "C6",
+     "Gmaj7"
     ],
     "usable": true
    },
@@ -420,46 +592,23 @@
      "I",
      "Vsus4"
     ],
-    "count": 15,
+    "count": 27,
     "templates": [
      "folk/A.JACKSON.Gone country.mid",
+     "folk/American-Folk-(Variation-2).mid",
+     "folk/Celtic-Skies.mid",
      "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
      "newage/Age of Empires II The Age of Kings - Menu.mid",
      "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
      "newage/EarthBound - New Age Retro Hippie.mid",
      "newage/Nola, Novelty piano solo.mid",
-     "pop/Disco-Fans.mid"
+     "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.7,
+    "template_share": 0.62,
     "symbols": [
-     "Amaj7",
-     "Esus4"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     7,
-     5
-    ],
-    "romans": [
-     "V7",
-     "IV6"
-    ],
-    "count": 8,
-    "templates": [
-     "folk/A.JACKSON.Gone country.mid",
-     "folk/Acid-Folk.mid",
-     "newage/Age of Empires II The Age of Kings - Menu.mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid",
-     "newage/Nola, Novelty piano solo.mid",
-     "pop/Disco-Fans.mid"
-    ],
-    "template_share": 0.7,
-    "symbols": [
-     "E7",
-     "D6"
+     "G",
+     "Dsus4"
     ],
     "usable": true
    },
@@ -472,19 +621,50 @@
      "Imaj7",
      "IV6"
     ],
-    "count": 65,
+    "count": 86,
     "templates": [
      "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid",
      "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
      "newage/EarthBound - New Age Retro Hippie.mid",
      "newage/Nola, Novelty piano solo.mid",
      "pop/Disco Citizens - Footprint.mid",
-     "pop/IGGY POP.Louie Louie.mid"
+     "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+     "pop/IGGY POP.Louie Louie.mid",
+     "pop/Pop-Vamp.mid"
     ],
-    "template_share": 0.6,
+    "template_share": 0.56,
     "symbols": [
-     "Amaj7",
-     "D6"
+     "Gmaj7",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "V6",
+     "I6"
+    ],
+    "count": 26,
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
+     "newage/Age of Empires II The Age of Kings - Menu.mid",
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "newage/EarthBound - New Age Retro Hippie.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid"
+    ],
+    "template_share": 0.56,
+    "symbols": [
+     "D6",
+     "G6"
     ],
     "usable": true
    },
@@ -497,109 +677,132 @@
      "I",
      "III7"
     ],
-    "count": 41,
+    "count": 43,
     "templates": [
+     "folk/Celtic-Skies.mid",
      "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
      "newage/Nola, Novelty piano solo.mid",
      "pop/IGGY POP.Louie Louie.mid"
     ],
-    "template_share": 0.3,
+    "template_share": 0.25,
     "symbols": [
-     "Amaj7",
-     "C#7"
+     "G",
+     "B7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     4,
+     0
+    ],
+    "romans": [
+     "III7",
+     "I"
+    ],
+    "count": 38,
+    "templates": [
+     "folk/Celtic-Skies.mid",
+     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "B7",
+     "G"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
-   "C#m7",
-   "A6",
-   "D6",
-   "Amaj7"
+   "G",
+   "Dsus4",
+   "Em7",
+   "G6"
   ],
   "pool_progression_romans": [
    "I",
-   "iv6",
-   "I",
-   "iv6"
+   "Vsus4",
+   "vi7",
+   "I6"
   ],
   "chord_pool": [
    {
     "degree": 0,
     "roman": "I",
-    "suffix": "maj7",
-    "count": 229,
-    "templates": 10
-   },
-   {
-    "degree": 8,
-    "roman": "bVI",
-    "suffix": "6",
-    "count": 167,
-    "templates": 5
+    "suffix": "",
+    "count": 348,
+    "templates": 16
    },
    {
     "degree": 7,
     "roman": "V",
     "suffix": "sus4",
-    "count": 155,
-    "templates": 9
+    "count": 188,
+    "templates": 12
    },
    {
     "degree": 5,
     "roman": "IV",
     "suffix": "6",
-    "count": 100,
-    "templates": 9
+    "count": 187,
+    "templates": 15
    },
    {
-    "degree": 11,
-    "roman": "VII",
-    "suffix": "m7",
-    "count": 47,
-    "templates": 2
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "6",
+    "count": 169,
+    "templates": 6
    },
    {
     "degree": 4,
     "roman": "III",
     "suffix": "7",
-    "count": 46,
-    "templates": 5
+    "count": 54,
+    "templates": 6
+   },
+   {
+    "degree": 11,
+    "roman": "VII",
+    "suffix": "m7",
+    "count": 49,
+    "templates": 3
    },
    {
     "degree": 9,
     "roman": "VI",
     "suffix": "m7",
-    "count": 41,
-    "templates": 5
+    "count": 47,
+    "templates": 7
    },
    {
     "degree": 2,
     "roman": "II",
     "suffix": "m6",
-    "count": 40,
+    "count": 45,
+    "templates": 6
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "6",
+    "count": 21,
     "templates": 5
    },
    {
     "degree": 10,
     "roman": "bVII",
     "suffix": "7",
-    "count": 16,
-    "templates": 4
-   },
-   {
-    "degree": 3,
-    "roman": "bIII",
-    "suffix": "sus4",
-    "count": 12,
-    "templates": 3
+    "count": 18,
+    "templates": 5
    },
    {
     "degree": 1,
     "roman": "bII",
     "suffix": "",
-    "count": 10,
-    "templates": 2
+    "count": 11,
+    "templates": 3
    },
    {
     "degree": 6,
@@ -609,73 +812,73 @@
     "templates": 4
    }
   ],
-  "chord_per_bar": 0.85
+  "chord_per_bar": 0.82
  },
  "rhythm": {
   "low16": "★·★·★·★·★·★·★·★·",
-  "high16": "★·★·★·★·★·★·★·★·",
+  "high16": "★···★·★·★·★·★·★·",
   "low_slot_share": [
-   0.9,
-   0.2,
-   0.7,
-   0.2,
-   0.9,
-   0.2,
-   0.9,
+   0.88,
+   0.25,
+   0.62,
+   0.31,
+   0.62,
+   0.31,
+   0.81,
    0.5,
-   0.9,
-   0.3,
-   0.7,
-   0.2,
-   0.9,
-   0.2,
-   0.7,
-   0.4
+   0.62,
+   0.38,
+   0.69,
+   0.25,
+   0.69,
+   0.25,
+   0.69,
+   0.38
   ],
   "high_slot_share": [
-   1.0,
-   0.1,
-   0.6,
-   0.2,
-   0.9,
-   0.0,
-   0.8,
-   0.2,
-   0.8,
-   0.1,
-   0.8,
-   0.1,
-   1.0,
-   0.0,
-   0.7,
-   0.2
+   0.88,
+   0.12,
+   0.5,
+   0.25,
+   0.75,
+   0.12,
+   0.69,
+   0.25,
+   0.62,
+   0.19,
+   0.69,
+   0.12,
+   0.81,
+   0.06,
+   0.62,
+   0.19
   ],
-  "low_density": 20.71,
-  "high_density": 9.94,
-  "bass_density": 1.89,
-  "perc_density": 8.45,
+  "low_density": 16.91,
+  "high_density": 9.77,
+  "bass_density": 1.43,
+  "perc_density": 5.98,
   "slots": 16,
   "bass_style": "simple",
   "perc_style": "light"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.3,
-   "brass": 0.1,
-   "fx": 0.1,
-   "guitar": 0.3,
-   "lead": 0.2,
-   "organ": 0.1,
-   "pad": 0.1,
-   "perc": 0.1,
-   "piano": 0.8,
-   "pipe": 0.2,
-   "strings": 0.1
+   "bass": 0.25,
+   "brass": 0.06,
+   "fx": 0.06,
+   "guitar": 0.25,
+   "lead": 0.12,
+   "organ": 0.12,
+   "pad": 0.06,
+   "perc": 0.06,
+   "piano": 0.81,
+   "pipe": 0.12,
+   "strings": 0.06
   },
   "role_range": {
    "bass": [
-    28,
-    48
+    31,
+    52
    ],
    "brass": [
     62,
@@ -686,15 +889,15 @@
     56
    ],
    "guitar": [
-    43,
-    79
+    50,
+    81
    ],
    "lead": [
     53,
     74
    ],
    "organ": [
-    55,
+    71,
     88
    ],
    "pad": [
@@ -719,14 +922,14 @@
    ]
   },
   "arr_share": {
-   "bass": 0.3,
-   "piano": 0.8,
-   "uku": 0.3,
-   "strings": 0.1,
-   "pad": 0.1,
+   "bass": 0.25,
+   "piano": 0.81,
+   "uku": 0.25,
+   "strings": 0.06,
+   "pad": 0.06,
    "glock": 0.0,
-   "ep": 0.2,
-   "perc": 0.1
+   "ep": 0.12,
+   "perc": 0.06
   },
   "arr_on": [
    "piano"
@@ -742,11 +945,11 @@
    "strings",
    "uku"
   ],
-  "track_count": 5.0,
+  "track_count": 4.1,
   "style_mix": {
-   "folk": 3,
-   "newage": 4,
-   "pop": 3
+   "folk": 5,
+   "newage": 6,
+   "pop": 5
   },
   "prog_pool": {
    "piano": [
@@ -756,11 +959,13 @@
    ],
    "bass": [
     35,
+    32,
     33,
     38
    ],
    "uku": [
     25,
+    105,
     111,
     30
    ],
@@ -783,7 +988,7 @@
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 48,
+  "total_bars": 72,
   "plan": [
    {
     "name": "Intro",
@@ -803,7 +1008,7 @@
    {
     "name": "B",
     "bars": 8,
-    "prog": 0
+    "prog": 1
    },
    {
     "name": "A3",
@@ -811,7 +1016,22 @@
     "prog": 0
    },
    {
+    "name": "C",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
     "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
     "bars": 8,
     "prog": 0
    },
@@ -823,153 +1043,98 @@
   ]
  },
  "melody": {
-  "notes": 3635,
+  "notes": 1565,
   "range": [
-   57,
+   64,
    79
   ],
-  "mean_pitch": 70.23,
-  "notes_per_bar": 4.03,
-  "stepwise_pct": 53.09,
-  "onbeat_pct": 56.82,
-  "diatonic_pct": 89.79,
+  "mean_pitch": 70.79,
+  "notes_per_bar": 2.47,
+  "stepwise_pct": 46.9,
+  "onbeat_pct": 57.91,
+  "diatonic_pct": 91.28,
   "interval_hist": {
-   "-38": 7,
-   "-36": 22,
-   "-33": 4,
-   "-32": 13,
-   "-31": 42,
-   "-29": 22,
-   "-28": 9,
-   "-27": 7,
-   "-24": 30,
-   "-23": 1,
-   "-22": 10,
-   "-21": 17,
-   "-20": 10,
-   "-19": 68,
-   "-18": 5,
-   "-17": 26,
-   "-16": 14,
-   "-15": 17,
-   "-14": 59,
-   "-13": 1,
-   "-12": 246,
+   "-14": 4,
+   "-12": 190,
    "-11": 29,
-   "-10": 40,
-   "-9": 84,
-   "-8": 143,
-   "-7": 155,
+   "-10": 29,
+   "-9": 55,
+   "-8": 118,
+   "-7": 297,
    "-6": 34,
-   "-5": 550,
+   "-5": 964,
    "-4": 325,
-   "-3": 397,
-   "-2": 1081,
-   "-1": 533,
-   "0": 1905,
-   "1": 619,
-   "2": 1170,
-   "3": 380,
-   "4": 253,
-   "5": 522,
-   "6": 81,
-   "7": 218,
-   "8": 124,
-   "9": 63,
-   "10": 138,
-   "11": 7,
-   "12": 125,
-   "13": 36,
-   "14": 16,
-   "15": 28,
-   "16": 27,
-   "17": 45,
-   "18": 14,
-   "19": 19,
-   "20": 8,
-   "21": 19,
-   "22": 10,
-   "23": 5,
-   "24": 21,
-   "25": 1,
-   "26": 23,
-   "28": 8,
-   "29": 33,
-   "30": 9,
-   "31": 9,
-   "32": 13,
-   "33": 14,
-   "35": 5,
-   "36": 10,
-   "38": 12,
-   "39": 7
+   "-3": 708,
+   "-2": 677,
+   "-1": 547,
+   "0": 1364,
+   "1": 784,
+   "2": 847,
+   "3": 352,
+   "4": 283,
+   "5": 474,
+   "6": 68,
+   "7": 275,
+   "8": 289,
+   "9": 25,
+   "10": 123,
+   "11": 4,
+   "12": 84,
+   "13": 34,
+   "17": 12,
+   "26": 4
   },
   "dur16_hist": {
-   "0": 186,
-   "1": 1809,
-   "2": 5366,
-   "3": 294,
-   "4": 1067,
-   "5": 15,
-   "6": 145,
+   "0": 88,
+   "1": 984,
+   "2": 4171,
+   "3": 605,
+   "4": 1007,
+   "5": 37,
+   "6": 90,
    "7": 25,
-   "8": 529,
-   "9": 6,
-   "10": 52,
+   "8": 502,
+   "9": 28,
+   "10": 4,
    "11": 13,
-   "12": 14,
    "14": 6,
    "15": 100,
-   "16": 373
+   "16": 1340
   },
   "onset16_hist": {
-   "0": 2025,
-   "1": 90,
-   "2": 833,
-   "3": 137,
-   "4": 1444,
-   "5": 115,
-   "6": 1094,
-   "7": 202,
-   "8": 1150,
-   "9": 70,
-   "10": 726,
-   "11": 106,
-   "12": 1063,
-   "13": 61,
-   "14": 768,
-   "15": 115
+   "0": 2562,
+   "1": 277,
+   "2": 673,
+   "3": 149,
+   "4": 1120,
+   "5": 84,
+   "6": 799,
+   "7": 128,
+   "8": 795,
+   "9": 77,
+   "10": 520,
+   "11": 260,
+   "12": 735,
+   "13": 33,
+   "14": 692,
+   "15": 96
   },
-  "phrases": 162,
+  "phrases": 149,
   "phrase_bars": [
    3.98,
    4.0,
    5.98,
    0.6,
    4.0,
-   0.25,
-   0.12,
-   1.12,
-   8.36,
-   3.74,
-   19.75,
-   6.86,
-   3.74,
-   19.75,
-   7.5,
-   2.74,
-   3.74,
-   19.75,
-   0.38,
-   1.12,
-   17.17,
+   1.75,
+   1.54,
+   1.67,
+   1.65,
+   1.64,
+   1.6,
    59.0,
    24.0,
    15.0,
-   46.38,
-   67.38,
-   11.24,
-   18.6,
    0.25,
    0.25,
    0.75,
@@ -1001,25 +1166,39 @@
    0.25,
    0.5,
    1.5,
-   1.88
+   1.88,
+   0.69,
+   6.69,
+   0.69,
+   2.81,
+   0.25,
+   0.67,
+   0.25,
+   0.25,
+   0.75,
+   0.25,
+   0.75,
+   0.25,
+   2.75,
+   0.25
   ],
-  "bars": 90.1,
-  "templates": 10
+  "bars": 70.5,
+  "templates": 9
  },
  "notes": [
-  "共 10 首模板，来源：bitmidi×10",
+  "共 16 首模板，来源：bitmidi×16",
   "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/seaside_tracks.json"
  ],
  "tool": "theme_pack.py",
  "mix_target": {
   "ref": "seaside_mix",
-  "score": 0.911,
+  "score": 0.912,
   "why": "BPM 128.0（差 2.0，0.93）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）",
   "aggregate": true,
   "members": [
    {
     "ref": "bgm01c",
-    "score": 0.911,
+    "score": 0.912,
     "bpm": 128.0,
     "centroid": 3284,
     "rms_db": -14.3,
@@ -1053,7 +1232,7 @@
    },
    {
     "ref": "BGM15c",
-    "score": 0.803,
+    "score": 0.802,
     "bpm": 132.4,
     "centroid": 3338,
     "rms_db": -19.3,
@@ -1087,7 +1266,7 @@
    },
    {
     "ref": "BGM18",
-    "score": 0.689,
+    "score": 0.688,
     "bpm": 134.7,
     "centroid": 2043,
     "rms_db": -22.2,
@@ -1104,7 +1283,7 @@
    },
    {
     "ref": "fine_BGM09",
-    "score": 0.664,
+    "score": 0.665,
     "bpm": 123.0,
     "centroid": 3695,
     "rms_db": -17.1,
@@ -1120,6 +1299,40 @@
      ],
      "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
     }
+   },
+   {
+    "ref": "BGM16b",
+    "score": 0.655,
+    "bpm": 139.8,
+    "centroid": 2472,
+    "rms_db": -17.9,
+    "width": 0.77,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM16b.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM18b",
+    "score": 0.598,
+    "bpm": 134.7,
+    "centroid": 1971,
+    "rms_db": -22.1,
+    "width": 0.818,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM18b.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
    }
   ],
   "agg_profile": "seaside_mix",
@@ -1131,19 +1344,44 @@
   "perc_style_target": 0.35,
   "energy_curve_db": [],
   "structure_db": [
-   -17.0,
-   -17.0,
-   -17.0,
-   -17.0,
-   -16.0,
-   -16.0,
-   -16.0
+   -18.0,
+   -18.0,
+   -17.0
   ],
+  "density_curve_db": [
+   0.0,
+   2.9,
+   -0.33
+  ],
+  "density_meta": {
+   "n": 13,
+   "files": [
+    "I-Was-Country-When-Country-Wasn't-Cool.mid",
+    "Celtic-Skies.mid",
+    "A.JACKSON.Gone country.mid",
+    "American-Folk-(Variation-2).mid",
+    "Acid-Folk.mid",
+    "Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+    "Age of Empires II The Age of Kings - Menu.mid",
+    "Nola, Novelty piano solo.mid",
+    "EarthBound - New Age Retro Hippie.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Pop-Vamp.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid"
+   ],
+   "abs_curve": [
+    16.88,
+    23.56,
+    16.25
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
+  },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
     "ref": "bgm01c",
-    "score": 0.911,
+    "score": 0.912,
     "bpm": 128.0,
     "rms_db": -14.3,
     "width": 0.316,
@@ -1163,7 +1401,7 @@
      -14
     ],
     "parts": {
-     "bpm": 0.933,
+     "bpm": 0.935,
      "perc": 0.826,
      "mode": 1.0
     },
@@ -1190,7 +1428,7 @@
      -16
     ],
     "parts": {
-     "bpm": 0.87,
+     "bpm": 0.869,
      "perc": 0.6,
      "mode": 1.0
     },
@@ -1198,7 +1436,7 @@
    },
    {
     "ref": "BGM15c",
-    "score": 0.803,
+    "score": 0.802,
     "bpm": 132.4,
     "rms_db": -19.3,
     "width": 0.66,
@@ -1216,48 +1454,14 @@
      -19
     ],
     "parts": {
-     "bpm": 0.92,
+     "bpm": 0.919,
      "perc": 0.49,
      "mode": 1.0
     },
     "why": "BPM 132.4（差 2.4，0.92）· 打击感 0.60 vs 目标 0.35（0.49）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
-  "density_curve_db": [
-   -16.94,
-   0.0,
-   0.66,
-   0.31,
-   -2.19,
-   0.11,
-   -13.18
-  ],
-  "density_meta": {
-   "n": 10,
-   "files": [
-    "I-Was-Country-When-Country-Wasn't-Cool.mid",
-    "A.JACKSON.Gone country.mid",
-    "Acid-Folk.mid",
-    "Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-    "Age of Empires II The Age of Kings - Menu.mid",
-    "Nola, Novelty piano solo.mid",
-    "EarthBound - New Age Retro Hippie.mid",
-    "IGGY POP.Louie Louie.mid",
-    "Disco Citizens - Footprint.mid",
-    "Disco-Fans.mid"
-   ],
-   "abs_curve": [
-    7.38,
-    51.87,
-    55.95,
-    53.75,
-    40.29,
-    52.56,
-    11.38
-   ],
-   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
-  }
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
  },
  "skipped": []
 }

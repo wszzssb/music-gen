@@ -1,73 +1,76 @@
 {
- "notes": 1552,
+ "notes": 1982,
  "range": [
-  64,
-  93
+  62,
+  91
  ],
- "mean_pitch": 76.09,
- "notes_per_bar": 2.58,
- "stepwise_pct": 72.06,
- "onbeat_pct": 55.02,
- "diatonic_pct": 91.97,
+ "mean_pitch": 75.11,
+ "notes_per_bar": 2.39,
+ "stepwise_pct": 68.45,
+ "onbeat_pct": 56.8,
+ "diatonic_pct": 90.63,
  "interval_hist": {
+  "-38": 10,
   "-19": 7,
+  "-17": 77,
   "-11": 9,
   "-9": 113,
   "-8": 18,
-  "-7": 119,
-  "-5": 585,
-  "-4": 259,
-  "-3": 409,
-  "-2": 1329,
-  "-1": 760,
-  "0": 2522,
-  "1": 613,
-  "2": 1983,
-  "3": 567,
-  "4": 141,
-  "5": 217,
-  "7": 191,
+  "-7": 135,
+  "-5": 857,
+  "-4": 325,
+  "-3": 749,
+  "-2": 2632,
+  "-1": 982,
+  "0": 3086,
+  "1": 761,
+  "2": 2806,
+  "3": 943,
+  "4": 264,
+  "5": 700,
+  "7": 355,
   "8": 4,
   "9": 29,
   "10": 66,
-  "12": 62
+  "12": 62,
+  "33": 10
  },
  "dur16_hist": {
-  "0": 53,
-  "1": 3111,
-  "2": 2694,
-  "3": 876,
-  "4": 737,
-  "5": 59,
-  "6": 37,
+  "0": 91,
+  "1": 5192,
+  "2": 3669,
+  "3": 443,
+  "4": 1021,
+  "5": 102,
+  "6": 48,
   "7": 85,
-  "8": 87,
+  "8": 903,
   "9": 17,
-  "10": 5,
-  "11": 133,
-  "12": 299,
-  "14": 94,
-  "16": 1712
+  "10": 66,
+  "11": 204,
+  "12": 325,
+  "14": 181,
+  "16": 2652
  },
  "onset16_hist": {
-  "0": 2746,
-  "1": 177,
-  "2": 148,
-  "3": 416,
-  "4": 786,
-  "5": 235,
-  "6": 637,
-  "7": 330,
-  "8": 941,
-  "9": 130,
-  "10": 340,
-  "11": 657,
-  "12": 1030,
-  "13": 331,
-  "14": 733,
-  "15": 362
+  "0": 3974,
+  "1": 259,
+  "2": 344,
+  "3": 365,
+  "4": 1144,
+  "5": 330,
+  "6": 833,
+  "7": 459,
+  "8": 1908,
+  "9": 289,
+  "10": 653,
+  "11": 738,
+  "12": 1493,
+  "13": 632,
+  "14": 1047,
+  "15": 530
  },
- "phrases": 98,
+ "phrases": 155,
  "phrase_bars": [
   3.7,
   3.7,
@@ -81,6 +84,8 @@
   9.94,
   5.58,
   0.24,
+  1.25,
+  3.75,
   17.0,
   1.0,
   1.0,
@@ -125,38 +130,47 @@
   0.74,
   0.74,
   0.74,
-  1.98,
-  2.68,
-  2.68,
-  5.34
+  1.25,
+  2.25
  ],
- "bars": 60.2,
+ "bars": 55.4,
  "templates": [
   "game16/7thsaga_town3-1.mid",
+  "game16/Menu.mid",
   "game16/7thsaga_cave.mid",
   "game16/7thsaga_bt1.mid",
+  "game16/Rules.mid",
   "game16/7thsaga_bt2_w.mid",
   "game32/ClassicXG.mid",
+  "game32/ace-map.mid",
   "game32/bonusstagecredits.mid",
+  "game32/T_AVGFighterMAX_YukaTheme.mid",
   "game32/T_AVGFighterMAX_YukaThemeGM.mid",
   "rock/50's-Rock.mid",
+  "rock/ACDC.For those about to rock k.mid",
   "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid",
+  "rock/A-Hard-Day's-Night-2.mid",
   "rock/A-Hard-Day's-Night-4.mid"
  ],
  "name": "battle",
  "file": "theme:battle",
  "bpm": 139.0,
- "tonic": "C",
+ "tonic": "D",
  "mode": "major",
  "source": "theme_pack.py",
  "provenance": {
   "generated_by": "theme_pack.py",
-  "aggregate_of": 10,
+  "aggregate_of": 16,
   "templates": [
    {
     "file": "game16/7thsaga_town3-1.mid",
     "source": "https://www.vgmusic.com/music/console/nintendo/snes/7thsaga_town3-1.mid",
     "bpm": 100.0
+   },
+   {
+    "file": "game16/Menu.mid",
+    "source": "https://www.vgmusic.com/music/console/nintendo/snes/Menu.mid",
+    "bpm": 117.0
    },
    {
     "file": "game16/7thsaga_cave.mid",
@@ -169,6 +183,11 @@
     "bpm": 140.0
    },
    {
+    "file": "game16/Rules.mid",
+    "source": "https://www.vgmusic.com/music/console/nintendo/snes/Rules.mid",
+    "bpm": 143.0
+   },
+   {
     "file": "game16/7thsaga_bt2_w.mid",
     "source": "https://www.vgmusic.com/music/console/nintendo/snes/7thsaga_bt2_w.mid",
     "bpm": 144.0
@@ -179,9 +198,19 @@
     "bpm": 60.0
    },
    {
+    "file": "game32/ace-map.mid",
+    "source": "https://www.vgmusic.com/music/console/sony/ps1/ace-map.mid",
+    "bpm": 130.0
+   },
+   {
     "file": "game32/bonusstagecredits.mid",
     "source": "https://www.vgmusic.com/music/console/sony/ps1/bonusstagecredits.mid",
     "bpm": 140.0
+   },
+   {
+    "file": "game32/T_AVGFighterMAX_YukaTheme.mid",
+    "source": "https://www.vgmusic.com/music/console/sony/ps1/T_AVGFighterMAX_YukaTheme.mid",
+    "bpm": 165.0
    },
    {
     "file": "game32/T_AVGFighterMAX_YukaThemeGM.mid",
@@ -194,9 +223,19 @@
     "bpm": 87.0
    },
    {
+    "file": "rock/ACDC.For those about to rock k.mid",
+    "source": "https://bitmidi.com/uploads/3650.mid",
+    "bpm": 112.0
+   },
+   {
     "file": "rock/Hard Rock Sofa & Swanky Tunes - Smolengrad.mid",
     "source": "https://bitmidi.com/uploads/55047.mid",
     "bpm": 130.0
+   },
+   {
+    "file": "rock/A-Hard-Day's-Night-2.mid",
+    "source": "https://bitmidi.com/uploads/3105.mid",
+    "bpm": 139.0
    },
    {
     "file": "rock/A-Hard-Day's-Night-4.mid",

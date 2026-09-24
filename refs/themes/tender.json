@@ -1,7 +1,7 @@
 {
  "theme": "tender",
  "label": "温柔抒情",
- "desc": "温柔抒情（主题模板包：10 首同主题模板聚合）",
+ "desc": "温柔抒情（主题模板包：16 首同主题模板聚合）",
  "styles": [
   "ballad",
   "romantic",
@@ -13,30 +13,30 @@
   4
  ],
  "min_templates": 8,
- "template_count": 10,
+ "template_count": 16,
  "bpm": {
   "median": 120.0,
   "p25": 79.98,
-  "p75": 132.0
+  "p75": 135.0
  },
  "key": {
   "tonic": "A",
   "pc": 9,
-  "mode": "major",
-  "confidence": 0.4,
+  "mode": "minor",
+  "confidence": 0.312,
   "scale_degree_weight": [
-   2167757.88,
-   35929.44,
-   852934.2,
-   149034.84,
-   921729.72,
-   1176264.6,
-   36822.24,
-   1084489.2,
-   140454.24,
-   912783.6,
-   249419.28,
-   473639.4
+   2998238.67,
+   83989.5,
+   1048229.64,
+   275545.29,
+   1126760.32,
+   1469141.91,
+   60852.24,
+   1675567.84,
+   187926.12,
+   992596.24,
+   377131.0,
+   551233.2
   ]
  },
  "templates": [
@@ -52,6 +52,20 @@
    "bars": 128,
    "seconds": 638.2,
    "source": "https://bitmidi.com/uploads/5932.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "ballad/Ballad-Of-The-Jazz-Cafe.mid",
+   "style": "ballad",
+   "md5": "c7dc297ac171ff1ac5f25a8480f2b7d3",
+   "bpm": 78.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 77,
+   "seconds": 235.7,
+   "source": "https://bitmidi.com/uploads/15419.mid",
    "kind": "bitmidi"
   },
   {
@@ -83,6 +97,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "ballad/Ballad-Of-A-Teenage-Queen.mid",
+   "style": "ballad",
+   "md5": "baba3868fde62967d22a48302be4bfa1",
+   "bpm": 95.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 54,
+   "seconds": 136.4,
+   "source": "https://bitmidi.com/uploads/15418.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "ballad/A-Very-Special-Love-Song.mid",
    "style": "ballad",
    "md5": "e863a3bcb92851c8cf23607cb6b596ab",
@@ -111,6 +139,20 @@
    "kind": "bitmidi"
   },
   {
+   "file": "pop/Pop-Vamp.mid",
+   "style": "pop",
+   "md5": "795cb1d8f3adf8f9647c5a17d6fe03b0",
+   "bpm": 125.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 82,
+   "seconds": 157.3,
+   "source": "https://bitmidi.com/uploads/35242.mid",
+   "kind": "bitmidi"
+  },
+  {
    "file": "pop/Disco Citizens - Footprint.mid",
    "style": "pop",
    "md5": "a15e4ec30d5281e6e10107525742861a",
@@ -122,6 +164,34 @@
    "bars": 16,
    "seconds": 29.1,
    "source": "https://bitmidi.com/uploads/39730.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/Astro Boy - Astro Boy March.mid",
+   "style": "pop",
+   "md5": "b01d0f4a35fc29b001751ae9765b5aca",
+   "bpm": 135.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 44,
+   "seconds": 77.8,
+   "source": "https://bitmidi.com/uploads/8029.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+   "style": "pop",
+   "md5": "a90d8973d0c7d3bcb385913a0c2ffcad",
+   "bpm": 140.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 8,
+   "seconds": 13.7,
+   "source": "https://bitmidi.com/uploads/40059.mid",
    "kind": "bitmidi"
   },
   {
@@ -150,6 +220,20 @@
    "bars": 171,
    "seconds": 683.3,
    "source": "https://bitmidi.com/uploads/30179.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid",
+   "style": "romantic",
+   "md5": "5d18ec8a6c852344d8802912506a5cab",
+   "bpm": 70.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 126,
+   "seconds": 431.2,
+   "source": "https://bitmidi.com/uploads/31293.mid",
    "kind": "bitmidi"
   },
   {
@@ -182,17 +266,45 @@
   }
  ],
  "source_kinds": {
-  "bitmidi": 10
+  "bitmidi": 16
  },
  "harmony": {
   "primary": [
-   "B7",
-   "Esus4",
-   "Am7",
-   "Am"
+   "Am6",
+   "D7",
+   "Am6",
+   "D7"
   ],
-  "primary_source": "window4",
+  "primary_source": "window2",
   "progressions": [
+   {
+    "degrees": [
+     5,
+     7,
+     0,
+     0
+    ],
+    "romans": [
+     "IV6",
+     "v7",
+     "I6",
+     "I6"
+    ],
+    "count": 5,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "pop/Astro Boy - Astro Boy March.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "D6",
+     "Em7",
+     "A6",
+     "A6"
+    ],
+    "usable": true
+   },
    {
     "degrees": [
      2,
@@ -211,7 +323,7 @@
      "ballad/A-Very-Special-Love-Song.mid",
      "romantic/Liszt Bach Prelude Transcription.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
      "B7",
      "Esus4",
@@ -223,26 +335,53 @@
    {
     "degrees": [
      5,
-     7,
      0,
+     2,
      0
     ],
     "romans": [
-     "IV6",
-     "v7",
+     "IV",
      "I6",
-     "I6"
+     "IIsus4",
+     "I"
     ],
     "count": 4,
     "templates": [
-     "ballad/A-Very-Special-Love-Song.mid",
-     "ballad/Animal Crossing - KK Ballad Aircheck.mid"
+     "pop/Astro Boy - Astro Boy March.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
      "D6",
-     "Em7",
      "A6",
+     "Bsus4",
+     "A"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5,
+     7,
+     0
+    ],
+    "romans": [
+     "I6",
+     "IV6",
+     "v7",
+     "I6"
+    ],
+    "count": 3,
+    "templates": [
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "pop/Astro Boy - Astro Boy March.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "A6",
+     "D6",
+     "Em7",
      "A6"
     ],
     "usable": true
@@ -265,65 +404,12 @@
      "ballad/A-Very-Special-Love-Song.mid",
      "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
      "Bm6",
      "F#m7",
      "D6",
      "C#m7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     5,
-     9,
-     0,
-     5
-    ],
-    "romans": [
-     "IVmaj7",
-     "vi7",
-     "Imaj7",
-     "IVmaj7"
-    ],
-    "count": 2,
-    "templates": [
-     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
-     "pop/Disco Citizens - Footprint.mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "Dmaj7",
-     "F#m7",
-     "Amaj7",
-     "Dmaj7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     7,
-     5,
-     9,
-     5
-    ],
-    "romans": [
-     "V6",
-     "IVmaj7",
-     "vi7",
-     "IVmaj7"
-    ],
-    "count": 4,
-    "templates": [
-     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid"
-    ],
-    "template_share": 0.1,
-    "symbols": [
-     "E6",
-     "Dmaj7",
-     "F#m7",
-     "Dmaj7"
     ],
     "usable": true
    }
@@ -331,6 +417,34 @@
   "progressions_4": [
    {
     "degrees": [
+     5,
+     7,
+     0,
+     0
+    ],
+    "romans": [
+     "IV6",
+     "v7",
+     "I6",
+     "I6"
+    ],
+    "count": 5,
+    "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "pop/Astro Boy - Astro Boy March.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "D6",
+     "Em7",
+     "A6",
+     "A6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
      2,
      7,
      0,
@@ -347,7 +461,7 @@
      "ballad/A-Very-Special-Love-Song.mid",
      "romantic/Liszt Bach Prelude Transcription.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
      "B7",
      "Esus4",
@@ -359,26 +473,53 @@
    {
     "degrees": [
      5,
-     7,
      0,
+     2,
      0
     ],
     "romans": [
-     "IV6",
-     "v7",
+     "IV",
      "I6",
-     "I6"
+     "IIsus4",
+     "I"
     ],
     "count": 4,
     "templates": [
-     "ballad/A-Very-Special-Love-Song.mid",
-     "ballad/Animal Crossing - KK Ballad Aircheck.mid"
+     "pop/Astro Boy - Astro Boy March.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
      "D6",
-     "Em7",
      "A6",
+     "Bsus4",
+     "A"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     5,
+     7,
+     0
+    ],
+    "romans": [
+     "I6",
+     "IV6",
+     "v7",
+     "I6"
+    ],
+    "count": 3,
+    "templates": [
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "pop/Astro Boy - Astro Boy March.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "A6",
+     "D6",
+     "Em7",
      "A6"
     ],
     "usable": true
@@ -401,65 +542,12 @@
      "ballad/A-Very-Special-Love-Song.mid",
      "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid"
     ],
-    "template_share": 0.2,
+    "template_share": 0.12,
     "symbols": [
      "Bm6",
      "F#m7",
      "D6",
      "C#m7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     5,
-     9,
-     0,
-     5
-    ],
-    "romans": [
-     "IVmaj7",
-     "vi7",
-     "Imaj7",
-     "IVmaj7"
-    ],
-    "count": 2,
-    "templates": [
-     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
-     "pop/Disco Citizens - Footprint.mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "Dmaj7",
-     "F#m7",
-     "Amaj7",
-     "Dmaj7"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     7,
-     5,
-     9,
-     5
-    ],
-    "romans": [
-     "V6",
-     "IVmaj7",
-     "vi7",
-     "IVmaj7"
-    ],
-    "count": 4,
-    "templates": [
-     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid"
-    ],
-    "template_share": 0.1,
-    "symbols": [
-     "E6",
-     "Dmaj7",
-     "F#m7",
-     "Dmaj7"
     ],
     "usable": true
    }
@@ -468,25 +556,55 @@
    {
     "degrees": [
      0,
+     5
+    ],
+    "romans": [
+     "i6",
+     "IV7"
+    ],
+    "count": 39,
+    "templates": [
+     "ballad/Animal Crossing - KK Ballad Aircheck.mid",
+     "ballad/Ballad-Of-A-Teenage-Queen.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "pop/Astro Boy - Astro Boy March.mid",
+     "pop/Disco Citizens - Footprint.mid",
+     "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+     "pop/IGGY POP.Louie Louie.mid",
+     "pop/Pop-Vamp.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid"
+    ],
+    "template_share": 0.56,
+    "symbols": [
+     "Am6",
+     "D7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
      7
     ],
     "romans": [
-     "Isus4",
-     "vm7b5"
+     "I6",
+     "V7"
     ],
-    "count": 17,
+    "count": 24,
     "templates": [
      "ballad/A-Very-Special-Love-Song.mid",
      "ballad/BALLAD-2.MID",
      "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
      "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid",
      "romantic/Liszt Bach Prelude Transcription.mid",
-     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid",
+     "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid"
     ],
-    "template_share": 0.6,
+    "template_share": 0.5,
     "symbols": [
-     "Asus4",
-     "Em7b5"
+     "A6",
+     "E7"
     ],
     "usable": true
    },
@@ -499,16 +617,18 @@
      "V7",
      "I6"
     ],
-    "count": 17,
+    "count": 24,
     "templates": [
      "ballad/A-Very-Special-Love-Song.mid",
      "ballad/Animal Crossing - KK Ballad Aircheck.mid",
      "ballad/BALLAD-2.MID",
      "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "pop/Astro Boy - Astro Boy March.mid",
      "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid",
      "romantic/Liszt Bach Prelude Transcription.mid"
     ],
-    "template_share": 0.6,
+    "template_share": 0.5,
     "symbols": [
      "E7",
      "A6"
@@ -517,24 +637,27 @@
    },
    {
     "degrees": [
-     0,
-     5
+     5,
+     0
     ],
     "romans": [
-     "I6",
-     "IV6"
+     "IV7",
+     "i"
     ],
-    "count": 18,
+    "count": 35,
     "templates": [
+     "ballad/A-Very-Special-Love-Song.mid",
      "ballad/Animal Crossing - KK Ballad Aircheck.mid",
-     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
-     "pop/Disco Citizens - Footprint.mid",
-     "pop/IGGY POP.Louie Louie.mid"
+     "ballad/Ballad-Of-A-Teenage-Queen.mid",
+     "pop/Astro Boy - Astro Boy March.mid",
+     "pop/IGGY POP.Louie Louie.mid",
+     "pop/Pop-Vamp.mid",
+     "romantic/Liszt Bach Prelude Transcription.mid"
     ],
-    "template_share": 0.4,
+    "template_share": 0.44,
     "symbols": [
-     "A6",
-     "D6"
+     "D7",
+     "Am"
     ],
     "usable": true
    },
@@ -547,13 +670,14 @@
      "III7",
      "I"
     ],
-    "count": 39,
+    "count": 40,
     "templates": [
+     "ballad/Ballad-Of-The-Jazz-Cafe.mid",
      "pop/IGGY POP.Louie Louie.mid",
      "romantic/Liszt Bach Prelude Transcription.mid",
      "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
     ],
-    "template_share": 0.3,
+    "template_share": 0.25,
     "symbols": [
      "C#7",
      "A"
@@ -569,209 +693,190 @@
      "vi7",
      "IV6"
     ],
-    "count": 18,
+    "count": 19,
     "templates": [
      "ballad/A-Very-Special-Love-Song.mid",
+     "ballad/Ballad-Of-The-Jazz-Cafe.mid",
      "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
      "romantic/Liszt Bach Prelude Transcription.mid"
     ],
-    "template_share": 0.3,
+    "template_share": 0.25,
     "symbols": [
      "F#m7",
      "D6"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     0,
-     4
-    ],
-    "romans": [
-     "I",
-     "III7"
-    ],
-    "count": 39,
-    "templates": [
-     "pop/IGGY POP.Louie Louie.mid",
-     "romantic/Liszt Bach Prelude Transcription.mid"
-    ],
-    "template_share": 0.2,
-    "symbols": [
-     "A",
-     "C#7"
     ],
     "usable": true
    }
   ],
   "pool_progression": [
    "A",
-   "A7",
-   "A6",
-   "Bm7"
+   "Asus4",
+   "A",
+   "Asus4"
   ],
   "pool_progression_romans": [
    "I",
-   "I7",
-   "I6",
-   "ii7"
+   "Isus4",
+   "I",
+   "Isus4"
   ],
   "chord_pool": [
    {
     "degree": 0,
     "roman": "I",
     "suffix": "",
-    "count": 222,
-    "templates": 10
+    "count": 350,
+    "templates": 16
    },
    {
     "degree": 7,
     "roman": "V",
     "suffix": "sus4",
-    "count": 195,
-    "templates": 8
-   },
-   {
-    "degree": 2,
-    "roman": "II",
-    "suffix": "m7",
-    "count": 91,
-    "templates": 5
-   },
-   {
-    "degree": 4,
-    "roman": "III",
-    "suffix": "7",
-    "count": 79,
-    "templates": 6
+    "count": 236,
+    "templates": 12
    },
    {
     "degree": 5,
     "roman": "IV",
     "suffix": "6",
-    "count": 77,
+    "count": 127,
+    "templates": 14
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m7",
+    "count": 104,
+    "templates": 8
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "6",
+    "count": 95,
+    "templates": 9
+   },
+   {
+    "degree": 4,
+    "roman": "III",
+    "suffix": "7",
+    "count": 84,
     "templates": 8
    },
    {
     "degree": 9,
     "roman": "VI",
     "suffix": "m7",
-    "count": 62,
-    "templates": 5
-   },
-   {
-    "degree": 3,
-    "roman": "bIII",
-    "suffix": "6",
-    "count": 50,
-    "templates": 5
-   },
-   {
-    "degree": 8,
-    "roman": "bVI",
-    "suffix": "maj7",
-    "count": 27,
-    "templates": 4
+    "count": 73,
+    "templates": 7
    },
    {
     "degree": 10,
     "roman": "bVII",
     "suffix": "6",
-    "count": 18,
-    "templates": 5
+    "count": 54,
+    "templates": 8
+   },
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "maj7",
+    "count": 36,
+    "templates": 7
    },
    {
     "degree": 11,
     "roman": "VII",
-    "suffix": "m7",
-    "count": 17,
-    "templates": 4
+    "suffix": "dim",
+    "count": 32,
+    "templates": 6
    },
    {
     "degree": 1,
     "roman": "bII",
     "suffix": "",
-    "count": 14,
-    "templates": 3
+    "count": 26,
+    "templates": 5
    },
    {
     "degree": 6,
     "roman": "bV",
     "suffix": "dim",
-    "count": 9,
-    "templates": 2
+    "count": 12,
+    "templates": 4
    }
   ],
   "chord_per_bar": 0.85
  },
  "rhythm": {
   "low16": "★·★·★·★·★·★·★·★·",
-  "high16": "★·★·★·★★★·★·★·★★",
+  "high16": "★·★·★·★★★·★·★·★·",
   "low_slot_share": [
-   0.6,
-   0.2,
-   0.7,
-   0.2,
-   0.7,
-   0.2,
-   0.8,
-   0.4,
-   0.6,
-   0.3,
-   0.7,
-   0.2,
-   0.7,
-   0.2,
-   0.8,
-   0.4
+   0.75,
+   0.19,
+   0.62,
+   0.25,
+   0.62,
+   0.19,
+   0.75,
+   0.38,
+   0.62,
+   0.25,
+   0.62,
+   0.31,
+   0.62,
+   0.19,
+   0.69,
+   0.31
   ],
   "high_slot_share": [
-   0.9,
-   0.4,
-   0.7,
-   0.4,
-   0.8,
-   0.2,
-   0.8,
-   0.6,
-   0.9,
-   0.3,
-   0.8,
-   0.4,
-   0.9,
-   0.3,
-   0.9,
-   0.6
+   0.88,
+   0.44,
+   0.69,
+   0.5,
+   0.88,
+   0.31,
+   0.88,
+   0.62,
+   0.88,
+   0.38,
+   0.81,
+   0.38,
+   0.88,
+   0.31,
+   0.81,
+   0.5
   ],
-  "low_density": 16.78,
-  "high_density": 17.66,
-  "bass_density": 1.82,
-  "perc_density": 5.51,
+  "low_density": 16.06,
+  "high_density": 17.3,
+  "bass_density": 1.39,
+  "perc_density": 4.52,
   "slots": 16,
   "bass_style": "simple",
   "perc_style": "light"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.3,
-   "brass": 0.2,
-   "fx": 0.1,
-   "guitar": 0.3,
-   "lead": 0.1,
-   "perc": 0.1,
-   "piano": 0.9,
-   "pipe": 0.1,
-   "reed": 0.1,
-   "strings": 0.2
+   "bass": 0.25,
+   "brass": 0.19,
+   "fx": 0.06,
+   "guitar": 0.25,
+   "lead": 0.06,
+   "organ": 0.06,
+   "perc": 0.06,
+   "piano": 0.88,
+   "pipe": 0.19,
+   "reed": 0.12,
+   "strings": 0.19
   },
   "role_range": {
    "bass": [
-    29,
+    33,
     50
    ],
    "brass": [
-    62,
-    89
+    33,
+    81
    ],
    "fx": [
     56,
@@ -785,6 +890,10 @@
     53,
     74
    ],
+   "organ": [
+    58,
+    68
+   ],
    "perc": [
     57,
     57
@@ -795,26 +904,26 @@
    ],
    "pipe": [
     64,
-    105
+    102
    ],
    "reed": [
     34,
     88
    ],
    "strings": [
-    60,
+    28,
     93
    ]
   },
   "arr_share": {
-   "bass": 0.3,
-   "piano": 0.9,
-   "uku": 0.3,
-   "strings": 0.2,
+   "bass": 0.25,
+   "piano": 0.88,
+   "uku": 0.25,
+   "strings": 0.19,
    "pad": 0.0,
    "glock": 0.0,
-   "ep": 0.1,
-   "perc": 0.1
+   "ep": 0.19,
+   "perc": 0.06
   },
   "arr_on": [
    "piano"
@@ -830,21 +939,23 @@
    "strings",
    "uku"
   ],
-  "track_count": 6.3,
+  "track_count": 6.0,
   "style_mix": {
-   "ballad": 4,
-   "pop": 3,
-   "romantic": 3
+   "ballad": 6,
+   "pop": 6,
+   "romantic": 4
   },
   "prog_pool": {
    "uku": [
     24,
     26,
+    25,
     30
    ],
    "piano": [
     0,
     1,
+    4,
     2
    ],
    "bass": [
@@ -852,13 +963,14 @@
     33,
     38
    ],
+   "ep": [
+    73,
+    80,
+    71
+   ],
    "strings": [
     48,
     62
-   ],
-   "ep": [
-    80,
-    71
    ],
    "perc": [
     119
@@ -922,40 +1034,40 @@
   ]
  },
  "melody": {
-  "notes": 2476,
+  "notes": 2640,
   "range": [
    50,
    98
   ],
-  "mean_pitch": 71.67,
-  "notes_per_bar": 3.18,
-  "stepwise_pct": 61.48,
-  "onbeat_pct": 44.38,
-  "diatonic_pct": 93.88,
+  "mean_pitch": 73.33,
+  "notes_per_bar": 2.73,
+  "stepwise_pct": 62.39,
+  "onbeat_pct": 51.37,
+  "diatonic_pct": 92.97,
   "interval_hist": {
    "-17": 3,
    "-16": 3,
    "-15": 3,
    "-12": 165,
    "-11": 1,
-   "-10": 22,
+   "-10": 53,
    "-9": 20,
    "-8": 94,
-   "-7": 110,
+   "-7": 253,
    "-6": 23,
-   "-5": 424,
-   "-4": 353,
-   "-3": 340,
-   "-2": 1352,
-   "-1": 612,
-   "0": 1110,
-   "1": 559,
-   "2": 1286,
+   "-5": 483,
+   "-4": 649,
+   "-3": 357,
+   "-2": 1713,
+   "-1": 1226,
+   "0": 1292,
+   "1": 1013,
+   "2": 1619,
    "3": 322,
-   "4": 216,
-   "5": 486,
+   "4": 302,
+   "5": 653,
    "6": 64,
-   "7": 116,
+   "7": 373,
    "8": 9,
    "9": 19,
    "10": 84,
@@ -970,41 +1082,41 @@
   },
   "dur16_hist": {
    "0": 80,
-   "1": 2098,
-   "2": 3565,
+   "1": 2265,
+   "2": 5248,
    "3": 437,
-   "4": 680,
-   "5": 112,
+   "4": 1427,
+   "5": 176,
    "6": 422,
    "7": 14,
-   "8": 349,
+   "8": 671,
    "10": 67,
    "11": 7,
    "12": 64,
    "13": 5,
    "14": 15,
    "15": 1,
-   "16": 83
+   "16": 99
   },
   "onset16_hist": {
-   "0": 1080,
+   "0": 1601,
    "1": 164,
-   "2": 755,
+   "2": 911,
    "3": 221,
-   "4": 1042,
-   "5": 158,
-   "6": 886,
-   "7": 308,
-   "8": 791,
+   "4": 1371,
+   "5": 188,
+   "6": 1088,
+   "7": 339,
+   "8": 1408,
    "9": 123,
-   "10": 531,
+   "10": 764,
    "11": 189,
-   "12": 638,
-   "13": 200,
-   "14": 741,
-   "15": 172
+   "12": 1271,
+   "13": 215,
+   "14": 958,
+   "15": 187
   },
-  "phrases": 155,
+  "phrases": 171,
   "phrase_bars": [
    7.57,
    8.62,
@@ -1028,6 +1140,17 @@
    3.51,
    9.12,
    1.28,
+   1.74,
+   1.99,
+   1.74,
+   2.06,
+   1.74,
+   2.06,
+   1.74,
+   2.06,
+   1.74,
+   2.06,
+   2.24,
    0.55,
    0.65,
    0.76,
@@ -1054,70 +1177,25 @@
    0.76,
    0.55,
    0.62,
-   2.02,
-   3.55,
-   0.44,
-   0.92,
-   0.89,
-   1.61,
-   1.41,
-   1.41,
-   1.59,
-   2.43,
-   0.65,
-   0.76
+   2.02
   ],
-  "bars": 97.3,
-  "templates": 8
+  "bars": 87.8,
+  "templates": 11
  },
  "notes": [
-  "共 10 首模板，来源：bitmidi×10",
+  "共 16 首模板，来源：bitmidi×16",
   "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/tender_tracks.json"
  ],
  "tool": "theme_pack.py",
  "mix_target": {
   "ref": "tender_mix",
-  "score": 0.877,
-  "why": "BPM 114.1（差 5.9，0.80）· 打击感 0.33 vs 目标 0.35（0.95）· 调式 major（1.00）",
+  "score": 0.887,
+  "why": "BPM 123.0（差 3.0，0.90）· 打击感 0.45 vs 目标 0.35（0.81）· 调式 minor（1.00）",
   "aggregate": true,
   "members": [
    {
-    "ref": "BGM04",
-    "score": 0.877,
-    "bpm": 114.1,
-    "centroid": 2281,
-    "rms_db": -13.5,
-    "width": 0.233,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM04.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "bgm01c",
-    "score": 0.801,
-    "bpm": 128.0,
-    "centroid": 3284,
-    "rms_db": -14.3,
-    "width": 0.316,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "bgm01c.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
     "ref": "fine_BGM09",
-    "score": 0.737,
+    "score": 0.887,
     "bpm": 123.0,
     "centroid": 3695,
     "rms_db": -17.1,
@@ -1136,7 +1214,7 @@
    },
    {
     "ref": "BGM13",
-    "score": 0.643,
+    "score": 0.793,
     "bpm": 109.2,
     "centroid": 3068,
     "rms_db": -20.4,
@@ -1152,16 +1230,16 @@
     }
    },
    {
-    "ref": "BGM06",
-    "score": 0.625,
-    "bpm": 133.9,
-    "centroid": 1533,
-    "rms_db": -16.9,
-    "width": 0.261,
+    "ref": "BGM04",
+    "score": 0.727,
+    "bpm": 114.1,
+    "centroid": 2281,
+    "rms_db": -13.5,
+    "width": 0.233,
     "source": {
      "kind": "project_audio",
      "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM06.ogg",
+     "file": "BGM04.ogg",
      "origin_path": null,
      "url": null,
      "url_alt": [],
@@ -1169,16 +1247,67 @@
     }
    },
    {
-    "ref": "BGM15c",
-    "score": 0.62,
-    "bpm": 132.4,
-    "centroid": 3338,
-    "rms_db": -19.3,
-    "width": 0.66,
+    "ref": "BGM09",
+    "score": 0.686,
+    "bpm": 106.0,
+    "centroid": 2421,
+    "rms_db": -16.2,
+    "width": 0.523,
     "source": {
      "kind": "project_audio",
      "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM15c.ogg",
+     "file": "BGM09.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM18",
+    "score": 0.656,
+    "bpm": 134.7,
+    "centroid": 2043,
+    "rms_db": -22.2,
+    "width": 0.818,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM18.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "bgm01c",
+    "score": 0.651,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "bgm01c.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM18b",
+    "score": 0.566,
+    "bpm": 134.7,
+    "centroid": 1971,
+    "rms_db": -22.1,
+    "width": 0.818,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM18b.ogg",
      "origin_path": null,
      "url": null,
      "url_alt": [],
@@ -1195,37 +1324,36 @@
   "perc_style_target": 0.35,
   "energy_curve_db": [],
   "structure_db": [
-   -17.0,
-   -17.0,
-   -17.0,
-   -17.0,
-   -16.0
+   -18.0,
+   -18.0,
+   -17.0
   ],
   "density_curve_db": [
-   -3.0,
-   -0.94,
-   0.0,
-   2.48,
-   0.11
+   -3.11,
+   1.04,
+   0.0
   ],
   "density_meta": {
-   "n": 9,
+   "n": 14,
    "files": [
     "ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+    "Ballad-Of-The-Jazz-Cafe.mid",
     "Animal Crossing - KK Ballad Aircheck.mid",
     "BALLAD-2.MID",
+    "Ballad-Of-A-Teenage-Queen.mid",
     "A-Very-Special-Love-Song.mid",
     "IGGY POP.Louie Louie.mid",
+    "Pop-Vamp.mid",
     "Disco Citizens - Footprint.mid",
+    "Astro Boy - Astro Boy March.mid",
     "Disco-Fans.mid",
     "Liszt Bach Prelude Transcription.mid",
+    "Tchaikovsky Lake Of The Swans Act 1 3mov.mid",
     "Tchaikovsky Lake Of The Swans Act 1 1mov.mid"
    ],
    "abs_curve": [
     20.62,
-    26.13,
-    29.12,
-    38.75,
+    33.25,
     29.5
    ],
    "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
@@ -1233,8 +1361,56 @@
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
+    "ref": "fine_BGM09",
+    "score": 0.887,
+    "bpm": 123.0,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "centroid": 3695,
+    "perc": 0.446,
+    "mode": "minor",
+    "structure": [
+     -18,
+     -18,
+     -17,
+     -17,
+     -16,
+     -16,
+     -16
+    ],
+    "parts": {
+     "bpm": 0.9,
+     "perc": 0.808,
+     "mode": 1.0
+    },
+    "why": "BPM 123.0（差 3.0，0.90）· 打击感 0.45 vs 目标 0.35（0.81）· 调式 minor（1.00）"
+   },
+   {
+    "ref": "BGM13",
+    "score": 0.793,
+    "bpm": 109.2,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "centroid": 3068,
+    "perc": 0.365,
+    "mode": "minor",
+    "structure": [
+     -20,
+     -20,
+     -19,
+     -20,
+     -22
+    ],
+    "parts": {
+     "bpm": 0.64,
+     "perc": 0.97,
+     "mode": 1.0
+    },
+    "why": "BPM 109.2（差 10.8，0.64）· 打击感 0.36 vs 目标 0.35（0.97）· 调式 minor（1.00）"
+   },
+   {
     "ref": "BGM04",
-    "score": 0.877,
+    "score": 0.727,
     "bpm": 114.1,
     "rms_db": -13.5,
     "width": 0.233,
@@ -1254,62 +1430,9 @@
     "parts": {
      "bpm": 0.803,
      "perc": 0.95,
-     "mode": 1.0
-    },
-    "why": "BPM 114.1（差 5.9，0.80）· 打击感 0.33 vs 目标 0.35（0.95）· 调式 major（1.00）"
-   },
-   {
-    "ref": "bgm01c",
-    "score": 0.801,
-    "bpm": 128.0,
-    "rms_db": -14.3,
-    "width": 0.316,
-    "centroid": 3284,
-    "perc": 0.437,
-    "mode": "major",
-    "structure": [
-     -17,
-     -14,
-     -14,
-     -14,
-     -14,
-     -14,
-     -14,
-     -14,
-     -15,
-     -14
-    ],
-    "parts": {
-     "bpm": 0.733,
-     "perc": 0.826,
-     "mode": 1.0
-    },
-    "why": "BPM 128.0（差 8.0，0.73）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）"
-   },
-   {
-    "ref": "fine_BGM09",
-    "score": 0.737,
-    "bpm": 123.0,
-    "rms_db": -17.1,
-    "width": 0.369,
-    "centroid": 3695,
-    "perc": 0.446,
-    "mode": "minor",
-    "structure": [
-     -18,
-     -18,
-     -17,
-     -17,
-     -16,
-     -16,
-     -16
-    ],
-    "parts": {
-     "bpm": 0.9,
-     "perc": 0.808,
      "mode": 0.0
     },
-    "why": "BPM 123.0（差 3.0，0.90）· 打击感 0.45 vs 目标 0.35（0.81）· 调式 minor≠主题（0.00）"
+    "why": "BPM 114.1（差 5.9，0.80）· 打击感 0.33 vs 目标 0.35（0.95）· 调式 major≠主题（0.00）"
    }
   ],
   "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"

@@ -98,7 +98,7 @@ pip 命令**，缺权重会提示加 `--download`。
 - 三样东西的搜索顺序：`DSH_YMT3_REPO`/`DSH_YMT3_LIBS` → `D:\test\models\ymt3repo`
   （`ymt3libs` 认它的兄弟目录）→ `<工具链>\vendor\ymt3repo`；也可 `--repo <路径>`。
 - 更细的坑（project 必须是 **`2024`**、`transformers` 必须 **4.45.1**、torchcodec 已打补丁）
-  → `docs\CASE-BGM35-FINDINGS.md` 第 33 条。
+  → `docs\原案例实测台账（已按用户要求删除 2026-09-24） 第 33 条。
 
 **版权**：转录结果是参考曲的**逐音复制**。本地分析/对照/学习随便用，
 **不能上传到网络**（公开发布即侵权）—— 见 `ML.md` 的「版权与边界」。

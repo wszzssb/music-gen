@@ -1,38 +1,38 @@
 {
- "notes": 2476,
+ "notes": 2640,
  "range": [
   50,
   98
  ],
- "mean_pitch": 71.67,
- "notes_per_bar": 3.18,
- "stepwise_pct": 61.48,
- "onbeat_pct": 44.38,
- "diatonic_pct": 93.88,
+ "mean_pitch": 73.33,
+ "notes_per_bar": 2.73,
+ "stepwise_pct": 62.39,
+ "onbeat_pct": 51.37,
+ "diatonic_pct": 92.97,
  "interval_hist": {
   "-17": 3,
   "-16": 3,
   "-15": 3,
   "-12": 165,
   "-11": 1,
-  "-10": 22,
+  "-10": 53,
   "-9": 20,
   "-8": 94,
-  "-7": 110,
+  "-7": 253,
   "-6": 23,
-  "-5": 424,
-  "-4": 353,
-  "-3": 340,
-  "-2": 1352,
-  "-1": 612,
-  "0": 1110,
-  "1": 559,
-  "2": 1286,
+  "-5": 483,
+  "-4": 649,
+  "-3": 357,
+  "-2": 1713,
+  "-1": 1226,
+  "0": 1292,
+  "1": 1013,
+  "2": 1619,
   "3": 322,
-  "4": 216,
-  "5": 486,
+  "4": 302,
+  "5": 653,
   "6": 64,
-  "7": 116,
+  "7": 373,
   "8": 9,
   "9": 19,
   "10": 84,
@@ -47,41 +47,41 @@
  },
  "dur16_hist": {
   "0": 80,
-  "1": 2098,
-  "2": 3565,
+  "1": 2265,
+  "2": 5248,
   "3": 437,
-  "4": 680,
-  "5": 112,
+  "4": 1427,
+  "5": 176,
   "6": 422,
   "7": 14,
-  "8": 349,
+  "8": 671,
   "10": 67,
   "11": 7,
   "12": 64,
   "13": 5,
   "14": 15,
   "15": 1,
-  "16": 83
+  "16": 99
  },
  "onset16_hist": {
-  "0": 1080,
+  "0": 1601,
   "1": 164,
-  "2": 755,
+  "2": 911,
   "3": 221,
-  "4": 1042,
-  "5": 158,
-  "6": 886,
-  "7": 308,
-  "8": 791,
+  "4": 1371,
+  "5": 188,
+  "6": 1088,
+  "7": 339,
+  "8": 1408,
   "9": 123,
-  "10": 531,
+  "10": 764,
   "11": 189,
-  "12": 638,
-  "13": 200,
-  "14": 741,
-  "15": 172
+  "12": 1271,
+  "13": 215,
+  "14": 958,
+  "15": 187
  },
- "phrases": 155,
+ "phrases": 171,
  "phrase_bars": [
   7.57,
   8.62,
@@ -105,6 +105,17 @@
   3.51,
   9.12,
   1.28,
+  1.74,
+  1.99,
+  1.74,
+  2.06,
+  1.74,
+  2.06,
+  1.74,
+  2.06,
+  1.74,
+  2.06,
+  2.24,
   0.55,
   0.65,
   0.76,
@@ -131,29 +142,24 @@
   0.76,
   0.55,
   0.62,
-  2.02,
-  3.55,
-  0.44,
-  0.92,
-  0.89,
-  1.61,
-  1.41,
-  1.41,
-  1.59,
-  2.43,
-  0.65,
-  0.76
+  2.02
  ],
- "bars": 97.3,
+ "bars": 87.8,
  "templates": [
   "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+  "ballad/Ballad-Of-The-Jazz-Cafe.mid",
   "ballad/Animal Crossing - KK Ballad Aircheck.mid",
   "ballad/BALLAD-2.MID",
+  "ballad/Ballad-Of-A-Teenage-Queen.mid",
   "ballad/A-Very-Special-Love-Song.mid",
   "pop/IGGY POP.Louie Louie.mid",
+  "pop/Pop-Vamp.mid",
   "pop/Disco Citizens - Footprint.mid",
+  "pop/Astro Boy - Astro Boy March.mid",
+  "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
   "pop/Disco-Fans.mid",
   "romantic/Liszt Bach Prelude Transcription.mid",
+  "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid",
   "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid",
   "romantic/brahms.mid"
  ],
@@ -161,16 +167,21 @@
  "file": "theme:tender",
  "bpm": 120.0,
  "tonic": "A",
- "mode": "major",
+ "mode": "minor",
  "source": "theme_pack.py",
  "provenance": {
   "generated_by": "theme_pack.py",
-  "aggregate_of": 10,
+  "aggregate_of": 16,
   "templates": [
    {
     "file": "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
     "source": "https://bitmidi.com/uploads/5932.mid",
     "bpm": 48.0
+   },
+   {
+    "file": "ballad/Ballad-Of-The-Jazz-Cafe.mid",
+    "source": "https://bitmidi.com/uploads/15419.mid",
+    "bpm": 78.0
    },
    {
     "file": "ballad/Animal Crossing - KK Ballad Aircheck.mid",
@@ -183,6 +194,11 @@
     "bpm": 89.0
    },
    {
+    "file": "ballad/Ballad-Of-A-Teenage-Queen.mid",
+    "source": "https://bitmidi.com/uploads/15418.mid",
+    "bpm": 95.0
+   },
+   {
     "file": "ballad/A-Very-Special-Love-Song.mid",
     "source": "https://bitmidi.com/uploads/3173.mid",
     "bpm": 120.0
@@ -193,9 +209,24 @@
     "bpm": 120.0
    },
    {
+    "file": "pop/Pop-Vamp.mid",
+    "source": "https://bitmidi.com/uploads/35242.mid",
+    "bpm": 125.0
+   },
+   {
     "file": "pop/Disco Citizens - Footprint.mid",
     "source": "https://bitmidi.com/uploads/39730.mid",
     "bpm": 132.0
+   },
+   {
+    "file": "pop/Astro Boy - Astro Boy March.mid",
+    "source": "https://bitmidi.com/uploads/8029.mid",
+    "bpm": 135.0
+   },
+   {
+    "file": "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+    "source": "https://bitmidi.com/uploads/40059.mid",
+    "bpm": 140.0
    },
    {
     "file": "pop/Disco-Fans.mid",
@@ -206,6 +237,11 @@
     "file": "romantic/Liszt Bach Prelude Transcription.mid",
     "source": "https://bitmidi.com/uploads/30179.mid",
     "bpm": 59.75
+   },
+   {
+    "file": "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid",
+    "source": "https://bitmidi.com/uploads/31293.mid",
+    "bpm": 70.0
    },
    {
     "file": "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid",
