@@ -77,6 +77,10 @@ def lint_dirs(songs):
         src, dst = os.path.join(ROOT, fn), os.path.join(tmp_root, fn)
         if fn.endswith('.md') and os.path.exists(src) and not os.path.exists(dst):
             shutil.copy2(src, dst)
+    # ⚠ 不要把 `scripts/` 也链进来"图省事"：沙箱换的是 `selftest.ROOT`，而读脚本源码的检查
+    #   （`t_ffmpeg_exe_is_local`）应当用 `HERE` 拿真实仓库的路径（见坑 223 的修法）。
+    #   链一份 `scripts/` 进来会让这类漏网**静默通过**、而且读的是沙箱里的副本 ——
+    #   掩盖问题而不是修问题（2026-09-24 先写了这条、对照坑 223 后撤掉）。
     return tmp_root
 
 

@@ -53,7 +53,13 @@ HUGE_MINS = 100           # 巨型文档（只列 `##` 级）的门槛 —— �
 HEAD = re.compile(r'^(#{1,3})\s+(.+?)\s*$')
 # 枚举时跳过的目录：虚拟环境 / 版本库 / 模板库 / 按曲生成的 notes / 第三方仓库
 SKIP_DIRS = {'.venv', '.venv-ml', '.git', 'refs', '__pycache__', 'node_modules', 'songs',
-             'vendor'}
+             'vendor',
+             # `check_song.py` 的沙箱（`lint_dirs` 把根 `*.md`、`docs/`、`refs/`、`studio/`
+             # 复制进去跑单曲判据）。**不排除它 → 每次 `check_song` 都假报
+             # `doc_map_fresh` FAIL**（沙箱里那份 `CHEATSHEET.md` 等被当成"没归类的新文档"，
+             # 实测点名 `_lint_sandbox/CHEATSHEET.md`）。这正是 `lint_dirs` docstring 里
+             # 骂的那类"沙箱造成的假报，把真正的数据错误淹掉"（2026-09-24 修）。
+             '_lint_sandbox'}
 
 # ── 大目录（主题域）→ 小目录（文档）。**手写的只有这一处** ────────────────────
 # 每项 = (相对路径, 一句话：这份文档回答什么问题)。没归类的文档会落到"未归类"域
@@ -99,7 +105,7 @@ GROUPS = [
         ('docs/STUDIO-WORKFLOW.md', '必须开面板的五个时刻 · 症状→真因表 · 省时顺序'),
     ]),
     ('H. 出症状排查 / 台账', [
-        ('PITFALLS.md', '坑台账（当前 161–224）：先看 §"主题索引"拿编号，'
+        ('PITFALLS.md', '坑台账（当前 161–246）：先看 §"主题索引"拿编号，'
                         '再用 `grep -n "^161\\." PITFALLS.md` 定位行号（条目不是 markdown 标题）'),
         ('PITFALLS-ARCHIVE.md', '已归档的旧坑（1–160 的部分），同上用 grep 定位'),
     ]),

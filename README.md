@@ -132,6 +132,7 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `new_song.py` | 新歌脚手架：`--theme <主题>` 按**主题模板包**出 song.json（含跑 melody_gen、填混音目标）；`--from` 只用于复现/改歌 |
 | `theme_pack.py` | **主题模板包**：同主题 ≥8 首 MIDI 模板（来源白名单 + 可溯源）聚合成和声/节奏/配器/曲式/旋律画像 + **混音目标** → `refs/themes/` |
 | `imitate_plan.py` | **模仿写歌的段落层入口**（2026-09-19）：按**单首参考曲**的实测结构（`--plan`：进行 / 每段 density / 编配 / 主奏音色）重写 `songs/<曲>/song.json` 的 sections+chords+patterns。写盘前**硬校验**：段名只能用 A–E（`role_of_section` 取段名里第一个 a–e 字母，`Rise`/`Peak` 会全落 `E`）、同角色 = 同进行 + 同旋律、段数/和弦数/范围；和弦没变时**保留旋律**。留痕 `basis.structure_source="imitate:<参考曲>"`（守卫 `t_imitate_path_marked` 判"结构改过却没走模仿路径"）→ 见 `docs/IMITATE-PATH.md` |
+| `expand_sections.py` | **把主题包骨架扩成多段大曲式**（2026-09-24）：按 `--plan` 结构表重写 `sections` + 生成 `patterns.drum_grid.per_bar`（**逐小节**鼓型）。写盘前硬校验三条手写必踩的坑 —— `chords` 数**必须等于** `bars`（不等会让十几条守卫连环 `IndexError`）· 段数超主题包 `form.plan` 时 basis 要**同时**有 `kind='theme_pack'` 与 `structure_source='theme_pack-plan:…'` · 必须走 `json_io.save`（见坑 242/243/244）。缺省关 `arr_by_role`（否则手写的段级 `arr` 被静默覆盖）→ `--dry-run` 只校验不写盘 |
 | `identify_ref.py` | **参考曲识别**（2026-09-19，`.venv-ml` 的 Demucs + YourMT3）：两路独立来源交叉 —— ① Demucs 6s 分离（GPU ≈40s/首）给逐声部**能量占比**；② YourMT3+ 转录（≈75s/首）给 **13 通道音符数**（通道名从转录 MIDI 轨名读，不猜）。名次差 ≤1 才算一致，冲突时**默认信 ymt3**（BGM35：钢琴 demucs 7.0% / ymt3 27.4% / 真值 29.4%）→ `refs/identify/<名字>.json`。**别用转录通道名或 `probe_timbre --solo` 高频段推配器** |
 | `make_song.py` | **一条命令**：作曲 → 渲染 → 对标成绩单（`--check` 先验数据） |
 | `scorecard.py` | 成品 vs 画像 → 一屏差距表 + 调参建议 + 可粘贴重跑命令（`--bpm N` 给真实速度） |

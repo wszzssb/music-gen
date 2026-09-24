@@ -385,11 +385,19 @@ def main():
     # 原先只在更下面（原 341 行）赋值 → 走到那条分支就 UnboundLocalError 崩掉。
     song_json = os.path.join(folder, 'song.json')
 
-    # [0/3] 数据把关（--check）：2 秒查完数据判据，把那 30~120 秒的渲染留给**对的数据**
+    # [0/3] 数据把关（--check）：**约 1 秒**查完"渲染前必须先过的那批"，把那 30~120 秒的
+    # 渲染留给**对的数据**。
+    # ⚠ 2026-09-24 修：这里原来原样调 `check_song.py <曲>`（= **全量 151 项，实测 84.9 秒**），
+    #   与本行承诺的"2 秒"差 40 倍 —— 而 SKILL/CHEATSHEET 也一直写着"先 2 秒查数据"，
+    #   于是**每首歌**都在渲染前白等一分半（实测一轮写歌里这一项能占到十几分钟）。
+    #   改为传 `--fast`（只跑 `check_song.DATA_CHECKS`，实测 1.0 秒，语义就是
+    #   "渲染前必须先过的那批"）；要全量体检请单独跑 `check_song.py <曲>` ——
+    #   那是"交付前 / 改过检查项"才需要的，不是每次渲染的常规动作。
     if '--check' in sys.argv:
-        print('[0/3] 数据体检: check_song.py %s' % song)
+        print('[0/3] 数据体检: check_song.py %s --fast（全量请单独跑 check_song.py <曲>）' % song)
         try:
-            r = subprocess.run([sys.executable, os.path.join(HERE, 'check_song.py'), song],
+            r = subprocess.run([sys.executable, os.path.join(HERE, 'check_song.py'),
+                                song, '--fast'],
                                cwd=ROOT, timeout=180)
         except subprocess.TimeoutExpired:
             print('  ! 数据体检超时（>180s）—— 跳过体检继续渲染；'

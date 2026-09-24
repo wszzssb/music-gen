@@ -186,10 +186,10 @@
  },
  "harmony": {
   "primary": [
-   "Am6",
-   "B7",
-   "Gmaj7",
-   "B7"
+   "E7",
+   "C7",
+   "E7",
+   "C7"
   ],
   "primary_source": "window2",
   "progressions": [
@@ -320,10 +320,8 @@
     ],
     "template_share": 0.3,
     "symbols": [
-     "Am6",
-     "B7",
-     "Gmaj7",
-     "B7"
+     "E7",
+     "C7"
     ],
     "usable": true
    },
@@ -438,10 +436,10 @@
    }
   ],
   "pool_progression": [
-   "Am6",
-   "B7",
-   "Gmaj7",
-   "B7"
+   "Cmaj7",
+   "C7",
+   "Cm7b5",
+   "C6"
   ],
   "pool_progression_romans": [
    "Imaj7",
@@ -705,7 +703,7 @@
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 40,
+  "total_bars": 72,
   "plan": [
    {
     "name": "Intro",
@@ -725,10 +723,30 @@
    {
     "name": "B",
     "bars": 8,
-    "prog": 0
+    "prog": 1
    },
    {
     "name": "A3",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
     "bars": 8,
     "prog": 0
    },
@@ -961,40 +979,6 @@
      "url_alt": [],
      "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
-   },
-   {
-    "ref": "BGM16c_v2",
-    "score": 0.614,
-    "bpm": 150.0,
-    "centroid": 3250,
-    "rms_db": -16.9,
-    "width": 0.51,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16c.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "bgm16c_new",
-    "score": 0.614,
-    "bpm": 150.0,
-    "centroid": 3250,
-    "rms_db": -16.9,
-    "width": 0.51,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16c.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
    }
   ],
   "agg_profile": "cheerful_mix",
@@ -1004,26 +988,52 @@
    "mode": 0.15
   },
   "perc_style_target": 0.75,
-  "energy_curve_db": [
-   -1.12,
-   -0.12,
-   -0.12,
-   0.88,
-   0.88,
-   0.88,
-   0.88,
-   -2.12
-  ],
+  "energy_curve_db": [],
   "structure_db": [
-   -18.0,
    -17.0,
    -17.0,
+   -17.0,
    -16.0,
    -16.0,
    -16.0,
    -16.0,
-   -19.0
+   -16.0
   ],
+  "density_curve_db": [
+   -6.72,
+   -0.62,
+   0.0,
+   0.16,
+   -0.23,
+   0.96,
+   -0.6,
+   1.01
+  ],
+  "density_meta": {
+   "n": 9,
+   "files": [
+    "Blue-Tango.mid",
+    "L.CARLTON.Rio Samba.mid",
+    "Schuld-War-Nur-Der-Bossa-Nova-2.mid",
+    "Azure-Bossa-Nova.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid",
+    "50's-Rock.mid",
+    "A-Hard-Day's-Night-4.mid"
+   ],
+   "abs_curve": [
+    37.0,
+    74.7,
+    80.25,
+    81.75,
+    78.12,
+    89.62,
+    74.88,
+    90.12
+   ],
+   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
+  },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
@@ -1108,42 +1118,7 @@
     "why": "BPM 133.9（差 1.9，0.94）· 打击感 0.15 vs 目标 0.75（0.00）· 调式 major（1.00）"
    }
   ],
-  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用",
-  "density_curve_db": [
-   -6.72,
-   -0.62,
-   0.0,
-   0.16,
-   -0.23,
-   0.96,
-   -0.6,
-   1.01
-  ],
-  "density_meta": {
-   "n": 9,
-   "files": [
-    "Blue-Tango.mid",
-    "L.CARLTON.Rio Samba.mid",
-    "Schuld-War-Nur-Der-Bossa-Nova-2.mid",
-    "Azure-Bossa-Nova.mid",
-    "IGGY POP.Louie Louie.mid",
-    "Disco Citizens - Footprint.mid",
-    "Disco-Fans.mid",
-    "50's-Rock.mid",
-    "A-Hard-Day's-Night-4.mid"
-   ],
-   "abs_curve": [
-    37.0,
-    74.7,
-    80.25,
-    81.75,
-    78.12,
-    89.62,
-    74.88,
-    90.12
-   ],
-   "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song.density_curve_mix` → `arr.density`"
-  }
+  "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"
  },
  "skipped": []
 }

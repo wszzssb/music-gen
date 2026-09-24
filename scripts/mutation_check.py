@@ -2022,6 +2022,20 @@ def main():
     results.append(case('metrics 又改回直连取 ffmpeg（会卡死）', 'ffmpeg_exe_is_local',
                         MetricsNetMut))
 
+    # 61. `expand_sections` 的三条硬校验被摘掉（`validate_plan` → 放行一切）必须被抓
+    #     （2026-09-24）。这三个坑是"手写 sections 扩段"必踩的：和弦数 ≠ 小节数会让
+    #     十几条守卫连环 `IndexError`、basis 少写一个字段只 FAIL 一条、`json.dump` 写盘
+    #     判不合格（见坑 242/243/244）。摘掉校验后 `t_expand_sections_contract` 的
+    #     6 条反例全都不再抛 → 本项必 FAIL。
+    import expand_sections as _exs
+    results.append(case(
+        'expand_sections 校验失效（和弦数≠小节数也放行）', 'expand_sections_contract',
+        lambda: Mut(_exs, 'validate_plan',
+                    lambda plan, song=None, allow_new_melody=False:
+                    (list(plan.get('sections') or []),
+                     sum(int(s.get('bars') or 0)
+                         for s in (plan.get('sections') or []))))))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

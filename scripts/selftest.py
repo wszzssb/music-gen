@@ -3561,6 +3561,84 @@ def t_docs_host_classification():
 
 
 @check
+def t_expand_sections_contract():
+    """`expand_sections` 的三条硬校验必须**真拦得住**（手写 `sections` 的三个连环坑）。
+
+    为什么单列一条：这三个坑**都不报在自己的位置上**，所以特别容易被"改完看着 ok"骗过 ——
+      · `chords` 数与 `bars` 不等 → 十几条守卫连环 `IndexError`（看着像引擎崩了，坑 242）；
+      · 段数超主题包 `form.plan` 却只写一个 basis 字段 → 只 FAIL 一条，容易以为修好了（坑 243）；
+      · 用 `json.dump` 写盘 → `song_json_canonical` 判不合格（坑 244，5680 行 vs 应 2076 行）。
+
+    **本检查自带反例**（`validate_plan` 被摘成 no-op 后反例不再抛 → 本项必 FAIL）——
+    `mutation_check` 的注入用例就是它。也顺带钉住 `vel` / `glock_all` 这两个
+    "合法但不在 `ARR_KEYS` 里"的键（`song_engine.ARR_KEYS_EXTRA`）：误判它们会让
+    **全库 29 首**的 `song.json` 都过不了校验。
+    """
+    import expand_sections as ES
+    import json_io
+    song = {'bpm': 120.0, 'meter': [4, 4],
+            'chords': {'C': [36, [60, 64, 67]], 'G': [31, [55, 59, 62]]},
+            'melody': {'A': [[0, 0, 2.0, 72]]},
+            'sections': [], 'patterns': {}}
+    ok = {'bpm': 133.3,
+          'structure_source': 'theme_pack-plan:selftest-2sec-8bar',
+          'sections': [
+              {'name': 'A', 'bars': 4, 'melody': 'A',
+               'chords': ['C', 'G', 'C', 'G'],
+               # `glock_all` / `vel` = ARR_KEYS_EXTRA，**必须放行**
+               'arr': {'piano': True, 'perc': 1, 'glock_all': True, 'vel': 0.9}},
+              {'name': 'Outro', 'bars': 4, 'melody': 'A',
+               'chords': ['C', 'G', 'C', 'C'], 'arr': {'piano': True}}],
+          'drums': {'patterns': {'main': {'kick': [[0, 110]], 'hat': [[2, 70]]}},
+                    'per_bar': ['main', 'main', None, 'main',
+                                'main', 'main', 'main', None]}}
+    out, total = ES.apply_plan(song, ok)
+    assert total == 8 and len(out['sections']) == 2, \
+        '正例被拦了或段数/总小节不对：total=%s 段数=%s（应 8 / 2）' % (total, len(out['sections']))
+    assert out['sections'][0]['arr'].get('glock_all') is True, \
+        'glock_all 被当成"引擎不认的键"丢掉了（它在 song_engine.ARR_KEYS_EXTRA 里）'
+    assert out['basis'] == {'kind': 'theme_pack',
+                            'structure_source': 'theme_pack-plan:selftest-2sec-8bar'}, \
+        'basis 留痕不对：%s（坑 243：kind 与 structure_source 缺一个都 FAIL）' % out['basis']
+    assert out['patterns']['arr_by_role'] is False, \
+        'arr_by_role 缺省必须是 false，否则手写的段级 arr 被静默覆盖'
+    grid = out['patterns']['drum_grid']['per_bar']
+    assert len(grid) == 8 and grid[2] == {} and grid[0].get('kick') == [[0, 110]], \
+        '鼓型没按 per_bar 落对：%s' % grid
+
+    def _must_fail(plan, why, **kw):
+        try:
+            ES.validate_plan(plan, song=song, **kw)
+        except ES.PlanError:
+            return
+        raise AssertionError('expand_sections 没拦住 %s' % why)
+
+    import copy
+    bad = copy.deepcopy(ok)
+    bad['sections'][1]['chords'] = ['C', 'G', 'C']            # 3 个 ≠ 4 小节
+    _must_fail(bad, '“和弦数 ≠ 小节数”（坑 242）')
+    bad = copy.deepcopy(ok)
+    bad['sections'][0]['arr']['nope'] = True                   # 引擎不认的开关
+    _must_fail(bad, '“arr 里有引擎不认的键”')
+    bad = copy.deepcopy(ok)
+    bad['drums']['per_bar'] = bad['drums']['per_bar'][:-1]     # 7 项 ≠ 8 小节
+    _must_fail(bad, '“鼓型小节数 ≠ 总小节数”')
+    bad = copy.deepcopy(ok)
+    bad['sections'][0]['chords'] = ['C', 'G', 'Cmaj9', 'G']    # 本曲 chords 表里没有
+    _must_fail(bad, '“用了 chords 表里没有的和弦”')
+    bad = copy.deepcopy(ok)
+    bad['sections'][0]['melody'] = 'Z'                         # 新旋律名没给 --new-melody
+    _must_fail(bad, '“引用不存在的旋律名却没给 --new-melody”')
+    _must_fail({**ok, 'structure_source': 'imitate BGM35'},
+               '“structure_source 不合规（带空格）”')
+    # 写盘口径：`json_io.dumps` 必须幂等（坑 244：`json.dump(indent=1)` 会被这条判死）
+    canon = json_io.dumps(out)
+    assert json.loads(canon) == out, 'json_io 规范化后数据不等价'
+    assert json_io.dumps(json.loads(canon)) == canon, 'json_io 不是幂等的'
+    print('        expand_sections：正例放行（含 glock_all/vel）· 6 条反例全拦 · 写盘规范格式')
+
+
+@check
 def t_build_song_spec_roundtrip():
     """`build_song` 的 spec→song.json 推导必须**真能跑通**，且**往返保真**。
 
@@ -6093,10 +6171,13 @@ def t_arr_role_variety():
         ('判据自证失败：档 0 的 perc=%s、引子 perc=%s —— 引子没有走"强制 1 + perc_in"这条'
          % (_p0, out[0]['perc']))
     # **引擎写进 arr 的键必须在 `ARR_KEYS` 里**（白名单与实现脱节的守卫，
-    # 见 `ARR_KEYS` 上方注释：加 `perc_in` 时漏过一次）
+    # 见 `ARR_KEYS` 上方注释：加 `perc_in` 时漏过一次）。
+    # ⚠ 例外集不在这里硬编码：读 `se.ARR_KEYS_EXTRA`（唯一出处，2026-09-24 抽出 ——
+    #   此前本行与 `song_engine` 的校验各写一份 `{'vel', 'glock_all'}`，第三处
+    #   `expand_sections.py` 就漂了）。
     _extra = set()
     for _a in out:
-        _extra |= set(_a) - set(se.ARR_KEYS) - {'vel', 'glock_all'}
+        _extra |= set(_a) - set(se.ARR_KEYS) - set(se.ARR_KEYS_EXTRA)
     assert not _extra, \
         'arr_by_role 写了 ARR_KEYS 之外的键：%s —— 请同步 ARR_KEYS' % sorted(_extra)
     solo = se.arr_by_role([{'bass': True, 'piano': True}] * 3,
@@ -7421,7 +7502,12 @@ def t_ffmpeg_exe_is_local():
     #   走 `to_ogg._ffmpeg_exe()`，所以允许次数是 **0**。
     import ast
     for fname, allow in (('to_ogg.py', 1), ('metrics.py', 0)):
-        tree = ast.parse(open(os.path.join(ROOT, 'scripts', fname), encoding='utf-8').read())
+        # ⚠ 路径用 `HERE`（本文件所在目录）而**不是 `ROOT`**：`check_song` 的沙箱会把
+        #   `st.ROOT` 换成 `_lint_sandbox/`，那里没有 `scripts/` → 用 ROOT 拼的路径恒不存在，
+        #   这条检查就会以 `FileNotFoundError` 记成"未通过"（实测每次 `check_song` 都假报）。
+        #   这是**坑 223 的漏网面**（那条的判据原话："同一文件里同一种写法出现 6 次、只有 1 处
+        #   不同 —— 那 1 处就是漏网"，本文件其余 6 处子进程调用早就都用 HERE 了）。
+        tree = ast.parse(open(os.path.join(HERE, fname), encoding='utf-8').read())
         n = sum(1 for node in ast.walk(tree)
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                 and node.func.attr == 'get_ffmpeg_exe')

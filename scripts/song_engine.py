@@ -204,6 +204,17 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             # 设 12 = 整体降一个八度；`glock_starved` 的第二层同步变 `+glock_oct+12`。
             'glock_oct')
 
+# **`arr` 里另外两个"合法但不在 `ARR_KEYS` 里"的键**（唯一出处，2026-09-24 抽出来）。
+# 为什么它们不在 `ARR_KEYS`：`ARR_KEYS` 的定义是"**引擎自己写进 arr** 的键"
+# （`arr_by_role` 的白名单，见上面那段注释），而这两个是**手写/兼容**用的：
+#   · `vel` —— 段落级整体力度缩放，`new_song` 手写进部分曲目；
+#   · `glock_all` —— 钟琴**每小节**都补（`song_engine.py:1599`），不写就退回"隔小节"。
+# ⚠ 抽出来的原因：本文件第 533 行的校验与 `selftest.t_arr_role_variety` 各自
+#   **硬编码了一份 `{'vel', 'glock_all'}`**，`expand_sections.py` 又需要第三份 ——
+#   "抄三份"必然漂移（本轮就是新工具按 `ARR_KEYS` 校验、把合法的 `glock_all`
+#   判成"引擎不认的键"才发现的）。三方现在都读这一个常量。
+ARR_KEYS_EXTRA = ('vel', 'glock_all')
+
 # ---------------------------------------------------------------------------
 # 段落角色 → 编制（opt-in，`patterns.arr_by_role`）
 #
@@ -530,7 +541,7 @@ def load(path):
     # --- 校验：拼错的编配开关要报出来，否则会静默不生效
     bad = set()
     for sec in d.get('sections', []):
-        bad |= set(sec.get('arr', {})) - set(ARR_KEYS) - {'vel', 'glock_all'}
+        bad |= set(sec.get('arr', {})) - set(ARR_KEYS) - set(ARR_KEYS_EXTRA)
     if bad:
         print('  !! song.json 里有无效的编配开关: %s（可用: %s）'
               % (', '.join(sorted(bad)), ', '.join(ARR_KEYS)))
