@@ -91,3 +91,12 @@ songs/
 #   ⚠ 不加这两行的话 `git add -A` 会把 31 首曲目（含 ogg/wav）一起推上去。
 songs_direct/
 songs_imitate/
+
+# ---- ⑥ 单曲交付物（2026-09-26 新增）----
+# ⚠ 上面第 84 行那条「要上传某一首时加一行 `!songs/<曲名>/`」**实测不生效**，别再照它做：
+#   ① `songs/` 是**指向 `songs_direct/` 的符号链接** → git 把它当符号链接文件、不进去遍历；
+#   ② `songs_direct/` 是**父目录被排除**，而 git 的规则是「父目录被排除时，无法再包含其中的文件」
+#      （`!songs_direct/dear_good_friends/` 同样无效 —— 实测 `git check-ignore` 仍命中）。
+#   能用的做法 = **专用目录 `deliveries/<曲名>/`**（本目录**不在任何排除规则里**，无需例外）。
+#   已有：`deliveries/dear_good_friends/`（用户 2026-09-26：「这次的 v1 midi 也可以上传 GitHub」）。
+#   口径不变：**只放用户点名要传的那一首**，别整目录倒。

@@ -2405,6 +2405,37 @@ def main():
     results.append(case('音频嘴替：默认离线被摘掉（照文档跑就联网）',
                         'audio_critic_contracts', _NoOfflineDefault))
 
+    # 69. 扒带曲**静默走抽样**必须被抓（2026-09-26，用户："**我需要每次提取时都能达到 V1 的准度**"）。
+    #     注入 = 把夹具扒带曲的 `patterns.notes_extra_full` **删掉**（只吃引擎默认 → 意图没留痕）。
+    #     ⚠ 这正是"默认值能被翻转、行为却静默改变"的那类故障：字段在不在，差 46% 的音符。
+    #     实测代价：`dear_good_friends` 抽样后转录只留 54%（Piano 984→517 / Hook 482→265 /
+    #     Bass 47→38），用户点名"不一样"的三段保留率仅 13%~35%。
+    _f69 = None
+    for _cand in st.song_dirs():
+        try:
+            _j = json.load(open(os.path.join(_cand, 'song.json'), encoding='utf-8'))
+        except Exception:                                          # noqa: BLE001
+            continue
+        if any((v.get('notes') if isinstance(v, dict) else v)
+               for v in (_j.get('notes_extra') or {}).values()):
+            _f69 = _cand
+            break
+    _s69 = os.path.join(_f69, 'song.json') if _f69 else ''
+    if os.path.exists(_s69):
+        class _DropFullFlag:
+            def __enter__(self):
+                self.old = open(_s69, encoding='utf-8').read()
+                d = json.loads(self.old)
+                d.setdefault('patterns', {}).pop('notes_extra_full', None)
+                json.dump(d, open(_s69, 'w', encoding='utf-8', newline='\n'),
+                          ensure_ascii=False, indent=1)
+                return d
+
+            def __exit__(self, *a):
+                open(_s69, 'w', encoding='utf-8', newline='\n').write(self.old)
+        results.append(case('扒带曲不声明 notes_extra_full（静默吃默认）',
+                            'restore_notes_full', lambda: _DropFullFlag()))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

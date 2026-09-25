@@ -37,8 +37,18 @@ python scripts/transcribe_to_song.py <曲名> \
    "小节号超段长"拦下。
 4. **轨名只能用引擎认识的**（`Piano/Bass/Hook/Strings/Pad/Arp/Glock/Drums/Melody`）；
    吉他对应 **`Hook`**。鼓的音高是 GM 鼓键，直接进 `Drums`。
-5. `--full` 会写 `patterns.notes_extra_full`（**不抽样**）。默认抽样是为"服从段落结构"
-   设计的，还原要的是忠实 —— 这个取舍交给人。
+5. **提取默认就是"全量"**（写 `patterns.notes_extra_full = true`，**不抽样**）。
+   ⚠ 2026-09-26 **默认翻转**：原来默认抽样（为"服从 `arr.density` 的段落结构"设计），
+   实测那样会把**用户点名要"像"的那几段砍掉最多** —— `dear_good_friends` 抽样后
+   Piano 984→517 / Hook 482→265 / Bass 47→38（**全曲转录只留 54%**），
+   而用户投诉的 0–27s / 63–71s / 126s+ 正是 `density=1`（每轨每小节上限 **4 音**）
+   的段落，保留率只有 **13%~35%**；未投诉的 `density=3` 段保留 50%~100%。
+   翻成默认全量后用户原话："**V1_全量转录.mid 非常好**"。
+   想要旧的"服从段落结构"行为 → 显式加 **`--sample`**（它会写 `notes_extra_full: false`；
+   ⚠ **不能靠"不写"表达抽样**，引擎默认已是全量，不写等于全量）。
+   库内 4 首扒带曲里 3 首（`siren_end`/`siren_end2`/`c15_chain_repro`）本来就是全量，
+   只有 `dear_good_friends` 漏了 —— 默认翻转是**让工具追上既有实践**。
+   守卫 `t_restore_notes_full` 盯着"扒带曲不许静默走默认"。
 6. 段边界按**秒**给（`analyze_sections.py` 的输出），本工具按 `--bpm` 换算成小节。
 """
 import argparse
@@ -252,7 +262,11 @@ def main():
                     help='--auto 用：目标段数（默认 25，取 novelty 最强的边界）')
     ap.add_argument('--drums-mid', default=None,
                     help='--auto 用：鼓分轨 MIDI（提取 drum_grid.per_bar）')
-    ap.add_argument('--full', action='store_true', help='写 patterns.notes_extra_full')
+    ap.add_argument('--sample', action='store_true',
+                    help='回到旧的"服从段落结构"抽样（不写 notes_extra_full）；'
+                         '默认**全量**，逐音照写')
+    ap.add_argument('--full', action='store_true',
+                    help='（已废弃，默认即全量；保留是为了旧命令行不报错）')
     ap.add_argument('--out', default=None, help='输出 song.json 路径（默认 songs/<name>/）')
     a = ap.parse_args()
     # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
@@ -527,8 +541,17 @@ def main():
                     '**不改这些音**（2026-09-25 口径）' % _desc)}
         print('  ⚠ 伴奏和弦贴合率 <95%%：%s —— 写 patterns.accomp_exempt（**不改音**，'
               '如实保留转录结果）' % _desc)
-    if a.full:
-        d['patterns']['notes_extra_full'] = True
+    # ⚠ 2026-09-26 **默认翻转**：不写 `--sample` 就显式写 `notes_extra_full: true`。
+    #   **两种都显式写盘**（而不是靠引擎默认）是刻意的：字段留痕 ⇒ 换引擎版本也不会
+    #   静默变行为，且 `t_restore_notes_full` 能当场看出"这首扒带曲声明的哪一种"。
+    #   ⚠ `--sample` 必须写 `False`、**不能只是"不写"** —— 引擎默认已翻成 True，
+    #   "不写"等于全量，那样 `--sample` 就成了空转（本轮真踩：写完第一版才发现）。
+    d['patterns']['notes_extra_full'] = not a.sample
+    if a.sample:
+        print('  ⚠ notes_extra 按 arr.density 抽样（--sample，写 notes_extra_full=false）：'
+              '转录会被逐小节砍上限')
+    else:
+        print('  notes_extra 全量（不抽样，写 notes_extra_full=true）—— 要旧的抽样行为加 --sample')
     if drum_grid:
         # ⚠ 一定要**写进去**才生效：引擎的 Perc 音数主要由它决定，
         #   而"生成了却没写盘"正是这个项目最常见的一类坑（PITFALLS 182）。

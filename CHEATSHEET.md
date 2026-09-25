@@ -179,6 +179,9 @@ studio\stop.cmd     # 停
 & $ml scripts\transcribe_ymt3.py <音频> --no-song   # 只要一份纯 MIDI（**丢掉引擎的编配/音色分配/段落密度**）
 #   ↑ 2026-09-20 起「正路是默认」：绕开要**显式** --no-song（PITFALLS 185 / SKILL §8）
 #     接续链：切轨 → analyze_chords → transcribe_to_song --auto → songs/<名>/song.json
+#     ↑ `transcribe_to_song.py` **默认全量**（写 `notes_extra_full: true`，逐音照写）。
+#       要旧的"按 arr.density 抽样"（每轨每小节砍上限 4/10/18 音）→ 加 `--sample`
+#       （它写 `false`；**不能靠"不写字段"表达抽样** —— 引擎默认已是全量）。守卫 `t_restore_notes_full`
 ```
 
 参数：`--dur-floor`（时值下限，只动旋律层，默认 0.55 拍）· `--absorb-into`（YMT3 的合成器通道并进哪条轨，默认 Strings —— 并进 Piano 会用钢琴音色弹它）· `--thr-extra`（Guitar/Strings 是单来源层，套 `--merge-thr` 会把整层砍掉）；改过参数要 `--from bass --force bass` 重跑。

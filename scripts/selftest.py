@@ -1132,6 +1132,57 @@ def t_notes_present():
 
 
 @check
+def t_restore_notes_full():
+    """扒带/还原曲（`notes_extra` 非空）**不许静默走抽样**：必须**显式声明**
+    `patterns.notes_extra_full`；声明 false（=抽样）时要写**非空白**理由
+    `patterns.notes_extra_sample_reason`（口径同 `melody_exempt`：理由空白 = 没写）。
+
+    **为什么有这条**（2026-09-26，用户口径"**我需要每次提取时都能达到 V1 的准度**"）：
+    引擎与 `transcribe_to_song` 的默认值都**翻转为全量**。默认值能被翻转，就可能再被翻回去；
+    而"不写字段"这种表达**看不出意图** —— 默认一变，曲子的音频就**静默改变**（这是本项目
+    最常见的一类坑：写了却没生效 / 生效了却没人知道）。要求**留痕**正是为了让它**坏得起来**。
+
+    实测代价（抽样会砍掉什么）：`dear_good_friends` 转录整体只留 **54%**
+    （Piano 984→517 · Hook 482→265 · Bass 47→38）；用户点名"不一样"的
+    0–27s / 63–71s / 126s+ 全是 `density=1`（每轨每小节上限 **4 音**）的段落，
+    保留率仅 **13%~35%**，而他没投诉的 `density=3` 段保留 **50%~100%**。
+    翻成全量后用户原话："**V1_全量转录.mid 非常好**"。
+    """
+    declared, sampled, missing = [], [], []
+    for d in songs_or_fail():
+        try:
+            j = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
+        except Exception:                                          # noqa: BLE001
+            continue
+        ne = j.get('notes_extra') or {}
+        tot = sum(len(v) for v in ne.values() if isinstance(v, list))
+        if not tot:
+            continue          # 生成类曲目：这个开关完全无副作用，不判（别一刀切）
+        nm = os.path.basename(d)
+        pats = j.get('patterns') or {}
+        if 'notes_extra_full' not in pats:
+            missing.append('%s（%d 个转录音符，未声明 → 只能吃引擎默认，意图没留痕）' % (nm, tot))
+        elif pats.get('notes_extra_full') is False:
+            reason = str(pats.get('notes_extra_sample_reason') or '').strip()
+            if reason:
+                sampled.append('%s（%s）' % (nm, reason[:40]))
+            else:
+                missing.append('%s：notes_extra_full=false 但 notes_extra_sample_reason 空白'
+                               '（空话放行不了）' % nm)
+        else:
+            declared.append(nm)
+    assert len(declared) + len(sampled) >= 1, \
+        '这条检查会空转：全库找不到任何有 notes_extra 的曲目（%d 首）' % len(songs_or_fail())
+    assert not missing, (
+        '扒带曲必须显式声明 notes_extra_full（默认已是 true=逐音照写）：\n    '
+        + '\n    '.join(missing)
+        + '\n  → 补进 song.json 的 patterns；确实要抽样就写 false + '
+          'notes_extra_sample_reason（带实测数字）')
+    print('        全量 %d 首 %s · 抽样 %d 首 %s'
+          % (len(declared), declared, len(sampled), sampled or '—'))
+
+
+@check
 def t_determinism_and_bytes():
     """同一 song.json 编两次字节完全一致（无隐藏状态），且与已交付的 MIDI 一致"""
     for d in songs_or_fail():
