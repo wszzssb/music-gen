@@ -155,7 +155,7 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `probe_melody_lang.py` / `probe_melody_health.py` | **旋律体检**：①语言分布重合度（≥85%=孪生）②形态——密度/同音/最长同音串/碎音/强拍 |
 | `probe_variety.py` | **多样性体检**（用户"怎么好多部分都是一样的"）：**曲内段落之间 / 跨曲 / 主题**三层各量一遍，且**带基线**才判得了（与 `probe_melody_lang` 只量跨曲语言重合分工不同）；被 `probe_sameness.py` 调用 |
 | `selfcheck.py` | **单曲离群清单**（用户口径的"嘴替"）：把该曲 9 项旋律形态与**全库分布**比，逐项报"偏低/偏高 + 听起来会像什么"。**只报离群量、不报"问题"**（阈值型判据在本库恒真/从不触发，见坑 225）；`--all` 按离群总分排序 · `--json`。判据不重复实现：量法全沿用 `probe_melody_health` |
-| `ask_audio_critic.py` | **音频大模型逐段听**（本地 Qwen2-Audio，`.venv-ml`）：带时间戳的线索清单 / `--compare` 同段同问对照。⚠ 能定位"哪段可疑"、**不能**判"这版比那版好" —— **用法 · 四条硬约束 · 实测数字 · 下一步全在** `docs/AUDIO-CRITIC.md` |
+| `ask_audio_critic.py` | **音频大模型逐段听**（本地 Qwen2-Audio，`.venv-ml`）：带时间戳的线索清单 / `--compare` 同段同问对照。口径：**判不了"哪版更好"（价值判断）**，但 `--compare` 能对比"**原版 vs 当前版**"的差异（实测与用户原话、分轨能量三方一致）。**默认离线**。用法 · 硬约束 · 实测数字 · 下一步全在 `docs/AUDIO-CRITIC.md` |
 | `stem_compare.py` / `layer_exp.py` | **分轨体检 / 层次实验**：占用率+动态逐声部对比（判"像不像"的主尺子）；离线叠层测"加这层有没有用" |
 | `similarity.py` / `band_match.py` | **还原度总分 0–100**（和弦/节奏格/密度/倍频程/音色/段间变化六轴，改前先拿基线）；`band_match` 对齐**成片**的频谱倾斜（孤立一两带差是编配问题，别硬填，见 `docs/MAKE-IT-SOUND-ALIKE.md`） |
 | `block_eq.py` / `section_eq.py` | **频带对齐的两个专项**（手动用，不接默认渲染链）：`block_eq` 按 8 小节块压"高频能量占比"（`band_match` 只对**整曲**倾斜，而 `variation` 罚的是**块间**跳变）；`section_eq` 做**段落级** EQ（参考曲亮度逐段变化，实测副歌比主歌亮 8.6dB） |

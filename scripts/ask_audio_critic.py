@@ -16,8 +16,10 @@ r"""ask_audio_critic.py —— 让**本地 HF 音频大模型**逐段听曲子�
      （同段三次给出三个不同位置，坑 232）。本工具**默认 `do_sample=False`**，
      要多样性才加 `--sample`（那时请多次取多数，别用单次读数）。
   ④ **判定会"恒真"且对微扰敏感**：base 的 8 段**全部**被判"有问题"；改动别处引起的
-     0.2dB 增益差就能让答案挪位置（坑 233）。→ **它能回答"哪一段可疑"，
-     不能回答"这版比那版好吗"**；后者的判据是样本级音频差异（`diff_audio_ab.py`）+ 用户耳朵。
+     0.2dB 增益差就能让答案挪位置（坑 233）。→ 它能回答"哪一段可疑"，
+     **判不了"这版比那版好吗"（价值判断）**；**但 `--compare` 同段同问能对比
+     "原版 vs 当前版"的差异**（实测与用户原话、分轨能量三方一致，见 `AUDIO-CRITIC.md` §6.0）。
+     判"更好"的判据是样本级音频差异（`diff_audio_ab.py`）+ 用户耳朵。
   ⑤ **模型报的时间是「整曲秒」，不是段内相对秒**：`Q_TMPL` 把整曲起止写进了 prompt，模型就用
      那个坐标系回答 —— 40 段真实输出里，7 个"两域不重叠"的段 **96/96 条**都落在整曲域、
      段内域 **0** 条（§8-3 原假设"要加回段起点"因此被推翻）。越界/没给时间的**单列、不硬映射**
@@ -578,7 +580,9 @@ def main():
     ap = argparse.ArgumentParser(description='HF 音频大模型逐段听 → 问题清单 / 版本对照')
     ap.add_argument('audio', nargs='?', help='音频文件（单曲模式）')
     ap.add_argument('--compare', nargs='+', metavar='AUDIO',
-                    help='多份音频做**同段同问**对照（段边界按第一份的总时长切）')
+                    help='多份音频做**同段同问**对照（段边界按第一份的总时长切）。'
+                         '典型用法 = **原版 vs 当前版**：读它各自描述的乐器/角色/进出差异，'
+                         '⚠ 差异 ≠ 优劣（它判不了"哪版更好"）')
     ap.add_argument('--start', type=float, default=0.0)
     ap.add_argument('--dur', type=float, default=MAX_SEC)
     ap.add_argument('--segments', type=int, default=0, help='>1 时均分扫描（每段自动夹到 30 秒内）')
@@ -658,7 +662,8 @@ def main():
         _print_timeline(key, rows, a.band, a.repeat, a.min_hits)
 
     print('\n⚠ **线索不是判据**：实测它 base 8 段全报问题（恒真）、0.2dB 微扰就能改判定 ——')
-    print('  能用它定位"哪段可疑"，**不能**用它判"这版比那版好"（见 PITFALLS 232/233）。')
+    print('  能用它定位"哪段可疑"· **能用 --compare 对比"原版 vs 当前版"的差异** —— '
+          '但**判不了"哪版更好"**（价值判断，见 PITFALLS 232/233）。')
     if a.json:
         print('JSON: %s' % os.path.abspath(a.json))
 
