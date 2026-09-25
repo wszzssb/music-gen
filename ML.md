@@ -138,15 +138,53 @@ other 本曲  29   64   90   95   90   86   83   27    34 28 20 17 21 21 22 34
 
 ## 音源与"连续性"：从"换音源"改为"在现有音源里补齐"（2026-09 实测）
 
-### ① 更好的 sf2 拿不到（网络实况）
+### ① 更好的 sf2 **现在拿得到**（2026-09-26 重测，**推翻了本节 2026-09 的旧结论**）
 
-| 通道 | 结果 |
+> ⚠ 旧版写的是"GitHub / archive / HF **全部超时**、PyPI/npm 上没有音源" ——
+> **现已过期，别再照它放弃这条路。**
+
+| 通道 | 2026-09-26 实测 |
 |---|---|
-| GitHub / raw / jsDelivr / ghproxy | ❌ 全部超时 |
-| archive.org / huggingface / keymusician(FluidR3 官方) | ❌ 连接超时 |
-| **PyPI / npm** | ✅ 通，但**没有音源**：PyPI 的 `arachno` 是协程 DSL、`sf2` 是文件共享工具（**同名无关库**）；npm 的 `generaluser` 就是本机已有的 GeneralUser GS 1.471 |
+| **`hf-mirror.com`** | ✅ **206 通**，且 **HuggingFace 上有整库音源** ← 首选 |
+| **`raw.githubusercontent.com`** | ✅ 通（`setup_soundfont.py` 就是从这里下 GeneralUser 的） |
+| `ghproxy.net` / `gh-proxy.com` | ✅ 通（返 404 = 路径错，不是墙） |
+| `ghfast.top` / `gh.llkk.cc` / `ghproxy.cc` / `gitee` | ❌ 超时 |
+| `ftp.osuosl.org`（MuseScore 官方）、`archive.org` | ❌ 超时 |
+| PyPI | ✅ 通，但仍然**没有音源**（`arachno` 是协程 DSL、`sf2` 是文件共享工具，同名无关库） |
 
-管道留着：`.sf2`/`.sf3` 丢进 `vendor/`，`find_sf2()` 自动优先（名字带 mscore/arachno/timbres/fluidr3 的更优先）。
+**现成的一站：HF 仓库 `NewTab/soundfonts`（56 个 GM 音源）**
+```bash
+# ⚠ 文件名要 URL 编码（含空格/大小写）
+curl -sL "https://hf-mirror.com/NewTab/soundfonts/resolve/main/MuseScore.sf2" -o "vendor/MuseScore.sf2"
+```
+里面有：`MuseScore.sf2` · `ChoriumRevA.sf2` · `Crisis GM 3.51 Edit.sf2` · `E-mu Proteus GM.SF2` ·
+`GalaxyStars GM-GS-88-MT.sf2` · `GraceGM2.sf2` · `Musica Theoria.sf2` · `32MBGM.sf2` ·
+`GeneralUser-GS.sf2` · `Gravis Ultrasound*` · `Microsoft GS Wavetable Synth.sf2` …
+
+**实测排名**（`dear_good_friends`，150 读数 = 10 带 × 15 段的平均绝对带差，都是 `render_midi` 默认参数）：
+
+| 音源 | 150均值 | 中位 | 最差 | 20–40 | 40–80 | 5–10k | 10–18k |
+|---|---|---|---|---|---|---|---|
+| **MuseScore.sf2** | **4.33** | 3.34 | 15.6 | 6.84 | 8.70 | 3.62 | 7.24 |
+| ChoriumRevA.sf2 | 4.42 | **3.02** | 17.3 | 11.76 | **2.85** | 4.02 | **5.99** |
+| GeneralUser GS v1.471（原用） | 4.91 | 3.79 | 17.9 | **4.63** | 9.65 | 4.55 | 9.49 |
+| Musica Theoria / E-mu Proteus / Crisis GM / GraceGM2 / GalaxyStars / 32MBGM | 5.62 ~ 6.92 | | | | | | |
+
+⚠ **`find_sf2()` 按"文件名"排序**（`pref = ('mscore','musescore','arachno','timbres','fluidr3','sgm')`，
+不在表里的按**字母序**）⇒ 名字不含关键词的候选**会被 `GeneralUser…` 压过去**：
+实测 `GraceGM2.sf2` / `Musica Theoria.sf2` 的读数与 GeneralUser **一字不差**（就是没被选中）。
+**要测就加前缀（`AA_`）或把 GeneralUser 挪走**；`setup_soundfont.py` 能把它下回来。
+
+⚠⚠ **换音源之后必须重扫渲染参数**：`render.json` 的 `hp / mid_db / shelf / low / drive` 是
+`make_song` autotune **对着主题画像**调的（不是对着原曲）。换音源后它们不再匹配 ——
+实测同一份 MIDI 换上 `MuseScore.sf2` 后 `|RMS差|` 从 0.99 掉到 **2.35**、嘶声段从 0 变 1。
+按**原曲**重扫（`render_midi.py … --hp/--mid/--shelf`）后 150 读数 **4.91 → 3.74**。
+**先扫 `hp`**（对低频段影响最大：38 → 15 让 20–40Hz 的平均差从 10.96 降到 4.63，
+而其余各带几乎不动），再扫 `mid`/`shelf`。
+
+⚠ `vendor/` **不入库**（`.gitignore:11`），215MB 的音源要重新下。
+
+管道不变：`.sf2`/`.sf3` 丢进 `vendor/`，`find_sf2()` 自动优先（名字带 mscore/arachno/timbres/fluidr3 的更优先）。
 
 ### ② 先量清楚现有音源有什么：`sf2_lib.py` / `kick_probe.py`
 
