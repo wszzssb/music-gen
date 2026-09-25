@@ -1572,7 +1572,9 @@
      ② `bp_transcribe.py`：`__doc__` 写着"独立 bp-venv、`BP_PY` 可覆盖"，代码用的却是
         `sys.executable` → **`BP_PY` 从未被读取**，主 venv 跑必崩 `ModuleNotFoundError: basic_pitch`；
      ③ `measure_velocity.py`：`__doc__` 写着"加 `--self-test` 打印本轨峰值分布"，而 argparse
-        **根本没有这个参数** → 按文档敲就是 `unrecognized arguments`。
+        **根本没有这个参数** → 按文档敲就是 `unrecognized arguments`；
+     ④ `master_match.py`：子进程 `sys.path[0]` 是 **cwd** → 从仓库根跑 `import metrics` 崩
+        （只在 `cd scripts` 下能用）；已注入 `PYTHONPATH`。
      修法：新增 `scripts/pyenv.py` 的 `ensure(module, venv, why)` —— 当前解释器 import 不到目标模块时
      **自动 `os.execv` 换到目标 venv 重跑本脚本**（`sys.argv` 原样透传 + 防重入标志），都不行才打印
      **可复制的正确命令**并 `exit(3)`；三个工具各接一行；`--self-test` 真做出来（分轨为空时

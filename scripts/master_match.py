@@ -50,7 +50,12 @@ def main():
         print('找不到 .venv-ml —— 先按 ML.md 建环境（Python 3.13 + matchering）')
         return 1
     out = os.path.splitext(target)[0] + '_matched.wav'
-    r = subprocess.run([MLPY, '-c', RUNNER, target, ref, out],
+    # ⚠ **必须显式注入 PYTHONPATH**（2026-09-25 实测）：RUNNER 是 `python -c`，
+    #   它的 `sys.path[0]` 是**当前工作目录** —— 从仓库根跑时 `import metrics` 直接
+    #   ModuleNotFoundError（只在 `cd scripts` 下才碰巧能跑，属于 258 那族"文档写了、代码没接"）。
+    env = dict(os.environ)
+    env['PYTHONPATH'] = HERE + os.pathsep + env.get('PYTHONPATH', '')
+    r = subprocess.run([MLPY, '-c', RUNNER, target, ref, out], env=env,
                        capture_output=True, text=True, encoding='utf-8',
                        errors='replace')
     if r.returncode != 0 or not os.path.exists(out):
