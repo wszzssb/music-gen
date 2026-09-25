@@ -143,6 +143,56 @@ def bar_rms(audio, bar_sec, nbars):
     return out
 
 
+def bimodal_gate(vals, gap_min=12.0, floor_off=35.0):
+    """逐小节能量 → 门限，由分布**双峰**标定（与 `filter_song_by_stem` 同口径）。
+
+    **空档 < `gap_min` 就退回 `max - floor_off` 兜底**（不硬筛）—— 硬挑门限就是拍数字。
+    返回 `(门限dB 或 None, 空档dB)`。
+    """
+    v = sorted(x for x in vals if x > -90.0)
+    if len(v) < 4:
+        return None, 0.0
+    gap, at = 0.0, None
+    for i in range(1, len(v)):
+        g = v[i] - v[i - 1]
+        if g > gap and 0.1 <= i / float(len(v)) <= 0.9:
+            gap, at = g, i
+    if at is not None and gap >= gap_min:
+        return (v[at - 1] + v[at]) / 2.0, gap
+    return max(v) - floor_off, gap
+
+
+# 引擎轨 → 分轨名（`--stems-audio` 的逐分轨能量门用）
+STEM_OF = {'Bass': 'bass', 'Drums': 'drums', 'Piano': 'piano', 'Hook': 'guitar',
+           'Strings': 'other', 'Pad': 'other', 'Melody': 'vocals', 'Glock': 'other'}
+
+
+def stem_active_bars(stems_audio, eng, bar_sec, nbars, gap_min=12.0):
+    """该引擎轨对应的**分轨**逐小节在不在响 → `(set(小节) 或 None, 门限, 空档)`。
+
+    ## 为什么必须有这道门（2026-09-26 实测，`dear_good_friends`）
+    整混音的门（`--min-rms`）**挡不住"某条分轨自己没响"**：那首曲 S04/S07 的
+    `h6_guitar` 是 **−29 dB（在响）**、而 S01 的 `h6_bass` 是 **−86 dB（等于没有）**，
+    可 `h6_bass` 照样转录出 **204 个音** —— 拿整混音门放行，就会把这些幻觉音补进谱面。
+    逐分轨量才分得开：**在场 −0~−18dB / 缺席 −25~−65dB**（双峰空档 31.8dB）。
+    """
+    stem = STEM_OF.get(eng)
+    if not stem or not stems_audio or not os.path.isdir(stems_audio):
+        return None, None, 0.0
+    path = None
+    for f in sorted(os.listdir(stems_audio)):
+        if stem in f.lower() and f.lower().endswith(('.wav', '.flac')):
+            path = os.path.join(stems_audio, f)
+            break
+    if not path:
+        return None, None, 0.0
+    rm = bar_rms(path, bar_sec, nbars)
+    thr, gap = bimodal_gate(list(rm.values()), gap_min=gap_min)
+    if thr is None:
+        return None, None, gap
+    return {b for b, v in rm.items() if v >= thr}, thr, gap
+
+
 def prune_quiet(d, bar_sec, nbars, audio, min_rms):
     """**删掉"原曲静音"的小节里我们却有的音**（与补音对称的能力：符合原曲）。
 
@@ -169,7 +219,7 @@ def prune_quiet(d, bar_sec, nbars, audio, min_rms):
 
 
 def run(song, stems_midi, ratio=0.6, min_src=2, apply_=False,
-        audio=None, min_rms=-38.0, prune=False):
+        audio=None, min_rms=-38.0, prune=False, stems_audio=None, stem_gap=12.0):
     d = json.load(open(song, encoding='utf-8'))
     bpm = float(d.get('bpm') or 120.0)
     meter = d.get('meter') or [4, 4]
@@ -218,10 +268,32 @@ def run(song, stems_midi, ratio=0.6, min_src=2, apply_=False,
             else:
                 quiet.append((t[0], rm.get(t[0], -99.0)))
         todo = keep
+    # **逐分轨能量门**（opt-in `--stems-audio`）：某条分轨自己在该小节没响就不许从它补。
+    # 整混音门（`--min-rms`）挡不住这个 —— 实测 `dear_good_friends`：S01 的 `h6_bass`
+    # 是 −86dB（等于没有）却转出 204 个音，S04/S07 的 `h6_guitar` 是 −29dB（在响）却只补 4~6 个。
+    allow, gate_info, blocked = {}, {}, {}
+    if stems_audio:
+        for eng in src:
+            bars, thr, gap = stem_active_bars(stems_audio, eng, bar_sec, nbars,
+                                              gap_min=stem_gap)
+            allow[eng] = bars
+            gate_info[eng] = (thr, gap)
+        tset0 = {x[0] for x in todo}
+        for eng, bucket in src.items():
+            ok = allow.get(eng)
+            if ok is None:
+                continue
+            blocked[eng] = sum(1 for (b, _q, _p) in bucket
+                               if b in tset0 and (b, _q, _p) not in have and b not in ok)
+
     for eng, bucket in src.items():
+        ok = allow.get(eng)
         for (b, _q, _p) in bucket:
-            if b in {x[0] for x in todo} and (b, _q, _p) not in have:
-                add_total += 1
+            if b not in {x[0] for x in todo} or (b, _q, _p) in have:
+                continue
+            if ok is not None and b not in ok:
+                continue
+            add_total += 1
 
     print('== %s ==' % os.path.basename(os.path.dirname(song)))
     print('   分轨 MIDI %d 个 · 来源轨 %s' % (len(mids), '、'.join(sorted(src))))
@@ -231,6 +303,15 @@ def run(song, stems_midi, ratio=0.6, min_src=2, apply_=False,
         print('   ⚠ 因**原曲本来就是静音**（< %.0f dBFS）挡掉 %d 个小节：%s'
               % (min_rms, len(quiet),
                  '、'.join('%d(%.0fdB)' % (b, v) for b, v in quiet[:8])))
+    if stems_audio:
+        print('   **逐分轨能量门**（--stems-audio，空档门 %.0fdB）：' % stem_gap)
+        for eng in sorted(gate_info):
+            thr, gap = gate_info[eng]
+            if thr is None:
+                print('     %-9s 分轨缺失/样本不足 → **不设门**（会退回整混音门）' % eng)
+            else:
+                print('     %-9s 门限 %7.1fdB（空档 %4.1fdB）· 在场 %d 小节 · 挡掉 %d 音'
+                      % (eng, thr, gap, len(allow[eng]), blocked.get(eng, 0)))
     if todo:
         print('\n   段     小节   我们  分轨')
         cur = None
@@ -251,7 +332,10 @@ def run(song, stems_midi, ratio=0.6, min_src=2, apply_=False,
         arr = d.setdefault('notes_extra', {}).setdefault(eng, [])
         rng = song_engine.TR_RANGE.get(eng)
         for (b, q, p), (dur, vel) in sorted(bucket.items()):
+            ok = allow.get(eng)
             if b not in tset or (b, q, p) in have:
+                continue
+            if ok is not None and b not in ok:      # 逐分轨能量门
                 continue
             # ⚠ **逐音夹进乐器合理音域**（PITFALLS 253）：分轨转录会给"不属于该乐器"的音高，
             #   原样写进来会让引擎**整轨移八度**（把没问题的音一起改掉）。装不下的就不补。
@@ -302,6 +386,11 @@ def main():
     ap.add_argument('--dry', action='store_true', help='只看不改（默认）')
     ap.add_argument('--prune-quiet', action='store_true',
                     help='对称能力：**删掉**原曲静音（< --min-rms）小节里我们却有的音')
+    ap.add_argument('--stems-audio', default=None,
+                    help='Demucs 分轨 wav 目录：**逐分轨能量门** —— 某条分轨自己在该小节'
+                         '没响就不许从它补（整混音门挡不住这个，见 stem_active_bars 的 docstring）')
+    ap.add_argument('--stem-gap', type=float, default=12.0,
+                    help='逐分轨门限的**双峰空档**下限（默认 12dB；小于它就退回 max-35dB 兜底）')
     ap.add_argument('--apply', action='store_true', help='真的写回 song.json')
     a = ap.parse_args()
     song = a.song
@@ -310,7 +399,7 @@ def main():
     if not os.path.isfile(song):
         raise SystemExit('找不到 %s' % song)
     return run(song, a.stems_midi, a.ratio, a.min_src, a.apply and not a.dry,
-               a.audio, a.min_rms, a.prune_quiet)
+               a.audio, a.min_rms, a.prune_quiet, a.stems_audio, a.stem_gap)
 
 
 if __name__ == '__main__':

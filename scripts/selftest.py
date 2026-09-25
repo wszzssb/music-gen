@@ -8432,6 +8432,33 @@ def t_drum_grid_note_override():
 
 
 @check
+def t_gap_fill_stem_gate():
+    """**逐分轨能量门**（`restore_gap_fill.bimodal_gate`，2026-09-26）——整混音门挡不住它。
+
+    为什么钉：`--min-rms` 量的是**整混音**，而"某条分轨自己没响"整混音是看不出来的。
+    实测 `dear_good_friends`（2026-09-26）：S01 的 `h6_bass` 是 **−86dB（等于没有）**，
+    却转录出 **204 个音**；同时 S04/S07 的 `h6_guitar` 是 **−29dB（在响）**、
+    我们的 Hook 轨却只有 4~6 音。拿整混音门放行，前者会把幻觉音补进谱面、后者补不进来。
+    逐分轨量才分得开：**在场 −0~−18dB / 缺席 −25~−65dB**（双峰空档 31.8dB）。
+    """
+    import restore_gap_fill as RG
+    # ① 双峰明显 → 取两簇之间的中点
+    thr, gap = RG.bimodal_gate([-5, -6, -7, -8, -50, -55, -60, -65], gap_min=12.0)
+    assert gap >= 40 and -40 < thr < -15, '双峰门限算错：thr=%r gap=%r' % (thr, gap)
+    # ② **空档不够就退回 max-35 兜底**，绝不硬筛（硬挑门限就是拍数字）
+    thr2, gap2 = RG.bimodal_gate([-10, -12, -14, -16, -18, -20, -22, -24], gap_min=12.0)
+    assert gap2 < 12 and abs(thr2 - (-45.0)) < 1e-6, \
+        '空档不足时没退回 max-35 兜底：thr=%r gap=%r' % (thr2, gap2)
+    # ③ 样本太少 → None（不设门，而不是猜一个）
+    assert RG.bimodal_gate([-10, -12], gap_min=12.0)[0] is None, '样本不足时该返回 None'
+    # ④ 引擎轨 → 分轨名的映射（缺一个就会让那条轨的门**静默失效**）
+    for k in ('Bass', 'Drums', 'Piano', 'Hook', 'Strings', 'Pad', 'Melody'):
+        assert k in RG.STEM_OF, '%s 没有对应分轨名 —— 逐分轨门会静默失效' % k
+    assert RG.stem_active_bars(None, 'Bass', 3.0, 4)[0] is None, '没给目录时该返回 None'
+    print('        逐分轨能量门：双峰取中点 · 空档不足退回 max-35 · 样本少不设门 · 映射齐全')
+
+
+@check
 def t_restore_oneshot_chain():
     """**扒带一键链**（2026-09-25，siren_end2 12 轮沉淀）：四个判据的纯函数 + 链路默认值全部钉死。
 
