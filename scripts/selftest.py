@@ -8408,6 +8408,30 @@ def t_section_shifts():
 
 
 @check
+def t_drum_grid_note_override():
+    """**`drum_grid` 逐条指定 GM 鼓件**（`song_engine.grid_entries`，2026-09-26 opt-in）。
+
+    为什么钉：同一个 `kick: 36` 匹配不了"引子暗、主段亮"的原曲 —— 实测 `siren_end2`
+    曲的鼓轨 10–18kHz：引子 **1~23 dB**、主段 **48~53 dB**（差 25~50 dB），而 GM 两个可用底鼓
+    `35 AcBassDrum`（5–18k 相对 **−55.9 dB**、20–80Hz **−1.8 dB**）与
+    `36 BassDrum1`（**−21.3** / **−4.8**）之间就差 **34.6 dB**（且 35 的低频还更好）。
+    没有第三元素只能整曲一刀切 —— 正是用户否掉的做法（技能 §9b/§20）。
+    """
+    import song_engine as se
+    # ① 两元素 = **老行为**（全库现有曲目逐字节不变）
+    assert se.grid_entries([[3, 100], [10, 90]], 36) == [(3.0, 100, 36), (10.0, 90, 36)], \
+        '两元素条目没回落到 default_note —— 这会改掉全库现有曲目的鼓'
+    # ② 三元素 = 指定鼓件
+    assert se.grid_entries([[3, 100, 35]], 36) == [(3.0, 100, 35)], '第三元素没生效'
+    # ③ 混合：同一小节里两种底鼓共存（逐段选件就靠它）
+    assert se.grid_entries([[0, 100, 35], [8, 100]], 36) == [(0.0, 100, 35), (8.0, 100, 36)], \
+        '混合条目读错'
+    # ④ 空/None 不炸
+    assert se.grid_entries(None, 36) == [] and se.grid_entries([], 42) == []
+    print('        鼓网格逐条指定鼓件：两元素回落 36 · 三元素生效 35 · 混合共存 · 空不炸')
+
+
+@check
 def t_restore_oneshot_chain():
     """**扒带一键链**（2026-09-25，siren_end2 12 轮沉淀）：四个判据的纯函数 + 链路默认值全部钉死。
 

@@ -993,6 +993,31 @@ def glock_part(ch, i, B=4.0, vel=None, oct=24):
     return []
 
 
+def grid_entries(seq, default_note):
+    """`drum_grid` 的一条带 → **逐条** `(十六分格, 力度, GM鼓件号)`。
+
+    ## 第三元素是 opt-in（2026-09-26 加），两元素**逐字节等同老行为**
+    · `[[3, 100]]`         → `(3, 100, default_note)`（老写法）
+    · `[[3, 100, 35]]`     → `(3, 100, 35)`（**指定鼓件**）
+
+    ## 为什么需要它（实测数字）
+    同一首曲的**引子与主段，鼓件亮度差 25~50 dB**：`siren_end2` 的鼓轨 10–18kHz
+    实测 S01–S07 是 **1~23 dB**、S08–S12 是 **48~53 dB**。而 GM 只有两个可用的底鼓：
+    `35 AcBassDrum`（5–18k **−55.9 dB** 相对、20–80Hz **−1.8 dB**）与
+    `36 BassDrum1`（**−21.3 dB** / **−4.8 dB**）—— **两者差 34.6 dB**。
+    一个 `kick: 36` 的固定套路**没法同时匹配两头**：实测引子段比原曲高 **+17~+28 dB**、
+    主段低 **−4~−6 dB**。有了第三元素就能**逐段选件**（用户 2026-09-25 定的"改必须分段"）。
+
+    ⚠ `open`（默认 46）**不计入**渲染前的"整小节静音"判据（那条只看 kick/snare/hat）。
+    """
+    out = []
+    for e in (seq or []):
+        g, v = e[0], e[1]
+        n = int(e[2]) if len(e) > 2 else int(default_note)
+        out.append((float(g), v, n))
+    return out
+
+
 def perc_part(style, level, i, nbars, layers=None, kick_vel=None, B=4.0, inbars=0, seed=0):
     """打击：light = 沙锤+轻底鼓（抒情向）；dance = 四踩+反拍踩镲（舞曲向）
 
@@ -1541,13 +1566,13 @@ def build_events(d):
                                 _st = (len(_seq) - 1) / float(_lim - 1) if _lim > 1 else 0
                                 _seq = [_seq[min(len(_seq) - 1, int(round(k * _st)))]
                                         for k in range(_lim)]
-                        for (_g, _v) in _seq:
+                        for (_g, _v, _nt) in grid_entries(_seq, _note):
                             # `arr.perc_vel_max`（opt-in）：打击乐力度上限。
                             # 依据：用户提供的对照模板力度 P90 只有 **72**，而我方
                             # `drum_grid` 的力度上限是 **127**（GM 音源在 110+ 明显"炸"）。
                             _vmax = int(arr.get('perc_vel_max') or 127)
                             bucket['Perc'].append(
-                                (t0 + float(_g) * 0.25, 0.2, _note,
+                                (t0 + float(_g) * 0.25, 0.2, int(_nt),
                                  max(1, min(_vmax,
                                             int(round(float(_v) * _lvl))))))
                             # 垫层（opt-in）：`drum_grid` 的两条路径原先**都不读
@@ -1568,9 +1593,9 @@ def build_events(d):
                 _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
                 for _nm, _note in (('kick', 36), ('snare', 38),
                                    ('hat', 42), ('open', 46)):
-                    for (_g, _v) in _band(_nm):
+                    for (_g, _v, _nt) in grid_entries(_band(_nm), _note):
                         bucket['Perc'].append(
-                            (t0 + float(_g) * 0.25, 0.2, _note,
+                            (t0 + float(_g) * 0.25, 0.2, int(_nt),
                              max(1, min(127, int(round(float(_v) * _lvl))))))
                 # 垫层（opt-in）：**`drum_grid` 路径原先不读 `perc_layers`** ——
                 # 实测（siren_end2 还原曲，2026-09-25）：song.json 里配了 `kick`
