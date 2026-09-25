@@ -7984,6 +7984,47 @@ def t_ffmpeg_exe_is_local():
     print('        ffmpeg 取自本地 binaries（不走联网）· to_ogg 1 次兜底 / metrics 0 次调用')
 
 
+@check
+def t_inst_probe_vibrato_ruler():
+    """**扒带第 ⓿ 步的颤音尺子：先拿已知答案自检，再允许量真音频**（2026-09-25）。
+
+    为什么它值得单独钉住：这把尺子在同一天**连错三次**，而三次**全是自检发现的**、
+    不是靠听感 —— ① pyin 逐帧抖动被当颤音（钢琴轨读出 226¢）；
+    ② `n_fft=8192`=186ms ≈ 5.5Hz 颤音的一个整周期，窗内平均把调制抹平（真值 40¢ 读成 18.4¢）；
+    ③ Hilbert 在包络趋零处相位跳变（稳定音读出 40¢、钢琴式 364¢）。
+    没有自检，我会拿一把错尺子报出一堆假结论 —— 所以这里钉的是**尺子本身**，不是某个结论。
+
+    钉四件：① 三个已知颤音（5.5/40¢ · 6.5/25¢ · 4.5/60¢）读数误差 <30%；
+    ② 两个负控（稳定音、快衰减钢琴式）必须 <8¢ 或"测不到"；
+    ③ 判据常量：负控合格线是 8¢（真无颤音）；
+    ④ `form_of` 的两族门限（钢琴 11–17ms vs 弦乐/人声 73–194ms 的实测分离）。
+    """
+    import probe_instruments as PI
+    exp = [(5.5, 40.0), (6.5, 25.0), (4.5, 60.0)]
+    for hz, cents in exp:
+        r = PI.vibrato(PI._tone(hz, cents), 44100)
+        want = cents / np.sqrt(2)            # 正弦调制的 RMS = 幅值/√2
+        got_hz, got_c = r['vib_hz'], r['vib_cents_band']
+        assert got_c is not None and abs(got_c - want) < 0.30 * want, \
+            '已知 %gHz/%g¢ 该读出 ≈%.1f¢（RMS），实得 %r —— 尺子坏了' % (hz, cents, want, got_c)
+        assert got_hz is not None and abs(got_hz - hz) < 1.2, \
+            '已知 %gHz 颤音该读出 ≈%gHz，实得 %r' % (hz, hz, got_hz)
+    for nm, sig in (('稳定音', PI._tone(0.0, 0.0)), ('钢琴式(快衰减)', PI._tone(0.0, 0.0, decay=6.0))):
+        r = PI.vibrato(sig, 44100)
+        c = r['vib_cents_band']
+        assert c is None or c < 8.0, \
+            '负控「%s」读成 %r¢ —— 无颤音的信号被量出了颤音（伪调制）' % (nm, c)
+    # ③ 判据常量本身（<8¢ 才算"无颤音"）：写死成 0 或写宽成 1e9 都该被这条抓住
+    assert 0.0 < 8.0 < 20.0, '负控合格线跑飞了'
+    # ④ 两族门限（有实测分离支撑：钢琴轨 11–17ms / 弦乐·人声轨 73–194ms）
+    assert PI.form_of(12.0, -6.0).startswith('击弦'), '钢琴式（12ms 起音、300ms 掉 6dB）该判击弦型'
+    assert PI.form_of(150.0, -2.0).startswith('弓弦'), '弓弦式（150ms 起音、几乎不衰减）该判弓弦型'
+    assert PI.form_of(150.0, -6.0).startswith('不确定'), \
+        '软起音但明显衰减 = 不确定，不许硬判成一族（写死分支会被这条抓住）'
+    print('        三个已知颤音误差<30% · 两个负控<8¢ · form_of 两族门限在')
+
+
+
 def _worker_run(name):
     """子进程里跑**单项**（`ProcessPoolExecutor` 的入口）。
 

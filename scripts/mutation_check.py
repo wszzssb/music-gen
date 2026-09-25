@@ -2222,6 +2222,33 @@ def main():
         lambda: Mut(_rg, 'bar_rms',
                     lambda audio, bar_sec, nbars: {b: 0.0 for b in range(nbars)})))
 
+    # 67. 扒带第 ⓿ 步的**颤音尺子**：两种坏法必须被抓（2026-09-25）。
+    #     ⚠ 第一个候选注入点（把粗追踪的窗长改成 8192，= 5.5Hz 颤音一个整周期）**实测无效** ——
+    #     改用 FFT 解析信号之后，调制深度取自样例域的解析信号、不再来自那把粗追踪的窗长，
+    #     注入后自检照样 PASS。记下来是为了下次别再拿它当"证明检查有效"的用例。
+    #     真正坏得起来的是这两条（都对应当天真踩过或一步之遥的错法）：
+    #     A 解析信号退化成**实带通信号**（丢掉正频加倍）→ 相位只有 0/π，尺子直接量不动；
+    #     B 关掉**幅度门控 + 边缘裁剪** → 稳定音/钢琴式的伪调制回来了（钢琴式读出 12.6¢）。
+    #     ⚠ 另有两类自检**抓不到**（只在真实复音音频上现形、无标注样本）：带内 RMS 退回总 RMS、
+    #     滤波带从 ±10% 开宽到 ±35%（和弦邻音 → 拍频）。这条边界写在工具 `__doc__` 里。
+    import numpy as _np
+    import probe_instruments as _pi
+    _old_ab = _pi.analytic_band
+
+    def _real_band(x, sr, f0c, band=0.10):
+        N = len(x)
+        X = _np.fft.rfft(x)
+        fr = _np.fft.rfftfreq(N, 1.0 / sr)
+        Xb = _np.where((fr >= f0c * (1 - band)) & (fr <= f0c * (1 + band)), X, 0)
+        return _np.fft.irfft(Xb, n=N)
+    results.append(case('颤音尺子：解析信号退回实带通',
+                        'inst_probe_vibrato_ruler',
+                        lambda: Mut(_pi, 'analytic_band', _real_band)))
+    results.append(case('颤音尺子：门控/边缘裁剪被关掉',
+                        'inst_probe_vibrato_ruler',
+                        lambda: MutMany([(_pi, 'VIB_GATE_DB', 999.0),
+                                         (_pi, 'VIB_TRIM_FRAC', 0.0)])))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')
