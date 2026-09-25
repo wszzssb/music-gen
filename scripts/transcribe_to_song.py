@@ -165,6 +165,23 @@ def chord_tones(name):
     return bass, [60 + pc + s for s in steps]
 
 
+def gen_layer_on(src_count):
+    """**引擎生成层**（`arp / pad / glock / shimmer`）该不该开 —— **只看本段有没有该来源的转录音**。
+
+    ⚠ 别退回"段名规则"（2026-09-25 实测，用户听感"前面有点乱"的根因）：
+    旧写法是 `'arp': nm not in ('C', 'Ending')`，而本工具 `--auto` 生成的段名是
+    **`S01…S24` + `Ending`** —— 没有任何一段等于 `'C'`，于是这个条件**恒为 True**，
+    引擎**凭空生成**的层在**每一段**都开着。实测后果：引子第 1–4 小节转录只有 **0~1 个音**，
+    引擎却在那里生成了 **Arp 13 + Pad 4** 个音（开头的主角成了琶音和垫子）。
+
+    正解：**没有来源音的生成层一律不开** —— 还原曲的编制由转录决定，引擎不该补原曲
+    根本没有的声部；而且这是**逐段**判断（不是全曲一刀切）。
+    抽成模块级函数是为了让 `selftest.t_transcribe_arr_by_source` 能**行为测试**它
+    （读源码里的字面串太脆：注释里提一句旧写法就会误判）。
+    """
+    return int(src_count) > 0
+
+
 def range_fit(notes, tr):
     """把**越界音**移到最近的合法八度；**合法音一个不动**（还原曲要"符合原曲"）。
 
@@ -219,6 +236,11 @@ def main():
     ap.add_argument('--mid', action='append', default=[],
                     help='轨=文件，可多次；轨名见 --help 的约定 4')
     ap.add_argument('--melody-from', default='Piano', help='从哪条轨抽旋律')
+    ap.add_argument('--no-melody', action='store_true',
+                    help='**还原模式**：melody 层清空（它是 `--melody-from` 那条轨高音区的'
+                         '**副本**，与那条轨重复发声；音留在原轨不丢）；`--full` 时**默认生效**')
+    ap.add_argument('--keep-melody', action='store_true',
+                    help='`--full` 下仍保留 melody 副本（默认不保留 —— 实测 99%% 的音与主奏轨重复）')
     ap.add_argument('--quota', action='append', default=[],
                     help='轨=目标音数（按时间**均匀抽样**到该数），如 Strings=560；可多次')
     ap.add_argument('--auto', action='store_true',
@@ -303,6 +325,21 @@ def main():
             if t:
                 chords[cn] = [t[0], t[1]]
 
+    # —— 来源盘点（**必须排在段落之前**）——
+    # `arr` 的"引擎生成层"开关要按**本段是否真有该来源的转录音**逐段决定，见下面 `arr` 那段。
+    _src_bars = {}
+    for spec in a.mid:
+        if '=' not in spec:
+            continue                      # 格式错留给下面正式读取时报，这里只做盘点
+        _tr0, _p0 = spec.split('=', 1)
+        if not os.path.exists(_p0):
+            continue
+        _src_bars.setdefault(_tr0, []).extend(int(st / bar_sec) for (st, _e, _pp, _vv) in read_notes(_p0))
+
+    def _src_in(tr, lo, hi):
+        """本段内该来源轨的音符数（0 = 原曲这一段没有这个声部）。"""
+        return sum(1 for b in _src_bars.get(tr, ()) if lo <= b < hi)
+
     # —— 段落 ——
     starts = [int(round(b / bar_sec)) for b in bounds]
     secs, mel = [], {}
@@ -321,13 +358,25 @@ def main():
         secs.append({
             'name': nm, 'bars': nb, 'chords': seg,
             'melody': nm,                           # 契约 3：一段一键
-            'arr': {'bass': True, 'piano': True, 'pad': True,
-                    'uku': nm in ('A', 'B'),
-                    'arp': nm not in ('C', 'Ending'),
-                    'strings': nm not in ('C', 'Ending'),
-                    'glock': nm not in ('C', 'Ending'),
+            # ⚠ **"引擎生成层"按来源开关**（2026-09-25 修；用户听感"前面有点乱"的根因）：
+            #   原来是**段名规则** —— `arp/glock/shimmer = nm not in ('C','Ending')`，
+            #   而 `--auto` 生成的段名是 `S01…S24` + `Ending` → **没有任何一段等于 'C'**
+            #   → 这些**引擎凭空生成**的层在**每一段**都开着。
+            #   实测后果（siren_end2 · 引子）：第 1–4 小节转录只有 **0~1 个音**，
+            #   引擎却在那里生成了 **Arp 13 + Pad 4** 个音 —— 开头的主角是琶音与垫子，
+            #   原曲那段本来几乎是空的。
+            #   正解：**没有来源音的生成层一律不开**（还原曲的编制由转录决定，
+            #   引擎不该补原曲根本没有的声部），而且**逐段**判断，不是全曲一刀切。
+            #   ⚠ `bass/piano/strings` 必须**恒开**：正式读取后 `notes_extra` 会
+            #     `ev[_tr] = …` **整轨覆盖**它们，但 `if _tr not in ev: continue`
+            #     意味着**关掉就等于把转录的音整轨丢掉**（不是"不生成"）。
+            'arr': {'bass': True, 'piano': True, 'strings': True,
+                    'pad': gen_layer_on(_src_in('Pad', lo, hi)),
+                    'uku': False,
+                    'arp': gen_layer_on(_src_in('Arp', lo, hi)),
+                    'glock': gen_layer_on(_src_in('Glock', lo, hi)),
                     'ep': False,
-                    'shimmer': nm not in ('C', 'Ending'),
+                    'shimmer': gen_layer_on(_src_in('Arp', lo, hi)),
                     'perc': 0 if nm in ('C', 'Ending') else (1 if nm == 'A' else 2),
                     'density': 0 if nm == 'C' else (1 if nm == 'Ending' else mid_d)},
             'mode': a.key_mode,
@@ -385,7 +434,16 @@ def main():
             print('  %-8s 配额抽样 %d → %d（%.0f%%）' % (tr, n0, q, 100.0 * q / n0))
 
     # —— 抽旋律（从 --melody-from 那条轨取每小节的高音区）——
-    if mel_src:
+    # ⚠ **还原模式默认不抽**（2026-09-25 · PITFALLS 255 第 ③ 条）：melody 是 `--melody-from`
+    #   那条轨高音区的**副本**，而那条轨（`notes_extra`）**照旧整轨发声** → 同一个音
+    #   在两条轨上同时响（一条用 Melody 音色、一条用原音色）。实测 `siren_end2`：
+    #   Melody **176 音里 174 音（99%）**与 Piano 轨同音高且同时发声 —— 听感就是"糊/乱"。
+    #   音**留在原轨、不丢**，所以清空 melody 只是去掉重复，不是删内容。
+    _drop_mel = a.no_melody or (a.full and not a.keep_melody)
+    if _drop_mel and mel_src:
+        print('  melody 层：**清空**（还原模式）—— 它是 %s 轨高音区的副本，与那条轨重复发声；'
+              '音留在原轨。要保留加 --keep-melody' % a.melody_from)
+    if mel_src and not _drop_mel:
         mel = extract_melody(mel_src, secs, bar_sec)
         # melody 层同样**逐音**夹取（引擎的 Melody 轨也有音域门，同 `range_fit` 的理由）
         _mr = se.TR_RANGE.get('Melody')

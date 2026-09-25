@@ -8,8 +8,12 @@
 用法：
     python scripts/bp_transcribe.py <音频> <输出.mid> [起始秒] [时长秒]
         [--onset 0.5] [--frame 0.3] [--minlen 127.7] [--fmin 32.7] [--fmax 2093.0]
-环境：**独立的 bp-venv**（默认 D:\\test\\bp-venv，可用环境变量 BP_PY 覆盖），
-      不污染 .venv-ml 的 torch（Basic Pitch 依赖的 tf/onnx 版本与它冲突）。
+环境：**独立的 bp-venv**（默认 `D:\test\bp-venv`，可用环境变量 **`BP_PY`** 指向它的
+      `python.exe` 覆盖），不污染 .venv-ml 的 torch（Basic Pitch 依赖的 tf/onnx 版本与它冲突）。
+      ⚠ **用哪个 python 跑本脚本都行**（主 venv / .venv-ml 都行）：脚本检测到当前解释器没有
+      `basic_pitch` 时会**自动换成 bp-venv 的解释器重跑**（`scripts/pyenv.py`）。
+      2026-09-25 之前这里只有一句"用独立环境"的说明、而代码用的是 `sys.executable`
+      → 按文档用主 venv 跑**必崩** `ModuleNotFoundError: basic_pitch`。
 """
 import argparse
 import os
@@ -54,6 +58,13 @@ def main():
         use = tmp
         print("切片 %.1fs–%.1fs（%.1fs）" % (a.t0, a.t0 + a.dur if a.dur else 0, len(y) / sr))
 
+    # ⚠ `__doc__` 一直写着"BP_PY 可覆盖"，但代码用的是 `sys.executable` → **主 venv 跑必然
+    #   ModuleNotFoundError: basic_pitch**（BP_PY 形同虚设）。2026-09-25 实测踩到后接上
+    #   `pyenv.ensure`：它会换成 bp-venv 的解释器重跑本脚本，参数原样透传。
+    import pyenv
+    pyenv.ensure('basic_pitch', os.environ.get('BP_PY') or r'D:\test\bp-venv',
+                 'Basic Pitch 装在**独立环境**（默认 D:\\test\\bp-venv）',
+                 extra_hint='换位置就设环境变量 BP_PY=<该环境的 python.exe>')
     from basic_pitch.inference import predict
     print("转录中 …（onset=%.2f frame=%.2f minlen=%.1fms fmin=%.1f fmax=%.1f）"
           % (a.onset, a.frame, a.minlen, a.fmin, a.fmax))

@@ -254,6 +254,14 @@ def main():
         return Mut(st, '_ymt3_grouped_ok', lambda src: True)
     results.append(case('YMT3 改回整曲一次喂', 'ymt3_grouped_inference', _ymt3_regressed))
 
+    # 0b3. 引擎生成层退回"段名规则"（2026-09-25：`--auto` 的段名是 S01…S24，
+    #      任何按 'A'/'B'/'C'/'Ending' 判断的规则对它们**恒为同一个值** → arp/pad/glock/shimmer
+    #      段段全开；实测引子第 1–4 小节转录 0~1 音、引擎却生成 17 音 → 用户"前面有点乱"）
+    def _arr_regressed():
+        import transcribe_to_song as T
+        return Mut(T, 'gen_layer_on', lambda c: True)
+    results.append(case('引擎生成层退回段名规则', 'transcribe_arr_by_source', _arr_regressed))
+
     # 0c. 密度起伏被抹平（2026-09-19 修口径后补：判据改量逐小节，注入要能红）
     def _flat_density():
         src = os.path.join(ROOT, 'songs', '41_imitate_b16', 'song.json')

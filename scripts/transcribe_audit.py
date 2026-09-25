@@ -53,7 +53,13 @@ def main():
 
     import numpy as np
     import soundfile as sf
-    sys.path.insert(0, os.path.join(os.path.dirname(HERE), '.venv-ml', 'Lib', 'site-packages'))
+    # ⚠ **不能**靠 `sys.path.insert(.venv-ml/…/site-packages)` 硬塞（2026-09-25 实测）：
+    #   主 venv 是 Python 3.14、而 scipy 是 **cp313 轮子** → import 崩在
+    #   `scipy._lib._ccallback` → `_ccallback_c`，traceback 全指向第三方库内部，
+    #   看着像 librosa 坏了。正解是**换成 .venv-ml 的解释器**（`pyenv.ensure` 会自动 execv）。
+    import pyenv
+    pyenv.ensure('librosa', '.venv-ml', '本工具用 librosa/pyin 当基准（装在 .venv-ml）',
+                 extra_hint='本脚本**不能**用主 venv 跑：Python 3.14 与 .venv-ml 里的 scipy 轮子 ABI 不兼容')
     import librosa
 
     y, sr0 = sf.read(a.stem, dtype='float32', always_2d=True)

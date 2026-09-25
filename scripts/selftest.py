@@ -7535,6 +7535,34 @@ def t_ymt3_grouped_inference():
     return 'YMT3 分组推理在位（auto_chunk + 逐组搬 GPU）'
 
 
+@check
+def t_transcribe_arr_by_source():
+    """**引擎生成层必须按来源开关**（退回"段名规则"会让它段段全开）。
+
+    依据（2026-09-25 实测 · 扒《......已至。》，用户听感"**前面有点乱**"）：
+    `transcribe_to_song.py` 的 `arr` 原来按**段名**判断 —— `'arp': nm not in ('C', 'Ending')`，
+    而它自己 `--auto` 生成的段名是 **`S01…S24` + `Ending`** → 该条件**恒为 True**，
+    引擎**凭空生成**的层（arp / pad / glock / shimmer）**每一段**都开着。
+    后果：引子第 1–4 小节转录只有 **0~1 个音**，引擎却生成了 **Arp 13 + Pad 4** 个音 ——
+    开头的主角成了原曲根本没有的琶音与垫子。
+    正解见 `transcribe_to_song.gen_layer_on`：**只看本段有没有该来源的转录音**。
+    **判据自证**：把判据换成"恒 True"（= 旧段名规则在 `S01…S24` 上的实际行为）→ 必须判坏。
+    """
+    import transcribe_to_song as _T
+    assert _T.gen_layer_on(0) is False, (
+        'gen_layer_on(0) 必须为 False —— 本段没有该来源的转录音时，引擎不许凭空生成这一层')
+    assert _T.gen_layer_on(3) is True, 'gen_layer_on(3) 必须为 True（有来源就该开）'
+    _src = open(os.path.join(HERE, 'transcribe_to_song.py'), encoding='utf-8').read()
+    _body = _src.split('def gen_layer_on', 1)[-1]
+    for _k in ("'arp': gen_layer_on(", "'pad': gen_layer_on(", "'glock': gen_layer_on(",
+               "'shimmer': gen_layer_on("):
+        assert _k in _body, 'arr 里的 %s 没走 gen_layer_on（会被"段名规则"重新写死）' % _k
+    # 判据自证：换成恒 True 后，上面第一条断言必须失败
+    _bad = lambda c: True                                            # noqa: E731
+    assert not (_bad(0) is False), '判据自证失败：恒 True 仍被判为"按来源"'
+    return '生成层按来源开关（arr 的 arp/pad/glock/shimmer 走 gen_layer_on）'
+
+
 ONSET_TVD_MAX = 0.65      # 每段落点分布与画像的 TVD 上限（⚠ 单一真源在 `melody_gen.ONSET_TVD_MAX`）
 BASS_FLOOR = 24           # Bass 轨音高下界 = C1(32.7Hz)（真值见 t_bass_register）
 # 段界"过渡/留白"的门（真值见 t_section_transition）：

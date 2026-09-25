@@ -1537,3 +1537,46 @@
      按"我们 0 音 + 原曲有声"只补 177 音 —— **宁可少补，不可乱补**；
      ④ 收尾处的"多出来的声音"要分清是 **MIDI 音符**还是**音源释音尾巴**：
      本例 MIDI 在 **171.4s 已结束**，172s 之后的 −28~−58dB 是 FluidSynth 的释音（原曲那里 −46~−99dB）。
+
+257. **"记录"不是"修复"：坑 255 的三条修法只落在单曲数据上，重扒同一首原样再踩 —— 现已全部代码化**（2026-09-25 晚）。
+     现场：换一条路径重扒同一首（`siren_end2`）时，`transcribe_to_song.py` 的 `arr` **仍然是段名规则**
+     （`'arp': nm not in ('C', 'Ending')`），而它自己 `--auto` 生成的段名是 **`S01…S24` + `Ending`**
+     → 该条件**恒为 True** → 引擎凭空生成的 `arp/pad/glock/shimmer` **段段全开**。
+     用户这次的原话是"**midi 内容前面有点乱**"；量出来：引子第 1–4 小节**转录只有 0~1 个音**，
+     成品却有 **Arp 13 + Pad 4**（合计 17 音）—— 开头的主角是原曲根本没有的琶音与垫子。
+     **三条修法全部落进代码**（255 当时只改了那一首的 `song.json`）：
+     ① `transcribe_to_song.gen_layer_on(src_count)`：生成层**按本段有没有该来源的转录音**开关
+        （不再看段名）。⚠ `bass/piano/strings` **仍要恒开** —— 它们的 `ev` 会被 `notes_extra`
+        整轨覆盖，但引擎是 `if _tr not in ev: continue`，**关掉 = 把转录的音整轨丢掉**。
+        实测 `pad/arp/glock/shimmer` **25/25 段全开 → 0 段开启**。
+     ② **melody 在 `--full`（还原模式）下默认清空**：它是 `--melody-from` 那条轨高音区的**副本**，
+        实测 Melody **176 音里 174 音（99%）**与 Piano 轨同音高且时间重叠（两轨同响、音色不同 = 糊）。
+        要保留须显式 `--keep-melody`；实测成品 Melody **176 → 0 音**。
+     ③ **"全关"之后必须回头看真内容有没有被一起关掉**：全关后引子变成 **−50.6dB**（原曲 **−29.2dB**）。
+        查证那层是**明确的 A# 和弦垫**（0.5–4.5s 谱峰 A#2/F2/A#1/D3、谱平坦度 **0.057**、
+        自相关 **0.925**），落在 Demucs 6s 的 `other` 分轨上；**YMT3 在 0–5s 一个音都没转出来，
+        而 Basic Pitch 转出了 13 个**。→ 合并器新增 **Pad 轨**（主来源 = BP）+ 长音层整形
+        （同音高碎片并成长音、时值下限 2 拍）。实测引子 **−50.6 → −41.7dB**（剩 12.6dB 如实记账）。
+     **可迁移**：① **"记录"≠"修复"** —— 写成文档却只改数据的坑，下一首原样复现；
+        **凡是"默认行为错"的坑必须改默认值 + 配守卫**，别指望每次手工改数据；
+     ② **"关掉多余"和"关掉真内容"只差一步**，判据要**对着原曲量那个窗口**（逐秒 RMS + 逐带绝对差），
+        不是看代码逻辑自洽；
+     ③ 守卫 `t_transcribe_arr_by_source` + 变异用例"引擎生成层退回段名规则" —— 判据抽成
+        `gen_layer_on` 做**行为测试**（读源码字面串太脆：注释里提一句旧写法就误判）。
+
+258. **"文档写了、代码没接"在工具侧连中三次 —— 加 `scripts/pyenv.py` 统一兜底**（2026-09-25）。
+     同一轮里三个工具的**文档与实现不一致**，症状都指向第三方库、看着像库坏了：
+     ① `transcribe_audit.py`：`__doc__` 教的是 `python scripts/transcribe_audit.py …`，而它把
+        `.venv-ml/Lib/site-packages` **插进 sys.path** 再 import librosa —— 主 venv 是 **Python 3.14**、
+        而 scipy 是 **cp313 轮子** → 崩在 `scipy._lib._ccallback` → `_ccallback_c`；
+     ② `bp_transcribe.py`：`__doc__` 写着"独立 bp-venv、`BP_PY` 可覆盖"，代码用的却是
+        `sys.executable` → **`BP_PY` 从未被读取**，主 venv 跑必崩 `ModuleNotFoundError: basic_pitch`；
+     ③ `measure_velocity.py`：`__doc__` 写着"加 `--self-test` 打印本轨峰值分布"，而 argparse
+        **根本没有这个参数** → 按文档敲就是 `unrecognized arguments`。
+     修法：新增 `scripts/pyenv.py` 的 `ensure(module, venv, why)` —— 当前解释器 import 不到目标模块时
+     **自动 `os.execv` 换到目标 venv 重跑本脚本**（`sys.argv` 原样透传 + 防重入标志），都不行才打印
+     **可复制的正确命令**并 `exit(3)`；三个工具各接一行；`--self-test` 真做出来（分轨为空时
+     `calibrate()` 会把噪声底映射成"看起来正常的力度"，这一步是必需的）。
+     **可迁移**：① **用法写进 `__doc__` ≠ 生效**（同族：209 判据要印在运行时输出、213 工具静默失效）；
+        **能被代码回答的别只写文档**（CONVENTION §1）；
+     ② 报错要**指向正确命令**，别让 traceback 停在第三方库里 —— 那会让人往错方向查。

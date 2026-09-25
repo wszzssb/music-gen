@@ -109,6 +109,52 @@ def do_one(wav, mid, out, p50, k, max_db, report=True):
     return total
 
 
+def self_test(wav, mid, p50=51.0, k=9.0, max_db=18.0):
+    """打印"这个分轨能不能用来校准力度"：峰值分布 + 整轨 RMS + 校准后的力度范围。
+
+    为什么要它（docstring 第 23 行一直这么写着，但**直到 2026-09-25 才真的实现**）：
+    实测把 `--self-test` 按文档敲上去会得到 `unrecognized arguments` —— 判据只写在文档里、
+    没落成代码，等于没有。而这一步是**必需的**：分轨是空的时候，`calibrate()` 会把
+    一整轨噪声底映射成"看起来很正常的力度"（它只保证中位落在 `--p50`，不保证有信号）。
+    """
+    y, sr = sf.read(wav, always_2d=True)
+    y = y.mean(axis=1)
+    if y.size == 0:
+        print('分轨**是空的**（0 采样）：%s' % wav)
+        return 4
+    rms = float(np.sqrt((y ** 2).mean()))
+    pk = float(np.abs(y).max())
+    print('分轨 %s' % wav)
+    print('  整轨 RMS %.1f dB · 峰值 %.1f dB（RMS 是内容参考，不是严格噪声底）'
+          % (20.0 * np.log10(max(rms, 1e-12)), 20.0 * np.log10(max(pk, 1e-12))))
+    d = midi_file.import_midi(mid)
+    spb = 60.0 / max(1e-9, float(d.get('bpm') or 120.0))
+    usable = 0
+    for tr in d.get('tracks') or []:
+        notes = tr.get('notes') or []
+        if not notes:
+            continue
+        peaks = np.array(peak_db_map(wav, notes, spb), dtype=float)
+        good = peaks[peaks > -60.0]
+        if good.size == 0:
+            print('  轨 %-10s %5d 音 · **全部低于 −60dB → 这轨是空的，别拿它校准力度**'
+                  % (tr.get('name'), len(notes)))
+            continue
+        vels, ref = calibrate(list(peaks), p50, k, max_db)
+        print('  轨 %-10s %5d 音 · 峰值 中位 %.1f / P10 %.1f / P90 %.1f dB · 低于 −60dB 的 %d 个'
+              % (tr.get('name'), len(notes), float(np.median(good)),
+                 float(np.percentile(good, 10)), float(np.percentile(good, 90)),
+                 int((peaks <= -60.0).sum())))
+        print('      → 锚点（峰值中位）%.1f dB · 力度中位 %d · 范围 %d~%d'
+              % (ref, int(np.median(vels)), min(vels), max(vels)))
+        usable += 1
+    if usable:
+        print('结论：**可以**拿它校准力度（%d 轨有可校准音符）' % usable)
+        return 0
+    print('结论：**别用** —— 没有任何一轨有可校准的音符（分轨空 / 名字对不上 / 转录为空）')
+    return 4
+
+
 def main():
     import cli_utf8 as _cu; _cu.setup()   # 控制台编码兜底（GBK 下打印 ✓ 会崩）
     ap = argparse.ArgumentParser(description='从分轨音频量逐音力度')
@@ -120,7 +166,13 @@ def main():
     ap.add_argument('--p50', type=float, default=51.0, help='目标中位力度（默认 51）')
     ap.add_argument('--k', type=float, default=9.0, help='dB→力度 的斜率（默认 9）')
     ap.add_argument('--max-db', type=float, default=18.0, help='允许偏离中位的上限 dB')
+    ap.add_argument('--self-test', action='store_true',
+                    help='只打印本轨的峰值分布与噪声底，**不写文件**（判"这个分轨能不能用来校准"）')
     a = ap.parse_args()
+    if a.self_test:
+        if not (a.wav and a.mid):
+            raise SystemExit('--self-test 需要 <分轨.wav> <转录.mid> 两个位置参数')
+        return self_test(a.wav, a.mid, a.p50, a.k, a.max_db)
     if not (a.wav and a.mid and a.out) and not a.track:
         raise SystemExit('要么给三个位置参数，要么用 --track 轨名=wav:mid')
     if a.track:
