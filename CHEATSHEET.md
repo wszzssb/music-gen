@@ -177,6 +177,9 @@ studio\stop.cmd     # 停
 & $py scripts\note_dur_stats.py <曲.mid> [参考.mid] # 碎音率/时值中位（听感体检）
 & $ml scripts\transcribe_ymt3.py <音频>             # 转录 → **默认接续**出 song.json（引擎编配＝正路）
 & $ml scripts\transcribe_ymt3.py <音频> --no-song   # 只要一份纯 MIDI（**丢掉引擎的编配/音色分配/段落密度**）
+#   ⚠ **分轨输入比全混音慢 3–4 倍**（0.55~0.60 vs 0.148 s/段）：Demucs 分轨是分布外输入，
+#     模型不吐 <eos>、空解码到 256 步上限 —— 现在会自报「解码步数」并在撞上限时告警。
+#     纯 restore_oneshot 路径其实只用到它的第①层初筛 → 可少跑（实测省 3m42s）。→ ML.md
 #   ↑ 2026-09-20 起「正路是默认」：绕开要**显式** --no-song（PITFALLS 185 / SKILL §8）
 #     接续链：切轨 → analyze_chords → transcribe_to_song --auto → songs/<名>/song.json
 #     ↑ `transcribe_to_song.py` **默认全量**（写 `notes_extra_full: true`，逐音照写）。

@@ -64,7 +64,12 @@ SKIP_DIRS = {'.venv', '.venv-ml', '.git', 'refs', '__pycache__', 'node_modules',
              # `doc_map_fresh` FAIL**（沙箱里那份 `CHEATSHEET.md` 等被当成"没归类的新文档"，
              # 实测点名 `_lint_sandbox/CHEATSHEET.md`）。这正是 `lint_dirs` docstring 里
              # 骂的那类"沙箱造成的假报，把真正的数据错误淹掉"（2026-09-24 修）。
-             '_lint_sandbox'}
+             '_lint_sandbox',
+             # 2026-09-26：`deliveries/<曲名>/`（**点名要传 GitHub 的那一首**，见 `.gitignore` §⑥）
+             # —— 与 `songs*` 同性质：**按曲生成、随交付增删**。不排除则 `deliveries/` 下每份
+             # `notes.md`/`HANDOFF-*.md` 都会落进"未归类"→ `doc_map_fresh` FAIL
+             # （实测：`deliveries/dear_good_friends/HANDOFF-ROUND18.md` 已经红了一天）。
+             'deliveries'}
 
 # ── 大目录（主题域）→ 小目录（文档）。**手写的只有这一处** ────────────────────
 # 每项 = (相对路径, 一句话：这份文档回答什么问题)。没归类的文档会落到"未归类"域
@@ -107,7 +112,7 @@ GROUPS = [
         ('docs/STUDIO-WORKFLOW.md', '必须开面板的五个时刻 · 症状→真因表 · 省时顺序'),
     ]),
     ('H. 出症状排查 / 台账', [
-        ('PITFALLS.md', '坑台账（当前 161–246）：先看 §"主题索引"拿编号，'
+        ('PITFALLS.md', '坑台账（当前 161–260）：先看 §"主题索引"拿编号，'
                         '再用 `grep -n "^161\\." PITFALLS.md` 定位行号（条目不是 markdown 标题）'),
         ('PITFALLS-ARCHIVE.md', '已归档的旧坑（1–160 的部分），同上用 grep 定位'),
     ]),
@@ -124,6 +129,9 @@ GROUPS = [
     ('M. 曲目笔记（按曲生成，进不了文档库）', [
         ('# 每首 `songs/<曲>/notes.md`（≈0.9k tok）—— 该曲的调性 / 速度 / 结构 / 复现命令 / **没达标项**；'
          '问"这首歌当时怎么做的、哪些没做到"就看它（30 首）', ''),
+        ('# `deliveries/<曲名>/`（**点名要传 GitHub 的那一首**，`.gitignore` §⑥）—— '
+         '`song.json` + `<曲名>.mid` + `notes.md` + `render.json`（+ 试听 ogg / `variants/`）；'
+         '曲库 `songs/` 是 junction、整目录被排除，所以交付物走这个专用目录', ''),
     ]),
 ]
 HOST_DOCS = [                                        # 宿主级（不在仓库里，跟着用户环境走）

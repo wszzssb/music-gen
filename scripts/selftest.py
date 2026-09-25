@@ -7652,6 +7652,54 @@ def t_ymt3_grouped_inference():
     return 'YMT3 分组推理在位（auto_chunk + 逐组搬 GPU）'
 
 
+def _ymt3_steps_ok(src):
+    """`transcribe_ymt3.py` 是否**自报解码步数 + 撞上限时告警**（抽出来给变异用例注入）。
+
+    依据（2026-09-26 实测 · 扒 `princess_charm` 时发现"分轨比混音慢 3–4 倍"）：
+    YMT3 的解码是**自回归循环**（`amt/src/model/t5mod_helper.py:96-131`），最多
+    `max_total_token_length`（本权重 **256**）步，**只有整个 batch × 13 通道全部吐出
+    `<eos>` 才提前 break**（`unfinished_sequences.max() == 0`）—— 实测：
+
+    | 输入 | 每批解码步数 | s/段 |
+    |---|---|---|
+    | 全混音 | `[167, 90, 109]` | 0.149 |
+    | h6_drums | `[39, 42, 42]` | 0.054 |
+    | **h6_other（Demucs 分轨）** | **`[256, 112, 256]`（撞上限）** | **0.600** |
+
+    → **耗时 ∝ 步数**；分轨是**分布外输入**，模型不吐 `<eos>`，白解码到上限。
+    ⚠ **与电平无关**（2×2 交叉实测）：混音压 12dB 一模一样（0.148→0.142）、
+    分轨抬 12dB 也只 0.534→0.480 → 是**内容**不是振幅。
+
+    为什么立守卫：这个 3–4 倍**完全静默** —— 输出只有一行"0.600 s/段"，
+    看起来和"曲子难"没区别，没人会想到是"模型不知道该在哪停"。
+    自报步数后，撞上限会**当场打印原因**。
+    """
+    for need in ('a.shape[-1]', 'max_total_token_length', '解码步数', 'if _hit:', '未吐 <eos>'):
+        if need not in src:
+            return False
+    return True
+
+
+@check
+def t_ymt3_reports_decode_steps():
+    """**YMT3 必须自报解码步数，并在撞上限时告警**（否则"分轨慢 3–4 倍"永远是静默的）。
+
+    依据见 `_ymt3_steps_ok` 的 docstring（实测表 + 2×2 电平交叉）。
+    判据**读源码、不跑模型**（秒级，同 `t_ymt3_grouped_inference`）。
+    **判据自证**：把 `if _hit:` 改成 `if False:`（= 不告警）→ 必须判坏。
+    """
+    src = open(YM33_SRC, encoding='utf-8').read()
+    assert _ymt3_steps_ok(src), (
+        'transcribe_ymt3.py 不再自报解码步数 / 不再对"撞上限"告警 —— '
+        '那样"分轨比混音慢 3–4 倍"会重新变成静默现象（实测 0.149 vs 0.600 s/段），'
+        '见 ML.md「分轨输入会慢 3–11 倍：模型不吐 <eos>」')
+    assert not _ymt3_steps_ok(src.replace('if _hit:', 'if False:')), \
+        '判据自证失败：去掉"撞上限告警"仍判通过'
+    assert not _ymt3_steps_ok(src.replace('a.shape[-1]', 'a.shape[0]')), \
+        '判据自证失败：不数解码步数仍判通过'
+    return 'YMT3 自报解码步数 + 撞上限告警在位'
+
+
 @check
 def t_transcribe_arr_by_source():
     """**引擎生成层必须按来源开关**（退回"段名规则"会让它段段全开）。

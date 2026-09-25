@@ -606,6 +606,29 @@ def main():
                  % (_why.get('free_mb', 0), _why.get('budget_mb', 0),
                     _why.get('by_speed', 0), _why.get('by_mem', 0))), flush=True)
 
+        # ── 解码步数自报（2026-09-26）──────────────────────────────────────────
+        # 推理耗时 ∝ **自回归解码步数**，而步数由"整个 batch × 13 通道**最后一个**吐出
+        # <eos>"决定（`amt/src/model/t5mod_helper.py:96-131`：全部 `unfinished_sequences`
+        # 归零才 break，否则一路跑到 `max_total_token_length`）。
+        # 实测（107s 曲 / bsz=24 / 同机同会话，2026-09-26）：
+        #     全混音        109 步 → **0.149 s/段**
+        #     h6_drums       42 步 →   0.054 s/段
+        #     h6_other    **256 步（撞上限）** → **0.600 s/段**（慢 4 倍）
+        # 分轨对模型是**分布外输入** → 它**不吐 <eos>**，于是白解码到上限。
+        # ⚠ **与电平无关**：混音压 12dB 一模一样（0.148→0.142），分轨抬 12dB 也只
+        #   0.534→0.480 → 是**内容**不是振幅。要快只能少跑/不跑（见 ML.md 同名小节）。
+        _steps = [int(a.shape[-1]) for a in pred_token_arr]
+        _cap = int(getattr(model, "max_total_token_length", 0) or 0)
+        _med = int(np.median(_steps)) if _steps else 0
+        _hit = sum(1 for s in _steps if _cap and s >= _cap)
+        print("   解码步数 %s（中位 %d · 上限 %d）" % (_steps, _med, _cap), flush=True)
+        if _hit:
+            print("   ⚠ %d/%d 个 batch **解码到上限 %d 步仍未吐 <eos>** —— 分布外输入的典型症状"
+                  "（最常见：Demucs 单条分轨）。\n"
+                  "      耗时 ∝ 步数：同机实测全混音 109 步 = 0.149 s/段 · 分轨 256 步 = 0.600 s/段。\n"
+                  "      与电平无关（±12dB 都不变）；要快只能少跑或不跑该输入 → ML.md"
+                  "「分轨输入会慢 3–11 倍：模型不吐 <eos>」。" % (_hit, len(_steps), _cap), flush=True)
+
         t3 = time.time()
         n_ch = model.task_manager.num_decoding_channels
         start_secs = [frames * i / sr_target for i in range(n_seg)]

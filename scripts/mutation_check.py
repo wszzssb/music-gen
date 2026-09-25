@@ -254,6 +254,12 @@ def main():
         return Mut(st, '_ymt3_grouped_ok', lambda src: True)
     results.append(case('YMT3 改回整曲一次喂', 'ymt3_grouped_inference', _ymt3_regressed))
 
+    # 0b2b. YMT3 不再自报解码步数 / 不再对"撞上限"告警（2026-09-26：分轨慢 3–4 倍的真因
+    #       是"分布外输入 → 模型不吐 <eos> → 白解码到 256 步上限"，而这个现象**完全静默**）
+    def _ymt3_steps_silent():
+        return Mut(st, '_ymt3_steps_ok', lambda src: True)
+    results.append(case('YMT3 不再自报解码步数', 'ymt3_reports_decode_steps', _ymt3_steps_silent))
+
     # 0b3. 引擎生成层退回"段名规则"（2026-09-25：`--auto` 的段名是 S01…S24，
     #      任何按 'A'/'B'/'C'/'Ending' 判断的规则对它们**恒为同一个值** → arp/pad/glock/shimmer
     #      段段全开；实测引子第 1–4 小节转录 0~1 音、引擎却生成 17 音 → 用户"前面有点乱"）
