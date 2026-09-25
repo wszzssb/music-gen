@@ -104,16 +104,34 @@ def rms_db(y):
     return round(20 * np.log10(max(float(np.sqrt(np.mean(y ** 2))), 1e-12)), 1) if len(y) else -120.0
 
 
+def section_bounds(sj):
+    """→ [(段名, 起秒, 止秒)]。**每小节拍数必须乘进去。**
+
+    ⚠ 2026-09-25 修**真 bug**：原来写的是 `acc * (60/bpm)`（`acc` 累计的是**小节**数），
+    漏了"每小节几拍"→ 段界整体**小 4 倍**（4/4 下），于是：
+      · "S01" 其实是 0–1.6s、"S13" 其实是 18.5–23.0s（**标签全错位**）；
+      · 末段只到 **44s** —— 整首 176 秒的曲子，**44 秒之后从来没被量过**
+        （这正是"85s / 146s 的高频来源"一直定位不到的直接原因之一）。
+    错窗口在版本间是同一套，所以当时的**相对**结论（v22a 4 段 vs v25 8 段）没被推翻，
+    但**段归属与覆盖时长**全错 —— 修完必须重测（见 `selftest.t_timbre_and_stem_filter` 的段界断言）。
+    """
+    bpm = float(sj.get('bpm') or 145.96)
+    beats = float((sj.get('meter') or [4, 4])[0] or 4.0)
+    bar = beats * 60.0 / bpm
+    out, acc = [], 0.0
+    for s in (sj.get('sections') or []):
+        bars = float(s.get('bars') or 0)
+        out.append((s.get('name'), acc * bar, (acc + bars) * bar))
+        acc += bars
+    return out
+
+
 def audit(song, ref, stems, mine):
     sj = json.load(open(song, encoding='utf-8')) if os.path.isfile(song) else None
     name = os.path.basename(os.path.dirname(song)) if sj else str(song)
     bpm = float(sj['bpm']) if sj else 145.96
     spb = 60.0 / bpm
-    segs, acc = [], 0.0
-    for s in sj['sections']:
-        bars = float(s.get('bars') or 0)
-        segs.append((s.get('name'), acc * spb, (acc + bars) * spb))
-        acc += bars
+    segs = section_bounds(sj) if sj else []
     mid = None
     for cand in (os.path.join(os.path.dirname(song), name + '.mid'),
                  os.path.join(os.path.dirname(song), 'siren_end2.mid')):

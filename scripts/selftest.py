@@ -8268,7 +8268,177 @@ def t_timbre_and_stem_filter():
     o = TA.onset_ms(noise, sr)
     assert o is None or o < 200, \
         '白噪声被读出 %sms 的"软起音" —— 起音判据会把噪声当成垫子' % o
-    print('        音色判据：软/硬起音可分 · 嘶声可分 · 白噪声不当垫子 · 来源筛选双峰标定+拒筛')
+    # ③ **段界必须把"每小节拍数"乘进去**（2026-09-25 修真 bug：漏了它 → 段界小 4 倍、
+    #    整首只量到前 44 秒、段标签全错位）。用合成 song.json 钉死，不依赖任何真曲。
+    sj = {'bpm': 120.0, 'meter': [4, 4],
+          'sections': [{'name': 'S01', 'bars': 4}, {'name': 'S02', 'bars': 2},
+                       {'name': 'S03', 'bars': 3}]}
+    b = TA.section_bounds(sj)
+    assert b[0] == ('S01', 0.0, 8.0), \
+        '段界算错：第一段 4 小节 @120BPM 4/4 应是 0–8.0s，实得 %r（漏"每小节拍数"就是 0–2.0s）' % (b[0],)
+    assert b[2] == ('S03', 12.0, 18.0), '段界不累计：末段应是 12.0–18.0s，实得 %r' % (b[2],)
+    assert abs(b[-1][2] - 18.0) < 1e-9, '段界没覆盖全曲：末段止秒 %r ≠ 18.0' % (b[-1][2],)
+    print('        音色判据：软/硬起音可分 · 嘶声可分 · 白噪声不当垫子 · 来源筛选双峰标定+拒筛'
+          ' · 段界含每小节拍数（0–8 / 12–18s）')
+
+
+@check
+def t_arrange_voices_by_table():
+    """**并轨规则读编制表**（B 线第 2 条，2026-09-25）：判据要在已知答案上有区分度、
+    且 `Pad` 轨的音**只进不出**。
+
+    为什么钉住：老规则（`four_inst`/`kill_pad`/`voice_split`）是**全局**的、从不读转录证据
+    （"收成 4 件"·"全曲关掉引擎垫层"·"每刻最高音→小提琴"）—— 实测把原曲那层合成器垫切给了弦乐：
+    v25 报 **8 段**高频嘶声（v22a 4 段）、S01/S02 chroma **0.875/0.876**（v22a 0.933/0.929）。
+    换成编制表驱动（`arrange_voices`）后：嘶声 **4 段**（S10/S13/S17/S21）、S01/S02 **0.914/0.916**。
+
+    钉三件：① `plan_of` 在五个已知输入上的读数（**判据不许恒真/恒假**）；
+    ② **硬不变量**：`Pad` 的音只会被"归入"、**永不流向 `Strings`/`Hook`**；
+    ③ 去重只删跨轨**完全重复**（同 小节/拍/时值/音高），优先级 Strings>Piano>Pad>Hook。
+    """
+    import arrange_voices as AV
+    assert AV.SOFT_ATTACK_MS == 150.0, \
+        '软起音门限被改（必须与 timbre_audit.SOFT_ATTACK_MS 同口径 150ms；改前按真病例重标定）'
+    for row, want in (({'lead': 'other', 'attack_ms': 284.4}, 'pad'),
+                      ({'lead': 'other', 'attack_ms': 100.0}, 'keep'),      # 负控：other 但硬起音
+                      ({'lead': 'vocals', 'attack_ms': 200.0}, 'strings'),
+                      ({'lead': 'piano', 'attack_ms': 5.0}, 'keep'),
+                      ({'lead': 'other', 'attack_ms': None}, 'keep')):      # 测不到 → 不改
+        got = AV.plan_of(row)[0]
+        assert got == want, \
+            'plan_of(%r) 读出 %s、应为 %s —— 判据要么恒真要么恒假，等于没读证据' % (row, got, want)
+    # 合成一首三段曲：A=垫子段（other+软起音）· B=主奏段（vocals）· C=钢琴段（keep）
+    d = {'bpm': 120.0,
+         'sections': [{'name': 'A', 'bars': 2, 'arr': {'pad': 1}},
+                      {'name': 'B', 'bars': 2, 'arr': {'pad': 1}},
+                      {'name': 'C', 'bars': 2, 'arr': {'pad': 1}}],
+         'notes_extra': {
+             'Pad': [[0, 0.0, 2.0, 60, 60], [4, 0.0, 2.0, 62, 60]],
+             'Strings': [[0, 1.0, 1.0, 72, 70], [2, 1.0, 1.0, 74, 70], [4, 1.0, 1.0, 76, 70]],
+             'Hook': [[0, 2.0, 1.0, 55, 70], [2, 2.0, 1.0, 57, 70]],
+             'Piano': [[4, 1.0, 1.0, 76, 70]],      # 与 C 段 Strings 完全重复 → 该被去重删掉
+         }}
+    rows = [{'name': 'A', 'lead': 'other', 'attack_ms': 284.4},
+            {'name': 'B', 'lead': 'vocals', 'attack_ms': 200.0},
+            {'name': 'C', 'lead': 'piano', 'attack_ms': 5.0}]
+    pad_before = set(map(tuple, d['notes_extra']['Pad']))
+    st = AV.arrange(d, rows)
+    ne = d['notes_extra']
+    in_a = lambda t: [x for x in ne[t] if int(x[0]) < 2]
+    assert pad_before <= set(map(tuple, ne['Pad'])), \
+        'Pad 轨的音被搬走 %d 个 —— 这正是"合成器垫被切给弦乐"的老病（第 2 条要防的就是它）' \
+        % len(pad_before - set(map(tuple, ne['Pad'])))
+    assert not in_a('Strings') and not in_a('Hook'), \
+        'A 段（other + 软起音 284ms）的音没归到 Pad：Strings/Hook 还剩 %d/%d 个' \
+        % (len(in_a('Strings')), len(in_a('Hook')))
+    assert [x for x in ne['Hook'] if 2 <= int(x[0]) < 4], \
+        'B 段（strings 计划）默认不该动 Hook —— v22a 在 vocals 段是"删"不是"并"，而删没有证据' \
+        '（要并得显式开 --vocals-move on）'
+    assert len([x for x in ne['Strings'] if 2 <= int(x[0]) < 4]) == 1, 'B 段内容被动过'
+    assert len([x for x in ne['Strings'] if 4 <= int(x[0]) < 6]) == 1, 'C 段（keep）内容被动过'
+    assert ne['Piano'] == [] and st['dropped'].get('Piano') == 1, \
+        '跨轨完全重复（同 小节/拍/时值/音高）没被去重：Piano=%r dropped=%r' % (ne['Piano'], st['dropped'])
+    assert d.get('programs') is None and d.get('tr_shift') is None, \
+        '默认口径（--voices engine）不该写 programs/tr_shift —— v22a 就是没有这两个键'
+    assert st['n_pad_on'] == 3, 'arr.pad 被改动了（段级判据：v22a 全 25 段都开着）'
+    print('        编制表并轨：判据 5/5 有区分度 · Pad 只进不出 · 归 Pad %d 音 · 去重 1 音'
+          % st['moved']['pad'])
+
+
+@check
+def t_section_prog_events():
+    """**段级音色**（`sections[i].arr.prog`）：program change 必须写在**该段起点**，
+    而且**第 0 段也要写**（不写就整轨沿用 GM 默认音色）。
+
+    为什么钉住：还原曲的"主奏"**不在 `Melody` 轨上** —— `siren_end2` 的成品只有
+    Hook/Piano/Pad/Strings/Bass/Perc 六轨、**没有 Melody 轨**，而老的段级音色
+    （`arr.melody_prog`）只给 `Melody` 写 program change → 在还原曲上**根本用不上**，
+    "这一段该用小提琴、那一段该用中提琴"只能整轨一刀切（用户反复否掉的做法，技能 §9b/§20）。
+    """
+    import song_engine as se
+    d = {'bar_beats': 4,
+         'sections': [{'name': 'S01', 'bars': 4, 'arr': {'prog': {'Strings': 40}}},
+                      {'name': 'S02', 'bars': 2, 'arr': {'melody_prog': 13}},
+                      {'name': 'S03', 'bars': 3, 'arr': {}},
+                      {'name': 'S04', 'bars': 2,
+                       'arr': {'prog': {'Strings': 41, 'Hook': 42}, 'melody_prog': 24}}]}
+    ev = se.section_prog_events(d)
+    # 段起点（小节号 × bar_beats）：S01 0 小节=0 拍 · S02 4 小节=16 拍 · S04 9 小节=36 拍
+    assert ev.get('Strings') == [(0.0, 'prog', 40), (36.0, 'prog', 41)], \
+        'arr.prog 没写在段起点上：%r（应 [(0.0,…,40), (36.0,…,41)]）' % (ev.get('Strings'),)
+    assert ev.get('Melody') == [(16.0, 'prog', 13), (36.0, 'prog', 24)], \
+        'melody_prog 的段起点算错：%r' % (ev.get('Melody'),)
+    assert ev.get('Hook') == [(36.0, 'prog', 42)], 'arr.prog 没覆盖任意轨：%r' % (ev.get('Hook'),)
+    assert ev['Strings'][0][0] == 0.0, \
+        '第 0 段没写 program change —— 那一段会沿用 GM 默认音色（段级音色从第 2 段才开始）'
+    assert se.section_prog_events({'sections': [{'name': 'X', 'bars': 4, 'arr': {}}]}) == {}, \
+        '没写 prog 的段不该产出 program change'
+    assert 'prog' in se.ARR_KEYS_EXTRA, \
+        '`prog` 不在 ARR_KEYS_EXTRA 里 —— 校验会把它判成"无效的编配开关"（见 ARR_KEYS 上方注释）'
+    print('        段级音色：任意轨 · 段起点 0/16/36/44 拍 · 第 0 段也写 · 白名单已同步')
+
+
+@check
+def t_section_shifts():
+    """**段级移调**（`sections[i].arr.shift = {"Strings": 0}`）：同一条轨在不同段可以不同，
+    段内统一、段间不串味。
+
+    为什么钉住：`tr_shift` 是**全曲一个值**，而"前半钢琴、后半小提琴"要求**同一条轨**
+    在不同段按不同音区发声 —— 只换音色（`arr.prog`）不换音区，实测把 GM40 小提琴顶到
+    S18 的 **2–6kHz 55.6%**（原曲 15.9%，v31 那一版就是这么废掉的）。
+
+    钉三件：① 段起点按 **小节×每小节拍数** 累计；② 没写 `shift` 的段 → 回落全局值；
+    ③ 该轨一段都没写 → 返回 `None`（= 与老行为逐字节一致）。
+    """
+    import song_engine as se
+    d = {'bar_beats': 4,
+         'sections': [{'name': 'S01', 'bars': 4, 'arr': {}},
+                      {'name': 'S02', 'bars': 2, 'arr': {'shift': {'Strings': 0}}},
+                      {'name': 'S03', 'bars': 3,
+                       'arr': {'shift': {'Strings': -5, 'Hook': 7}}}]}
+    assert se.section_shifts(d, 'Strings', -12) == [(16.0, 24.0, 0), (24.0, 36.0, -5)], \
+        '段级移调的段起点/值不对：%r（应 [(16,24,0), (24,36,-5)]）' % (se.section_shifts(d, 'Strings', -12),)
+    assert se.section_shifts(d, 'Hook', -12) == [(24.0, 36.0, 7)], \
+        '段级移调没按轨分开：%r' % (se.section_shifts(d, 'Hook', -12),)
+    assert se.section_shifts(d, 'Piano', -12) is None, \
+        '没写 shift 的轨该返回 None（全程用全局值），实得 %r' % (se.section_shifts(d, 'Piano', -12),)
+    assert 'shift' in se.ARR_KEYS_EXTRA, \
+        '`shift` 不在 ARR_KEYS_EXTRA 里 —— 校验会把它判成"无效的编配开关"'
+    print('        段级移调：段起点 16/24 拍 · 按轨分开 · 没写=全局值 · 白名单已同步')
+
+
+@check
+def t_restore_oneshot_chain():
+    """**扒带一键链**（2026-09-25，siren_end2 12 轮沉淀）：四个判据的纯函数 + 链路默认值全部钉死。
+
+    为什么钉：这些默认都是**实测换来的**，改错方向会**悄悄**把效果做回去：
+    · 合片闸门（原曲能量 ≥ 两侧的 30%）错 → 会把真实的重新起音抹掉；
+    · 力度映射（−20dB→75 · 0dB→110 · 夹 60–118）错 → 亮度的总开关（逐段 |RMS差| 2.56 → 2.07 全靠它）；
+    · 静音段筛选的空档门（12dB）错 → 没有双峰也硬筛（拍数字）；
+    · 段级 CC7 的换算错（当 dB 直接加）→ 只动 0.35dB，等于没做；
+    · 链路默认**不许**删音、**不许**开段级音色 —— 两条都是实测负结果（删音让 S01 掉 14.4dB；GM40 把 S18 顶到 55.6%）。
+    """
+    import numpy as _np
+    import merge_sustain as MS
+    import vel_from_ref as VF
+    import filter_song_by_stem as FS
+    import arrange_sections as AS
+    import restore_oneshot as RO
+    for m in (MS, VF, FS, AS):
+        assert m.selftest(verbose=False), '%s 自检 FAIL' % m.__name__
+    assert RO.STAGES == ['probe', 'repair', 'vel', 'arrange', 'render', 'audit'], \
+        '一键链的阶段顺序被改：%r' % (RO.STAGES,)
+    assert RO.DEFAULT_ALLOW_STEM_CUT is False, \
+        '链路默认改成"删静音段的音"了 —— 实测那会让 S01 的 RMS 差从 −5.9 掉到 −14.4dB（先补低频再删）'
+    assert RO.DEFAULT_PROG is None, \
+        '链路默认开段级音色了 —— GM40 在密集和弦线上是负结果（S17–S22 的 2–6k 3.4–5.4% → 10.4–29.9%）'
+    # 负控：两道门各自必须**拦得住**（⚠ 不传 keep/gap_min，走模块默认值 —— 否则变异注入不进来）
+    assert MS.should_merge(0.5, 1.0, _np.array([0.01, 0.01]), 1.0, 1.0)[0] is False, \
+        '合片闸门放行了"原曲在这里断了"的情况 —— 会把真实的重新起音抹掉'
+    assert MS.should_merge(2.5, 1.0, None, 1.0, 1.0)[0] is False, '合片闸门放行了间隔过大的碎片'
+    assert FS.gap_threshold([-20.0, -19.5, -19.0, -18.6])[0] is None, \
+        '静音段筛选在"没有双峰"时给了门限 —— 那是拍数字'
+    print('        一键链：4 个自检 · 阶段顺序 · 默认不删音/不开段级音色 · 两道闸负控拦得住')
 
 
 def _worker_run(name):

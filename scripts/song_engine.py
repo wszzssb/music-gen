@@ -204,16 +204,21 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             # 设 12 = 整体降一个八度；`glock_starved` 的第二层同步变 `+glock_oct+12`。
             'glock_oct')
 
-# **`arr` 里另外两个"合法但不在 `ARR_KEYS` 里"的键**（唯一出处，2026-09-24 抽出来）。
+# **`arr` 里另外几个"合法但不在 `ARR_KEYS` 里"的键**（唯一出处，2026-09-24 抽出来）。
 # 为什么它们不在 `ARR_KEYS`：`ARR_KEYS` 的定义是"**引擎自己写进 arr** 的键"
-# （`arr_by_role` 的白名单，见上面那段注释），而这两个是**手写/兼容**用的：
+# （`arr_by_role` 的白名单，见上面那段注释），而这几个是**手写/兼容**用的：
 #   · `vel` —— 段落级整体力度缩放，`new_song` 手写进部分曲目；
 #   · `glock_all` —— 钟琴**每小节**都补（`song_engine.py:1599`），不写就退回"隔小节"。
+#   · `prog`（2026-09-25）—— **段级音色，任意轨**：`{"Strings": 40, "Hook": 41}`。
+#     为什么加：还原曲的"主奏"落在 `Strings`/`Hook`/`Piano` 这些轨上，**不是** `Melody`，
+#     而老的段级音色只有 `melody_prog`（只给 Melody 写 program change）——
+#     实测 `siren_end2` 的成品里**根本没有 Melody 轨**（Hook/Piano/Pad/Strings/Bass/Perc），
+#     于是"这一段该用小提琴、那一段该用中提琴"只能整轨一刀切。见 `section_prog_events()`。
 # ⚠ 抽出来的原因：本文件第 533 行的校验与 `selftest.t_arr_role_variety` 各自
 #   **硬编码了一份 `{'vel', 'glock_all'}`**，`expand_sections.py` 又需要第三份 ——
 #   "抄三份"必然漂移（本轮就是新工具按 `ARR_KEYS` 校验、把合法的 `glock_all`
 #   判成"引擎不认的键"才发现的）。三方现在都读这一个常量。
-ARR_KEYS_EXTRA = ('vel', 'glock_all')
+ARR_KEYS_EXTRA = ('vel', 'glock_all', 'prog', 'shift')
 
 # ---------------------------------------------------------------------------
 # 段落角色 → 编制（opt-in，`patterns.arr_by_role`）
@@ -1724,6 +1729,26 @@ def build_events(d):
                     _ps = [m for (_t, _d, m, _v) in bucket[k]]
                     if _ps and not (_rg[0] <= min(_ps) + _sh and max(_ps) + _sh <= _rg[1]):
                         _sh = 0
+            # **段级移调**（opt-in `sections[i].arr.shift`，见 `section_shifts`）：
+            # 段与段可以不同（"前半钢琴、后半小提琴"），段内统一；边界保护也按段做。
+            _shs = section_shifts(d, k, _sh) if bucket[k] else None
+            if _shs:
+                _rg = TR_RANGE.get(k)
+                _hh = []
+                for (_a, _b, _v) in _shs:
+                    _ps = [m for (_t, _d, m, _vv) in bucket[k] if _a <= _t < _b]
+                    if _rg and _ps and not (_rg[0] <= min(_ps) + _v
+                                            and max(_ps) + _v <= _rg[1]):
+                        _v = _sh                     # 该段移完越界 → 这一段回到全局值
+                    _hh.append((_a, _b, _v))
+                _shs = _hh
+
+            def _sh_at(_t, _lst=_shs, _dflt=_sh):
+                if _lst:
+                    for (_a, _b, _v) in _lst:
+                        if _a <= _t < _b:
+                            return _v
+                return _dflt
             # **段末留白 + 渐弱**（opt-in `patterns.section_gap`，单位=拍的倍数）——
             # 用户："有转变可以，但要过渡自然或中间有空白作为间隔"。
             # ⚠ 实现是"最后 `gap` 拍**渐弱到 0**"而**不是直接切掉**：第一版直接切，
@@ -1810,7 +1835,7 @@ def build_events(d):
                 # 走到这里的音高都已在合法范围内（数据越界在 load() 就报错了，
                 # 派生声部越界在上游被丢弃）；这里只处理时间/时值/力度
                 assert 0 <= m <= 127, '%s 出现了越界音高 %s（派生声部漏了过滤）' % (k, m)
-                m2 = m + _sh
+                m2 = m + _sh_at(t)
                 if not (0 <= m2 <= 127):  # 越界就整轨不移（宁可不移，也别夹断音程）
                     m2 = m
                 ev[k].append((max(0.0, t), max(0.05, dd), int(m2),
@@ -2011,7 +2036,7 @@ def build_events(d):
                 _acc += _nb
             _keep = []
             for _si, (_b0, _b1) in enumerate(_sbar):
-                _want = int(_tgt[_si]) if _si < len(_tgt) else None
+                _want = int(_tgt[_si]) if (_si < len(_tgt) and _tgt[_si] is not None) else None
                 _bars = sorted(b for b in _by_bar if _b0 <= b < _b1)
                 if _want is None or _want <= 0 or not _bars:
                     for _b in _bars:
@@ -2101,6 +2126,63 @@ def mel_dyn_env(bar, beat, dur, opt):
     if dur >= 1.0:                       # 长音（多半是句末终止音）
         env *= tail
     return env
+
+
+def section_prog_events(d):
+    """**段级音色**（program change）→ `{轨名: [(拍, 'prog', 程序号), …]}`。
+
+    ## 两个入口
+    · `sections[i].arr.melody_prog = 13`  —— 老口径，**只给 `Melody` 轨**（2026-09-15）。
+      用户当时的话："不同部分都有不同旋律音色，变化很大但是不突兀"。
+    · `sections[i].arr.prog = {"Strings": 40, "Hook": 41}` —— **任意轨**（2026-09-25）。
+      为什么必须加：**还原曲的"主奏"不在 `Melody` 轨上** —— 实测 `siren_end2` 的成品
+      只有 Hook/Piano/Pad/Strings/Bass/Perc 六轨、**没有 Melody 轨**，而编制表白纸黑字
+      写着"前半钢琴、后半小提琴"（`probe_instruments` 的逐段 `lead`）。
+      没有这个入口，"这一段该用什么音色"只能整轨一刀切 —— 那正是用户反复否掉的做法
+      （技能 §9b/§20："改必须分段，不许一刀切"）。
+
+    ⚠ `program change` 是**通道级、一直生效到下一次改**：引擎给每条轨固定一个通道
+    （`CH` 表），所以段级切换是干净的；但**第 0 段也要写**（否则会沿用 GM 默认音色）。
+
+    ⚠ `sections[i].arr.prog` 的键是**小节号从 0 起算的段起点**——写在这里而不是调用处，
+    是为了让 `selftest.t_section_prog_events` 能直接量它（自检不许只测集成路径）。
+    """
+    out, bar0 = {}, 0
+    B = float(d.get('bar_beats') or 4.0)
+    for sec in d.get('sections', []):
+        a = sec.get('arr') or {}
+        if a.get('melody_prog') is not None:
+            out.setdefault('Melody', []).append((bar0 * B, 'prog', int(a['melody_prog'])))
+        for name, pr in (a.get('prog') or {}).items():
+            out.setdefault(name, []).append((bar0 * B, 'prog', int(pr)))
+        bar0 += sec['bars']
+    for v in out.values():
+        v.sort(key=lambda z: z[0])
+    return out
+
+
+def section_shifts(d, track, base):
+    """**段级移调**（opt-in `sections[i].arr.shift = {"Strings": 0}`）→ `[(起拍, 止拍, 半音)]`；
+    该轨一段都没写就返回 `None`（= 全程用 `base`，与老行为逐字节一致）。
+
+    ## 为什么要它（2026-09-25 实测）
+    `tr_shift` 是**全曲一个值**，而"原曲前半钢琴、后半小提琴"要求**同一条轨**在不同段
+    按不同音区发声。只换音色不够 —— v31 只用 `arr.prog` 把 Strings 换成 GM40（小提琴），
+    音区仍旧吃 −12（引擎给伴奏轨的整体下移）→ 实测 **S18 的 2–6kHz 从 8.11% 顶到 55.57%**
+    （原曲 15.89%），比不换还差。**音色与音区必须一起改**。
+
+    ⚠ 边界保护按**段**做（调用处）：该段的音移完之后必须落在 `TR_RANGE[track]` 里，
+    否则**这一段**回到 `base` —— 段与段之间允许不同值，但**段内不许逐音跳八度**。
+    """
+    B = float(d.get('bar_beats') or 4.0)
+    out, bar0 = [], 0
+    for s in (d.get('sections') or []):
+        nb = int(s.get('bars') or 0)
+        v = ((s.get('arr') or {}).get('shift') or {}).get(track)
+        if v is not None:
+            out.append((bar0 * B, (bar0 + nb) * B, int(v)))
+        bar0 += nb
+    return out or None
 
 
 def write_midi(d, ev, path):
@@ -2229,7 +2311,6 @@ def write_midi(d, ev, path):
     # 段落级混音自动化（opt-in）：`sections[i].arr.mix = {"Strings": 74, ...}`
     # → 在该段起点写 CC7。这是"起伏"最直接的手段：不用改音符，光靠推子就能做出层次。
     auto = {}
-    aprog = {}
     bar0 = 0
     B = float(d.get('bar_beats') or 4.0)
     for sec in d.get('sections', []):
@@ -2237,13 +2318,10 @@ def write_midi(d, ev, path):
         amix = a.get('mix') or {}
         for name, vol in amix.items():
             auto.setdefault(name, []).append(((bar0) * B, 7, max(0, min(127, int(vol)))))
-        # **段级主奏音色**（opt-in `sections[i].arr.melody_prog`）—— 用户："不同部分都有
-        # 不同旋律音色，变化很大但是不突兀"。`programs.Melody` 只能给整轨一个音色，
-        # 所以在段边界写 program change（`bgm_synth.write_midi` 里 `cc == 'prog'`）。
-        if a.get('melody_prog') is not None:
-            aprog.setdefault('Melody', []).append(
-                (bar0 * B, 'prog', int(a['melody_prog'])))
         bar0 += sec['bars']
+    # **段级音色（program change）** —— 逐段写在各轨的段起点上；口径与判据见
+    # `section_prog_events()`（抽成函数是为了让自检/变异能直接验它）。
+    aprog = section_prog_events(d)
     for name, (prog, chan) in d['programs'].items():
         if not ev.get(name):
             skipped.append(name)           # 空轨不写进 MIDI（否则 DAW 里多一堆空轨）

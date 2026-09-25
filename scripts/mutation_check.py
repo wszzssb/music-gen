@@ -2209,6 +2209,90 @@ def main():
                         lambda: Mut(_ta, 'HISS_MIN_PCT', 0.0)))
     results.append(case('来源筛选空档门限归零（无双峰也硬筛）', 'timbre_and_stem_filter',
                         lambda: Mut(_fs, 'GAP_MIN', 0.0)))
+    # 66b. **段界漏乘"每小节拍数"**必须被抓（2026-09-25 修真 bug：段界小 4 倍 → 末段只到 44s、
+    #      段标签全错位，`timbre_audit` 的"S13"其实是 18.5–23.0s）。变异 = 退回错算法本身。
+    def _bad_bounds(sj, _bpm=None):
+        bar = 60.0 / float(sj.get('bpm') or 145.96)          # ← 漏了 meter[0]
+        out, acc = [], 0.0
+        for s in (sj.get('sections') or []):
+            nb = float(s.get('bars') or 0)
+            out.append((s.get('name'), acc * bar, (acc + nb) * bar))
+            acc += nb
+        return out
+    results.append(case('段界漏乘每小节拍数（段界小 4 倍）', 'timbre_and_stem_filter',
+                        lambda: Mut(_ta, 'section_bounds', _bad_bounds)))
+
+    # 67. **并轨规则读编制表坏掉**必须被抓（2026-09-25，arrange_voices = B 线第 2 条）。
+    #     三种坏法各自对应一种真踩过的错：
+    #     ① 门限失效 → 所有段都"没证据"，退回"什么都不改"（判据空转）；
+    #     ② 判据恒真（`other` 一律当垫子）→ 连原曲是**击弦**的段也被当垫子；
+    #     ③ 跨轨重复不删 → 同一句被两条轨一起弹（v22a 在 S16–S19 删掉的 Piano 副本里
+    #        91/79/119/77 个中 91/76/111/75 个是 Strings 上的同音）。
+    import arrange_voices as _av
+    results.append(case('并轨：软起音门限失效（判据永不触发）', 'arrange_voices_by_table',
+                        lambda: Mut(_av, 'SOFT_ATTACK_MS', 1e9)))
+    results.append(case('并轨：判据恒真（other 一律当垫子）', 'arrange_voices_by_table',
+                        lambda: Mut(_av, 'plan_of',
+                                    lambda row, soft_ms=None: (('pad', 'x')
+                                                               if (row or {}).get('lead') == 'other'
+                                                               else ('keep', 'x')))))
+    results.append(case('并轨：跨轨完全重复不删（两条轨一起弹）', 'arrange_voices_by_table',
+                        lambda: Mut(_av, 'DEDUP_PRIO', ())))
+
+    # 68. **段级音色（program change）坏掉**必须被抓（2026-09-25，`song_engine.section_prog_events`）。
+    #     两种坏法各自对应一种真踩过的错：
+    #     ① 函数整体失效 → 段级音色静默不生效（还原曲只能整轨一刀切）；
+    #     ② **第 0 段不写** → 那一段沿用 GM 默认音色（段级音色从第 2 段才开始）。
+    import song_engine as _se2
+    _real_spe = _se2.section_prog_events
+    results.append(case('段级音色：整条失效（静默无 program）', 'section_prog_events',
+                        lambda: Mut(_se2, 'section_prog_events', lambda d: {})))
+    results.append(case('段级音色：第 0 段不写（沿用 GM 默认）', 'section_prog_events',
+                        lambda: Mut(_se2, 'section_prog_events',
+                                    lambda d: {k: [e for e in v if e[0] > 0]
+                                               for k, v in _real_spe(d).items()})))
+    results.append(case('段级音色：段起点不累计（全写 0 拍）', 'section_prog_events',
+                        lambda: Mut(_se2, 'section_prog_events',
+                                    lambda d: {k: [(0.0,) + tuple(e[1:]) for e in v]
+                                               for k, v in _real_spe(d).items()})))
+    # 68b. **段级移调**坏掉必须被抓（2026-09-25，`song_engine.section_shifts`）。
+    #     两种坏法：① 整条失效（段级移调静默不生效）；② 段起点漏乘每小节拍数（与段界同一个坑）。
+    import song_engine as _se3
+
+    def _bad_ssh(d, track, base):
+        bar = 1.0                      # ← 漏了"每小节拍数"（bar_beats）
+        out, b0 = [], 0
+        for s in (d.get('sections') or []):
+            nb = int(s.get('bars') or 0)
+            v = ((s.get('arr') or {}).get('shift') or {}).get(track)
+            if v is not None:
+                out.append((b0 * bar, (b0 + nb) * bar, int(v)))
+            b0 += nb
+        return out or None
+
+    results.append(case('段级移调：整条失效', 'section_shifts',
+                        lambda: Mut(_se3, 'section_shifts', lambda d, t, b: None)))
+    results.append(case('段级移调：段起点漏乘每小节拍数', 'section_shifts',
+                        lambda: Mut(_se3, 'section_shifts', _bad_ssh)))
+
+    # 69. **扒带一键链的默认值被改坏**必须被抓（2026-09-25，四个判据各自一次）。
+    #     每一条都对应一次真踩：闸门放行"原曲断了"→ 抹掉真实起音；力度映射改宽 → 亮度总开关失效；
+    #     空档门归零 → 没双峰也硬筛；vel 下限改小 → 过亮段压不住；链路默认删音 → S01 掉 14.4dB。
+    import merge_sustain as _ms
+    import vel_from_ref as _vf
+    import filter_song_by_stem as _fs2
+    import arrange_sections as _as
+    import restore_oneshot as _ro
+    results.append(case('一键链：合片闸门归零（原曲断了也并）', 'restore_oneshot_chain',
+                        lambda: Mut(_ms, 'KEEP_DEF', 0.0)))
+    results.append(case('一键链：力度映射上限被抬（亮度总开关）', 'restore_oneshot_chain',
+                        lambda: Mut(_vf, 'V_HI', 200.0)))
+    results.append(case('一键链：静音段空档门归零（无双峰也筛）', 'restore_oneshot_chain',
+                        lambda: Mut(_fs2, 'GAP_MIN', 0.0)))
+    results.append(case('一键链：段级力度下限改小（过亮段压不住）', 'restore_oneshot_chain',
+                        lambda: Mut(_as, 'VEL_LO', 0.10)))
+    results.append(case('一键链：默认改成"删静音段的音"', 'restore_oneshot_chain',
+                        lambda: Mut(_ro, 'DEFAULT_ALLOW_STEM_CUT', True)))
 
     # 63. `patterns.melody_exempt` 的**理由写成空话**时不许放行（2026-09-25）——
     #     "理由空白 = 没写 = 不放行"这条口径必须有变异用例守着，否则豁免会变成
