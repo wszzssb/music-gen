@@ -60,7 +60,7 @@ HISS_MIN_PCT = 3.0        # 我方该段 2–6k% 至少这么高
 HISS_RATIO = 3.0          # 且达原曲的这么多倍，才算"高频嘶声"
 SOFT_ATTACK_MS = 150.0    # 原曲起音慢于它 = 软起音（垫子/弦乐）
 HARD_ATTACK_MS = 30.0     # 我方起音快于它 = 硬起音（击弦）→ 形态不符
-CENTROID_RATIO = 2.0      # 质心差 3 倍才报（**仅供参考**：原曲分轨 vs 我方混音本不可比）
+CENTROID_RATIO = 2.0      # 相对差 >2.0（≈ 我方/原曲 >3 倍）才报（**仅供参考**：原曲分轨 vs 我方混音本不可比）
 
 
 def onset_ms(y, sr):
@@ -187,7 +187,7 @@ def audit(song, ref, stems, mine):
             issues.append('亮度极端偏离(质心 %.0f vs 原曲分轨 %.0f，口径不同仅供参考)'
                           % (mcen, rcen))
         # **只有"实质问题"参与判定**："口径不同仅供参考"那类（原曲分轨 vs 我方混音的质心）
-        # 只印出来给人看 —— 实测它会把用户认可的 v22a 也报成 8/25 段（噪声）。
+        # 只印出来给人看 —— 实测它会把用户认可的 v22a 也报成 10/25 段（噪声）。
         real = [x for x in issues if '仅供参考' not in x]
         ok = not real
         row = {'seg': nm, 't': '%0.1f-%0.1f' % (t0, t1), 'ref_dom': dom_short,
