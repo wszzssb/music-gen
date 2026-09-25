@@ -1521,6 +1521,7 @@ def build_events(d):
                 #   那样第一小节照样敲满，渐入白做（这条是实测踩出来的）。
                 if arr.get('perc') and not _silent:
                     _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
+                    _klay = (pat.get('perc_layers') or {}).get('kick') or []
                     # **逐段鼓点目标**（`arr.perc_target`，opt-in）：用户"按原曲逐段对齐" ——
                     # 原曲每段鼓点数 0.1~28 格（S26 只有 0.1、S03 有 28），
                     # 而我的网格给每小节最多 28 格、段内还带 fill → 鼓反而比原曲多。
@@ -1544,6 +1545,20 @@ def build_events(d):
                                 (t0 + float(_g) * 0.25, 0.2, _note,
                                  max(1, min(_vmax,
                                             int(round(float(_v) * _lvl))))))
+                            # 垫层（opt-in）：`drum_grid` 的两条路径原先**都不读
+                            # `perc_layers`** —— 实测（siren_end2 还原曲 2026-09-25）：
+                            # song.json 配了 kick `[[41,66,0.7],[43,72,0.7]]`，成品 Perc
+                            # 只有 36/38/42/46、**41/43 计数 0**，同曲 20–40Hz 比原曲低
+                            # **13.3dB**（缺口最大的是鼓主导段 S07–S09，−16~−30dB）。
+                            # 位置**逐点取自上面抽稀后的 kick**，错位就成"两个鼓打架"。
+                            # GM 底鼓采样仅 0.14~0.18s 垫不满一拍，低音嗵鼓 41/43 是
+                            # 0.67/0.60s —— 这是补 20–40Hz 的手段。
+                            if _nm == 'kick':
+                                for (_kn, _kvel, _kd) in _klay:
+                                    bucket['Perc'].append(
+                                        (t0 + float(_g) * 0.25, 0.2, int(_kn),
+                                         max(1, min(127, int(round(
+                                             float(_kvel) * float(_kd) * _lvl))))))
             elif arr.get('perc') and _dg:
                 _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
                 for _nm, _note in (('kick', 36), ('snare', 38),
@@ -1552,6 +1567,21 @@ def build_events(d):
                         bucket['Perc'].append(
                             (t0 + float(_g) * 0.25, 0.2, _note,
                              max(1, min(127, int(round(float(_v) * _lvl))))))
+                # 垫层（opt-in）：**`drum_grid` 路径原先不读 `perc_layers`** ——
+                # 实测（siren_end2 还原曲，2026-09-25）：song.json 里配了 `kick`
+                # `[[41,66,0.7],[43,72,0.7]]`，成品 Perc 轨却只有 36/38/42/46，
+                # **41/43 计数为 0**；同曲 20–40Hz 比原曲低 **13.3dB**、40–80Hz 低 9.2dB
+                # （缺口最大的是鼓主导段 S07–S09，−16~−30dB）。
+                # 位置由**本段 kick 格**派生，与底鼓逐点对齐（同 `perc_part` 的纪律，
+                # 错位就变成"两个鼓打架"）。GM 底鼓采样 0.14~0.18s 垫不满一拍，
+                # 而低音嗵鼓 41/43 是 0.67/0.60s —— 这就是补低频的手段。
+                _klay = (pat.get('perc_layers') or {}).get('kick') or []
+                if _klay:
+                    for (_g, _v) in _band('kick'):
+                        for (_kn, _kvel, _kd) in _klay:
+                            bucket['Perc'].append(
+                                (t0 + float(_g) * 0.25, 0.2, int(_kn),
+                                 max(1, min(127, int(round(float(_kvel) * float(_kd) * _lvl))))))
             elif arr.get('perc'):
                 # 曲名哈希 → `perc_part(seed=…)`：每首曲的鼓型因此不同（没有它，
                 # 所有用 light 的曲子会共用同一条型 —— 用户当初就是抱怨"怎么都是这个"）。
@@ -1679,7 +1709,11 @@ def build_events(d):
                     if _k in bucket:
                         bucket[_k] = _keep
         for k in bucket:
-            _sh = TR_SHIFT.get(k, 0)      # 音区分工（**只允许纯八度**，见 TR_SHIFT 定义处）
+            # `song.json` 的 `tr_shift` 可按轨覆盖本表（opt-in；不给该字段 = 行为与原来逐字节一致）。
+            # 用途：还原曲要给某轨指定**独奏乐器音色**（如小提琴 GM40 / 中提琴 GM41）时，
+            # 必须让它按**原音区**发声 —— 实测 Strings 被 −12 后落进 F1 区（46Hz），
+            # 那已不是弦乐音域，配上弦乐音色就成了"大提琴在弹低音线"。
+            _sh = (d.get('tr_shift') or {}).get(k, TR_SHIFT.get(k, 0))
             # **边界保护**：整轨移调后若越出乐器合理音域，**这一轨就不移** ——
             # 整轨统一，不许轨内八度跳变（那会变成"一个音突然跳八度"）。
             # 实测有的曲子 Hook 基准只有 41~67，−12 掉到 29（吉他下界 32），

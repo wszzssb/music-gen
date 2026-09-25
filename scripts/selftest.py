@@ -2986,6 +2986,56 @@ def t_perc_layers():
 
 
 @check
+def t_perc_layers_drum_grid():
+    """**`drum_grid` 路径也必须吃 `perc_layers.kick`**（2026-09-25 实测的静默失效）。
+
+    `perc_layers` 原来只在 `perc_part()`（引擎自生成鼓型）里实现，而**还原曲走的是
+    `drum_grid`**（鼓型从原曲转录提取）—— 那条路径根本不读它。现场：siren_end2 的
+    `song.json` 配了 `kick: [[41,66,0.7],[43,72,0.7]]`，成品 Perc 轨却**只有 36/38/42/46，
+    41/43 计数为 0**，而同曲 20–40Hz 比原曲低 13.3dB、40–80Hz 低 9.2dB（缺口最大的是
+    鼓主导段 S07–S09，−16~−30dB）。更误导的是校验写着"只支持 light / pump"——`light`
+    正是我们的档位，所以**不报警、静默失效**。
+
+    钉三件：① 不配 `perc_layers` 时 `drum_grid` 路径不得凭空多出 41/43（opt-in 纪律）；
+    ② 配上之后 41/43 **必须与底鼓 36 逐点对齐**（错位 = 两个鼓打架）；
+    ③ 力度按 `vel × 系数 × 段力度` 折算且在 1–127 内。
+    """
+    d = {'name': 'pldg', 'bpm': 75, 'style': 'daily',
+         'chords': {'Gm': [31, [43, 46, 50, 55, 58]]},
+         'melody': {'m': [[0, 0, 2, 74], [0, 2, 2, 79]]},
+         'sections': [{'name': 'A', 'bars': 4, 'chords': ['Gm'] * 4, 'melody': 'm',
+                       'arr': {'bass': True, 'perc': 2, 'piano': True}}],
+         'patterns': {'perc_style': 'light',
+                      'drum_grid': {'per_bar': [
+                          {'kick': [[0, 100]], 'snare': [[4, 90]], 'hat': [[2, 60]]},
+                          {'kick': [[0, 96], [8, 88]], 'snare': [[4, 90]], 'hat': [[2, 60]]},
+                          {'kick': [[0, 100]], 'snare': [[4, 90]], 'hat': [[2, 60]]},
+                          {'kick': [[0, 92]], 'snare': [[4, 90]], 'hat': [[2, 60]]}]}}}
+    sp0 = os.path.join(TMP, 'pldg0.json')
+    json.dump(d, open(sp0, 'w', encoding='utf-8'))
+    ev0, _nb = build(quiet(song_engine.load, sp0)[0])
+    stray = sorted({m for (_t, _d, m, _v) in ev0['Perc'] if m in (41, 43)})
+    assert not stray, '不配 perc_layers 时 drum_grid 路径不该有垫层音，实得 %s' % stray
+    assert any(m == 36 for (_t, _d, m, _v) in ev0['Perc']), 'drum_grid 的底鼓没出来，用例本身无效'
+
+    d['patterns']['perc_layers'] = {'kick': [[41, 66, 0.7], [43, 72, 0.7]]}
+    sp1 = os.path.join(TMP, 'pldg1.json')
+    json.dump(d, open(sp1, 'w', encoding='utf-8'))
+    ev, _nb = build(quiet(song_engine.load, sp1)[0])
+
+    def times(note):
+        return sorted(round(t, 4) for (t, _d, m, _v) in ev['Perc'] if m == note)
+    kick = times(36)
+    assert kick, 'drum_grid 的底鼓没出来'
+    for note in (41, 43):
+        assert times(note) == kick, \
+            'note %d 垫层必须与 drum_grid 的底鼓逐点对齐（%d vs %d 个点）' % (
+                note, len(times(note)), len(kick))
+    vels = [v for (_t, _d, m, v) in ev['Perc'] if m in (41, 43)]
+    assert vels and all(1 <= v <= 127 for v in vels), '垫层力度越界：%s' % sorted(set(vels))[:5]
+
+
+@check
 def t_trim_tail():
     """去尾 `render_midi.trim_tail`：切掉**过长的**尾部死气，但不能碰正常尾巴。
     （背景：FluidSynth 会渲染到所有 voice 停止，重叠镲会让 4:42 的歌多出 15.7 秒
@@ -8039,6 +8089,41 @@ def t_inst_probe_vibrato_ruler():
         '软起音但明显衰减 = 不确定，不许硬判成一族（写死分支会被这条抓住）'
     print('        三个已知颤音误差<30% · 两个负控<8¢ · form_of 两族门限在')
 
+
+@check
+def t_cleanup_transcribe_ruler():
+    """**转录清理的起音跃升尺子：先拿已知答案自检再动文件**（2026-09-25）。
+
+    为什么单独钉住：这把尺子当天**连错两次**，两次都是自检当场发现的 ——
+    ① 用「谱通量峰 ÷ **整窗**中位」判起音 → 上一音的衰减尾巴被算进背景，
+       合成的"两次弹奏"只读出 **1.92**（阈值 3.0 → FAIL）；
+    ② 改成「谱通量峰 ÷ **前背景窗**」→ 幅度恒定段谱通量归零、除零爆值；
+    最终改 **RMS 包络跃升** —— 它判的正是"同一个音高有没有重新起音"，与问题同构。
+
+    钉四件：① 两次弹奏（隔 40ms）跃升 ≥RATIO_ONSET；② 连续缓衰减 <RATIO_ONSET；
+    ③ 三个判据常量在场；④ A 档（残片）该删、C 档（双长音重叠）**不许动**。
+    """
+    import cleanup_transcribe as CT
+    sr = CT.SR
+    t = np.arange(int(sr * 0.5)) / sr
+    tone = np.sin(2 * np.pi * 300 * t) * np.exp(-t * 12)
+    two = np.concatenate([tone, np.zeros(int(sr * 0.04)), tone])
+    t2 = np.arange(int(sr * 1.04)) / sr
+    one = np.sin(2 * np.pi * 300 * t2) * np.exp(-t2 * 3)
+    r_two, r_one = CT.onset_ratio(two, sr, 0.54), CT.onset_ratio(one, sr, 0.54)
+    assert r_two >= CT.RATIO_ONSET, \
+        '两次弹奏（隔 40ms）该读出跃升 ≥%.1f，实得 %r —— 尺子坏了' % (CT.RATIO_ONSET, r_two)
+    assert 0 <= r_one < CT.RATIO_ONSET, \
+        '连续缓衰减（无第二起音）不该读出起音，实得 %r' % r_one
+    assert (CT.SHORT, CT.RATIO_ONSET, CT.COVER) == (0.060, 2.0, 0.80), \
+        '判据常量被改（残片 60ms / 跃升 2.0 / 覆盖 80%）—— 改前先按音频重新标定'
+    res, ndel, _m, _a, _b = CT.process([(0.0, 0.03, 60, 80), (0.0, 0.50, 60, 90)])
+    assert ndel == 1 and len(res) == 1, 'A 档：30ms 残片被 500ms 同音高音覆盖 → 该删 1 个'
+    res2, ndel2, _m2, _a2, _b2 = CT.process([(0.0, 0.50, 60, 80), (0.30, 0.80, 60, 90)])
+    assert ndel2 == 0 and len(res2) == 2, \
+        'C 档：两个 500ms 重叠是真实踏板重弹，**不许动**（实测占 137 处的 82%）'
+    print('        起音跃升：两次弹奏 %.1f ≥%.1f · 连续音 %.2f <%.1f · A/C 档语义在'
+          % (r_two, CT.RATIO_ONSET, r_one, CT.RATIO_ONSET))
 
 
 def _worker_run(name):
