@@ -458,7 +458,16 @@ def main():
         print('[2/3] 渲染 + 自动调参（最多 6 轮，内部闭环）')
         cfg = autotune(cfg, ref, mid, out, data=data)
         cfg['norm'] = render_midi.NORM          # 记下"这份参数是哪个口径调出来的"
-        with open(cfg_path, 'w', encoding='utf-8') as f:
+        # ⚠ **写回前补齐元数据字段**（PITFALLS 254）：`mid/out/composer/ref` 原来只有
+        #   `new_song.py` 会写 —— 走**还原路径**（`transcribe_to_song.py`）的曲目一个都没有，
+        #   于是 `t_render_json_schema` FAIL（实测 `siren_end`：render.json 只有渲染参数）。
+        #   这里用**内存里已有的值**补齐（`setdefault`，已有的键一个不动，幂等）。
+        cfg.setdefault('composer', composer)
+        cfg.setdefault('mid', os.path.basename(mid))
+        cfg.setdefault('out', os.path.basename(out))
+        cfg.setdefault('ref', ref_name)
+        cfg.setdefault('song', song)
+        with open(cfg_path, 'w', encoding='utf-8', newline='\n') as f:
             json.dump(cfg, f, ensure_ascii=False, indent=1)
         print('  已把调好的参数写回 render.json')
         # 最后一次实测的频段落盘：供**下次运行**做"与上次相比变差"的检测
@@ -466,7 +475,7 @@ def main():
         try:
             _last = measure(out + '.wav', ref, midi_bpm(mid, data))
             cfg['last_bands'] = dict(_last['bands'])
-            with open(cfg_path, 'w', encoding='utf-8') as f:
+            with open(cfg_path, 'w', encoding='utf-8', newline='\n') as f:
                 json.dump(cfg, f, ensure_ascii=False, indent=1)
         except Exception:
             pass

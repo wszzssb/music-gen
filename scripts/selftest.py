@@ -76,6 +76,17 @@ if '--shard' in sys.argv:
         SHARD = (int(_i), int(_n))
     except (IndexError, ValueError):
         SHARD = None
+# **只跑指定检查**（`--only 名1,名2`）：改一条守卫时不用等全量 2.8 分钟。
+# 起因（2026-09-25，实测）：扒谱那轮改了 5 处守卫，每次改完都跑一遍 `selftest --fast`
+# （实测 **169.9 秒/次**）—— 三次就是 8.4 分钟，全花在等**跟我改动无关**的检查上
+# （`track_balance` 一项 58.5s）。全量只在**交付前**与**改过检查项本身**时跑。
+ONLY = None
+if '--only' in sys.argv:
+    try:
+        ONLY = {s.strip() for s in sys.argv[sys.argv.index('--only') + 1].split(',')
+                if s.strip()}
+    except IndexError:
+        ONLY = None
 
 # **必须串行的检查**（会写磁盘 / 替换全局发现机制 → 并行会互踩）。
 # ⚠ 这份名单要**实测**：先按下面的初始集跑 `--jobs 8`，与串行结果逐项对比，
@@ -1062,11 +1073,15 @@ def t_melody_breathing():
         '缝隙 0.5 拍应视为换气（断开）'
     assert _breath_runs([(0.0, 2.0), (1.0, 3.0)], breath.BREATH_GAP) == [(0.0, 3.0)], \
         '重叠的音应合并成一个不间断段'
-    thin, checked = [], 0
+    thin, checked, empty = [], 0, []
     for d in song_dirs():
         j2 = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
         iv, bb, spb = breath.intervals(j2)
         if not iv:
+            # **melody 为空是合法状态**（2026-09-25）：还原曲的主奏音在它自己的轨里
+            # （`notes_extra`），melody 层为空正是"不凭空补一条旋律"的做法 ——
+            # 这时本曲对"旋律换气"不适用，跳过即可（不是数据坏了）。
+            empty.append(os.path.basename(d))
             continue
         checked += 1
         lng = max(x[2] for sec in j2['sections']
@@ -1077,7 +1092,13 @@ def t_melody_breathing():
                         % (os.path.basename(d), lb * spb, lb / bb,
                            100 * sum(e - s for s, e in iv) / (bb * sum(
                                sec['bars'] for sec in j2['sections'])), lng))
-    assert checked > 0, '没有可检查的曲目（songs/ 路径或 glob 坏了）'
+    # **防空转**：库里多首曲目却一条都量不到 → glob/数据真坏了；单曲沙箱里为空 = 本曲不适用
+    _n_all = len(song_dirs())
+    assert checked > 0 or _n_all <= 1, (
+        '没有可检查的曲目（songs/ 路径或 glob 坏了）：共 %d 首、其中 melody 为空 %d 首'
+        % (_n_all, len(empty)))
+    if empty:
+        print('        （%d 首 melody 为空、本项不适用：%s）' % (len(empty), '、'.join(empty[:4])))
     if thin:
         head = '; '.join(thin[:6])
         more = '' if len(thin) <= 6 else ' … 共 %d 首' % len(thin)
@@ -2741,7 +2762,7 @@ def t_melody_chord_fit():
     判据：**强拍**（位置由拍号定，`song_engine.strong_beats`：4/4 → 第 1、3 拍；
     3/4 → 只有第 1 拍；6/8 → 第 1 拍与第 4 个八分）和弦音占比 ≥ 70%；
     根音上方半音（♭9，最刺耳）≤ 2 处。弱拍不做限制 —— 经过音/倚音本来就该在弱拍。"""
-    rows = []
+    rows, skipped = [], []
     for d in songs_or_fail():
         name = os.path.basename(d)
         data = song_engine.load(os.path.join(d, 'song.json'))
@@ -2761,10 +2782,20 @@ def t_melody_chord_fit():
                     fit += 1
                 elif (m - root) % 12 == 1:
                     b9 += 1
-        assert tot >= 8, '%s: 强拍样本太少(%d)，这条检查会空转' % (name, tot)
+        if tot < 8:
+            # ⚠ **样本不足 = 本曲不适用，不是 FAIL**（与 PITFALLS 251 的 `MIN_FIT_N` 同族）：
+            #   还原曲的 melody 本来就稀疏、落点不规则（`siren_end` 实测强拍样本 **0**），
+            #   一两个样本判"弦内音 0%"是**噪声**。生成曲的"旋律没有强拍音"由
+            #   `melody_health`（密度/落点维）覆盖，这里不必再判一次。
+            skipped.append('%s(%d)' % (name, tot))
+            continue
         rows.append((name, tot, 100.0 * fit / tot, b9))
+    assert rows, ('没有一首曲目有足够的强拍样本（全部 <8）—— '
+                  '这条检查会空转，先看 melody 数据是不是坏了')
     for n, t, r, c in rows:
         print('        %-20s 强拍%3d 个：弦内音 %3.0f%%  ♭9 冲突 %d' % (n, t, r, c))
+    if skipped:
+        print('        （样本不足 <8 跳过 %d 首：%s）' % (len(skipped), '、'.join(skipped)))
     bad = ['%s 只 %.0f%%' % (n, r) for n, _t, r, _c in rows if r < 70.0]
     assert not bad, ('旋律强拍没落在和弦音上（经过音该放弱拍）: ' + ', '.join(bad)
                      + ' —— 改 song.json 的 melody：每小节强拍用该小节和弦的音')
@@ -3085,9 +3116,17 @@ def t_song_json_canonical():
     读一遍 ≈2k token，而写歌流程里"读一遍 song.json"是最普通的一步。
     这条同时守住"某个工具又把文件写胖"（重新格式化后必须与原文逐字节相同）。"""
     import json_io
-    bad_fmt, bad_eq = [], []
+    bad_fmt, bad_eq, bad_crlf = [], [], []
     for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
-        raw = open(p, encoding='utf-8').read()
+        # ⚠ **换行要用二进制读**（PITFALLS 252）：文本模式会把 `\r\n` 规范化成 `\n`，
+        #   于是"某工具用 `open(p, 'w')` 写回"造成的 CRLF 污染**在本条里隐形** ——
+        #   实测 2026-09-25：变异测试写回真 `song.json` 后 84835 → **89439** 字节
+        #   （每行 +1），这条检查照样 PASS。
+        rawb = open(p, 'rb').read()
+        if b'\r' in rawb:
+            bad_crlf.append('%s(CRLF %d 处)'
+                            % (os.path.basename(os.path.dirname(p)), rawb.count(b'\r\n')))
+        raw = rawb.decode('utf-8')
         data = json.loads(raw)
         canon = json_io.dumps(data)
         if json.loads(canon) != data:
@@ -3096,6 +3135,8 @@ def t_song_json_canonical():
             bad_fmt.append('%s(%d 行 → 应 %d 行)'
                            % (os.path.basename(os.path.dirname(p)),
                               raw.count('\n') + 1, canon.count('\n') + 1))
+    assert not bad_crlf, ('这些 song.json 的换行不是 LF（Windows 文本模式写回会污染，'
+                          '写文件请加 `newline="\\n"`）: %s' % ', '.join(bad_crlf))
     assert not bad_eq, '规范化后数据不等价（绝不能为了排版动数据）: %s' % bad_eq
     assert not bad_fmt, ('这些 song.json 不是规范格式（重跑 `scripts\\json_io.py`）: %s'
                          % ', '.join(bad_fmt))
@@ -4261,6 +4302,15 @@ def t_melody_lang_diverse():
             '；'.join('%.0f%% %s~%s' % (cc * 100, x, y) for cc, x, y in r['twin'])))
 
 
+def _exempt_named(j2, key):
+    """→ `patterns.<key>` 里**理由非空白**的豁免项（口径同 `render.json` 的 `align_exempt`）。
+
+    **理由为空 / 全空白视为没写** —— 一句空话放行不了任何东西。
+    """
+    ex = ((j2 or {}).get('patterns') or {}).get(key) or {}
+    return {k: v for k, v in ex.items() if isinstance(v, str) and v.strip()}
+
+
 def _exempt_dims(j2):
     """`patterns.melody_exempt`：旋律维度的**带理由豁免**（口径同 `render.json` 的
     `align_exempt`）—— **理由为空 / 全空白视为没写**，一句空话放行不了任何东西；
@@ -4272,8 +4322,7 @@ def _exempt_dims(j2):
     0.25 拍**，`--dur-fill` 从 0.32 扫到 0.75 实测没有两全点。这类情况该留下**可审计的
     文字**，而不是把全局阈值改松（那会让所有曲子都失去这道门）。
     """
-    ex = ((j2 or {}).get('patterns') or {}).get('melody_exempt') or {}
-    return {k: v for k, v in ex.items() if isinstance(v, str) and v.strip()}
+    return _exempt_named(j2, 'melody_exempt')
 
 
 @check
@@ -4429,23 +4478,261 @@ def t_melody_health():
     # 判据自证：连续 6 个同音的旋律必须被判为问题；干净的必须不被判
     def fake(**kw):
         base = dict(name='x', notes=10, dens=2.0, same=10.0, maxrun=2, chop=0.0,
-                    grids=6, onbeat=50.0, fit=100.0, bpm=100.0, gen=None, bars=8)
+                    grids=6, onbeat=50.0, fit=100.0, fit_n=40, bpm=100.0, gen=None, bars=8)
         base.update(kw)
         return base
     assert MH.issues(fake(maxrun=6)), '连续 6 个同音必须判为问题'
     assert MH.issues(fake(dens=1.0)), '密度 1.0 音/小节必须判为问题'
+    # **强拍判据的最小样本量**（PITFALLS 240）：1 个样本的 0% 是噪声、不是判据。
+    # 现场：`siren_end`（还原曲，melody 稀疏）只有 1 个强拍样本 → 被判"强拍 0%"。
+    assert not MH.issues(fake(fit=0.0, fit_n=1)), \
+        '只有 1 个强拍样本时贴合 0% 不该判为问题（噪声，不是判据）'
+    assert MH.issues(fake(fit=0.0, fit_n=MH.MIN_FIT_N)), \
+        '强拍样本足够（≥MIN_FIT_N）且贴合 0% 必须判为问题'
     # **同音率**（2026-09-20 补，实测踩过）：批量改音高把一段旋律写成同一个音高时，
     # 那些音散在各小节 → 串长只有 2~3，`maxrun` 看不见；同音率 100% 才是它的真身。
     assert MH.issues(fake(same=100.0)), '同音率 100% 必须判为问题（压平的真判据）'
     assert not MH.issues(fake(same=18.0)), '同音率 18%（全库最大）不该被判为问题'
     assert not MH.issues(fake()), '干净的旋律不该被判为问题'
-    bad = ['%s: %s' % (r['name'], '、'.join(MH.issues(r)))
-           for r in rows if MH.issues(r)]
-    print('        最长同音串 %d（上限 %d）· 密度下限 %.1f · %d/%d 首有形态问题'
-          % (max(r['maxrun'] for r in rows), MH.MAX_RUN, MH.MIN_DENS, len(bad), len(rows)))
+    # **带理由的维度豁免**（`patterns.melody_exempt`，口径同 `align_exempt` / `_exempt_dims`）：
+    # 还原曲的旋律密度是**原曲的事实**（主奏只在部分小节响）—— 用户口径 2026-09-25：
+    # "如果是真的没有音要保留，重要的是符合原曲"。放行**只有被声明的那一维**，
+    # 理由空白/全空白 = 没写 = 不放行。
+    PFX = {'maxrun': '同音串', 'same': '同音率', 'dens': '密度',
+           'small': '小步', 'chop': '碎音', 'fit': '强拍'}
+    bad, exempt = [], []
+    for r in rows:
+        ex = {}
+        _p = os.path.join(ROOT, 'songs', r['name'], 'song.json')
+        if os.path.isfile(_p):
+            try:
+                ex = _exempt_dims(json.load(open(_p, encoding='utf-8')))
+            except Exception:                                      # noqa: BLE001
+                ex = {}
+        iss = [s for s in MH.issues(r)
+               if not any(k in ex for k, pfx in PFX.items() if s.startswith(pfx))]
+        if iss:
+            bad.append('%s: %s' % (r['name'], '、'.join(iss)))
+        elif MH.issues(r):
+            exempt.append('%s（豁免 %s）' % (r['name'], '/'.join(sorted(ex))))
+    print('        最长同音串 %d（上限 %d）· 密度下限 %.1f · %d/%d 首有形态问题%s'
+          % (max(r['maxrun'] for r in rows), MH.MAX_RUN, MH.MIN_DENS, len(bad), len(rows),
+             ('；%d 首带理由豁免：%s' % (len(exempt), ' / '.join(exempt))) if exempt else ''))
     assert not bad, ('旋律形态问题（用户口径："一串同音"/"音太少"/"卡卡的"）：%s —— '
-                     '跑 probe_melody_health.py 看细节，重跑 melody_gen 修'
+                     '跑 probe_melody_health.py 看细节，重跑 melody_gen 修；'
+                     '确属"原曲本来如此"（还原曲）就在 `patterns.melody_exempt` '
+                     '写清理由 + 实测数字放行该维' % '；'.join(bad[:6]))
+
+
+@check
+def t_chord_bass_matches_root():
+    """**每个和弦的低音音级必须等于根音（或斜杠音）**（PITFALLS 239）。
+
+    起因（实测）：`transcribe_to_song` 把低音**写死成 34**（A#1）—— 于是整首曲子的
+    每个和弦低音都是 A#1。`check_song.chord_names_match_notes` 当时抓到了，但那是
+    "渲染前的数据契约"，要等有人跑 `check_song` 才报；这条把它提到守卫层，
+    并直接钉住**产生它的那个函数**（`transcribe_to_song.chord_tones`）。
+    """
+    import transcribe_to_song as TS
+    # ① 判据自证：老 bug 的形态（低音与根音脱钩）必须被抓
+    want = {'Fsus4': 5, 'A#7': 10, 'Dm7': 2, 'C': 0, 'B7': 11, 'C#m7': 1}
+    for sym, pc in want.items():
+        got = TS.chord_tones(sym)
+        assert got, 'chord_tones(%r) 认不出来' % sym
+        assert got[0] % 12 == pc, ('chord_tones(%r) 低音 %d 的音级 %d ≠ 根音 %d'
+                                   % (sym, got[0], got[0] % 12, pc))
+    assert len({TS.chord_tones(s)[0] for s in want}) == len(want), \
+        '不同根音的和弦必须给出不同低音（低音写死就是老 bug 的形态）'
+    # ② 全库数据：chords 里每个和弦的低音都要跟根音对得上
+    bad, n = [], 0
+    for d in songs_or_fail():
+        name = os.path.basename(d)
+        try:
+            j = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
+        except Exception as e:                                     # noqa: BLE001
+            bad.append('%s: song.json 读不了（%s）' % (name, str(e)[:40]))
+            continue
+        ch = j.get('chords') or {}
+        if not isinstance(ch, dict):
+            continue
+        n += 1
+        for sym, val in ch.items():
+            if not (isinstance(val, list) and val and isinstance(val[0], (int, float))):
+                continue
+            slash = None
+            if '/' in sym and not sym.endswith('6/9'):
+                slash = TS.NOTE_PC.get(sym.split('/', 1)[1])
+            got = TS.chord_tones(sym)
+            if not got:
+                continue
+            wp = slash if slash is not None else got[0] % 12
+            if int(val[0]) % 12 != wp:
+                bad.append('%s: %s 的低音 %d（音级 %d）≠ 根音音级 %d'
+                           % (name, sym, int(val[0]), int(val[0]) % 12, wp))
+    assert not bad, '和弦低音与根音不符（老 bug：低音写死）: %s' % '；'.join(bad[:6])
+    print('        %d 首曲目的和弦低音全部与根音同音级' % n)
+
+
+@check
+def t_transcribe_melody_density():
+    """**抽旋律不许把"有内容的小节"抽空**（PITFALLS 239 的后半）。
+
+    起因：`transcribe_to_song` 抽旋律的门槛是"该小节 ≥4 音"、且只取音高最高 30%。
+    实测 `siren_end`（Piano 612 音 / 143 小节）只抽出 **146** 音 → melody 密度
+    **1.02 音/小节**，被 `melody_health` 的下限 1.2 拦下 → 交付前先得修数据。
+    """
+    import transcribe_to_song as TS
+    import probe_melody_health as MH
+    bar_sec = 2.0                       # 120 BPM 的 4/4：一小节 = 2 秒
+    secs = [{'name': 'A', 'bars': 4}]
+
+    def src(per_bar):
+        out = []
+        for b in range(4):
+            for k in range(per_bar):
+                t = b * bar_sec + k * (bar_sec / per_bar)
+                out.append((t, t + 0.3, 60 + k * 2, 80))
+        return out
+
+    # ① 每小节只有 2 音的主奏轨 —— 老门槛（<4 跳过）会**整段抽空**
+    mel2 = TS.extract_melody(src(2), secs, bar_sec)['A']
+    assert len(mel2) >= 4, ('每小节 2 音的主奏轨只抽出 %d 个音 —— '
+                            '老 bug（门槛 4）会把这种轨整段抽空' % len(mel2))
+    # ② 每小节 4 音（正常主奏轨）—— 密度必须过 melody_health 的下限
+    mel4 = TS.extract_melody(src(4), secs, bar_sec)['A']
+    dens = len(mel4) / 4.0
+    assert dens >= MH.MIN_DENS, ('主奏轨每小节 4 音时 melody 密度只有 %.2f（下限 %.1f）'
+                                 % (dens, MH.MIN_DENS))
+    print('        每小节 2 音 → %d 音（不抽空）· 每小节 4 音 → 密度 %.2f（下限 %.1f）'
+          % (len(mel2), dens, MH.MIN_DENS))
+
+
+@check
+def t_transcribe_range_within_instrument():
+    """`transcribe_to_song.range_fit`：越界音**逐音**夹到合法八度，**合法音一个不动**（PITFALLS 253）。
+
+    起因（实测）：引擎的 `TR_RANGE` 保护是**整轨**移八度 —— 本曲 Strings 只有 11/278（4%）
+    越界、Melody 9/32，引擎却把**整条轨**移了 +12 / +24，把 96% 本来正确的音一起改掉。
+    还原曲要"符合原曲"，所以在生成端逐音夹取；这条守住"逐音、且不动合法音"这个性质。
+    """
+    import transcribe_to_song as TS
+    import song_engine as SE
+    a, b = SE.TR_RANGE['Strings']
+    src = [(0.0, 0.5, a - 12, 80),        # 低于下界 → 应 +12
+           (0.5, 1.0, 60, 80),            # 合法 → 一动不许动
+           (1.0, 1.5, b + 12, 80),        # 高于上界 → 应 −12
+           (1.5, 2.0, 62, 80)]
+    got = TS.range_fit(src, 'Strings')
+    assert [g[2] for g in got[1::2]] == [60, 62], \
+        '合法音被动了（%s）—— 那正是引擎"整轨移位"的形态' % [g[2] for g in got]
+    assert a <= got[0][2] <= b, '越界低音没夹进合法区间（%d，区间 %s）' % (got[0][2], (a, b))
+    assert a <= got[2][2] <= b, '越界高音没夹进合法区间（%d，区间 %s）' % (got[2][2], (a, b))
+    # 全库：每首曲目的 notes_extra 各轨音域都该落在 TR_RANGE 内（越界合计 0）
+    bad = []
+    for d in songs_or_fail():
+        name = os.path.basename(d)
+        try:
+            j = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
+        except Exception:                                          # noqa: BLE001
+            continue
+        for tr, v in (j.get('notes_extra') or {}).items():
+            ns = v.get('notes') if isinstance(v, dict) else v
+            rng = SE.TR_RANGE.get(tr)
+            if not ns or not rng:
+                continue
+            out = [n[3] for n in ns if not (rng[0] <= n[3] <= rng[1])]
+            if out:
+                bad.append('%s/%s 越界 %d 个（音域 %d-%d，合法 %s）'
+                           % (name, tr, len(out), min(n[3] for n in ns),
+                              max(n[3] for n in ns), rng))
+    assert not bad, ('生成端没把越界音夹进乐器合理音域（引擎会因此整轨移八度）: %s'
                      % '；'.join(bad[:6]))
+    print('        逐音夹取自证通过 · %d 首曲目的 notes_extra 越界合计 0'
+          % len(songs_or_fail()))
+
+
+@check
+def t_bpm_layers_contract():
+    """`probe_bpm_layers` 必须认得出**已知 BPM 的合成 click**（判据自证 · 纯 numpy）。
+
+    为什么需要：它是**定速度**的第一道工序，而"速度是层级不是单值" —— 工具若把 120 BPM
+    的 click 认成 60 或 240，拿它定的层级会让整首曲子**小节数翻倍/减半**（段落切分与
+    逐小节鼓型全错位）。所以先拿**已知答案**跑一遍（同 PITFALLS 251 的"尺子先自检"）。
+    """
+    import probe_bpm_layers as PB
+    y = PB.synth_click(120.0, 12.0, 22050)
+    rows = PB.analyze_signal(y, 22050)
+    assert rows, '合成 click 上没给出任何候选层 —— 这条检查会空转'
+    best = rows[0]['bpm']
+    assert abs(best - 120.0) < 4.0, \
+        '已知 120 BPM 的合成 click 被认成 %.2f（第一层）' % best
+    ons = PB.onsets_of(y, 22050)
+    _med, frac = PB.grid_fit(ons, 120.0)
+    assert frac > 0.8, '合成 click 对 120 BPM 网格的贴合率只有 %.0f%%（应 >80%%）' % (frac * 100)
+    # **半/双速层必须支持度更低** —— 否则"层级"这个输出没有区分力（等于只有一个数）
+    sup = {r['bpm']: r['ac'] for r in rows}
+    for half in (60.0, 240.0):
+        near = [v for k, v in sup.items() if abs(k - half) < 3]
+        if near:
+            assert near[0] < rows[0]['ac'], \
+                '%.0f BPM 层的支持度（%.3f）不低于第一层（%.3f）' % (half, near[0], rows[0]['ac'])
+    print('        120 BPM 合成 click → 第一层 %.1f · 网格贴合 %.0f%%（半/双速层支持度更低）'
+          % (best, frac * 100))
+
+
+@check
+def t_restore_gap_fill_contract():
+    """`restore_gap_fill`：**原曲有音才补、原曲静音既不许补也不许留**（判据自证）。
+
+    为什么守它（2026-09-25 两个方向都实测踩过）：
+      ① 漏补 → 用户"**有音乐的播放没有了**"（`siren_end` 11 个小节我们一个音都没有，
+         其中小节 17 原曲 RMS −21.7dB 而我们 −61dB）；
+      ② 补错 → 分轨在**近乎静音**处的残余被当成音符补进来（结尾 139/140 原曲 −52/−70dB，
+         补进去后成品 −9.5/−12.4dB）→ 又变成"**该没有声音的地方出现了声音**"。
+    所以用**合成材料**把两个方向一起钉死：补有声的空小节、删静音处的音、静音处不补。
+    """
+    import tempfile
+    import midi_file as MF
+    import restore_gap_fill as RG
+    import soundfile as SF
+    bpm, bar_sec, sr = 120.0, 2.0, 22050
+    with tempfile.TemporaryDirectory(prefix='dsh_gap_') as td:
+        song = os.path.join(td, 'song.json')
+        json.dump({'name': 'x', 'bpm': bpm, 'meter': [4, 4],
+                   'chords': {'C': [36, [60, 64, 67]]}, 'patterns': {},
+                   'sections': [{'name': 'A', 'bars': 3, 'chords': ['C', 'C', 'C'],
+                                 'melody': 'A', 'arr': {'perc': 0}}],
+                   'melody': {'A': []},
+                   'notes_extra': {'Piano': [[0, 0.0, 1.0, 60, 80],   # 小节1（原曲有声）有音
+                                             [2, 0.0, 1.0, 62, 80]]}},  # 小节2（原曲静音）有音
+                  open(song, 'w', encoding='utf-8'), ensure_ascii=False)
+        sm = os.path.join(td, 'stems')
+        os.makedirs(sm)
+        MF.export_midi({'bpm': bpm, 'tracks': [
+            {'name': 'Acoustic Piano',
+             'notes': [[2.0, 0.5, 65, 90],      # 拍 2 = 第 2 小节（我们空、原曲有声）→ 该补
+                       [4.0, 0.5, 67, 90]]}]},  # 拍 4 = 第 3 小节（原曲静音）→ 不许补
+            os.path.join(sm, 'piano.mid'))
+        y = np.zeros(int(3 * bar_sec * sr))
+        n1 = int(2 * bar_sec * sr)                       # 前两小节有声，第三小节静音
+        t = np.arange(n1) / float(sr)
+        y[:n1] = 0.5 * np.sin(2 * np.pi * 440.0 * t)
+        au = os.path.join(td, 'ref.wav')
+        SF.write(au, y, sr)
+
+        RG.run(song, [sm], ratio=0.0, min_src=1, apply_=True,
+               audio=au, min_rms=-38.0, prune=True)
+        d2 = json.load(open(song, encoding='utf-8'))
+        arr = d2['notes_extra']['Piano']
+        b1 = [n for n in arr if int(n[0]) == 1]
+        b0 = [n for n in arr if int(n[0]) == 0]
+        b2 = [n for n in arr if int(n[0]) == 2]
+        assert b1, '第 2 小节（我们空、原曲有声）该被**补上**'
+        assert b0, '第 1 小节本来就合规，不许动'
+        assert not b2, ('第 3 小节**原曲静音**：既不许补、原有的音也该被删'
+                        '（实测补进去会变成"该没声音的地方有声音"）')
+        print('        补 1 个空小节（%d 音）· 静音处删音 · 静音处不补 —— 两向都钉住'
+              % len(b1))
 
 
 @check
@@ -4753,22 +5040,37 @@ def t_scorecard_meter_source():
     ② `_song_ctx` 的返回形状 —— 谁再想拿它当 song.json 用，先在这儿被拦下。
     """
     import scorecard as SC
+
+    def _mof(path):
+        """调 `_meter_of` 并把**崩溃**翻译成断言失败。
+
+        ⚠ 为什么必须这样（2026-09-25）：变异用例注入的正是"原来的崩法"
+        （`_song_ctx` 返回三元组却 `.get('meter')` → `AttributeError`）。检查若直接冒泡，
+        在 mutation 里会被算成"抓到"—— 可它**根本没做判断**，只是跟着崩了。
+        把崩溃归到"契约违反"才是这条检查该有的语义（"崩掉 ≠ 通过"，PITFALLS 251）。
+        """
+        try:
+            return SC._meter_of(path)
+        except Exception as e:                                     # noqa: BLE001
+            raise AssertionError('_meter_of 崩了（%s: %s）—— 拍号取值点不许崩'
+                                 % (type(e).__name__, str(e)[:60]))
+
     with tempfile.TemporaryDirectory(prefix='dsh_meter_') as d:
         mid = os.path.join(d, 'x.mid')        # 不存在的文件名足够：只看所在目录
         # ① 读得到 meter → 照用（3/4 的圆舞曲就靠这条走对网格）
         for meter, want in (([3, 4], (3, 4)), ((6, 8), (6, 8))):
             with open(os.path.join(d, 'song.json'), 'w', encoding='utf-8') as f:
                 json.dump({'meter': meter, 'mix': {}, 'sections': []}, f)
-            got = SC._meter_of(mid)
+            got = _mof(mid)
             assert got == want, '_meter_of 没读到 song.json 的 %r：实得 %r' % (meter, got)
         # ② 读不到 / 不合法 → 兜底 4/4（老歌没有 meter 字段，不能因此崩或算错）
         for bad in ({'meter': 'x'}, {'meter': [4]}, {'meter': None}, {}):
             with open(os.path.join(d, 'song.json'), 'w', encoding='utf-8') as f:
                 json.dump(bad, f)
-            got = SC._meter_of(mid)
+            got = _mof(mid)
             assert got == (4, 4), '%r 该兜底 (4, 4)：实得 %r' % (bad, got)
         os.remove(os.path.join(d, 'song.json'))
-        assert SC._meter_of(mid) == (4, 4), '没有 song.json 时该兜底 (4, 4)'
+        assert _mof(mid) == (4, 4), '没有 song.json 时该兜底 (4, 4)'
         # ③ `_song_ctx` 的第二返回值是三元组，不是 dict —— 拿它 .get 必崩
         with open(os.path.join(d, 'song.json'), 'w', encoding='utf-8') as f:
             json.dump({'programs': {'Melody': 0}, 'mix': {'Piano': [0, 0.7]},
@@ -5833,10 +6135,27 @@ def t_accompaniment_harmony():
     assert checked >= 5, '带和弦的曲目太少（%d）—— 这条检查会空转' % checked
     assert len(sep) >= 200, '音区分离的样本太少（%d）—— 这条检查会空转' % len(sep)
     fmin = min(f for _n, _t, f in fit) if fit else 1.0
-    bad = []
+    # **按曲的带理由豁免**（`patterns.accomp_exempt.fit`，口径同 `melody_exempt`：
+    # 理由空白 = 没写 = 不放行）。给的是**还原曲**：它的伴奏音是**抄来的真实演奏**，
+    # 与独立分析的 chords 天然不完全一致（实测 `siren_end` Piano 61% / Strings 56% /
+    # Hook 42%）—— 95% 门是为**引擎生成的编配**设的（抓 `TR_SHIFT` 改音级那个 bug），
+    # 对"抄来的演奏"不适用；要"符合原曲"就不能改这些音去凑门。
+    _accomp_ex = {}
+    for _d in songs_or_fail():
+        try:
+            _j = json.load(open(os.path.join(_d, 'song.json'), encoding='utf-8'))
+        except Exception:                                          # noqa: BLE001
+            continue
+        _e = _exempt_named(_j, 'accomp_exempt')
+        if _e:
+            _accomp_ex[os.path.basename(_d)] = _e
+    bad, _accomp_ok = [], []
     for (nm, tr, f) in fit:
         if f < 0.95:
-            bad.append('%s/%s 和弦贴合只有 %.0f%%' % (nm, tr, f * 100))
+            if 'fit' in _accomp_ex.get(nm, {}):
+                _accomp_ok.append('%s/%s %.0f%%' % (nm, tr, f * 100))
+            else:
+                bad.append('%s/%s 和弦贴合只有 %.0f%%' % (nm, tr, f * 100))
     sep.sort()
     sep_med = sep[len(sep) // 2]
     if sep_med < 6:
@@ -5850,8 +6169,10 @@ def t_accompaniment_harmony():
         bad.append('半音冲突 %.0f%%（门 10%%，真实 6%%）—— 旋律与同拍伴奏差 1 个半音，最刺耳'
                    % clash_pct)
     print('        伴奏和弦贴合最低 %.0f%%（%d 轨）· 音区分离中位 %+d 半音 · 旋律在下 %.0f%%'
-          ' · 半音冲突 %.0f%%'
-          % (fmin * 100, len(fit), sep_med, low * 100, clash_pct))
+          ' · 半音冲突 %.0f%%%s'
+          % (fmin * 100, len(fit), sep_med, low * 100, clash_pct,
+             ('；%d 处带理由豁免：%s' % (len(_accomp_ok), ' / '.join(_accomp_ok)))
+             if _accomp_ok else ''))
     # **判据自证**：换回旧的半音偏移 → 贴合率必须崩（旧表实测 15~43%）
     _old = SE.TR_SHIFT
     try:
@@ -6411,14 +6732,45 @@ def t_midi_ops_semantics():
     import midi_file as mfi
     import midi_ops as mop
 
-    # 夹具同样**动态挑**（同上：不硬编码曲名，删曲不该让检查断）
+    # 夹具同样**动态挑**（同上：不硬编码曲名，删曲不该让检查断）。
+    # ⚠ **必须挑"≥2 轨"的**（PITFALLS 241 实测）：这条检查通篇用 `tracks[1]`
+    #   （量化/移调/力度都作用在第 2 条轨上），而"最大的 .mid"完全可能是**单轨** ——
+    #   `siren_end.mid`（扒谱产物）就是这样，于是整条检查 `IndexError` 崩掉。
+    #   **崩掉 ≠ 通过**：夹具挑法脆 = 这条防线在真实数据上失效。
     _cands = sorted(glob.glob(os.path.join(ROOT, 'songs', '*', '*.mid')),
                     key=os.path.getsize, reverse=True)
     assert _cands, 'songs/ 里没有任何 .mid，这条检查无从下手'
-    src = _cands[0]
-    base = mfi.import_midi(src)
+    src = base = None
+    _spare = None
+    for _p in _cands:
+        try:
+            _b = mfi.import_midi(_p)
+        except Exception:                                          # noqa: BLE001
+            continue
+        if len(_b.get('tracks') or []) < 2 or mop.stats(_b)['notes'] <= 1000:
+            continue
+        _spare = _spare or (_p, _b)
+        # **下面 `copy_range(0, 8, track_idx=0)` 要拿第 0 轨前 8 拍当片段** ——
+        # 夹具必须真的在那儿有音符：`siren_end.mid`（扒谱产物）体积最大、第 0 轨
+        # （Melody）却整段没有前 8 拍的音 → `clip['tracks'][0]` **IndexError**。
+        # 挑夹具要校验**检查真正用到的前提**，不是"文件最大"。
+        _t0 = ((_b.get('tracks') or [{}])[0].get('notes') or [])
+        if not any(0.0 <= float(n[0]) < 8.0 for n in _t0):
+            continue
+        src, base = _p, _b
+        break
+    if src is None and _spare:
+        # 候选都缺"前 8 拍有音"这个前提（`check_song` 的沙箱里往往只有本曲一个
+        # 候选）→ **把前提补齐**：往第 0 轨前 8 拍补一个音。夹具只是载体，
+        # 被测对象（`midi_ops` 的操作语义）一点没变 —— 但检查不用因此空转。
+        src, base = _spare
+        base['tracks'][0].setdefault('notes', []).append([1.0, 0.5, 60, 90])
+        base['tracks'][0]['notes'].sort(key=lambda n: n[0])
+        print('        (夹具 %s 第 0 轨前 8 拍为空 → 补一个音当片段来源)'
+              % os.path.basename(src))
+    assert src, ('songs/ 里没有合格夹具（需要"≥2 轨 且 >1000 音符"的 .mid，'
+                 '共 %d 个候选）—— 这条检查无从下手' % len(_cands))
     st = mop.stats(base)
-    assert st['notes'] > 1000, '夹具太小（%d 音符）' % st['notes']
 
     m = _copy.deepcopy(base)
     r = mop.quantize(m, '1/16', strength=1.0, track_idx=1)
@@ -6456,6 +6808,11 @@ def t_midi_ops_semantics():
     mop.delete_notes(m, 0, [rr['index']])
     assert len(m['tracks'][0]['notes']) == n0, '删音符后音数不对'
     clip = mop.copy_range(m, 0.0, 8.0, track_idx=0)
+    # **空片段要显式报错**：`copy_range` 对"区间内没有音符"返回的 tracks 是**空 list**，
+    # 直接取 `[0]` 会 IndexError（实测 `siren_end.mid` 当夹具时崩在这里）——
+    # "崩掉"看起来像环境问题，其实是判据的前提没了，必须说清是哪一步。
+    assert clip.get('tracks') and clip['tracks'][0].get('notes'), \
+        'copy_range(0–8 拍, 第 0 轨) 复制出空片段 —— 夹具第 0 轨前 8 拍没有音符'
     got = mop.paste(m, clip, 64.0, track_idx=0)
     assert got['notes'] == len(clip['tracks'][0]['notes']), '粘贴音数与片段不符'
     assert max(n[0] for n in m['tracks'][0]['notes']) >= 64.0, '粘贴没落在 64 拍之后'
@@ -7451,10 +7808,18 @@ def t_melody_register_fix():
     # ⚠ **飘太高**那一侧（用户 2026-09-22："感觉这个音有点高了"）：`register_gaps` 只看最低音，
     #   94 这种"开头冲到 A6"它判合规 —— 所以 `fix_melody_register` 必须**另修一次最高音**。
     song = dict(base, melody={'A': [[0, 0.0, 1.0, 93], [2, 0.0, 1.0, 76]]})
-    tg0 = HC.register_top_gaps(song)[0][3]
+    _tg = HC.register_top_gaps(song)
+    # ⚠ **返回空必须当失败**（2026-09-25）：变异用例 ㉛ 注入的就是"永远返回 []"——
+    #   原来这里直接 `[0][3]` → IndexError，在 mutation 里被算成"抓到"，
+    #   其实检查**没做任何判断**（崩掉 ≠ 通过，PITFALLS 251）。
+    assert _tg, ('register_top_gaps 返回空 —— "飘太高"那侧判据被拆掉，没人守了'
+                 '（变异用例 ㉛ 注入的正是这个形态）')
+    tg0 = _tg[0][3]
     assert tg0 > HC.GAP_MAX, '用例本身没飘太高，等于没测：%+d' % tg0
     NS.fix_melody_register(song, verbose=False)
-    tg1 = HC.register_top_gaps(song)[0][3]
+    _tg1 = HC.register_top_gaps(song)
+    assert _tg1, '修完之后 register_top_gaps 返回空 —— 判据失效'
+    tg1 = _tg1[0][3]
     assert tg1 <= HC.GAP_MAX, '飘太高没被修：%+d → %+d（上限 %d）' % (tg0, tg1, HC.GAP_MAX)
     print('        偏低/偏高都修进 %d~%d · 只动音高 · 合规幂等 · 飘太高也降八度'
           % (HC.GAP_MIN, HC.GAP_MAX))
@@ -7715,6 +8080,27 @@ def _print_times(top=20):
 
 
 def main():
+    if '--list' in sys.argv:
+        for f in CHECKS:
+            print(f.__name__[2:])
+        return 0
+    if ONLY:
+        names = {f.__name__[2:] for f in CHECKS}
+        miss = sorted(ONLY - names)
+        if miss:
+            print('--only 里有不存在的检查名：%s' % '、'.join(miss))
+            print('（用 `--list` 看全部名字）')
+            return 1
+        todo = [f for f in CHECKS if f.__name__[2:] in ONLY]
+        print('自检 %d 项（--only：%s）' % (len(todo), '、'.join(sorted(ONLY))))
+        for fn in todo:
+            _one(fn)
+        _print_times()
+        print('\n结果: %d/%d 通过' % (len(todo) - len(FAILS), len(todo)))
+        if FAILS:
+            for n2, m in FAILS:
+                print('  - %s: %s' % (n2, m))
+        return 1 if FAILS else 0
     if SHARD is not None:
         i, n = SHARD
         todo = [fn for k, fn in enumerate(CHECKS)

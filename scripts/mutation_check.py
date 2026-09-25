@@ -120,7 +120,13 @@ def with_fixture(mutate):
 
 
 def run_check(name):
-    """跑指定检查，返回 (是否被拦下, 说明)"""
+    """跑指定检查，返回 `(True=真拦下 / False=没抓到 / None=**检查自己崩了**)`。
+
+    ⚠ **`None` 这一态是 2026-09-25 加的**：原来所有异常都算"抓到"，于是
+    `IndexError` / `TypeError` 这种**夹具不满足前提**导致的崩溃，会被记成一次成功的
+    拦截 —— mutation 全绿、防线其实早失效（实测：`midi_ops_semantics` 挑到"第 0 轨前 8 拍
+    没音符"的夹具，直接 `IndexError`，却一直显示"抓到"）。**崩掉 ≠ 通过**（PITFALLS 251）。
+    """
     fn = dict((f.__name__[2:], f) for f in st.CHECKS).get(name)
     if fn is None:
         return False, '找不到检查 %s' % name
@@ -132,7 +138,7 @@ def run_check(name):
     except (AssertionError, SystemExit) as e:
         return True, str(e)[:90]
     except Exception as e:
-        return True, '%s: %s' % (type(e).__name__, str(e)[:70])
+        return None, '%s: %s' % (type(e).__name__, str(e)[:70])
 
 
 class Mut:
@@ -181,6 +187,11 @@ def case(label, check, mutate):
     except SkipCase as e:
         print('  %-5s %-34s → %s' % ('跳过', label, e))
         return True                      # 不算漏
+    if caught is None:
+        # **检查自己崩了**：不算抓到（PITFALLS 251 —— "崩掉 ≠ 通过"）。
+        # 报"崩了"是为了让人去修**夹具或前提**，而不是误以为防线有效。
+        print('  %-5s %-34s → %s' % ('**崩了**', label, why))
+        return False
     ok = caught
     print('  %-5s %-34s → %s' % ('抓到' if ok else '**漏了**', label, why))
     return ok
@@ -309,7 +320,7 @@ def main():
     # 7. MIDI 写入丢音符（保持签名，只丢事件）
     real_write = bs.write_midi
 
-    def lossy_write(path, tracks, ppq=480):
+    def lossy_write(path, tracks, ppq=480, *a, **kw):
         out = []
         for t in tracks:
             name, prog, chan, ev = t[:4]
@@ -324,7 +335,7 @@ def main():
     import glob as _glob
     bad_ref_dir = tempfile.mkdtemp(dir=TMP)
     bad_ref = os.path.join(bad_ref_dir, 'broken.json')
-    json.dump({'name': 'broken'}, open(bad_ref, 'w', encoding='utf-8'))
+    json.dump({'name': 'broken'}, open(bad_ref, 'w', encoding='utf-8', newline='\n'))
     shim = types.SimpleNamespace(
         glob=lambda pat, **k: ([bad_ref] if os.sep + 'refs' in pat
                                else _glob.glob(pat, **k)))
@@ -415,7 +426,7 @@ def main():
                           if k in ('uku', 'piano', 'bass', 'pad', 'strings', 'glock',
                                    'arp', 'perc', 'ep', 'vel')}
         tmp2 = os.path.join(TMP, 'silent_arr.json')
-        _j.dump(d, open(tmp2, 'w', encoding='utf-8'), ensure_ascii=False)
+        _j.dump(d, open(tmp2, 'w', encoding='utf-8', newline='\n'), ensure_ascii=False)
         return real_load(tmp2)
     results.append(case('拼错的编配开关被静默丢弃', 'bad_arr_key_warns',
                         lambda: Mut(song_engine, 'load', silent_arr)))
@@ -537,7 +548,7 @@ def main():
                     self.saved[rp] = open(rp, encoding='utf-8').read()
                     c = json.loads(self.saved[rp])
                     c['strict_align'] = True
-                    json.dump(c, open(rp, 'w', encoding='utf-8'),
+                    json.dump(c, open(rp, 'w', encoding='utf-8', newline='\n'),
                               ensure_ascii=False, indent=1)
             self._ref = st.scorecard.load_ref
             st.scorecard.load_ref = shifted_ref
@@ -545,7 +556,7 @@ def main():
 
         def __exit__(self, *a):
             for rp, txt in self.saved.items():
-                open(rp, 'w', encoding='utf-8').write(txt)
+                open(rp, 'w', encoding='utf-8', newline='\n').write(txt)
             st.scorecard.load_ref = self._ref
 
     results.append(case('画像整体偏移 20dB（声明 strict_align 后必须被抓）',
@@ -574,7 +585,7 @@ def main():
         def __enter__(self):
             self.old = token_audit.DOCS['SKILL.md（音乐任务加载）']
             p = os.path.join(TMP, 'nofront.md')
-            open(p, 'w', encoding='utf-8').write('# BGM Studio\n\n（没有 frontmatter）')
+            open(p, 'w', encoding='utf-8', newline='\n').write('# BGM Studio\n\n（没有 frontmatter）')
             token_audit.DOCS['SKILL.md（音乐任务加载）'] = p
         def __exit__(self, *a):
             token_audit.DOCS['SKILL.md（音乐任务加载）'] = self.old
@@ -590,7 +601,7 @@ def main():
         def __enter__(self):
             self.old = token_audit.DOCS['SKILL.md（音乐任务加载）']
             p = os.path.join(TMP, 'desc-mut.md')
-            open(p, 'w', encoding='utf-8').write(
+            open(p, 'w', encoding='utf-8', newline='\n').write(
                 '---\nname: bgm-studio\ndescription: %s\n---\n\n# x\n' % self.desc)
             token_audit.DOCS['SKILL.md（音乐任务加载）'] = p
         def __exit__(self, *a):
@@ -658,7 +669,7 @@ def main():
         def __enter__(self):
             self.p = os.path.join(os.path.dirname(os.path.abspath(st.__file__)),
                                   'zz_mutation_tool_probe.py')
-            with open(self.p, 'w', encoding='utf-8') as fh:
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
                 fh.write('# 变异用：一个没被任何文档提到的工具\n')
 
         def __exit__(self, *a):
@@ -716,7 +727,7 @@ def main():
         def __enter__(self):
             self.p = os.path.join(os.path.dirname(os.path.abspath(st.__file__)),
                                   'zz_dead_arg_probe.py')
-            with open(self.p, 'w', encoding='utf-8') as fh:
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
                 fh.write("import argparse\n"
                          "p = argparse.ArgumentParser()\n"
                          "p.add_argument('--never-read')\n"
@@ -806,7 +817,7 @@ def main():
         def __enter__(self):
             self.old = st.__file__
             p = os.path.join(TMP, 'fake_selftest.py')
-            open(p, 'w', encoding='utf-8').write(
+            open(p, 'w', encoding='utf-8', newline='\n').write(
                 'def t_decorative():\n'
                 '    """只打印，没有断言"""\n'
                 '    print("看起来检查过了")\n')
@@ -863,7 +874,7 @@ def main():
     real_bass = song_engine.bass_part
     results.append(case('pump16 律动被改回八分', 'pump_groove',
                         lambda: Mut(song_engine, 'bass_part',
-                                    lambda ch, nxt, i, pat:
+                                    lambda ch, nxt, i, pat, *a, **kw:
                                     real_bass(ch, nxt, i, {**pat, 'bass_style': 'eighth'}))))
 
     # 45. 副旋律乱配三度（不查和弦 → 不协和）
@@ -885,7 +896,8 @@ def main():
     # 47. kick 垫层与底鼓错位（听感变成"两个鼓在打架"）
     real_perc = song_engine.perc_part
 
-    def perc_misaligned(style, level, i, nbars, layers=None, kick_vel=None):
+    def perc_misaligned(style, level, i, nbars, layers=None, kick_vel=None,
+                        *a, **kw):
         out = real_perc(style, level, i, nbars, layers, kick_vel)
         if layers and style == 'pump':
             out = [e for e in out if not (e[2] in (41, 43) and e[0] % 1.0 == 0.75)]
@@ -894,7 +906,8 @@ def main():
                         lambda: Mut(song_engine, 'perc_part', perc_misaligned)))
 
     # 48. air 垫层漏掉一半十六分格（5–10kHz 又回到"点+空"：实测占用率 100%→84%）
-    def perc_air_gap(style, level, i, nbars, layers=None, kick_vel=None):
+    def perc_air_gap(style, level, i, nbars, layers=None, kick_vel=None,
+                     *a, **kw):
         out = real_perc(style, level, i, nbars, layers, kick_vel)
         if layers and style == 'pump':
             out = [e for e in out
@@ -913,7 +926,8 @@ def main():
 
     # 50. offbeat 垫层只落在每拍的 "a"（漏掉 "e"）→ 低频律动型又变成
     #     `◇◇·★◇◇·★`（例曲是 ◇★◇★◇★◇★，每拍两个反拍格都是强格）
-    def perc_offbeat_half(style, level, i, nbars, layers=None, kick_vel=None):
+    def perc_offbeat_half(style, level, i, nbars, layers=None, kick_vel=None,
+                          *a, **kw):
         if layers and layers.get('kick_pos') == 'offbeat':
             layers = dict(layers, kick_pos='all')
         return real_perc(style, level, i, nbars, layers, kick_vel)
@@ -966,10 +980,10 @@ def main():
                 self.old = open(_sk, encoding='utf-8').read()
                 new = _re2.sub(r'(\| 写/改[^|]*\| )`([^`]+\.md)`', r'\1`docs/NOPE.md`',
                                self.old, count=1)
-                open(_sk, 'w', encoding='utf-8').write(new)
+                open(_sk, 'w', encoding='utf-8', newline='\n').write(new)
                 return new
             def __exit__(self, *a):
-                open(_sk, 'w', encoding='utf-8').write(self.old)
+                open(_sk, 'w', encoding='utf-8', newline='\n').write(self.old)
         results.append(case('技能卡路由表指向缺失文档', 'skill_routes_resolve',
                             lambda: _RouteMut()))
 
@@ -1023,33 +1037,56 @@ def main():
             assert anchor in self.old, '注入锚点不在源码里（改了实现就要同步改这条用例）'
             new_txt = self.old.replace(anchor, 'if False:      # injected', 1)
             assert new_txt != self.old, '注入没生效'
-            open(_mp_path, 'w', encoding='utf-8').write(new_txt)
+            open(_mp_path, 'w', encoding='utf-8', newline='\n').write(new_txt)
             return new_txt
         def __exit__(self, *a):
-            open(_mp_path, 'w', encoding='utf-8').write(self.old)
+            open(_mp_path, 'w', encoding='utf-8', newline='\n').write(self.old)
     results.append(case('旋律主音建议丢掉和声对齐', 'melody_profile_tonic_hint',
                         lambda: _StripAlign()))
 
-    # 57. 音域越界（低音整体多移一个八度 → 次声波）必须被抓
+    # 57. 音域越界（某轨整体多移一个八度 → 次声波 / 超高）必须被抓。
+    #     ⚠ **注入点在 2026-09-25 改了**：原来注入 `d['chords']` 的低音 −24，但坑 249 之后
+    #     **引擎在 `build_events` 出口无条件夹取音域** → 故障被引擎修好，
+    #     `track_ranges_musical`（读的是**引擎输出**）当然抓不到（实测"漏了"）。
+    #     数据侧现在由 `t_transcribe_range_within_instrument` 守（它**直接读 song.json**），
+    #     所以注入点改成 `notes_extra` 的音高 —— 与"谁读数据、就由谁守"对齐（坑 248/253）。
     import selftest as _st
-    _f57 = _st.fixture_song()
+    _f57 = None
+    for _cand in _st.song_dirs():            # 夹具要**真有 notes_extra 音符**的曲目
+        try:                                 # （`fixture_song()` 默认给生成曲，它 notes_extra 是空的）
+            _j = json.load(open(os.path.join(_cand, 'song.json'), encoding='utf-8'))
+        except Exception:                                          # noqa: BLE001
+            continue
+        if any((v.get('notes') if isinstance(v, dict) else v)
+               for v in (_j.get('notes_extra') or {}).values()):
+            _f57 = _cand
+            break
     _s20 = os.path.join(_f57, 'song.json') if _f57 else ''
     if os.path.exists(_s20):
         class _LowerBass:
             def __enter__(self):
                 self.old = open(_s20, encoding='utf-8').read()
                 d = json.loads(self.old)
-                # 降**两个**八度：引擎的 `SUB_FLOOR = 24` 会把 sub 层抬回 C1，
-                # 只降一个八度已经不构成音域越界（故障被引擎挡住了）——
-                # 这条 case 要验的是 `track_ranges_musical` 还抓不抓得到越界。
-                d['chords'] = {k: [max(0, v[0] - 24), list(v[1])]
-                               for k, v in d['chords'].items()}
-                json.dump(d, open(_s20, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+                ne = d.get('notes_extra') or {}
+                tr = None
+                for k, v in ne.items():
+                    ns = v.get('notes') if isinstance(v, dict) else v
+                    if ns:
+                        tr = k
+                        break
+                if tr is None:
+                    raise SkipCase('夹具没有 notes_extra 音符')
+                arr = ne[tr]['notes'] if isinstance(ne[tr], dict) else ne[tr]
+                for n in arr:
+                    n[3] = max(0, int(n[3]) - 24)          # 整轨降两个八度
+                json.dump(d, open(_s20, 'w', encoding='utf-8', newline='\n'),
+                          ensure_ascii=False, indent=1)
                 return d
+
             def __exit__(self, *a):
-                open(_s20, 'w', encoding='utf-8').write(self.old)
-        results.append(case('低音整体再降两个八度（次声波）', 'track_ranges_musical',
-                            lambda: _LowerBass()))
+                open(_s20, 'w', encoding='utf-8', newline='\n').write(self.old)
+        results.append(case('某轨整体降两个八度（次声波）',
+                            'transcribe_range_within_instrument', lambda: _LowerBass()))
 
     # 58. spec 漂移（手工改 spec 的时值列）必须被抓 —— 复现命令会失效
     import selftest as _st
@@ -1068,10 +1105,10 @@ def main():
                                 if len(e) >= 4:
                                     e[2] = e[2] + 7
                         break
-                json.dump(d, open(_sp20, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+                json.dump(d, open(_sp20, 'w', encoding='utf-8', newline='\n'), ensure_ascii=False, indent=1)
                 return d
             def __exit__(self, *a):
-                open(_sp20, 'w', encoding='utf-8').write(self.old)
+                open(_sp20, 'w', encoding='utf-8', newline='\n').write(self.old)
         results.append(case('spec 与 song.json 漂移', 'song_spec_sync',
                             lambda: _DriftSpec()))
 
@@ -1145,7 +1182,7 @@ def main():
     results.append(case('华尔兹和弦退回 4/4 反拍写法',
                         'waltz_groove',
                         lambda: Mut(song_engine, 'piano_part',
-                                    lambda ch, i, B=4.0: [(0.5, 0.28, m, 60)
+                                    lambda ch, i, B=4.0, *a, **kw: [(0.5, 0.28, m, 60)
                                                           for m in ch[1][:3]])))
 
     # 换气判据算错（把"缝隙"忽略、全曲当成一段）→ 判据自证必须报警
@@ -1251,7 +1288,7 @@ def main():
                         'intro_gradience',
                         lambda: Mut(_se, 'perc_part',
                                     lambda style, level, i, nbars, layers=None,
-                                    kick_vel=None, B=4.0, inbars=0:
+                                    kick_vel=None, B=4.0, inbars=0, *a, **kw:
                                     _perc_orig(style, level, i, nbars, layers,
                                                kick_vel, B, 0))))
     # **候选打分**（`--step-bias` 的落点）：① 公式被反向（级进越高反而分越高）
@@ -1640,37 +1677,55 @@ def main():
     # ⑭-d **豁免必须有实质理由**（2026-09-24 新增的两处豁免分支：音域 / 落点 TVD）。
     #      画像重建后按旧画像生成的曲目会越界，允许"带理由"放行 —— 但**理由空白 = 没写 = 不放行**，
     #      否则一句空话就能绕过门（同 `t_melody_matches_profile` 的 `_exempt_dims` 口径）。
-    class _BlankSpanExempt:
-        """把 `02_wave_walk` 的 `melody_exempt.span` 改成空白 → 音域判据必须重新 FAIL。"""
-        def __enter__(self):
-            self.p = os.path.join(ROOT, 'songs', '02_wave_walk', 'song.json')
-            self.txt = open(self.p, encoding='utf-8').read()
-            j = json.loads(self.txt)
-            j['patterns']['melody_exempt']['span'] = '   '
-            with open(self.p, 'w', encoding='utf-8', newline='') as f:
+    #      ⚠ **2026-09-25 加夹具探测**：这两条原来硬编码 `02_wave_walk` / `14_pixel_quest`，
+    #      而画像会重建、曲目会被改写 —— 某次之后该曲该维**本来就达标**，清空豁免也不会 FAIL，
+    #      用例于是变成"漏了"（mutation 报红、而检查其实是好的 = **夹具漂移**）。
+    #      现在先真跑一次探测：清空后不 FAIL 就**跳过**（同 `SkipCase` 口径：不算漏）。
+    def _blank_exempt_case(label, path, key, check):
+        if not os.path.exists(path):
+            print('  %-5s %-34s → %s' % ('跳过', label, '夹具曲目不存在'))
+            return True
+        txt = open(path, encoding='utf-8').read()
+        try:
+            j = json.loads(txt)
+            ex = (j.get('patterns') or {}).get('melody_exempt') or {}
+            if key not in ex:
+                print('  %-5s %-34s → %s' % ('跳过', label, '夹具没有该维豁免（已被改写）'))
+                return True
+            ex[key] = '   '
+            with open(path, 'w', encoding='utf-8', newline='\n') as f:
                 f.write(json.dumps(j, ensure_ascii=False, indent=1))
+            caught, _why = run_check(check)
+        finally:
+            with open(path, 'w', encoding='utf-8', newline='\n') as f:
+                f.write(txt)
+        if not caught:
+            print('  %-5s %-34s → %s' % ('跳过', label,
+                                         '夹具已漂移：清空豁免后该维本来就不越界'))
+            return True
 
-        def __exit__(self, *a):
-            with open(self.p, 'w', encoding='utf-8', newline='') as f:
-                f.write(self.txt)
-    results.append(case('旋律：音域豁免的理由被清空（空话放行）',
-                        'melody_form_rules', _BlankSpanExempt))
+        class _Blank:
+            def __enter__(self):
+                self.txt = open(path, encoding='utf-8').read()
+                _j = json.loads(self.txt)
+                _j['patterns']['melody_exempt'][key] = '   '
+                with open(path, 'w', encoding='utf-8', newline='\n') as f:
+                    f.write(json.dumps(_j, ensure_ascii=False, indent=1))
 
-    class _BlankOnsetExempt:
-        """把 `14_pixel_quest` 的 `melody_exempt.onset_tvd` 改成空白 → 落点判据必须重新 FAIL。"""
-        def __enter__(self):
-            self.p = os.path.join(ROOT, 'songs', '14_pixel_quest', 'song.json')
-            self.txt = open(self.p, encoding='utf-8').read()
-            j = json.loads(self.txt)
-            j['patterns']['melody_exempt']['onset_tvd'] = ''
-            with open(self.p, 'w', encoding='utf-8', newline='') as f:
-                f.write(json.dumps(j, ensure_ascii=False, indent=1))
+            def __exit__(self, *a):
+                with open(path, 'w', encoding='utf-8', newline='\n') as f:
+                    f.write(self.txt)
 
-        def __exit__(self, *a):
-            with open(self.p, 'w', encoding='utf-8', newline='') as f:
-                f.write(self.txt)
-    results.append(case('旋律：落点豁免的理由被清空（空话放行）',
-                        'melody_onset_spread', _BlankOnsetExempt))
+        return case(label, check, _Blank)
+
+    results.append(_blank_exempt_case(
+        '旋律：音域豁免的理由被清空（空话放行）',
+        os.path.join(ROOT, 'songs', '02_wave_walk', 'song.json'),
+        'span', 'melody_form_rules'))
+    results.append(_blank_exempt_case(
+        '旋律：落点豁免的理由被清空（空话放行）',
+        os.path.join(ROOT, 'songs', '14_pixel_quest', 'song.json'),
+        'onset_tvd', 'melody_onset_spread'))
     # ⑮ 段落旋律命名换回"每段一个新名字"（旧行为）→ 同名段落不再共用旋律 →
     #    `theme_melody_reuse` 的自证分支必须抓到（复用彻底消失）
     results.append(case('曲式：段落旋律换回"每段一支"',
@@ -1919,7 +1974,7 @@ def main():
         s = open(p, encoding='utf-8').read()
         victim = "'💾 保存': '💾 Save',"
         assert victim in s, '变异夹具失效：i18n.js 里找不到 %s' % victim
-        open(p, 'w', encoding='utf-8').write(s.replace(victim, ''))
+        open(p, 'w', encoding='utf-8', newline='\n').write(s.replace(victim, ''))
         st.HERE, st.ROOT = d, base
         try:
             yield
@@ -1951,7 +2006,7 @@ def main():
             for a, b in self.pairs:
                 assert a in s, '变异锚点没找到：%r' % a[:60]
                 s = s.replace(a, b)
-            open(p, 'w', encoding='utf-8').write(s)
+            open(p, 'w', encoding='utf-8', newline='\n').write(s)
             st.HERE = d
         def __exit__(self, *a):
             st.HERE = self.old
@@ -2088,6 +2143,70 @@ def main():
                     (list(plan.get('sections') or []),
                      sum(int(s.get('bars') or 0)
                          for s in (plan.get('sections') or []))))))
+
+    # 62. `transcribe_to_song.chord_tones` 把低音**写死**（老 bug 的形态：所有和弦同一个
+    #     低音）必须被抓（2026-09-25）。现场：`return 34, [...]`（34 = A#1）→ `check_song`
+    #     报 `siren_end` **20 个和弦种全部**"低音与根音不符"。这条检查的第一部分
+    #     （自证"不同根音必须给出不同低音"）就该当场炸。
+    import transcribe_to_song as _ts
+    results.append(case(
+        '和弦低音写死成 A#1（老 bug 回归）', 'chord_bass_matches_root',
+        lambda: Mut(_ts, 'chord_tones', lambda name: (34, [60, 64, 67]))))
+
+    # 63. `patterns.melody_exempt` 的**理由写成空话**时不许放行（2026-09-25）——
+    #     "理由空白 = 没写 = 不放行"这条口径必须有变异用例守着，否则豁免会变成
+    #     一键绕过所有旋律形态判据的后门。夹具 = 库里密度低于
+    #     `probe_melody_health.MIN_DENS` 的曲目（还原曲）；没有就跳过（曲目会被删，
+    #     不硬编码曲名 —— 见 `SkipCase` 的由来）。
+    import probe_melody_health as _mh
+    _low63 = [r for r in _mh.collect() if r['dens'] < _mh.MIN_DENS]
+    if not _low63:
+        print('  %-5s %-34s → %s' % ('跳过', '豁免理由写成空话（密度维还想放行）',
+                                     '库里没有密度低于下限的曲目'))
+        results.append(True)                 # 与 `case` 的 SkipCase 同口径：不算漏
+    else:
+        _p63 = os.path.join(st.ROOT, 'songs', _low63[0]['name'], 'song.json')
+
+        class _BlankExempt:
+            def __enter__(self):
+                self.old = open(_p63, encoding='utf-8').read()
+                _d = json.loads(self.old)
+                _d.setdefault('patterns', {})['melody_exempt'] = {'dens': '   '}
+                json.dump(_d, open(_p63, 'w', encoding='utf-8', newline='\n'),
+                          ensure_ascii=False, indent=1)
+                return _d
+
+            def __exit__(self, *a):
+                open(_p63, 'w', encoding='utf-8', newline='\n').write(self.old)
+
+        results.append(case('豁免理由写成空话（密度维还想放行）', 'melody_health',
+                            lambda: _BlankExempt()))
+
+    # 64. `range_fit` 退化成"**整轨**移八度"（引擎的老行为）必须被抓（2026-09-25）。
+    #     现场：Strings 只 4% 越界，引擎整轨 +12 → 96% 本来正确的音被改掉。
+    #     注入口径就是这个形态：不管越没越界，所有音一律 +12。
+    results.append(case(
+        '音域夹取退化成整轨移八度', 'transcribe_range_within_instrument',
+        lambda: Mut(_ts, 'range_fit',
+                    lambda notes, tr: [(st, en, p + 12, v)
+                                       for (st, en, p, v) in notes])))
+
+    # 65. `probe_bpm_layers` 的自相关层判据打桩（永远只报一个 BPM）必须被抓（2026-09-25）。
+    #     它要是认不出"已知 120 BPM 的合成 click"，拿它定的速度层级就会让小节数翻倍/减半。
+    import probe_bpm_layers as _pb
+    results.append(case(
+        'BPM 层级判据打桩（永远报 60）', 'bpm_layers_contract',
+        lambda: Mut(_pb, 'autocorr_layers',
+                    lambda env, fps, lo_bpm=40.0, hi_bpm=220.0, top=4: [(60.0, 1.0)])))
+
+    # 66. `restore_gap_fill` 的能量门槛失效（`bar_rms` 恒返回 0dB → 分轨在静音处的残余
+    #     会被当成音符补进来）必须被抓（2026-09-25 实测：结尾 139/140 原曲 −52/−70dB，
+    #     补进去后成品 −9.5/−12.4dB = "该没有声音的地方出现了声音"）。
+    import restore_gap_fill as _rg
+    results.append(case(
+        '补漏的能量门槛失效（静音处也补）', 'restore_gap_fill_contract',
+        lambda: Mut(_rg, 'bar_rms',
+                    lambda audio, bar_sec, nbars: {b: 0.0 for b in range(nbars)})))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):

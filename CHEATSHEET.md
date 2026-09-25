@@ -162,6 +162,11 @@ studio\stop.cmd     # 停
 & $py scripts\check_audio.py <目录> --formats        # 目录里哪些能读
 & $py scripts\check_song.py <曲目>                   # 渲染前查数据契约判据（0.4 秒）
 & $py scripts\check_song.py <曲目> --fix             # 自动修和弦音集/强拍
+& $py scripts\probe_bpm_layers.py <音频> --stems <demucs目录>   # **BPM 层级**：自相关/IOI/网格贴合 + 关系提示
+& $py scripts\selftest.py --only <名1,名2>           # **只跑指定检查**（0.1 秒 vs 全量 169.9 秒）
+& $py scripts\selftest.py --list                     # 列出全部检查名（配 --only 用）
+#   ⚠ 全量 `selftest.py --fast` 只在**交付前**与**改过检查项本身**时跑；
+#     改一条守卫用 `--only`，别为它等 2.8 分钟（实测 `track_balance` 一项就 58.5s）
 ```
 
 ### 还原（扒带）

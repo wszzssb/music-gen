@@ -87,6 +87,108 @@ def read_notes(path):
     return out
 
 
+# 抽旋律：某小节音符数 ≥ 这个值，才认为"这条轨在这一小节有主奏内容"。
+# ⚠ 原值 **4** 太严（PITFALLS 239 实测）：稀疏主奏轨整段抽不出旋律 ——
+#   `siren_end`（Piano 612 音 / 143 小节）只抽出 146 音 → melody 密度 **1.02 音/小节**，
+#   被 `melody_health` 的下限 1.2 拦下，交付前必须先修数据。
+MEL_MIN_PER_BAR = 2
+# 取"高音区"的起点（0.70 = 顶部 30%）。
+# ⚠ **不要再往下调去"凑密度"**（用户 2026-09-25 口径："如果是真的没有音要保留，
+#   重要的是符合原曲"）：把窗口放宽到中音区，等于把**伴奏内声部**当旋律 ——
+#   那是为了让 `melody_health` 的密度好看而改内容，方向错了。
+#   **原曲稀疏就保留稀疏**；密度不达标走 `patterns.melody_exempt`（带理由 + 数字），
+#   而不是补音、也不是改阈值。
+MEL_TOP_FRAC = 0.70
+
+
+def extract_melody(mel_src, secs, bar_sec, max_per_bar=None):
+    """从 `--melody-from` 那条轨按**段内小节**抽旋律线。
+
+    → `{段名: [[小节, 拍, 时值, 音高], ...]}`（小节号是**段内**口径，见模块 docstring 契约 1）。
+
+    规则（`selftest.t_transcribe_melody_density` 盯着）：
+      · 该小节音符数 ≥ `MEL_MIN_PER_BAR` 才抽；
+      · 在**音高最高的 (1 − MEL_TOP_FRAC) 部分**里按时间取最多 `max_per_bar` 个；
+      · 该窗口为空时回退到该小节最高音 —— 保证"有内容的小节至少出 1 个音"。
+    """
+    if max_per_bar is None:
+        max_per_bar = MEL_MAX_PER_BAR
+    mel, bar0 = {}, 0
+    for sec in secs:
+        rows_m = []
+        for b in range(bar0, bar0 + sec['bars']):
+            ns = sorted([(s, p) for (s, _e, p, _v) in mel_src if int(s / bar_sec) == b],
+                        key=lambda x: x[1])
+            if len(ns) < MEL_MIN_PER_BAR:
+                continue
+            top = ns[int(len(ns) * MEL_TOP_FRAC):][:max_per_bar] or ns[-1:]
+            for s, p in top:
+                rows_m.append((b - bar0, (s - b * bar_sec) / (bar_sec / 4), p))
+        out = []
+        for j, (bb, beat, p) in enumerate(rows_m):
+            if j + 1 < len(rows_m) and rows_m[j + 1][0] == bb:
+                dur = max(0.5, round(rows_m[j + 1][1] - beat, 2))
+            else:
+                dur = max(0.5, round(4.0 - beat, 2))
+            out.append([bb, round(beat, 2), dur, p])
+        mel[sec['name']] = out
+        bar0 += sec['bars']
+    return mel
+
+
+NOTE_PC = {'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5, 'F#': 6,
+           'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11}
+# 和弦符号 → 音级（相对根音的半音数）
+CHORD_STEPS = {'m7': [0, 3, 7, 10], '7': [0, 4, 7, 10], 'sus4': [0, 5, 7],
+               'm': [0, 3, 7], '': [0, 4, 7]}
+
+
+def chord_tones(name):
+    """和弦符号 → `[低音 MIDI, 音级 MIDI 数组]`；认不出来返回 None。
+
+    ⚠ 两条口径（都有实测依据）：
+      ① **音级必须落在 C 的整数倍上**（60 = C4）；写成 64 会整体偏 4；
+      ② **低音必须跟着根音走**（PITFALLS 239）：这里曾写死 `34`（A#1）——
+         于是每个和弦的低音都是 A#1，`check_song` 的 `chord_names_match_notes`
+         会对**除 A# 外的每个和弦**报"低音与根音不符"（实测 `siren_end`：20 个
+         和弦种全中）。口径与 `check_song._build_voicing` 一致：
+         把**根音 pc** 落进 28–45 音区（超出则回退一个八度）。
+    """
+    m = re.match(r'^([A-G]#?)(.*)$', name)
+    if not m:
+        return None
+    pc = NOTE_PC[m.group(1)]
+    steps = CHORD_STEPS.get(m.group(2), [0, 4, 7])
+    bass = 28 + ((pc - 28) % 12)
+    if bass > 45:
+        bass -= 12
+    return bass, [60 + pc + s for s in steps]
+
+
+def range_fit(notes, tr):
+    """把**越界音**移到最近的合法八度；**合法音一个不动**（还原曲要"符合原曲"）。
+
+    ⚠ 为什么必须在**生成端**做（PITFALLS 253 实测）：引擎的 `TR_RANGE` 保护是**整轨**移位 ——
+    本曲 Strings 只有 **11/278（4%）** 越界、Melody **9/32**，引擎却把**整条轨**
+    移了 **+12 / +24** 半音，等于把 96% 本来正确的音一起改掉。还原任务里那是硬伤。
+    逐音夹取后引擎不再触发整轨移位；怎么移都装不下的音（跨度 > 12）原样放行，交给引擎。
+    `notes` = `[(起, 止, 音高, 力度)]`。
+    """
+    rng = se.TR_RANGE.get(tr)
+    if not rng or not notes:
+        return notes
+    a, b = rng
+    out = []
+    for st, en, p, vel in notes:
+        q = int(p)
+        while q < a:
+            q += 12
+        while q > b:
+            q -= 12
+        out.append((st, en, q if a <= q <= b else int(p), vel))
+    return out
+
+
 def parse_chords(path):
     """解析 `analyze_chords.py` 的输出 → [(小节号, 和弦名, 起音数)]。
     行格式：`  12 | Fsus4     | Vsus4    |    61  |   -15.3`"""
@@ -193,21 +295,11 @@ def main():
     chord_names = [r[1] for r in rows]
     onsets = {r[0]: r[2] for r in rows}
 
-    def tones(name):
-        m = re.match(r'^([A-G]#?)(.*)$', name)
-        if not m:
-            return None
-        pc = {'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5, 'F#': 6,
-              'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11}[m.group(1)]
-        steps = {'m7': [0, 3, 7, 10], '7': [0, 4, 7, 10], 'sus4': [0, 5, 7],
-                 'm': [0, 3, 7], '': [0, 4, 7]}.get(m.group(2), [0, 4, 7])
-        # ⚠ 音级必须落在 **C 的整数倍**上（60 = C4）；写成 64 会整体偏 4
-        return 34, [60 + pc + s for s in steps]
-
+    # 和弦排列交给模块级 `chord_tones`（可单测 —— 守卫 `t_chord_bass_matches_root`）
     chords = {}
     for cn in chord_names:
         if cn not in chords:
-            t = tones(cn)
+            t = chord_tones(cn)
             if t:
                 chords[cn] = [t[0], t[1]]
 
@@ -262,6 +354,8 @@ def main():
         if not os.path.exists(path):
             raise SystemExit('找不到 %s' % path)
         notes = read_notes(path)
+        # 越界音**逐音**夹到最近的合法八度（否则引擎会**整轨**移八度，见 `range_fit`）
+        notes = range_fit(notes, tr)
         # ⚠ **带第 5 位力度**（`[小节, 拍, 时值, 音高, 力度]`）：引擎的 `_vel_of` 就认它。
         #   丢了力度 → 引擎套默认值 → "打字机"（实测对照：带 17773/17773，不带 0/23033）。
         ne[tr] = [[int(st / bar_sec),
@@ -292,25 +386,47 @@ def main():
 
     # —— 抽旋律（从 --melody-from 那条轨取每小节的高音区）——
     if mel_src:
-        bar0 = 0
-        for sec in secs:
-            rows_m = []
-            for b in range(bar0, bar0 + sec['bars']):
-                ns = sorted([(s, p) for (s, _e, p, _v) in mel_src if int(s / bar_sec) == b],
-                            key=lambda x: x[1])
-                if len(ns) < 4:
-                    continue
-                for s, p in ns[int(len(ns) * 0.70):][:MEL_MAX_PER_BAR]:
-                    rows_m.append((b - bar0, (s - b * bar_sec) / (bar_sec / 4), p))
-            out = []
-            for j, (bb, beat, p) in enumerate(rows_m):
-                if j + 1 < len(rows_m) and rows_m[j + 1][0] == bb:
-                    dur = max(0.5, round(rows_m[j + 1][1] - beat, 2))
-                else:
-                    dur = max(0.5, round(4.0 - beat, 2))
-                out.append([bb, round(beat, 2), dur, p])
-            mel[sec['name']] = out
-            bar0 += sec['bars']
+        mel = extract_melody(mel_src, secs, bar_sec)
+        # melody 层同样**逐音**夹取（引擎的 Melody 轨也有音域门，同 `range_fit` 的理由）
+        _mr = se.TR_RANGE.get('Melody')
+        if _mr:
+            _ma, _mb = _mr
+            for _arr in mel.values():
+                for _e in _arr:
+                    _q = int(_e[3])
+                    while _q < _ma:
+                        _q += 12
+                    while _q > _mb:
+                        _q -= 12
+                    if _ma <= _q <= _mb:
+                        _e[3] = _q
+
+    # —— 还原曲的旋律密度：**如实保留**，不为达标补音 ——
+    # 用户口径（2026-09-25）："**如果是真的没有音要保留，重要的是符合原曲**"。
+    # 扒谱天然只覆盖"主奏真的在响"的小节（`siren_end` 实测 89/143），密度常低于
+    # `melody_health` 的下限（`probe_melody_health.MIN_DENS`）—— 那是**原曲的事实**，
+    # 不是缺陷：靠放宽抽取窗口（把中音区伴奏当旋律）去凑密度 = 改内容迁就指标，方向反了。
+    # 处理：写 `patterns.melody_exempt['dens']`（口径同 `align_exempt`：理由 blank = 没写），
+    # 理由**必须带实测数字**，便于事后审计，并打印出来让人看见。
+    _tot_bars = sum(s['bars'] for s in secs)
+    _mel_n = sum(len(v) for v in mel.values())
+    _mel_bars = len({(si, e[0]) for si, sec in enumerate(secs)
+                     for e in mel.get(sec['melody'], [])})
+    _dens = (_mel_n / float(_tot_bars)) if _tot_bars else 0.0
+    try:
+        import probe_melody_health as _MH
+        _min_dens = _MH.MIN_DENS
+    except Exception:                                              # noqa: BLE001
+        _min_dens = 1.2
+    if _tot_bars and _dens < _min_dens:
+        _exempt_dens = ('还原曲、原曲稀疏：`--melody-from` 那条轨的转录只在 %d/%d 小节有音，'
+                        '取高音区后 melody %d 音 = %.2f 音/小节（生成曲下限 %.1f）。'
+                        '按 2026-09-25 口径"真的没有音要保留、符合原曲"**不补音**'
+                        % (_mel_bars, _tot_bars, _mel_n, _dens, _min_dens))
+        print('  ⚠ melody 密度 %.2f < %.1f：**保留原曲的稀疏**并写 patterns.melody_exempt'
+              '（主奏只在 %d/%d 小节有音）' % (_dens, _min_dens, _mel_bars, _tot_bars))
+    else:
+        _exempt_dens = None
 
     d = {
         'name': a.name, 'bpm': float(a.bpm), 'meter': [4, 4],
@@ -324,6 +440,35 @@ def main():
         'chords': chords, 'sections': secs, 'melody': mel,
         'notes_extra': ne,
     }
+    if _exempt_dens:
+        d['patterns']['melody_exempt'] = {'dens': _exempt_dens}
+
+    # —— 伴奏轨的"和弦贴合率"：还原曲的读数只有**审计意义** ——
+    # 判据 `t_accompaniment_harmony` 的 95% 门是为**引擎生成的编配**设的
+    # （它当年抓的是 `TR_SHIFT` 改音级那个 bug）。还原曲的伴奏音是**抄来的真实演奏**，
+    # 与独立分析的 `chords` 天然不完全一致（实测 Piano 61% / Strings 56% / Hook 42%）。
+    # 要"符合原曲"就**不能改这些音**去凑 95% —— 于是写**带实测数字**的
+    # `patterns.accomp_exempt.fit`（口径同 `melody_exempt`：理由空白 = 没写 = 不放行）。
+    _gch = [c for _s in secs for c in _s['chords']]
+    _fits = {}
+    for _tr, _arr in ne.items():
+        if _tr not in ('Hook', 'Piano', 'Arp', 'Strings', 'Pad') or len(_arr) < 40:
+            continue
+        _ok = 0
+        for (_b, _bt, _du, _p, _v) in _arr:
+            _e = chords.get(_gch[_b]) if _b < len(_gch) else None
+            if _e and (_p % 12) in {x % 12 for x in _e[1]}:
+                _ok += 1
+        _fits[_tr] = _ok / float(len(_arr))
+    _lowfit = {k: v for k, v in _fits.items() if v < 0.95}
+    if _lowfit:
+        _desc = '、'.join('%s %.0f%%' % (k, v * 100) for k, v in sorted(_lowfit.items()))
+        d['patterns']['accomp_exempt'] = {
+            'fit': ('还原曲：伴奏音来自**转录音符**（不是引擎按和弦生成），与独立分析的 '
+                    'chords 不完全一致 —— 实测贴合率 %s（判据门 95%%）。按"符合原曲"'
+                    '**不改这些音**（2026-09-25 口径）' % _desc)}
+        print('  ⚠ 伴奏和弦贴合率 <95%%：%s —— 写 patterns.accomp_exempt（**不改音**，'
+              '如实保留转录结果）' % _desc)
     if a.full:
         d['patterns']['notes_extra_full'] = True
     if drum_grid:

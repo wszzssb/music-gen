@@ -274,6 +274,10 @@ PAT_KEYS = (
     # 旋律维度的**带理由豁免**（见 `selftest._exempt_dims`）：画像本身如此、与别的守卫
     # 互斥时，写清理由放行该维（空理由 = 没写）。
     'melody_exempt',
+    # 伴奏和弦贴合的**带理由豁免**（见 `selftest.t_accompaniment_harmony`）：还原曲的伴奏
+    # 是**抄来的真实演奏**，与独立分析的 `chords` 不完全重合 —— 写清理由（含实测贴合率）
+    # 放行，**不改音去凑 95% 门**（PITFALLS 254）。
+    'accomp_exempt',
     # 音域与还原
     'range_fix', 'legato_trim', 'notes_extra_full',
     # 钢琴反拍短音的力度/时值（opt-in，缺省 = 老行为逐字节不变）——

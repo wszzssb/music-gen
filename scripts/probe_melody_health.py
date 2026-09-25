@@ -41,6 +41,13 @@ MAX_RUN = 4          # 最长连续同音上限（4 连在慢歌里不算罕见�
 SMALL_IV_MAX = 35.0  # |iv|≤1（同音/半音级进）占比上限 —— "小步打转"的判据
 MIN_DENS = 1.2       # 每小节最少音符数
 MAX_CHOP = 8.0       # 碎音（≤0.25 拍）比例上限
+# **强拍贴合判据的最小样本量**（PITFALLS 240）：`fit` 是"落在强拍上的旋律音
+# 有多少在和弦内音里"。样本极少时它不是判据、是噪声 —— 实测 `siren_end`（还原曲，
+# melody 稀疏 + 落点不规则）只有 **1 个**强拍样本、贴合 0%，于是被判成"强拍 0%"，
+# 而这个 0% 完全由那一个音决定。
+# 门槛依据（全库 32 首实测）：**31 首正常曲目的强拍样本 ≥14**（最小 14，中位 40+），
+# 唯一样本不足的就是那首还原曲（=1）→ 取 8 既能拦住噪声，又仍给未来稀疏曲留余量。
+MIN_FIT_N = 8
 # **整曲同音率上限**（2026-09-20 加，实测踩出来的）：`maxrun` 抓不到"被段落切碎的压平"。
 # 现场：用脚本把某段旋律 16 个音批量写成同一个音高，它们散在 8 小节里 → 串长只有 2~3，
 # 而**同音率 100%**；当时 `melody_health` 只报"强拍 85%"，压平是回看 JSON 才发现的。
@@ -87,6 +94,7 @@ def probe(path):
         'small': small, 'uniq': len(set(pitches)),
         'span': (max(pitches) - min(pitches)) if pitches else 0,
         'fit': (100 * fit_s / tot_s) if tot_s else -1,
+        'fit_n': tot_s,          # 强拍样本量 —— `issues` 用它挡"1 个样本定生死"
         'gen': (d.get('melody_gen') or {}).get('profile'),
     }
 
@@ -127,7 +135,7 @@ def issues(r, strict=False):
         lim = max(lim, min(30.0, sh * 2.0))      # 画像就有这么多 → 方言；2 倍以内算正常波动
     if r['chop'] > lim:
         out.append('碎音%.0f%%' % r['chop'])
-    if 0 <= r['fit'] < 100:
+    if 0 <= r['fit'] < 100 and r.get('fit_n', 0) >= MIN_FIT_N:
         out.append('强拍%.0f%%' % r['fit'])
     return out
 
