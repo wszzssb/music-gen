@@ -8483,6 +8483,25 @@ def t_restore_oneshot_chain():
         '链路默认改成"删静音段的音"了 —— 实测那会让 S01 的 RMS 差从 −5.9 掉到 −14.4dB（先补低频再删）'
     assert RO.DEFAULT_PROG is None, \
         '链路默认开段级音色了 —— GM40 在密集和弦线上是负结果（S17–S22 的 2–6k 3.4–5.4% → 10.4–29.9%）'
+    # **`arrange` 阶段必须真的接上判据文件**（2026-09-26 接线：以前 `--mix off --vel off` 是写死的，
+    #   段级 CC7 永远不生效，连它自己打印的"带 --from arrange 重跑一次"也走不通）。
+    #   实测代价（dear_good_friends 手工接上同一步）：|RMS差| 2.07→1.78 · 150 读数 3.80→3.41。
+    import tempfile as _tf
+    with _tf.TemporaryDirectory() as _d:
+        _a = RO.arrange_cli(_d)
+        assert '--mix' in _a and _a[_a.index('--mix') + 1] == 'off', \
+            '没有判据文件时不该开 mix：%r' % (_a,)
+        assert _a[_a.index('--vel') + 1] == 'off', '没有判据文件时不该开 vel：%r' % (_a,)
+        open(os.path.join(_d, 'sections.json'), 'w').write('{"rows": []}')
+        _b = RO.arrange_cli(_d)
+        assert _b[_b.index('--mix') + 1] == 'on' and _b[_b.index('--sec-json') + 1].endswith('sections.json'), \
+            '有 sections.json 时必须接上 --sec-json 并开 mix：%r' % (_b,)
+        assert _b[_b.index('--vel') + 1] == 'off', '只有 sections.json 时不该开 vel：%r' % (_b,)
+        open(os.path.join(_d, 'bright.json'), 'w').write('{}')
+        _c = RO.arrange_cli(_d, prog='Strings=40', shift='Strings=0', dry=True)
+        assert _c[_c.index('--vel') + 1] == 'on' and _c[_c.index('--bright-json') + 1].endswith('bright.json'), \
+            '有 bright.json 时必须接上 --bright-json 并开 vel：%r' % (_c,)
+        assert '--prog' in _c and '--shift' in _c and '--dry' in _c, 'prog/shift/dry 传丢了：%r' % (_c,)
     # 负控：两道门各自必须**拦得住**（⚠ 不传 keep/gap_min，走模块默认值 —— 否则变异注入不进来）
     assert MS.should_merge(0.5, 1.0, _np.array([0.01, 0.01]), 1.0, 1.0)[0] is False, \
         '合片闸门放行了"原曲在这里断了"的情况 —— 会把真实的重新起音抹掉'

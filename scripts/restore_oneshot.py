@@ -14,7 +14,7 @@ r"""restore_oneshot.py —— **扒带"一键到底"**：`song.json` 之后的�
 | `probe` | `probe_instruments.py --json` | **扒带第 ⓿ 步**：逐段编制表（`lead` 分轨 + 起音 + 在场分轨）；后面每一步都用它 |
 | `repair` | `arrange_voices.py` + `merge_sustain.py` + 静音段体检 | 并轨读编制表（**Pad 只进不出**）· 持续层按**原曲该音高能量连续性**合片 · 静音段**只报不删**（实测删了会让开头掉 14dB，顺序必须先补低频） |
 | `vel` | `vel_from_ref.py` | **本轮唯一把指标推上去的杠杆**：原曲响度→力度写回谱面（力度中位 74→105、亮度比 0.41→0.67、\|RMS差\| 2.56→2.07） |
-| `arrange` | `arrange_sections.py --mix on --vel on` | 段级 CC7（逐段 RMS 差，死区 1.5dB / ±3dB）+ 段级力度（2–6k 比值 >1.5 才降） |
+| `arrange` | `arrange_sections.py`（`--mix`/`--vel` **按 `work/` 里有没有判据文件**自动开，见 `arrange_cli()`） | 段级 CC7（逐段 RMS 差，死区 1.5dB / ±3dB）+ 段级力度（2–6k 比值 >1.5 才降）—— ⚠ **首次跑没有 `sections.json`/`bright.json`（那是 `audit` 的产物）⇒ 第一遍不生效，带 `--from arrange` 跑第二遍才生效**（一次迭代，不是循环） |
 | `render` | `make_song.py` + `render_midi.py` | 引擎渲染 + 母带链 |
 | `audit` | `timbre_audit` + `report_sections` + **亮度比** | 三把尺子一次出：嘶声/形态 · 逐段 RMS 差 & chroma · 逐段 2–6kHz 比值 |
 
@@ -96,6 +96,45 @@ def brightness_table(mine_wav, ref_wav, song_json, out_json):
         "open(r'%s','w',encoding='utf-8'),ensure_ascii=False,indent=1)\n"
         "print('亮度表 ->', r'%s')\n" % (HERE, song_json, mine_wav, ref_wav, out_json, out_json))
     sh([ML, "-c", code], "brightness")
+
+
+def arrange_cli(work, prog=None, shift=None, dry=False):
+    """`arrange` 阶段传给 `arrange_sections.py` 的参数（**纯函数，便于自检/变异**）。
+
+    ## 这一步以前是**空转**的（2026-09-26 接线）
+    原实现把 `--mix off --vel off` **写死**、且**从不传** `--sec-json`/`--bright-json`
+    ⇒ 段级 CC7 与段级力度**永远不会生效**；连它自己打印的那句"先跑一次 audit，
+    再带 `--from arrange` 重跑才会生效"也走不通 —— 重进的还是同一个硬编码 `off` 分支。
+
+    **实测代价**（`dear_good_friends`，手工接上同一步）：
+    `|RMS差| 2.07 → 1.78` · 150 读数（10 带×15 段的平均绝对带差）`3.80 → 3.41` ·
+    `chroma 0.8821 → 0.8867`；最差的三段被拉回来：S13 `+6.00 → +3.20dB` ·
+    Ending `+7.20 → +4.50` · S14 `+2.10 → +0.70`。
+
+    ## 判据文件从哪来
+    `audit` 阶段写进 `work/` 的：`sections.json`（逐段 RMS 差 → CC7）·
+    `bright.json`（逐段 2–6k 比值 → 段级力度）。**没有它们就保持 off** ——
+    首次跑本来就没有（所以第一遍仍不生效、第二遍带 `--from arrange` 才生效，
+    与文档一致；区别是**现在真的能生效**而不是白跑）。
+    """
+    args = []
+    sec = os.path.join(work, "sections.json")
+    br = os.path.join(work, "bright.json")
+    if os.path.exists(sec):
+        args += ["--sec-json", sec, "--mix", "on"]
+    else:
+        args += ["--mix", "off"]
+    if os.path.exists(br):
+        args += ["--bright-json", br, "--vel", "on"]
+    else:
+        args += ["--vel", "off"]
+    if prog:
+        args += ["--prog", prog]
+    if shift:
+        args += ["--shift", shift]
+    if dry:
+        args += ["--dry"]
+    return args
 
 
 def selftest(verbose=True):
@@ -186,11 +225,9 @@ def main():
         args = [PY, os.path.join(HERE, "arrange_sections.py"), "--song-json", sj]
         if os.path.exists(table):
             args += ["--table", table]
-        args += ["--mix", "off", "--vel", "off"]
-        if a.prog:
-            args += ["--prog", a.prog]
-        if a.shift:
-            args += ["--shift", a.shift]
+        # ⚠ 这一步**以前是空转的**（`--mix off --vel off` 写死 + 从不传判据文件）——
+        #   接线口径与实测数字见 `arrange_cli()` 的 docstring。
+        args += arrange_cli(work, a.prog, a.shift, a.dry)
         args += ["--dry"] if a.dry else ["--apply"]
         sh(args, "arrange_sections")
 
