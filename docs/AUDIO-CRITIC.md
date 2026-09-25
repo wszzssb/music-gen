@@ -39,6 +39,12 @@
 - **硬约束（8GB 显存）**：bf16 权重 15.5GB 装不下；NF4 4bit ≈ 4.9GB 可以，
   但要把**音频编码器留在 CPU**（`device_map={'audio_tower':'cpu','multi_modal_projector':0,'':0}`
   + `llm_int8_skip_modules=['audio_tower']`）—— 直接 `device_map='auto'` 会被 bnb 拒绝。
+- ✅ **默认离线**（2026-09-25 用户要求"千问调成默认离线"，已落成代码）：脚本自己设
+  `HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1`，**照 §4 的命令直接跑就行**。
+  ⚠ 以前不是默认：本机连不上 `huggingface.co`，而 `from_pretrained` 会**先联网 HEAD 每个文件**、
+  每个重试 5 次 × 2 轮 → 实测一路 `httpx.ConnectTimeout [WinError 10060]` 直到抛异常，
+  **现象是"模型加载崩了"**（看着像权重坏了）。要临时联网：`--online`，
+  或显式 `HF_HUB_OFFLINE=0`（`setdefault` 不覆盖你设的值）。
 
 ## 4. 用法
 
@@ -50,6 +56,8 @@ $ml = ".venv-ml\Scripts\python.exe"
 & $ml scripts\ask_audio_critic.py <音频> --segments 8 --load-4bit            # GPU 4bit（快 17×）
 & $ml scripts\ask_audio_critic.py <音频> --segments 8 --load-4bit --sample --repeat 5
 #   同段采样 5 次 → **只留稳定复现的线索**（§6.4）· `--band` 时间桶宽（默认 4 秒）· `--min-hits` 门槛（默认过半）
+# ⚠ **不用自己设离线变量**（脚本默认离线，见 §3）；`--online` 才是联网
+#   ⚠ 调好一个问题再扫全曲：`--ask` 换问法会**直接翻转结论**（§5 第 6 条）
 ```
 
 输出：每段一行 `段N [起~止秒] 耗时 | 回答`，结尾一张"段 × 版本"的判定矩阵 + JSON 落盘

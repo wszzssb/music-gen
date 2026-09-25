@@ -2249,6 +2249,35 @@ def main():
                         lambda: MutMany([(_pi, 'VIB_GATE_DB', 999.0),
                                          (_pi, 'VIB_TRIM_FRAC', 0.0)])))
 
+    # 68. `ask_audio_critic` 的**默认离线**被摘掉必须被抓（用户 2026-09-25："千问调成默认离线"）。
+    #     现场：本机连不上 huggingface.co，而文档教的直接跑 CLI 就是联网 —— `from_pretrained`
+    #     先 HEAD 每个文件、重试 5 次 × 2 轮，一路 `ConnectTimeout [WinError 10060]` 到崩
+    #     （看着像"模型坏了"）。注入 = 把模块级的 `_default_offline()` 调用删掉。
+    #     ⚠ 检查写在**子进程**里（清空环境变量后 import），所以注入也必须改**磁盘上的文件** ——
+    #     用"拷进临时目录 + 抹掉调用 + 把 HERE 指过去"（同 ㉒/㉔ 的做法）。
+    class _NoOfflineDefault:
+        def __enter__(self):
+            import shutil
+            src = os.path.join(st.HERE, 'ask_audio_critic.py')
+            s = open(src, encoding='utf-8').read()
+            bad = s.replace('\n_default_offline()\n', '\n# _default_offline()  # 注入：默认离线被摘掉\n')
+            if bad == s:
+                raise SkipCase('没匹配到 `_default_offline()` 调用（工具改了写法）')
+            self.d = tempfile.mkdtemp(dir=TMP)
+            for nm in ('ask_audio_critic.py', 'cli_utf8.py'):
+                p = os.path.join(st.HERE, nm)
+                if os.path.exists(p):
+                    shutil.copy2(p, self.d)
+            open(os.path.join(self.d, 'ask_audio_critic.py'), 'w', encoding='utf-8').write(bad)
+            self.old = st.HERE
+            st.HERE = self.d
+            return self
+
+        def __exit__(self, *a):
+            st.HERE = self.old
+    results.append(case('音频嘴替：默认离线被摘掉（照文档跑就联网）',
+                        'audio_critic_contracts', _NoOfflineDefault))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

@@ -4780,6 +4780,22 @@ def t_audio_critic_contracts():
                        timeout=120)
     assert r.returncode == 0, '--help 打不出来：%s' % ((r.stderr or r.stdout or '')[:200])
 
+    # ⑦ **默认离线**（用户 2026-09-25："千问调成默认离线"）。
+    #    现场：本机连不上 huggingface.co，而 `from_pretrained` 会先联网 HEAD 每个文件、
+    #    重试 5 次 × 2 轮 → 一路 `ConnectTimeout [WinError 10060]` 到崩，**看着像模型坏了**。
+    #    判据必须是**行为**（子进程里 import 后看环境变量），不是"源码里有没有那行字" ——
+    #    子进程显式清掉这两个变量，证明是**脚本自己设上的**，不是从我这个 shell 继承的。
+    env = {k: v for k, v in os.environ.items()
+           if k not in ('HF_HUB_OFFLINE', 'TRANSFORMERS_OFFLINE', 'DSH_AUDIO_CRITIC_ONLINE')}
+    code = ('import os, sys; sys.path.insert(0, %r); import ask_audio_critic; '
+            'print(os.environ.get("HF_HUB_OFFLINE"), os.environ.get("TRANSFORMERS_OFFLINE"))' % HERE)
+    r2 = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True,
+                        encoding='utf-8', errors='replace', env=env, timeout=120, cwd=HERE)
+    assert r2.returncode == 0, 'import ask_audio_critic 在干净环境里崩了：%s' % (r2.stderr or '')[:200]
+    assert r2.stdout.strip() == '1 1', (
+        '默认离线没生效：干净环境里 import 后读到 %r（该是 "1 1"）—— '
+        '照文档直接跑 CLI 就会去联网重试到超时 [WinError 10060]' % r2.stdout.strip())
+
     # ⑦ **时间口径**（2026-09-21 实测校正；文档原写"段内相对秒"是错的）
     #    现场：段 3 的 prompt 给的是"第 55.8 秒到第 83.8 秒"，模型报的是 `56~84`；
     #    40 段真实输出里，7 个"两域不重叠"的段（段 2~8）**96/96 条全落在整曲域**、

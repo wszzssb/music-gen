@@ -31,6 +31,9 @@ r"""ask_audio_critic.py —— 让**本地 HF 音频大模型**逐段听曲子�
     pip install --no-deps accelerate bitsandbytes && pip install --no-deps psutil
     ... --load-4bit      # 8GB 卡：4bit LM 进显存，音频编码器留 CPU
   ⚠ 量化会**改变判定** → 做 A/B 时全部版本必须同配置。
+  ✅ **默认离线**（2026-09-25 用户要求，已落成代码）：脚本自己设 `HF_HUB_OFFLINE=1 /
+     TRANSFORMERS_OFFLINE=1`，**照下面命令直接跑即可**；要联网加 `--online`
+     （本机连不上 huggingface.co，会一路 ConnectTimeout 重试）。见 `_default_offline()`。
 
 用法:
   python scripts\ask_audio_critic.py <音频> --start 55 --dur 28      # 单段
@@ -58,6 +61,29 @@ try:
     _cu.setup()
 except Exception:                                     # noqa: BLE001
     pass
+
+
+def _default_offline():
+    """**默认离线**（用户 2026-09-25："千问调成默认离线"）。
+
+    为什么必须落成代码而不是写进文档：本机连不上 `huggingface.co`，而
+    `AutoProcessor.from_pretrained` / `from_pretrained` 会**先联网 HEAD 每个文件**，
+    每个文件重试 5 次 × 2 轮 → 实测一路 `httpx.ConnectTimeout [WinError 10060]`
+    直到抛异常，**现象是"模型加载崩了"**（本轮真踩：照 §4 的命令直接跑就中）。
+    文档里早就写着"离线跑"，但**照文档跑就是联网** —— 这类"文档写了、代码没接"必须落码。
+
+    ⚠ 必须在 `import transformers` **之前**设置（它在 import 时读这两个变量）；
+      而且本模块的重依赖是**函数内延迟 import**，所以放模块级就够早。
+    要临时联网：`--online`，或显式 `set HF_HUB_OFFLINE=0`（`setdefault` 不覆盖你设的值）。
+    """
+    if os.environ.get('DSH_AUDIO_CRITIC_ONLINE') == '1':
+        return
+    os.environ.setdefault('HF_HUB_OFFLINE', '1')
+    os.environ.setdefault('TRANSFORMERS_OFFLINE', '1')
+    os.environ.setdefault('HF_HUB_DISABLE_TELEMETRY', '1')
+
+
+_default_offline()
 
 MODEL_ID = 'Qwen/Qwen2-Audio-7B-Instruct'
 MAX_SEC = 30.0                     # WhisperFeatureExtractor 的硬上限（多喂 = 静默截断，坑 227）
@@ -572,7 +598,15 @@ def main():
                          '默认用内置的"列出所有问题"模板。'
                          '例：--ask "这段听起来流畅吗？有没有卡顿、断裂、突然中断的地方？"')
     ap.add_argument('--json', default='')
+    ap.add_argument('--online', action='store_true',
+                    help='**一次性联网**（默认离线，见 `_default_offline`）；'
+                         '本机通常连不上 huggingface.co，加了会一路 ConnectTimeout')
     a = ap.parse_args()
+
+    if a.online:                       # 必须在构造 Critic（= import transformers）之前解开
+        os.environ.pop('HF_HUB_OFFLINE', None)
+        os.environ.pop('TRANSFORMERS_OFFLINE', None)
+        print('[i] --online：已解开离线限制（本机连不上 huggingface.co 时会卡在重试）')
 
     files = a.compare or ([a.audio] if a.audio else [])
     if not files:
