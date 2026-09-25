@@ -44,6 +44,15 @@ def band_energy_db(x, sr):
     nfft = 1
     while nfft < sr * 0.186:
         nfft *= 2
+    # ⚠ **段可能比窗口还短**：`--segments` 分段补偿会拿**段切片**调用本函数，
+    #   而窗口是按采样率折算的（44.1kHz → 16384 点 = 0.37s）—— 短段/尾段一旦小于它，
+    #   `sliding_window_view` 直接 `ValueError: window shape cannot be larger than input array shape`
+    #   （2026-09-25 实测：25 段边界下当场崩，整条补偿白跑）。窗口随信号长度退让，下限 256 点；
+    #   比 256 点还短就没有可用的带能量，如实返回极小值而不是崩。
+    if len(mono) < 256:
+        return np.full(len(EDGES) - 1, -120.0), np.array([0.0]), np.zeros(1)
+    while nfft > len(mono) and nfft > 256:
+        nfft //= 2
     hop = nfft // 4
     frames = np.lib.stride_tricks.sliding_window_view(mono, nfft)[::hop]
     if len(frames) > 2000:
@@ -191,6 +200,21 @@ def main():
         #   → 按时间权重**线性混合**（别拼接，避免边界不连续）。
         pts = sorted(set([0.0] + seg_pts + [dur]))
         idx = sorted(set(int(min(n_samp, max(0, round(t * sr)))) for t in pts))
+        # ⚠ **丢掉"碎段"**（2026-09-25 实测的真凶）：段边界给到接近末尾时（例如 `176.7`
+        #   而音频实际 **176.701s**）会切出**几十个采样**的尾段 → 窗口放不下 →
+        #   `sliding_window_view` 当场 `ValueError`，**整条补偿白跑**（25 段全算完才崩）。
+        #   做法：相邻边界间隔 < 0.1s 的直接合并，末尾碎段并进最后一段（延伸覆盖到结尾）。
+        _min_gap = int(0.1 * sr)
+        _keep = [idx[0]]
+        for _v in idx[1:]:
+            if _v - _keep[-1] >= _min_gap:
+                _keep.append(_v)
+        if _keep[-1] != idx[-1]:
+            _keep[-1] = idx[-1]                   # 末段延伸到结尾，而不是留一个碎段
+        if len(_keep) < len(idx):
+            print('  （已合并 %d 个 <0.1s 的碎段边界 —— 否则会崩在滑动窗口上）'
+                  % (len(idx) - len(_keep)))
+        idx = _keep
         if len(idx) >= 3:
             xf = max(1, int(min(0.30, dur / (len(idx) * 4)) * sr))
             W = np.zeros((len(idx) - 1, n_samp))

@@ -262,6 +262,12 @@ def main():
         return Mut(T, 'gen_layer_on', lambda c: True)
     results.append(case('引擎生成层退回段名规则', 'transcribe_arr_by_source', _arr_regressed))
 
+    # 0b4. 逐段读数退化成"整曲一段"（2026-09-25 用户口径："以后要全曲读的先看看要不要分段"）
+    def _whole_song():
+        import report_sections as R
+        return Mut(R, 'section_spans', lambda s, bpm=None: [0.0, 176.7])
+    results.append(case('逐段读数退化成整曲一段', 'sections_not_whole_song', _whole_song))
+
     # 0c. 密度起伏被抹平（2026-09-19 修口径后补：判据改量逐小节，注入要能红）
     def _flat_density():
         src = os.path.join(ROOT, 'songs', '41_imitate_b16', 'song.json')

@@ -7563,6 +7563,30 @@ def t_transcribe_arr_by_source():
     return '生成层按来源开关（arr 的 arp/pad/glock/shimmer 走 gen_layer_on）'
 
 
+@check
+def t_sections_not_whole_song():
+    """**逐段读数不许退化成"整曲一段"**（用户 2026-09-25："以后要全曲读的先看看要不要分段"）。
+
+    依据（同轮实测，用户当场纠正两次）：全曲中位 chroma 0.904 / 质心差 −25% 看着"还行"，
+    逐段量却是 **+43Hz（引子）→ −944Hz（尾段）**、chroma **0.77~0.96**，且**方向相反**
+    （S02/S03 该降、S07–S24 该升）—— 照全曲中位做的整曲补偿，方向就是错的。
+    判据**行为测试** `report_sections.section_spans`：段边界数必须 = 段数 + 1、从 0 起、覆盖到结尾。
+    **判据自证**：把它换成"永远返回 [0, 总时长]"（= 整曲一段）→ 必须判坏。
+    """
+    import report_sections as _R
+    _song = {"bpm": 145.96,
+             "sections": [{"name": "S01", "bars": 4}, {"name": "S02", "bars": 4}]}
+    _b = _R.section_spans(_song)
+    assert len(_b) == 3, '段边界数应 = 段数 + 1（得到 %d）—— 退化成一整段就是丢掉了逐段口径' % len(_b)
+    assert _b[0] == 0.0 and _b[-1] > _b[0], '边界要从 0 开始、覆盖到结尾'
+    _b8 = _R.section_spans({"bpm": 120.0, "sections": [{"name": "A", "bars": 8}]})
+    assert abs(_b8[1] - 16.0) < 1e-6, '8 小节 @120BPM(4/4) 应是 16s，得到 %.3f' % _b8[1]
+    # 判据自证：退化成一整段必须被拦住
+    _bad = lambda _s: [0.0, 176.7]                                   # noqa: E731
+    assert len(_bad(_song)) != 3, '判据自证失败：整曲一段仍被判为逐段'
+    return 'report_sections 逐段边界正确（%d 段）' % (len(_b) - 1)
+
+
 ONSET_TVD_MAX = 0.65      # 每段落点分布与画像的 TVD 上限（⚠ 单一真源在 `melody_gen.ONSET_TVD_MAX`）
 BASS_FLOOR = 24           # Bass 轨音高下界 = C1(32.7Hz)（真值见 t_bass_register）
 # 段界"过渡/留白"的门（真值见 t_section_transition）：
