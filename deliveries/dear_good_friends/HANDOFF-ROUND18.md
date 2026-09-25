@@ -21,6 +21,13 @@
   渲染配置**一字未改**（GeneralUser + `render_midi` 默认参数 + `--hp 15`，无 CC7）。
 - **尺子**：`|RMS差| 0.987 → 0.967` · `chroma 0.8703 → 0.8791` · `timbre_audit 0/15 段有音色问题`。
 - **R17 旧版仍在**：`song.json a2e8f107…` / `mid ed46dea1…` / `ogg f69a514a…`（备份见 §7）。
+- **已上传 GitHub**（2026-09-26）：公开仓库 `github.com/wszzssb/music-gen` 的
+  **`deliveries/dear_good_friends/`**（提交 `2536030`，含 `song.json` / `.mid` / `notes.md` /
+  `render.json` / 本文件；**不含音频** —— `_sf.wav` 26.6MB / `_sf.ogg` 4.4MB 太大）。
+  ⚠ 两个坑：① `songs/` 与 `songs_direct/` 被**整目录 ignore**，而 `.gitignore` 里教的
+  `!songs/<曲名>/` 例外**实测不生效**（`songs` 是符号链接 + `songs_direct/` 父目录被排除）
+  → 故走专用目录 **`deliveries/`**；② 推送时 `github.com:443` 直连不通，用
+  **`tools/git-push/push_via_tunnel.sh`** 绕行成功（脚本挑到可达 IP `20.27.177.113`）。
 - **音源也已定案**：用户「**GeneralUser 好，就用这个，其它删了**」——
   交付音源 = `GeneralUser GS v1.471.sf2`（`vendor\`，SHA `f45b6b4a68b6bf3d…`），**未改动**。
   R18b 试过 **23 个音源**（全部基于 V1）后排除了其余 22 个；试听件已按用户要求删除。
