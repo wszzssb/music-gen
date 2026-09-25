@@ -8126,6 +8126,151 @@ def t_cleanup_transcribe_ruler():
           % (r_two, CT.RATIO_ONSET, r_one, CT.RATIO_ONSET))
 
 
+@check
+def t_unison_guard_ruler():
+    """**同刻打架守卫的尺子：先拿已知答案自检，再允许它判真实材料**（2026-09-25）。
+
+    为什么单独钉住：这条判据当天**被自检抓出三类假读数**，每一类都会让结论反过来 ——
+    ① 同一对音跨多个 1/16 格 + 对称遍历 → 一个"同度打架"报成 **8 处**；
+    ② 汇总时按 (轨名, 音高) 去重 → 同一轨同音高的多个音被压成一个，**86% 压成 10%**；
+    ③ 基线没排除"音自身" → 每个音都与自己配成 Δ0，**基线虚顶到 96%**（判据退化成恒真）。
+    另外两个口径坑：**鼓轨必须排除**（GM 鼓的"音高"是乐器编号，与贝斯比音程无意义，
+    不排除时基线 93%）；**默认只查 Δ0**（Δ∈{0,1,2} 一起查时基线 93%、只有 Δ0 时 7%
+    → 后者才有 4.7 倍区分度）。
+
+    钉五件：① 尺子自检 10 条断言全过；② 判据常量在场（力度 90 / 默认只查 Δ0）；
+    ③ Δ2 默认**不**命中、显式开才命中；④ Δ0 去重只删弱者、**Δ2 一律不动**；
+    ⑤ 基线自我对照必须为 0（"新增音"的定义没退化）。
+    """
+    import unison_guard as UG
+    assert (UG.VEL_MIN, UG.DELTAS, UG.ALL_DELTAS) == (90, (0,), (0, 1, 2)), \
+        '判据常量被改（力度门槛 90 / 默认只查 Δ0）—— 改前先按真病例重新标定：' \
+        'Δ∈{0,1,2} 一起查时基线 93%（恒真），只有 Δ0 时基线 7%'
+    assert UG.SKIP_SELF is True, \
+        'SKIP_SELF 被关 —— 基线会把每个音与它自己配成 Δ0，虚顶到 96%（判据恒真）'
+    UG.selftest()
+    base = [('Bass', [(0.0, 2.0, 40, 100)])]
+    _h, n_hit, n_all = UG.patch_against_base(base, base, only_new=False)
+    assert (n_hit, n_all) == (0, 1), \
+        '基准自我对照必须是 0 命中（音自身被排除），实得 %d/%d' % (n_hit, n_all)
+    print('        同刻打架守卫：自检 10 条过 · Δ0 默认 / Δ2 显式 · 去重只删弱者 · 基线自我对照 0')
+
+
+@check
+def t_stem_export_tempo_carry():
+    """**按轨导出的 tempo 携带 + 四重自证**（2026-09-25，对标 music-to-midi 的 stem 导出）。
+
+    钉三件：
+    ① 工具自检过（两条有声轨导出 2 个文件，且**抽出来的第 2 轨带着 tempo=145.96 与拍号**）；
+    ② **反例：坑是真的** —— 保留原轨号（index=1）导出时 tempo 会丢、读回回落 **120 BPM**
+       （`midi_file.export_midi` 写 Type 1 是 `with_meta_head=(i == 0)`，tempo/拍号只写第一条轨）。
+       ⚠ 这条同时是**动机守卫**：哪天 `export_midi` 改成每条轨都写 tempo，它会 FAIL 并提醒
+       "坑没了，`stem_export` 的理由要重新写"；
+    ③ 尺子能抓：`verify_stem` 对"故意丢 tempo"的文件必须判 FAIL（否则四重自证是装饰性的）。
+    """
+    import os as _os
+    import tempfile
+
+    import midi_file as MF
+    import stem_export as SE
+
+    SE.selftest()
+    d = tempfile.mkdtemp(prefix='stem_export_t_')
+    src = _os.path.join(d, 'probe.mid')
+    doc = {'format': 1, 'division': 480, 'bpm': 145.9605, 'timesig': [4, 4],
+           'end_beat': 32.0, 'title': 'probe', 'tracks': [
+               {'index': 0, 'name': 'A', 'channel': 0, 'program': 0,
+                'notes': [[0.0, 1.0, 60, 100]], 'ccs': [], 'program_changes': [], 'markers': []},
+               {'index': 1, 'name': 'B', 'channel': 1, 'program': 32,
+                'notes': [[1.0, 2.0, 40, 90]], 'ccs': [], 'program_changes': [], 'markers': []}]}
+    MF.export_midi(doc, src, fmt=1)
+    m = MF.import_midi(src)
+
+    # ② **正控：坑的真实形态** —— `export_midi` 的 `with_meta_head=(i == 0)` 看的是**列表位置**
+    #    而不是 `index` 字段，所以"每轨一个文件"的导出天然每条都带 tempo。
+    #    这里显式钉住这条性质（哪天有人把 meta head 改成"只认 index==0"，单轨导出就会丢 tempo）。
+    good = _os.path.join(d, 'good.mid')
+    MF.export_midi({'format': 1, 'division': 480, 'bpm': m['bpm'], 'timesig': [4, 4],
+                    'end_beat': 32.0, 'title': 'g',
+                    'tracks': [dict(m['tracks'][1], index=7)]}, good, fmt=1)
+    g = MF.import_midi(good)
+    assert abs(float(g['bpm']) - 145.9605) < 0.01 and list(g['timesig']) == [4, 4], \
+        '单轨导出的 tempo/拍号丢了（bpm=%s ts=%s）—— "每轨一个文件"的前提被破坏' % (
+            g['bpm'], g['timesig'])
+
+    # ③ 尺子能抓：源声明 bpm=200 而文件是 145.96 → verify_stem 必须判 FAIL（否则四重自证是装饰）
+    ok, bad = SE.verify_stem(m['tracks'][1], good, {'bpm': 200.0, 'timesig': [4, 4],
+                                                    'division': 480})
+    assert (not ok) and any('tempo' in x for x in bad), \
+        'verify_stem 没抓出 tempo 不符（四重自证成了装饰性的）：ok=%s bad=%s' % (ok, bad)
+    print('        stem 导出：四重自证过 · 单轨带 tempo/拍号（index 非 0 也带）· verify 能抓 tempo 不符')
+
+
+@check
+def t_bpm_fit_gate():
+    """**速度的可判定性：拍点拟合 + 双闸门 + 半/双拍家族**（2026-09-25，对标 telknet_beat_grid_v12）。
+
+    钉四件：
+    ① 闸门常量在场（3/8 拍 + 40ms，且**两个都要**）；
+    ② 家族表里有 **×1.5 / ⅔×** —— 少了它，`siren_end2` 的真值 145.96 与音频层拟合出的
+       98.2 会被判成"完全不匹配"，而它们其实是 **3:2**（实测比值 1.486）；
+    ③ 工具自检过（正控：标准脉冲串 ±1 BPM、**连奏型**测对 —— 那正是我们踩过
+       "106→154.3" 的模式；负控：白噪声**不许**过闸门、拍点不足必须明确"判不了"）；
+    ④ **白噪声是负控硬门**：闸门被放宽到恒真时，这条必须当场炸（见 mutation_check 第 65 组）。
+    """
+    import numpy as _np
+
+    import bpm_fit as BF
+    assert (BF.GATE_BEAT, BF.GATE_MS) == (0.375, 40.0), \
+        '闸门常量被改（3/8 拍 + 40ms）—— 改前先按自己的材料重新标定（上游那两个数绑定它 20ms 帧检测器）'
+    assert any(abs(k - 1.5) < 1e-9 for k, _ in BF.FAMILY_K), \
+        '家族表缺 ×1.5 —— siren_end2 真值 145.96 与音频层 98.2 是 3:2，少了这档会被误判成"不匹配"'
+    BF.selftest(verbose=False)
+    # ④ 负控硬门：白噪声必须判不可靠
+    sr = 22050
+    rng = _np.random.RandomState(7)
+    _t, beats = BF.beat_times(rng.randn(sr * 8).astype('float32') * 0.3, sr)
+    b = BF.fit_minimax(beats, BF.fit_origin_ls(beats))[0]
+    ok, mb, mms, _ = BF.gate(beats, b)
+    assert not ok, \
+        '白噪声竟然过了闸门（%.1f BPM，最大偏差 %.1fms）—— 闸门太松，整条判据等于恒真' % (b, mms)
+    print('        速度闸门：常量在场 · ×1.5 家族在场 · 连奏型测对 · 白噪声不过闸门(%.0fms)' % mms)
+
+
+@check
+def t_timbre_and_stem_filter():
+    """**音色判据 + 来源筛选**（2026-09-25，对标落成的第 1、3 条）。
+
+    为什么钉住：这两条是"每轮都要等人耳"的根因所在 ——
+    ① `timbre_audit` 的物理量必须能分开"软起音/硬起音"和"有无 2–6kHz 嘶声"，
+       否则"蚊子叫"只能靠用户听（实测它独立复现了用户的判断：v22a **0 段**报嘶声、
+       v25 **8 段**，峰值 28.58% vs 原曲 1.9%）；
+    ② `filter_by_stem` 的门限**必须由分布双峰标定、且空档不够时拒筛** ——
+       硬挑一个门限就是拍数字（贝斯那两簇空档 31.8dB、其它轨只有 3.7~11.0dB）。
+
+    钉四件：两个工具的自检全过 · `timbre_audit` 的嘶声判据常量在场 ·
+    `filter_by_stem` 的"空档"阈值在场 · 两条判据在**同一份已知材料**上取值正确。
+    """
+    import filter_by_stem as FS
+    import timbre_audit as TA
+    assert (TA.HISS_MIN_PCT, TA.HISS_RATIO) == (3.0, 3.0), \
+        '嘶声判据常量被改（2–6k%% ≥3%% 且 ≥原曲 3 倍）—— 改前按真病例重标定：' \
+        'v22a 全曲 ≤0.25%%、v25 命中段 3.1~28.6%%'
+    assert FS.GAP_MIN == 12.0, \
+        '双峰空档门限被改（12dB）—— 它决定"空档不够就拒筛"；实测其它轨空档只有 3.7~11.0dB'
+    TA.selftest(verbose=False)
+    FS.selftest(verbose=False)
+    # 负控：白噪声（无起音、无音高）不该被判成"软起音的垫子"
+    import numpy as _np
+    sr = 22050
+    rng = _np.random.RandomState(3)
+    noise = rng.randn(sr) .astype('float32') * 0.2
+    o = TA.onset_ms(noise, sr)
+    assert o is None or o < 200, \
+        '白噪声被读出 %sms 的"软起音" —— 起音判据会把噪声当成垫子' % o
+    print('        音色判据：软/硬起音可分 · 嘶声可分 · 白噪声不当垫子 · 来源筛选双峰标定+拒筛')
+
+
 def _worker_run(name):
     """子进程里跑**单项**（`ProcessPoolExecutor` 的入口）。
 

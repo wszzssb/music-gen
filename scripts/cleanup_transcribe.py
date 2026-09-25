@@ -45,6 +45,7 @@ import soundfile as sf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import cli_utf8 as _cu; _cu.setup()   # 控制台编码兜底（GBK 下打印 ✓/⚠ 会崩）
 import midi_file  # noqa: E402
 
 SR = 22050

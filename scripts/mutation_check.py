@@ -2167,6 +2167,49 @@ def main():
         '和弦低音写死成 A#1（老 bug 回归）', 'chord_bass_matches_root',
         lambda: Mut(_ts, 'chord_tones', lambda name: (34, [60, 64, 67]))))
 
+    # 63. **同刻打架守卫的判据坏掉**必须被抓（2026-09-25）。这条判据当天被自检当场抓出
+    #     三类假读数，每一类都会让"补音有没有问题"的结论反过来：
+    #     ① 丢了力度门槛 → 弱音也算打架；② 默认放成 Δ∈{0,1,2} → 基线 93%、判据恒真
+    #     （技能 §16 记过同一现象）；③ 基线没排除音自身 → 每个音与自己配成 Δ0、虚顶 96%。
+    import unison_guard as _ug
+    results.append(case('同刻打架丢了力度门槛（弱音也算打架）', 'unison_guard_ruler',
+                        lambda: Mut(_ug, 'VEL_MIN', 0)))
+    results.append(case('同刻打架默认放成 Δ0,1,2（基线 93% → 恒真）', 'unison_guard_ruler',
+                        lambda: Mut(_ug, 'DELTAS', (0, 1, 2))))
+    results.append(case('基线没排除音自身（自己与自己配成 Δ0）', 'unison_guard_ruler',
+                        lambda: Mut(_ug, 'SKIP_SELF', False)))
+
+    # 64. **按轨导出的四重自证坏掉**必须被抓（2026-09-25，stem_export）。两处：
+    #     ① `verify_stem` 恒判过 → 四重自证退化成装饰；② `VERIFY_TOL` 放到天上去 → 同上。
+    #     ⚠ 不用"轨号没压成 0"当变异：`export_midi` 的 `with_meta_head=(i == 0)` 看的是**列表
+    #     位置**、不是 `index` 字段，单元素列表照样写 tempo —— 那个变异**抓不到**（试过）。
+    import stem_export as _se
+    results.append(case('verify_stem 恒判过（四重自证成装饰）', 'stem_export_tempo_carry',
+                        lambda: Mut(_se, 'verify_stem', lambda *a, **k: (True, []))))
+    results.append(case('tempo 比对容差放到天上（自证变装饰）', 'stem_export_tempo_carry',
+                        lambda: Mut(_se, 'VERIFY_TOL', 1e9)))
+
+    # 65. **速度闸门被放宽到恒真**必须被抓（2026-09-25，bpm_fit）。两个闸门任一放到天上，
+    #     白噪声都能"通过"—— 那整条"速度可不可信"的判据就退化成给数字了（正是它要防的）。
+    import bpm_fit as _bf
+    results.append(case('速度闸门 A（3/8 拍）放到天上', 'bpm_fit_gate',
+                        lambda: Mut(_bf, 'GATE_BEAT', 1e9)))
+    results.append(case('速度闸门 B（40ms）放到天上', 'bpm_fit_gate',
+                        lambda: Mut(_bf, 'GATE_MS', 1e9)))
+    results.append(case('半/双拍家族表丢掉 ×1.5（3:2 认不出）', 'bpm_fit_gate',
+                        lambda: Mut(_bf, 'FAMILY_K',
+                                    tuple(x for x in _bf.FAMILY_K if abs(x[0] - 1.5) > 1e-9))))
+
+    # 66. **音色判据 / 来源筛选坏掉**必须被抓（2026-09-25，timbre_audit + filter_by_stem）。
+    #     这两条是"每轮都要等人耳"的根因：嘶声判据放成恒真 → 蚊子叫再也抓不出来；
+    #     空档门限放到 0 → 分布没有双峰也硬筛（拍数字）。
+    import timbre_audit as _ta
+    import filter_by_stem as _fs
+    results.append(case('嘶声判据放成恒真（2–6k% 门槛归零）', 'timbre_and_stem_filter',
+                        lambda: Mut(_ta, 'HISS_MIN_PCT', 0.0)))
+    results.append(case('来源筛选空档门限归零（无双峰也硬筛）', 'timbre_and_stem_filter',
+                        lambda: Mut(_fs, 'GAP_MIN', 0.0)))
+
     # 63. `patterns.melody_exempt` 的**理由写成空话**时不许放行（2026-09-25）——
     #     "理由空白 = 没写 = 不放行"这条口径必须有变异用例守着，否则豁免会变成
     #     一键绕过所有旋律形态判据的后门。夹具 = 库里密度低于
