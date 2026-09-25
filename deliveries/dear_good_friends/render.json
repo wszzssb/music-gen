@@ -1,0 +1,30 @@
+{
+ "rms": -16.9,
+ "width": 2.2,
+ "shelf": 3.0,
+ "hp": 15.0,
+ "low": 0.0,
+ "drive": 1.6,
+ "mid_db": 0.0,
+ "norm": "mono",
+ "composer": "compose.py",
+ "mid": "dear_good_friends.mid",
+ "out": "dear_good_friends_sf",
+ "ref": "bgm01c",
+ "song": "dear_good_friends",
+ "last_bands": {
+  "20-40": -29.0,
+  "40-80": -21.4,
+  "80-160": -14.5,
+  "160-315": -5.4,
+  "315-630": 0.0,
+  "630-1250": -6.1,
+  "1250-2500": -12.5,
+  "2500-5000": -18.4,
+  "5000-10000": -27.9,
+  "10000-18000": -44.5
+ },
+ "_hp_note": "还原路径手工钉 15（文档 RESTORE-METHOD ⑥ 写 25）；make_song 的 autotune 会重调它",
+ "_note": "= 用户认可的那一版（render_midi 默认 + hp15）；无 CC7（实测 CC7 对本配置是负作用）。2026-09-26 R18：song.json 加 patterns.notes_extra_full=true —— 转录音符逐音照写（不再按 arr.density 抽样）。用户对 A/B 的原话：「V1_全量转录.mid 非常好」。MIDI SHA=890d59e9c355f4aa…",
+ "soundfont": "GeneralUser GS v1.471.sf2（用户听感判定优于 MuseScore.sf2）"
+}
