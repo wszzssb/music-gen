@@ -283,6 +283,10 @@ PAT_KEYS = (
     # 是**抄来的真实演奏**，与独立分析的 `chords` 不完全重合 —— 写清理由（含实测贴合率）
     # 放行，**不改音去凑 95% 门**（PITFALLS 254）。
     'accomp_exempt',
+    # 逐小节密度起伏的**带理由豁免**（见 `selftest._density_exempt`）：那条门（≥8 倍）是按
+    # **生成路径**的参考配方标定的，而**还原曲的密度服从原曲**（实测 princess_charm 原曲自己
+    # 只有 3.3×，引擎逐小节密度与原曲 r=0.944）→ 写清理由放行，不改音去凑门。
+    'density_exempt',
     # 音域与还原
     'range_fix', 'legato_trim', 'notes_extra_full',
     # 钢琴反拍短音的力度/时值（opt-in，缺省 = 老行为逐字节不变）——

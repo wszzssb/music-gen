@@ -1718,16 +1718,25 @@ def t_density_dynamic_range():
             bar += n
         tag = os.path.basename(os.path.dirname(p))
         info.append('%s %.1f×' % (tag, ratio))
-        if ratio < 8.0:
+        # **带理由豁免**（见 `_density_exempt`）：还原曲的密度服从原曲，原曲自己可能不到 8 倍
+        _ex = _density_exempt(d)
+        if ratio < 8.0 and not _ex.get('per_bar'):
             bad.append('%s: 逐小节 %.1f 倍（min %d / max %d 音每小节；'
                        '逐段 %.2f 倍）—— 缺极静/极密小节'
                        % (tag, ratio, min(nz), max(nz), max(per) / max(1e-9, min(per))))
+        elif ratio < 8.0:
+            info[-1] += '（豁免：%s）' % _ex['per_bar'][:24]
     assert checked >= 1, '没有声明 arr.density 的曲目（这条检查会空转）'
     # **判据自证**：把一首曲子的 density 全抹平 → 逐小节起伏必然塌到门以下
     _ratio_of = lambda pb: (max([x for x in pb if x > 0]) /
                             max(1, min([x for x in pb if x > 0]))) if any(pb) else 0
     assert _ratio_of([0, 1, 1, 2, 40, 41]) > 8.0, '判据自证失败：示例曲线应判为有起伏'
     assert _ratio_of([10, 11, 10, 12, 11, 10]) < 8.0, '判据自证失败：平线应判为太平'
+    # **判据自证**：豁免必须**理由非空白**才放行（口径同 `melody_exempt`，空话放行不了东西）
+    assert _density_exempt({'patterns': {'density_exempt': {'per_bar': '   '}}}) == {}, \
+        '判据自证失败：空白理由也被当成豁免'
+    assert _density_exempt({'patterns': {'density_exempt': {'per_bar': '原曲实测 3.3×'}}}) \
+        == {'per_bar': '原曲实测 3.3×'}, '判据自证失败：非空理由没被认作豁免'
     assert not bad, ('密度太平（逐小节起伏要 ≥8 倍，参考侧实测 22 倍）：%s' % '；'.join(bad[:4]))
     print('        %d 首带 density 的曲目：逐小节密度起伏（%s）'
           % (checked, ' · '.join(info[:6])))
@@ -4424,6 +4433,27 @@ def _exempt_dims(j2):
     文字**，而不是把全局阈值改松（那会让所有曲子都失去这道门）。
     """
     return _exempt_named(j2, 'melody_exempt')
+
+
+def _density_exempt(j2):
+    """`patterns.density_exempt`：**逐小节密度起伏**的带理由豁免（口径同 `melody_exempt`）。
+
+    依据（2026-09-26 实测 · 收 `princess_charm` 的 `density_dynamic_range` FAIL）：
+    那条门（逐小节起伏 **≥8 倍**）是从**生成路径**的参考配方标定的（参考侧实测 **22 倍**、
+    历史"全程一条平线"约 2~3 倍）。但**还原曲的密度服从原曲**，原曲自己就可能不到 8 倍 ——
+    实测 `princess_charm`（同一套拍网格上数，别拿 mix.mid 的 120BPM 小节去比 145.6BPM 的）：
+
+    | 对象 | 非空小节 min/max | 起伏 |
+    |---|---|---|
+    | ① 原曲转录 | 19 / 62 | **3.3×** |
+    | ② `notes_extra` | 19 / 61 | 3.2× |
+    | ③ 引擎 `build_events` | 17 / 63 | 3.7× |
+
+    → **原曲本来如此**，引擎没有抹平（逐小节密度与原曲 **r = 0.944**）。
+    按"判据服从原曲"（PITFALLS 260 同轮的口径 / 用户 2026-09-25）**不改音去凑 ≥8 门**，
+    写清理由放行。
+    """
+    return _exempt_named(j2, 'density_exempt')
 
 
 @check

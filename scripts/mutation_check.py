@@ -260,6 +260,20 @@ def main():
         return Mut(st, '_ymt3_steps_ok', lambda src: True)
     results.append(case('YMT3 不再自报解码步数', 'ymt3_reports_decode_steps', _ymt3_steps_silent))
 
+    # 0b2c. 密度豁免"写了代码没接"（2026-09-26）：把 `_density_exempt` 换成"永不豁免"，
+    #       那首已声明豁免的还原曲会被重新点名 → 检查必须红。
+    #       ⚠ 这**只能证明豁免被接上了**，证明不了"无条件放行"（库里目前只有那一首低于门、
+    #       而它正是被豁免的那首 → 过度豁免观测不到）—— 这条限制如实记在这里。
+    def _density_exempt_ignored():
+        p = os.path.join(ROOT, 'songs', 'princess_charm', 'song.json')
+        if not os.path.exists(p):
+            raise SkipCase('没有声明 density_exempt 的夹具曲目（princess_charm）')
+        _d = json.load(open(p, encoding='utf-8'))
+        if not ((_d.get('patterns') or {}).get('density_exempt') or {}).get('per_bar'):
+            raise SkipCase('夹具曲目没有 patterns.density_exempt.per_bar')
+        return Mut(st, '_density_exempt', lambda j2: {})
+    results.append(case('密度豁免没接上代码', 'density_dynamic_range', _density_exempt_ignored))
+
     # 0b3. 引擎生成层退回"段名规则"（2026-09-25：`--auto` 的段名是 S01…S24，
     #      任何按 'A'/'B'/'C'/'Ending' 判断的规则对它们**恒为同一个值** → arp/pad/glock/shimmer
     #      段段全开；实测引子第 1–4 小节转录 0~1 音、引擎却生成 17 音 → 用户"前面有点乱"）

@@ -112,7 +112,7 @@ GROUPS = [
         ('docs/STUDIO-WORKFLOW.md', '必须开面板的五个时刻 · 症状→真因表 · 省时顺序'),
     ]),
     ('H. 出症状排查 / 台账', [
-        ('PITFALLS.md', '坑台账（当前 161–260）：先看 §"主题索引"拿编号，'
+        ('PITFALLS.md', '坑台账（当前 161–261）：先看 §"主题索引"拿编号，'
                         '再用 `grep -n "^161\\." PITFALLS.md` 定位行号（条目不是 markdown 标题）'),
         ('PITFALLS-ARCHIVE.md', '已归档的旧坑（1–160 的部分），同上用 grep 定位'),
     ]),
