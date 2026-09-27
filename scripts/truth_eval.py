@@ -361,6 +361,24 @@ def _fmt_f1(m):
     return '%.3f (P %.2f / R %.2f · 匹配 %d 漏 %d 假 %d)' % m
 
 
+# "这一对是不是同一版本"的判据阈值：`fit_warp` 的斜率 a（速度比 = 1−a），同版本 a ≈ 0。
+WARP_TOL = 5e-3
+
+
+def version_ok(a):
+    """`fit_warp` 的斜率 a 是否落在"同版本"范围内（真 = 同一版本）。
+
+    ⚠ **这里修过一次恒真判断**（2026-09-27 第五轮实测抓到）：原写法是
+    `if abs(1 - a) > WARP_TOL: 警告"不是同一版本"` —— 但 `a` 同版本时 ≈ 0，
+    `abs(1 - 0) = 1.0 > 0.005` **恒为真** → 这条警告对**任何**输入都触发。
+    现场：Muse 真值 vs 它自己的渲染（速度比打印 **1.0000**、偏移 +2ms）照样被警告
+    "很可能不是同一版本" —— **触发率 100% 的判据 = 噪声**（技能里那条口径），
+    而且方向是**把好数据判成坏数据**。
+    正确判据是 `abs(a)`（速度比偏离 1 的幅度），不是 `abs(1 - a)`（≈1 恒成立）。
+    自检里补了两条已知答案的用例（a=0 不报警 / a=0.0092 报警）盯着它。"""
+    return abs(a) <= WARP_TOL
+
+
 def report(mine_path, ref_path, do_warp=False, keep_drum=False, out_json=None):
     ref_raw, rmeta = load_notes(ref_path, drop_drum=False)
     mine_raw, mmeta = load_notes(mine_path, drop_drum=False)
@@ -380,8 +398,9 @@ def report(mine_path, ref_path, do_warp=False, keep_drum=False, out_json=None):
         a, b, nw, resid = fit_warp(ref_raw, mine_raw)
         print('【时间规整】速度比 %.4f · 偏移 %+.0fms · %d 个窗 · 拟合残差 %.0fms'
               % (1 - a, b * 1000, nw, resid * 1000))
-        if abs(1 - a) > 5e-3:
-            print('  ⚠ 速度比明显不是 1 → **这对很可能不是同一版本**，下方读数只作参照')
+        if not version_ok(a):
+            print('  ⚠ 速度比偏离 1 超过 %.1f%%（a=%.4f）→ **这对很可能不是同一版本**，下方读数只作参照'
+                  % (WARP_TOL * 100, a))
     else:
         d0, _n = best_dt(ref_raw, mine_raw)
         offs = window_offsets(ref_raw, mine_raw)
@@ -464,7 +483,7 @@ def _write_test_smf(path):
 
 
 def selftest(verbose=True):
-    """六组**已知答案**的用例（恒等 / 平移 / 小数偏移 / 丢音 / 升八度 / tempo map / 去重）。"""
+    """**已知答案**的用例（恒等 / 平移 / 小数偏移 / 丢音 / 升八度 / tempo map / 去重 / 版本判别）。"""
     import tempfile
     ok = True
 
@@ -532,6 +551,10 @@ def selftest(verbose=True):
     #   而不是**干净地 FAIL**（崩掉在变异测试里算"漏了"）。
     chk('鼓族：35 与 36 同族',
         float(FAMILY.get(35) is not None and FAMILY.get(35) == FAMILY.get(36)), 1.0, 0)
+    # 「是不是同一版本」的判据 —— 原本写成 `abs(1-a)`，对**任何** a 都成立（a≈0 时 =1.0）
+    # → 警告恒真；这两条用例就是当时缺的"已知答案"。
+    chk('版本判别：a=0（速度比 1.0000）判同版本', float(version_ok(0.0)), 1.0, 0)
+    chk('版本判别：a=0.0092（速度比 0.9908）判不同版本', float(version_ok(0.0092)), 0.0, 0)
 
     if verbose:
         print('  ===== 尺子自检：%s =====' % ('全部 PASS' if ok else '**有 FAIL**'))
@@ -545,7 +568,7 @@ def main():
     ap.add_argument('--warp', action='store_true', help='按线性时间规整对齐（同曲不同版本时用）')
     ap.add_argument('--keep-drum', action='store_true', help='（默认已分开报，此项仅为兼容）')
     ap.add_argument('--json', default=None, help='把读数写进 JSON')
-    ap.add_argument('--selftest', action='store_true', help='跑尺子自检（6 组已知答案）')
+    ap.add_argument('--selftest', action='store_true', help='跑尺子自检（全部已知答案组）')
     a = ap.parse_args()
     if a.selftest:
         sys.exit(0 if selftest() else 1)
