@@ -21,8 +21,8 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
 | **音频大模型当"嘴替"**（本地 Qwen2-Audio：用法 · 六条硬约束 · 实测边界 · **下一步交接**） | `docs/AUDIO-CRITIC.md` | ≈4.2k |
 | **扒谱·分轨·多乐器转录·母带匹配**（`.venv-ml`：Demucs / `transcribe_ymt3.py` / matchering） | `ML.md` | ≈4.8k |
 | **还原/扒带参考曲**（七步工序 · 有效/无效做法 · 度量纪律） | `docs/RESTORE-METHOD.md` | ≈5.7k |
-| **有真值时量准**（提取精度审计：尺子四处必修 · 度量口径三处 · 装配 · 天花板实验 · **多视图装配+边际精度判据**） | `docs/TRANSCRIBE-AUDIT.md` | ≈4.0k |
-| **接手"密集混音提取精度"**（现状数字 · 已证伪清单 · 下一步候选+验收判据 · **六轮实测**） | `docs/HANDOFF-TRANSCRIBE.md` | ≈3.9k |
+| **有真值时量准**（提取精度审计：尺子四处必修 · 度量口径三处 · 装配 · 天花板实验 · **多视图装配+边际精度判据**） | `docs/TRANSCRIBE-AUDIT.md` | ≈4.5k |
+| **接手"密集混音提取精度"**（现状数字 · 已证伪清单 · 下一步候选+验收判据 · **六轮实测**） | `docs/HANDOFF-TRANSCRIBE.md` | ≈4.0k |
 | **写歌时开可视化面板** | `studio/README.md`；启动 `studio\start.cmd` → http://127.0.0.1:8765 | ≈3.0k |
 | **不知道该读哪一节**（HISTORY/PITFALLS/README 一次读不完） | `docs/DOC-MAP.md`：大目录=主题域 → 小目录=文档节**+行号**（生成物） | ≈5.2k |
 
