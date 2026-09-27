@@ -2,6 +2,13 @@
 
 > 接 `HANDOFF-ROUND17.md`。本轮起点 = R17 §1 那个没答的问题（"**midi 还有点问题**"）。
 > **自足**：读这一份就能接着干。**下个对话第一件事 = 看 §6（126s 弦乐，唯一没修完的）。**
+>
+> ⚠ **2026-09-27 更新（临时工作区已清理）**：本曲 §6 已判「**已收工**」，`D:\test\_tmp\dgf\` 与
+> `D:\test\_tmp\dgfr18\` 随工作区约定删除。**需要留的东西已挪走**：
+> §7 那 5 个 R17 回滚备份里的 `song.json` / `render.json` / `.mid` 三件
+> → `D:\test\dear_good_friends_交付\_r17备份\`（两个音频备份可由这两份 JSON 重渲，故未留）；
+> `ab\` 里的 V0–V4 消融 MIDI 与逐轨静音渲染**没有单独保留** —— 需要时按 §7 的流程重跑
+> （`notes.md` §"中间产物"那几行是**复现命令**，照着建目录即可）。
 
 ---
 
@@ -137,7 +144,9 @@
 | **V3** | bar41 那 4 个 Strings 音的力度 `107 → 60`（约 −13dB） | **23.4** | **52.9** | **更均衡，首选** |
 | V4 | 删掉 bar41 那 4 个音 | 50.9 | **39.0** | 10–18k 更准，但 1–3k **塌 12–15dB**（过度） |
 
-MIDI 在 `D:\test\_tmp\dgfr18\ab\`（`V3_弦乐降力.mid` / `V4_弦乐删除.mid`）。
+MIDI 在 `D:\test\_tmp\dgfr18\ab\`（`V3_弦乐降力.mid` / `V4_弦乐删除.mid`）
+— ⚠ **该目录 2026-09-27 已随工作区清理**；这一组结论是「**还是 V1 好**」（见下），
+复现只需在 V1 上按上表改 bar41 那 4 个 Strings 音的力度/删音。
 
 ### ⛔ 结果：用户听过 V3/V4 之后 —— **「还是 V1 好」**（2026-09-26）
 
@@ -221,10 +230,10 @@ $C\.venv-ml\Scripts\python.exe $C\scripts\mutation_check.py
 |---|---|
 | 交付目录 | `D:\test\dear_good_friends_交付\` |
 | 曲库（与交付同 SHA） | `D:\software\skill\music-gen\songs\dear_good_friends\` |
-| **R17 旧版备份** | `D:\test\_tmp\dgfr18\backup_r18\`（`*.pre_v1.bak`，5 个文件） |
-| **A/B 与消融产物** | `D:\test\_tmp\dgfr18\ab\`（`V0/V1/V2/V3/V4*.mid` + `render/` + `mute/` 逐轨静音渲染） |
-| 本轮脚本与日志 | `D:\test\_tmp\dgfr18\`（`00_*.sh` … `70_*.sh` 编号） |
-| 中间素材 | `D:\test\_tmp\dgf\`（`dgf_src.wav` / `stems_flat/`） |
+| **R17 旧版备份** | `D:\test\dear_good_friends_交付\_r17备份\`（`song.json` / `render.json` / `.mid` 三件；⚠ 2026-09-27 从 `_tmp\dgfr18\backup_r18\` 挪来，两个音频备份未留、可由这两份 JSON 重渲） |
+| ~~A/B 与消融产物~~ | ~~`D:\test\_tmp\dgfr18\ab\`~~ → **已随工作区清理**（V0/V1/V2/V3/V4*.mid + `render/` + 逐轨静音渲染，需要时按 §7 流程重跑） |
+| ~~本轮脚本与日志~~ | ~~`D:\test\_tmp\dgfr18\`~~ → **已随工作区清理**（结论与纠错台账已全部落在本文件） |
+| ~~中间素材~~ | ~~`D:\test\_tmp\dgf\`~~ → **已随工作区清理**（`dgf_src.wav` 从原曲 mp3 重转、`stems_flat/` 用 Demucs 重跑，命令见 `notes.md`） |
 
 ---
 
