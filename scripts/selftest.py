@@ -884,6 +884,7 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'CONVENTION.md'),
              os.path.join(ROOT, 'docs', 'AUDIO-CRITIC.md'),
              os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
+             os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
              os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'),
              os.path.join(ROOT, 'studio', 'README.md'),
              os.path.join(os.path.expanduser('~'), '.dsh', 'skills',
@@ -913,6 +914,7 @@ def t_docs_paths():
               os.path.join(ROOT, 'docs', 'SONG-FORMAT.md'),
               os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
               os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
+              os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
               os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'), files[-1]]
     dead = []
     for p in dokeys:
@@ -7732,6 +7734,38 @@ def t_ymt3_reports_decode_steps():
     assert not _ymt3_steps_ok(src.replace('a.shape[-1]', 'a.shape[0]')), \
         '判据自证失败：不数解码步数仍判通过'
     return 'YMT3 自报解码步数 + 撞上限告警在位'
+
+
+@check
+def t_truth_eval_ruler():
+    """**对着真值量精度的尺子必须先自证**（`truth_eval.selftest()` 六组已知答案）。
+
+    为什么单列一条：这把尺子的四次翻车**全是尺子错、不是转录错**（实测同一份转录
+    0.208 vs 0.947），而错法都很隐蔽 —— tempo map 退化成单值 bpm、峰值符号取反、
+    容差平台的假偏移。判据是"已知答案"（恒等必须 1.000、+0.2s 必须搜出 −0.20、
+    37ms 小偏移必须分辨、同音高 20ms 内必须折叠成 1 个事件）。
+
+    **判据自证**：把 `tick2sec` 退回"只看首个 tempo"→ 必须判坏。
+    """
+    import truth_eval as te
+    ok = te.selftest(verbose=False)
+    assert ok, 'truth_eval 尺子自检有 FAIL（见 `python scripts\\truth_eval.py --selftest` 的逐项）'
+
+    # 判据自证：把 tempo map 抽掉（退回单值 bpm），那条 tempo 用例必须抓得到
+    # ⚠ 注入会让 `selftest()` **当场断言失败**（不是安静地返回 False）→ 用例要接住异常，
+    #   否则 AssertionError 直接冒出来，看着像"新检查坏了"（第一版就是这么写的，实测踩到）。
+    _orig = te.make_tick2sec
+    caught = False
+    try:
+        te.make_tick2sec = lambda path, pre_tempo='first': (lambda tick: tick / 480.0 * 0.5, 480, [])
+        try:
+            caught = not te.selftest(verbose=False)
+        except AssertionError:
+            caught = True
+    finally:
+        te.make_tick2sec = _orig
+    assert caught, '判据自证失败：tempo map 被抽掉（退回单值 bpm）仍判通过'
+    return 'truth_eval 尺子自检 6 组已知答案全 PASS（含 tempo map 反证）'
 
 
 @check

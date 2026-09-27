@@ -103,6 +103,37 @@ pip 命令**，缺权重会提示加 `--download`。
 **版权**：转录结果是参考曲的**逐音复制**。本地分析/对照/学习随便用，
 **不能上传到网络**（公开发布即侵权）—— 见 `ML.md` 的「版权与边界」。
 
+### 想加**第二个**转录模型（Basic Pitch）—— 装法有个坑（2026-09-27 实测）
+
+第二个来源的价值：**错误互不相关**才能交叉验证（`ensemble_transcribe.py`）。但 `pip install
+basic-pitch` 在**本机会直接失败**，而且失败信息看着像 numpy 的锅：
+
+```
+ERROR: Failed to build 'numpy' when getting requirements to build wheel
+AttributeError: module 'pkgutil' has no attribute 'ImpImporter'
+```
+
+**真因不是 numpy**：`basic-pitch` 的依赖声明里有一条
+`tensorflow<2.15.1,>=2.4.1; platform_system != "Darwin" and python_version >= "3.11"`
+—— **Windows + Python≥3.11 被强制要 TF**，而 `tf<2.15.1` 没有 cp313 轮子 → pip 回溯到老版
+basic-pitch（0.2.3 要求 `numpy<1.24`）→ 去编 numpy 源码 → 崩在上面那行。
+**包本身支持无 TF 的 ONNX 通路**（`__init__.py`：TF 缺失时自动选 `nmp.onnx`），所以绕开那条声明即可：
+
+```powershell
+py -3.13 -m venv D:\test\bp-venv          # bp_transcribe.py 默认就找这个目录（可用 BP_PY 覆盖）
+D:\test\bp-venv\Scripts\python.exe -m pip install --only-binary=:all: numpy onnxruntime librosa `
+    pretty_midi resampy mir_eval scikit-learn scipy soundfile typing-extensions
+D:\test\bp-venv\Scripts\python.exe -m pip install --no-deps <下载好的 basic_pitch-0.4.0-py2.py3-none-any.whl>
+# 验证：TF_PRESENT=False · ONNX_PRESENT=True，且 Model(ICASSP_2022_MODEL_PATH).model_type == ONNX
+```
+
+实测：**CPU/ONNX 40× 实时**（20 秒音频 0.5 秒；整首 2–6 秒），比 YMT3 快 **20–40 倍**。
+⚠ 两个坑：① **别给 `ICASSP_2022_MODEL_PATH` 再拼 `.onnx`** —— ONNX 模式下它**本身就以 `.onnx`
+结尾**，拼了就成 `nmp.onnx.onnx`；② `predict()` 在 0.4.0 **只吃文件路径**（不吃 ndarray），
+`bp_transcribe.py` 已处理（切片写临时 wav）。
+⚠ 它**没有鼓通道**（把打击乐当音高弹，实测 32–50% 的音落在鼓点上）→ 装配时鼓仍用 YMT3。
+口径与实测 → `docs\TRANSCRIBE-AUDIT.md`。
+
 > ✅ **已在新机器上端到端跑通**（2026-09-19，干净目录从零走一遍）：
 > `venv-ml` + torch **95 秒** → clone 代码（4MB）→ 下权重 **1 分 43 秒** → 补依赖 → **转录 44.2 秒**
 > 出 MIDI（331.9s 的曲子、8671 音符、8.2× 实时、显存峰值 4963MB），产物与已跑通那台机器

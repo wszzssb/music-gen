@@ -21,6 +21,7 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
 | **音频大模型当"嘴替"**（本地 Qwen2-Audio：用法 · 六条硬约束 · 实测边界 · **下一步交接**） | `docs/AUDIO-CRITIC.md` | ≈4.2k |
 | **扒谱·分轨·多乐器转录·母带匹配**（`.venv-ml`：Demucs / `transcribe_ymt3.py` / matchering） | `ML.md` | ≈4.8k |
 | **还原/扒带参考曲**（七步工序 · 有效/无效做法 · 度量纪律） | `docs/RESTORE-METHOD.md` | ≈5.7k |
+| **有真值时量准**（提取精度审计：尺子四处必修 · 度量口径三处 · 装配 · 天花板实验） | `docs/TRANSCRIBE-AUDIT.md` | ≈2.3k |
 | **写歌时开可视化面板** | `studio/README.md`；启动 `studio\start.cmd` → http://127.0.0.1:8765 | ≈3.0k |
 | **不知道该读哪一节**（HISTORY/PITFALLS/README 一次读不完） | `docs/DOC-MAP.md`：大目录=主题域 → 小目录=文档节**+行号**（生成物） | ≈5.2k |
 
@@ -149,6 +150,9 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
       （工具不报错≠生效）· **分段默认**（一刀切要举证）· **度量对症**（量你要回答的那个量）。
       ⚠ 其中**拦不住的只有两类**：**归因跳步** 与 **给自己找例外** —— 它们没有输入输出契约，
       写进这里也只是"更容易被看到"，不是"保证照做"。
+      **有真值时改用 `scripts\truth_eval.py`**（网络成品提取审计：tempo map 时间轴 + 恒定偏移 +
+      去重口径 + 逐角色召回）—— 实测同一份转录，错尺子量 0.208、对尺子量 **0.947**：
+      **尺子不对时，后面所有"优化"都是白做** → `docs/TRANSCRIBE-AUDIT.md`。
    然后才轮到：**开工先跑 `audit.py` 拿偏差清单**，再改（`docs/AUDIT-CHECKLIST.md` 有全部参考线）：
    `audit.py <参考音频> <我的音频> --bpm N --mine-json <song.json> --midi <我的.mid>`
    六轴里 **`chord`/`grid`/`density` 属"照抄即可"**（做不到是方法问题，别推给音源），

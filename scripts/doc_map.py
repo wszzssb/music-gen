@@ -94,6 +94,7 @@ GROUPS = [
     ]),
     ('D. 还原 / 扒带 / 转录', [
         ('docs/RESTORE-METHOD.md', '七步工序 · 有效/无效做法 · 度量纪律 · 防错清单'),
+        ('docs/TRANSCRIBE-AUDIT.md', '**有真值时**怎么量准：尺子四处必修 · 度量口径三处 · 装配 · 天花板实验'),
         ('ML.md', '扒谱·分轨·多乐器转录·母带匹配（.venv-ml 的重工具）'),
         ('docs/MAKE-IT-SOUND-ALIKE.md', '把"乱"当可测量问题：三个量 · 三处失控根因 · 四条听感修法'),
         ('docs/AUDIT-CHECKLIST.md', '开工前必查清单（四层 + 必须人耳的第 5 层）'),

@@ -2456,6 +2456,21 @@ def main():
         results.append(case('扒带曲不声明 notes_extra_full（静默吃默认）',
                             'restore_notes_full', lambda: _DropFullFlag()))
 
+    # 70. **对着真值量精度的尺子**必须坏得起来（2026-09-27，`truth_eval.py` 四轮沉淀）。
+    #     三种坏法各对应一次真踩过的错：
+    #     ① tempo map 退化成"只看首个 bpm" → 阶梯状漂移被误读成转录错（实测 0.947 → 0.208）；
+    #     ② 尖峰法符号取反（观测量当修正量用）→ 偏移**翻倍**、匹配数 1730 → 476；
+    #     ③ 鼓按 raw GM 键比 → 不同鼓组词汇不同，得到"0 匹配"的假读数。
+    import truth_eval as _te
+    results.append(case('真值尺子：tempo map 退回单值 bpm', 'truth_eval_ruler',
+                        lambda: Mut(_te, 'make_tick2sec',
+                                    lambda path, pre_tempo='first': (lambda t: t / 480.0 * 0.5, 480, []))))
+    results.append(case('真值尺子：尖峰法符号取反（偏移翻倍）', 'truth_eval_ruler',
+                        lambda: Mut(_te, 'best_dt',
+                                    lambda ref, mine, **kw: (_te.dt_hist(ref, mine, **kw)[0], 0))))
+    results.append(case('真值尺子：鼓不按族比（按 raw GM 键）', 'truth_eval_ruler',
+                        lambda: Mut(_te, 'FAMILY', {k: k for k in range(128)})))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')
