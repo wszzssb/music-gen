@@ -885,6 +885,7 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'AUDIO-CRITIC.md'),
              os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
              os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
              os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'),
              os.path.join(ROOT, 'studio', 'README.md'),
              os.path.join(os.path.expanduser('~'), '.dsh', 'skills',
@@ -915,6 +916,7 @@ def t_docs_paths():
               os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
               os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
               os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
+              os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
               os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'), files[-1]]
     dead = []
     for p in dokeys:

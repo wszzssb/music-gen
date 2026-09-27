@@ -41,6 +41,7 @@ DOCS = {
     'docs/IMITATE-PATH.md（模仿写歌路径）': os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'),
     'docs/RESTORE-METHOD.md（还原/扒带方法论）': os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
     'docs/TRANSCRIBE-AUDIT.md（提取精度审计）': os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
+    'docs/HANDOFF-TRANSCRIBE.md（提取精度交接）': os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
     'studio/README.md（可视化面板）': os.path.join(ROOT, 'studio', 'README.md'),
     'tools/git-push/README.md（推送绕行）': os.path.join(ROOT, 'tools', 'git-push', 'README.md'),
 }
@@ -236,7 +237,10 @@ LIMITS = {
     #   鼓按通道+族 / 去重口径）→ `docs/TRANSCRIBE-AUDIT.md`"，并在 §8 第 0 步补一句
     #   "有真值时用 `truth_eval.py`"（原来只有"没真值时怎么扒"）。估 +150，
     #   按纪律 2 倍余量 → **9900**。压缩目标：**9200**（路由表两行合并）。
-    'SKILL.md（音乐任务加载）': 9900,
+    # +300（2026-09-27，同日）：路由表再加一行"**接手提取精度这条线** → `docs/HANDOFF-TRANSCRIBE.md`"
+    #   （用户要"写交接文档让另一个对话试试"—— 一条路由比在正文里写十句更有用）。
+    #   估 +90 → **10200**。压缩目标：**9400**（与上一行合并成"提取精度：方法 / 交接"）。
+    'SKILL.md（音乐任务加载）': 10200,
     # +160：工具清单加 theme_pack / new_song（含混音目标）+ 主题包文档指针
     # +100（2026-09-15，用户授权"预算可以增加，最后压缩就行"）：补登记 4 个已存在但漏在
     # 索引外的探针（probe_voicing / probe_tension / probe_aesthetic / probe_aqa）——
@@ -636,6 +640,12 @@ LIMITS = {
     #   与 `wc -m` 的 7956 不是同一口径 —— 前者按 token_audit 自己的算法）。
     #   → 定 **2800**。压缩目标：**2000**（§1/§2 两张表各压掉"真因"列一半，只留判据）。
     'docs/TRANSCRIBE-AUDIT.md（提取精度审计）': 2800,
+    # 新增（2026-09-27）：`docs/HANDOFF-TRANSCRIBE.md` —— 把"密集混音提取精度"这条线**交给
+    #   另一个对话**时的自足交接：现状数字 / 已证伪清单 / 可复用资产与绝对路径 / **下一步候选
+    #   （按期望收益排序，每条含假设·耗时·验收判据）** / 必须遵守的纪律 / 别重复试的。
+    #   与 TRANSCRIBE-AUDIT 分工：那份讲"怎么量准"（方法），这份讲"接下来干什么"（任务）。
+    #   估 2600 字 ≈ 1400 tok，按纪律 2 倍余量 → **3000**。压缩目标：**2200**（候选表压成一行一条）。
+    'docs/HANDOFF-TRANSCRIBE.md（提取精度交接）': 3000,
     # +200（2026-09-19）：A′（面板 = 唯一入口）要在文首"面板不重写任何音频逻辑"那行后面
     #   补一段"CLI 默认委托面板 API + 两个开关"。估 +60，按纪律 2 倍 + 余量抬 → **2400**。
     #   压缩目标：**2250**。
