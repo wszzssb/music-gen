@@ -95,11 +95,15 @@ GROUPS = [
     ('D. 还原 / 扒带 / 转录', [
         ('docs/RESTORE-METHOD.md', '七步工序 · 有效/无效做法 · 度量纪律 · 防错清单'),
         ('docs/TRANSCRIBE-AUDIT.md', '**有真值时**怎么量准：尺子四处必修 · 度量口径三处 · 装配 · 天花板实验'),
-        ('docs/HANDOFF-TRANSCRIBE.md', '接手"密集混音提取精度"：现状数字 · 已证伪清单 · 下一步候选（含验收判据）'),
+        ('docs/HANDOFF-TRANSCRIBE.md', '接手"密集混音提取精度"：现状数字 · 已证伪清单 · 下一步候选（含验收判据）· §11 换专用模型的三问'),
+        ('docs/HANDOFF-BGM35.md', '接手 BGM35 3:31–3:41：**用专用识别模型回答 Q1/Q2/Q3**（结论已回填到 HANDOFF-TRANSCRIBE §11 + 交付目录 notes.md §8）'),
         ('ML.md', '扒谱·分轨·多乐器转录·母带匹配（.venv-ml 的重工具）'),
         ('docs/MAKE-IT-SOUND-ALIKE.md', '把"乱"当可测量问题：三个量 · 三处失控根因 · 四条听感修法'),
         ('docs/AUDIT-CHECKLIST.md', '开工前必查清单（四层 + 必须人耳的第 5 层）'),
         ('docs/MIDI-FIDELITY.md', '力度全平的验证与修法（含"为什么分数几乎不动"）'),
+        # 2026-09-27 第十二轮：BGM35 3:31–3:41 的四个探针（**一次性脚本，不是一等工具**）。
+        # 放 `tools/` 而不是 `scripts/`：`scripts/` 是引擎工具的位子（要配自检 + 变异用例）。
+        ('tools/bgm35-3m31-probes/README.md', '判"某层是真内容还是分离残留/旋律是否八度错/音色是什么"的探针与反面结论'),
     ]),
     ('E. 案例（具体某一首的实测数字）', [
         ('docs/CASE-BGM36.md', '对照案例：指标与听感背离'),
