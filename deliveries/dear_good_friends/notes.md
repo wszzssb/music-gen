@@ -640,5 +640,5 @@ curl -sL "https://hf-mirror.com/NewTab/soundfonts/resolve/main/MuseScore.sf2" -o
 | 无损 | `D:\test\dear_good_friends_交付\dear_good_friends_sf.wav` |
 | 谱面 | `D:\test\dear_good_friends_交付\song.json` |
 | 曲库（面板可见） | `D:\software\skill\music-gen\songs\dear_good_friends\` |
-| 中间产物（分轨/转录/读数） | `D:\test\_tmp\dgf\`（`work\sections.json` · `work\timbre.json` · `work\bright.json`） |
-| 本轮脚本与日志 | `D:\test\_tmp\siren2-r15\31_dgf_front.sh` · `32_dgf_back.sh` · `01_front.log` · `02_back.log` |
+| ~~中间产物（分轨/转录/读数）~~ | ~~`D:\test\_tmp\dgf\`~~（`work\sections.json` · `work\timbre.json` · `work\bright.json`）—— ⚠ **2026-09-27 已随工作区清理**；复现命令见本文件上面的管线那几行 |
+| ~~本轮脚本与日志~~ | ~~`D:\test\_tmp\siren2-r15\`~~ —— ⚠ **该目录早已不在**；任务已收工，见 `deliveries\dear_good_friends\HANDOFF-ROUND18.md` |
