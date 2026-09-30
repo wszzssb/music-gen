@@ -95,7 +95,8 @@ GROUPS = [
     ('D. 还原 / 扒带 / 转录', [
         ('docs/RESTORE-METHOD.md', '七步工序 · 有效/无效做法 · 度量纪律 · 防错清单'),
         ('docs/TRANSCRIBE-AUDIT.md', '**有真值时**怎么量准：尺子四处必修 · 度量口径三处 · 装配 · 天花板实验'),
-        ('docs/HANDOFF-TRANSCRIBE.md', '接手"密集混音提取精度"：现状数字 · 已证伪清单 · 下一步候选（含验收判据）· §11 换专用模型的三问'),
+        ('docs/HANDOFF-TRANSCRIBE.md', '接手"密集混音提取精度"：现状数字 · 已证伪清单 · 下一步候选（含验收判据）· §11 换专用模型的三问 · §12 k 标定与无监督开关'),
+        ('docs/HANDOFF-FAMILY-VOTE.md', '接手"把族票接进 vote_apply"：任务与四条验收判据 · 素材绝对路径 · 本轮踩的纪律 · 不建议再做的方向'),
         ('docs/HANDOFF-BGM35.md', '接手 BGM35 3:31–3:41：**用专用识别模型回答 Q1/Q2/Q3**（结论已回填到 HANDOFF-TRANSCRIBE §11 + 交付目录 notes.md §8）'),
         ('ML.md', '扒谱·分轨·多乐器转录·母带匹配（.venv-ml 的重工具）'),
         ('docs/MAKE-IT-SOUND-ALIKE.md', '把"乱"当可测量问题：三个量 · 三处失控根因 · 四条听感修法'),

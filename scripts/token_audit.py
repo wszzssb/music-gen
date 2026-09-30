@@ -42,6 +42,7 @@ DOCS = {
     'docs/RESTORE-METHOD.md（还原/扒带方法论）': os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
     'docs/TRANSCRIBE-AUDIT.md（提取精度审计）': os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
     'docs/HANDOFF-TRANSCRIBE.md（提取精度交接）': os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
+    'docs/HANDOFF-FAMILY-VOTE.md（族票交接）': os.path.join(ROOT, 'docs', 'HANDOFF-FAMILY-VOTE.md'),
     'studio/README.md（可视化面板）': os.path.join(ROOT, 'studio', 'README.md'),
     'tools/git-push/README.md（推送绕行）': os.path.join(ROOT, 'tools', 'git-push', 'README.md'),
 }
@@ -680,6 +681,13 @@ LIMITS = {
     #   ⚠ 这是"抬窄了"的第四次同族翻车：预估 +1200、实增约 +1458，落 11779 → 顶过 11600。
     #   按实测 + 余量抬到 **12600**。**压缩目标：11800**（欠账：§2 已证伪清单 8 条各压一行）。
     'docs/HANDOFF-TRANSCRIBE.md（提取精度交接）': 12600,
+    # 新增（2026-09-30·第十三轮）：`docs/HANDOFF-FAMILY-VOTE.md` —— **只讲一件事**：
+    #   把量出来的"族票"规则接进 `scripts/vote_apply.py`（任务 + 四条验收判据 + 素材绝对路径 +
+    #   本轮踩的纪律 + 不建议再做的方向）。与 HANDOFF-TRANSCRIBE 分工：那份是整条线的总交接（§12
+    #   是本轮实测），这份是**下一个动作**的作业单。估 2100 字 ≈ 1200 tok，2 倍余量 → **2600**。
+    #   压缩目标：**2200**（§3 的候选表可压成一行一条）。⚠ 实测落 **3120 字 ≈ 3120 tok**（比估的高），
+    #   按"实测 + 余量"给到 **4000**。压缩目标：**3400**。
+    'docs/HANDOFF-FAMILY-VOTE.md（族票交接）': 4000,
     # +200（2026-09-19）：A′（面板 = 唯一入口）要在文首"面板不重写任何音频逻辑"那行后面
     #   补一段"CLI 默认委托面板 API + 两个开关"。估 +60，按纪律 2 倍 + 余量抬 → **2400**。
     #   压缩目标：**2250**。
