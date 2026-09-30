@@ -295,6 +295,9 @@ def main(argv=None):
     ap.add_argument('--s1', action='store_true',
                     help='打印 S1（base 被视图覆盖率）+ 阈值 %.3f 的建议（**只提示，不改行为**）'
                          % S1_THRESHOLD)
+    ap.add_argument('--skeleton',
+                    help='源转录 MIDI（音色骨架）：新音按"同音高同刻 → 回原轨"放回去，'
+                         '轨/通道/program 一条不改（坑 277）。不给则取环境变量 RESID_TIMBRE_FROM')
     ap.add_argument('--no-offset', action='store_true', help='不做 best_dt 对齐（默认做）')
     a = ap.parse_args(argv)
 
@@ -375,7 +378,8 @@ def main(argv=None):
         print('  （`--s1` 可打印无监督风险开关；`--help` 里有口径与阈值说明）')
 
     rebuild([('pitched', 1, 0, False, [(x[0], x[1], x[2], x[3]) for x in out_nd]),
-             ('drums', 9, 0, True, [(x[0], x[1], x[2], x[3]) for x in base_dr])], a.out_mid)
+             ('drums', 9, 0, True, [(x[0], x[1], x[2], x[3]) for x in base_dr])], a.out_mid,
+            skeleton=(a.skeleton or None))
     return 0
 
 

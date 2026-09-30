@@ -7900,8 +7900,80 @@ def t_vote_apply_family_rule():
     finally:
         VA.family_of = _orig
     assert deg != fam1, '族名被当成视图名（族票退化成视图票）仍给同一结果 —— 这条检查抓不到'
+
+    # ⑨ `--skeleton`：新音要按骨架**放回原轨**（坑 277）—— 轨/通道/program 不许被压平
+    skel = os.path.join(d, 'skeleton.mid')
+    _MF.export_midi({'format': 1, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+                     'title': 'sk', 'end_beat': 16.0, 'source': skel,
+                     'tracks': [{'index': 0, 'name': 'Piano', 'channel': 0, 'program': 0,
+                                 'drum': False,
+                                 'notes': [[b, 1.0, p, 90] for (b, p) in BASE[:2]]},
+                                {'index': 1, 'name': 'Bass', 'channel': 1, 'program': 32,
+                                 'drum': False, 'notes': [[BASE[2][0], 1.0, BASE[2][1], 90]]}]},
+                    skel, fmt=1)
+    out_sk = os.path.join(d, 'out_skel.mid')
+    with redirect_stdout(io.StringIO()):
+        rc = VA.main([truth, skel, out_sk, '--family-min', '1', '--skeleton', skel] + vspec)
+    assert rc == 0, '带 --skeleton 的装配退出码 %r' % (rc,)
+    _m = _MF.import_midi(out_sk)
+    _nd = [t for t in _m.get('tracks', []) if not t.get('drum') and t.get('notes')]
+    _progs = sorted({int(t.get('program') or 0) for t in _nd})
+    assert len(_nd) == 2 and _progs == [0, 32], \
+        ('--skeleton 没把音放回原轨（坑 277）：音高轨 %d 条 / program %r（应 2 条 / [0, 32]）'
+         % (len(_nd), _progs))
     return ('族票/视图票两条规则分得开（收 %r vs %r）· S1 读数 1.000/0.667 与阈值建议均对 · '
-            '自指告警在 · 注入"族名=视图名"被抓' % (fam1, kv3))
+            '自指告警在 · --skeleton 保住了骨架音色（2 轨 / program [0,32]）· '
+            '注入"族名=视图名"被抓' % (fam1, kv3))
+
+
+@check
+def t_vote_views_plan():
+    """**多视图链的计划必须是"两族都在"**（`scripts/vote_views.py`：音频 → 视图 → 族票装配）。
+
+    为什么单列一条：这条链**不跑模型也能把计划跑出来**（`--dry-run`），而计划里最危险的退化
+    是"视图只剩一族"（比如只跑 BP）—— 那时族票**静默退化成单族过滤**：命令 exit 0、产物照出、
+    读数照有，只是 §12.7 量出来的收益没了（与坑 294 同族）。所以计划本身要有判据：
+    ① `cheap` = 6 视图且 **ymt3/bp 两族都在**（实测 ΔF1 +0.0075）· `full` = 9 视图（+0.0083）·
+       `cheap` 是 `full` 的子集（同一口径下可比）；
+    ② 装配规则**显式写死 `--family-min 1`**（不许悄悄退回 `--k`），视图按 `族名前缀` 传；
+    ③ 判据自证：把 `cheap` 砍成只剩一族 → `plan_problems` 必须报出问题。
+    """
+    import vote_views as VV
+    d = os.path.join(TMP, 'vote_views')
+    os.makedirs(d, exist_ok=True)
+    wav = os.path.join(d, 'fx.wav')
+    if not os.path.exists(wav):
+        sf.write(wav, np.zeros(1600, dtype='float32'), 16000)     # dry-run 不看内容，只要路径在
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        rc = VV.main([wav, d, '--dry-run'])
+    out = buf.getvalue()
+    assert rc == 0, 'vote_views --dry-run 退出码 %r' % (rc,)
+
+    names = lambda prof: [n for (_f, n, _s, _o) in VV.PROFILES[prof]]     # noqa: E731
+    for prof, want in (('cheap', 6), ('full', 9)):
+        views = [os.path.join(d, 'views', '%s.mid' % n) for n in names(prof)]
+        assert len(views) == want, '%s 档应 %d 个视图，实为 %d' % (prof, want, len(views))
+        assert not VV.plan_problems(views), \
+            '%s 档计划不成立：%s' % (prof, VV.plan_problems(views))
+        fams = {VV.VA.family_of(os.path.basename(p)[:-4]) for p in views}
+        assert fams == {'ymt3', 'bp'}, '%s 档的族是 %r（族票要求 ymt3 + bp 两族）' % (prof, fams)
+    assert set(names('cheap')) < set(names('full')), 'cheap 必须是 full 的子集（否则口径不可比）'
+
+    argv = VV.vote_argv(os.path.join(d, 'base.mid'), os.path.join(d, 'voted.mid'),
+                        os.path.join(d, 'views'), names('cheap'), os.path.join(d, 'ymt3.mid'))
+    assert '--family-min' in argv and argv[argv.index('--family-min') + 1] == '1', \
+        '装配没显式用 --family-min 1（会退回视图票 --k）：%r' % (argv[:8],)
+    assert '--k' not in argv, '装配里同时出现 --k（两条规则互斥）'
+    vpassed = dict(a.split('=', 1) for a in argv[argv.index('--view') + 1::2]) \
+        if '--view' in argv else {}
+    assert len(vpassed) == 6 and set(vpassed) == set(names('cheap')), \
+        '视图没按 `视图名=路径` 传齐：%r' % (sorted(vpassed),)
+
+    # ③ 判据自证：砍成单族（只留 BP）→ 计划判据必须报
+    bad = [os.path.join(d, 'views', '%s.mid' % n) for n in names('cheap') if n.startswith('bp')]
+    assert VV.plan_problems(bad), '只剩一族（BP）时 plan_problems 居然没报 —— 这条检查抓不到'
+    return 'cheap 6 视图（两族齐）/ full 9 视图 / cheap⊂full · 装配写死 --family-min 1 · 单族计划被判坏'
 
 
 @check

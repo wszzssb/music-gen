@@ -23,7 +23,7 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
 | **还原/扒带参考曲**（七步工序 · 有效/无效做法 · 度量纪律） | `docs/RESTORE-METHOD.md` | ≈5.7k |
 | **有真值时量准**（提取精度审计：尺子四处必修 · 度量口径三处 · 装配 · 天花板实验 · **多视图装配+边际精度判据**） | `docs/TRANSCRIBE-AUDIT.md` | ≈5.2k |
 | **接手"密集混音提取精度"**（现状数字 · 已证伪清单 · 下一步候选+验收判据 · **十三轮实测** · §11 = 换专用模型的三问 · §12 = k 标定 + 无监督开关 S1 + 应用层优化） | `docs/HANDOFF-TRANSCRIBE.md` | ≈11.8k |
-| **族票 / 多视图投票装配**（**已落地**：规则与开关 · 四条验收判据的实测读数 · 素材绝对路径 · 不再做的方向 · **§5 = 落地记录**） | `docs/HANDOFF-FAMILY-VOTE.md` | ≈2.3k |
+| **族票 / 多视图投票装配**（**已落地**：规则与开关 · 四条验收判据的实测读数 · 素材绝对路径 · **§5/§5b/§5c = 一条命令的链 + 第三族负结果 + 真实录音实测**） | `docs/HANDOFF-FAMILY-VOTE.md` | ≈3.8k |
 | **真实录音交付前必跑体检**（5 条无真值判据：轨结构/同音重复/密度/覆盖/鼓连击 + 一键 A/B 包 + `--selftest`） | `docs/HANDOFF-TRANSCRIBE.md` §9 · 工具 `D:\test\pop_transcribe_audit_交付\tools\preflight.py` | ≈11.8k |
 | **写歌时开可视化面板** | `studio/README.md`；启动 `studio\start.cmd` → http://127.0.0.1:8765 | ≈3.0k |
 | **不知道该读哪一节**（HISTORY/PITFALLS/README 一次读不完） | `docs/DOC-MAP.md`：大目录=主题域 → 小目录=文档节**+行号**（生成物） | ≈5.2k |

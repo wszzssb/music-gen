@@ -193,12 +193,17 @@ studio\stop.cmd     # 停
 ### 多视图投票装配（族票 · 应用层，**不跑模型**）
 
 ```powershell
-# 族票（推荐）：**每个族**至少 1 个视图提过才收（9 视图实测 +0.0083，旧"≥3 票" +0.0041）
-& $py scripts\vote_apply.py <真值.mid> <base.mid> <out.mid> --family-min 1 --s1 `
-    --view ymt3_nodrums=V1.mid --view bp_on70=V2.mid ...      # 族名 = 标签第一个 '_' 之前的前缀
-& $py scripts\vote_apply.py ... --k 3 --view lab=path ...      # 旧视图票路径（逐字节复现旧台账）
-& $py scripts\vote_apply.py ... --family-min 1 --view ymt3=A.mid --view bp=B.mid   # 显式族名（无下划线）
-#   --s1 = 打印无监督风险开关（base 被视图覆盖率；≥0.825 建议别开投票，**只提示不改行为**）
+# 一键链（推荐）：音频 → 6 视图 → 族票装配（Demucs 分轨 + YMT3×2 + BP×4）
+& $py scripts\vote_views.py <音频> <工作目录>              # 默认 cheap=6 视图（实测 ΔF1 +0.0075）
+& $py scripts\vote_views.py <音频> <工作目录> --profile full   # 9 视图（+0.0083，慢 1/3）
+#   --dry-run 只看计划 · 产物已在就不重跑（幂等）· 产物：ymt3.mid(base+骨架) · base.mid ·
+#   views\*.mid · voted.mid（音色按骨架还原，坑 277）
+
+# 手工装配（已知 base 与视图时）
+& $py scripts\vote_apply.py <真值.mid> <base.mid> <out.mid> --family-min 1 --s1 --skeleton <骨架.mid> `
+    --view ymt3_nodrums=V1.mid --view bp_on70=V2.mid ...   # 族名 = 标签第一个 '_' 之前的前缀
+& $py scripts\vote_apply.py ... --k 3 --view lab=path ...   # 旧视图票路径（逐字节复现旧台账）
+#   --s1 = 打印无监督开关（≥0.825 建议别开投票，**只提示**）· --skeleton = 新音按同音高同刻回原轨
 #   ⚠ 跨工具对比（tools\vote_family_rule.py）要传 `ymt3=`/`bp=` —— 那个入口把左边**整串**当族名
 ```
 

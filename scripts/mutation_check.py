@@ -2565,6 +2565,40 @@ def main():
     results.append(case('族票丢掉"每族都提"约束（跨族共识没了）', 'vote_apply_family_rule',
                         _vote_family_loses_consensus))
 
+    # 71c. `--skeleton` 被忽略（= 新音摊平成"一条钢琴轨"，坑 277 复发）必须被抓。
+    #      这正是第十一轮那个"自动读数全看不见、只有听感暴露"的故障：音符数/音高/时间一个不差。
+    def _vote_ignores_skeleton():
+        import vote_apply as _va
+        _orig = _va.rebuild
+        return Mut(_va, 'rebuild',
+                   lambda nbt, out, skeleton=None: _orig(nbt, out, None))
+    results.append(case('装配忽略 --skeleton（音色被压平，坑 277）', 'vote_apply_family_rule',
+                        _vote_ignores_skeleton))
+
+    # 72. 多视图链**只剩一族**（族票静默退化成单族过滤）必须被抓 —— 见 vote_views.plan_problems
+    def _views_single_family():
+        import vote_views as _vv
+        return Mut(_vv, 'PROFILES',
+                   {'cheap': [('bp', 'bp_on70', 'mix', 0.7), ('bp', 'bp_nodrums_on70',
+                                                              'nodrums', 0.7)],
+                    'full': [('bp', 'bp_on70', 'mix', 0.7), ('bp', 'bp_nodrums_on70',
+                                                             'nodrums', 0.7)]})
+    results.append(case('多视图链只剩一族（族票退化成单族过滤）', 'vote_views_plan',
+                        _views_single_family))
+
+    # 72b. 装配规则被写回 `--k`（视图票）必须被抓 —— 不然"规则退版本"没人看得见
+    def _views_vote_by_k():
+        import vote_views as _vv
+
+        def fake(base, out_mid, views_dir, names, skeleton, s1=True):
+            argv = [base, base, out_mid, '--k', '3']
+            for n in names:
+                argv += ['--view', '%s=%s' % (n, os.path.join(views_dir, '%s.mid' % n))]
+            return argv
+        return Mut(_vv, 'vote_argv', fake)
+    results.append(case('多视图链的装配退回 --k（视图票）', 'vote_views_plan',
+                        _views_vote_by_k))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')
