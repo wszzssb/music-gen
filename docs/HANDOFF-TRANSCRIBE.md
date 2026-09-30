@@ -500,6 +500,11 @@ A/B 包 `D:\test\BGM35_提取\对照_r25\对照_3m31-3m42\`（原曲 / A=r21 / D
 
 - **J′②"换模型族当投票人"没做**：没有新转录——`piano_crnn.pth` 等模型
   在 `D:\test\models\` **已不在**（那目录不存在了），要做得重新下模型再写转录器。
+  ⚠ **补正（2026-10-01）**：`D:\test\models\` **在**（`piano/piano_crnn.pth` 172MB ·
+  `piano_conformer.pth` 628MB · `music_piano-v2.onnx` 85MB · `ymt3_weights/*.ckpt` 都在），
+  上面那句判断是**错的**；`piano_crnn` 实测可跑（`.venv-ml` 已装
+  `piano_transcription_inference` 0.0.6，10 首留出集 ≈45s/首）。**第三族的实测结论**
+  （负结果：族票 +0.0083 → +0.0038）见 `docs/HANDOFF-FAMILY-VOTE.md` §5b —— **别再为它下模型**。
 - **留出集没扩**（候选 E′）：仍是 10 首，全部是 MIDI→MP3 转换件。
 - **阈值 0.825 是在这 13 首上事后选的** ⇒ 平台虽宽，仍**需要新素材复验**再进流水线。
 - 复现脚本与逐首明细：`D:\test\_tmp\mg-audit\`（`j2_k_calib.py` · `j3_cand_l.py` ·

@@ -2540,6 +2540,31 @@ def main():
     results.append(case('真值尺子：鼓不按族比（按 raw GM 键）', 'truth_eval_ruler',
                         lambda: Mut(_te, 'FAMILY', {k: k for k in range(128)})))
 
+    # 71. **族票退化成视图票**必须被抓（2026-10-01，把"族票"接进 `scripts/vote_apply.py`）。
+    #     注入 = 把族名解析换成"族名 = 视图名"（`family_of(lab) -> lab`）—— 这正是
+    #     HANDOFF-FAMILY-VOTE §1 点名的退化方式，也是最危险的一种：产物照样生成、
+    #     命令照样 exit 0，只是收益从"每族≥1"（+0.0083）悄悄退回"视图票"（+0.0041）。
+    #     夹具是检查里那 7 个已知答案的小 MIDI（X 跨族共识 / Y 同族多视图 / Z 单族）。
+    def _vote_family_degenerates():
+        import vote_apply as _va
+        return Mut(_va, 'family_of', lambda lab: lab)
+    results.append(case('族票退化成视图票（族名当视图名）', 'vote_apply_family_rule',
+                        _vote_family_degenerates))
+
+    # 71b. 同一条规则的**第二个退化面**：把"每个族都要提过"错接成"有一个族提过就收"
+    #      （= 约束落在单个族上，跨族共识没了）。只验 71 那种坏法不够 —— 两个面都得红，
+    #      否则"抓到了"可能只是碰巧（一条恒 FAIL 的检查也能过 71）。
+    def _vote_family_loses_consensus():
+        import vote_apply as _va
+
+        def fake(note_of, fam_views, family_min=1, require_families=None):
+            # "有**一个**族提够票就收" = 跨族共识丢失（Z 只有 YMT3 一族提也会被收进来）
+            return [note_of[k] for k in sorted(note_of)
+                    if any(len(v) >= family_min for v in fam_views[k].values())]
+        return Mut(_va, 'pick_family', fake)
+    results.append(case('族票丢掉"每族都提"约束（跨族共识没了）', 'vote_apply_family_rule',
+                        _vote_family_loses_consensus))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

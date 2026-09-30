@@ -190,6 +190,18 @@ studio\stop.cmd     # 停
 参数：`--dur-floor`（时值下限，只动旋律层，默认 0.55 拍）· `--absorb-into`（YMT3 的合成器通道并进哪条轨，默认 Strings —— 并进 Piano 会用钢琴音色弹它）· `--thr-extra`（Guitar/Strings 是单来源层，套 `--merge-thr` 会把整层砍掉）；改过参数要 `--from bass --force bass` 重跑。
 判据 → `docs/RESTORE-METHOD.md` §4b · PITFALLS 206/207。
 
+### 多视图投票装配（族票 · 应用层，**不跑模型**）
+
+```powershell
+# 族票（推荐）：**每个族**至少 1 个视图提过才收（9 视图实测 +0.0083，旧"≥3 票" +0.0041）
+& $py scripts\vote_apply.py <真值.mid> <base.mid> <out.mid> --family-min 1 --s1 `
+    --view ymt3_nodrums=V1.mid --view bp_on70=V2.mid ...      # 族名 = 标签第一个 '_' 之前的前缀
+& $py scripts\vote_apply.py ... --k 3 --view lab=path ...      # 旧视图票路径（逐字节复现旧台账）
+& $py scripts\vote_apply.py ... --family-min 1 --view ymt3=A.mid --view bp=B.mid   # 显式族名（无下划线）
+#   --s1 = 打印无监督风险开关（base 被视图覆盖率；≥0.825 建议别开投票，**只提示不改行为**）
+#   ⚠ 跨工具对比（tools\vote_family_rule.py）要传 `ymt3=`/`bp=` —— 那个入口把左边**整串**当族名
+```
+
 ### 推不上去（github.com 时通时不通）
 
 ```powershell

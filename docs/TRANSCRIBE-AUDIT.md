@@ -199,7 +199,8 @@ Maroon 5 **0.378** / Muse 0.169（4 首里 3 首过 >0.35）；**进并集后召
    多出来的是又弱又相关的 BP 变体 ⇒ **k 必须跟视图集一起标定**；
 ② **票不独立**：5 个视图只来自 **2 个模型族**，"3 票"≠"3 次独立确认"。
 
-工具：`tools\vote_diag.py`（票数→精度分层检验）· `tools\vote_apply.py`（≥k 票装配 + 验收）。
+工具：`tools\vote_diag.py`（票数→精度分层检验）· `scripts\vote_apply.py`（**族票** `--family-min`
++ 尺子验收 + `--s1`；与 `tools\vote_family_rule.py` 的口径差见坑 294）。
 
 ---
 

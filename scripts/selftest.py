@@ -7792,6 +7792,119 @@ def t_truth_eval_ruler():
 
 
 @check
+def t_vote_apply_family_rule():
+    """**族票（每族 ≥N 个视图）与视图票（≥k 个视图）必须是两条真的不同的规则**。
+
+    依据（`docs/HANDOFF-TRANSCRIBE.md` §12.7 实测）：9 视图里 5 个是 BP 变体、3 个是 YMT3
+    变体，"票数≥3"可能只是"同一族的 3 个近似视角"（票**不独立**：BP 彼此重合 0.459）
+    —— 同一批 10 首上 9 视图 `k=3` 是 **+0.0041**（7 涨 3 跌），"每族≥1"是 **+0.0083**（9 涨 1 跌）。
+    规则接进流水线时最容易犯的错是**把族名当视图名**（族票静默退化成视图票）：它照样跑、
+    照样出文件，只是收益悄悄退回旧规则。所以这里用**已知答案的小夹具**把两条规则钉开。
+
+    夹具（120BPM ⇒ 1 拍 = 0.5 秒）：base = 60/62/64；三个候选新音
+      X=67@4.0s（1 票 YMT3 + 1 票 BP = **跨族共识**）· Y=69@5.0s（2+2 票）· Z=71@6.0s（只有 1 票 YMT3）。
+    ⇒ 族票≥1 收 {X,Y}（Z 缺 BP 族）· 族票≥2 收 {Y} · 旧视图票 k=3 也收 {Y}
+      （Y 有 4 个标签、X 只有 2 个 —— **旧规则的病根**：同族多视图各算一票、靠数量压倒）。
+    S1 用两个**已知覆盖率**的夹具钉住（base 三个音全被认到 = 1.000 ⇒ 建议"别开投票"；
+    视图漏掉一个音 = 0.667 ⇒ 建议"可以开投票"）。
+    **判据自证**：把 `family_of` 换成"族名 = 视图名"（= 退化成视图票）→ 结果必须变。
+    """
+    import vote_apply as VA
+    import midi_file as _MF
+    d = os.path.join(TMP, 'vote_family')
+    os.makedirs(d, exist_ok=True)
+    BASE = [(0, 60), (1, 62), (2, 64)]          # 拍 → 秒 = 拍 × 0.5
+    X, Y, Z = (8, 67), (10, 69), (12, 71)       # 新音：4.0 / 5.0 / 6.0 秒
+
+    def w(name, extras, drop=None):
+        ns = [[b, 1.0, p, 90] for (b, p) in BASE if p != drop]
+        ns += [[b, 1.0, p, 90] for (b, p) in extras]
+        p_ = os.path.join(d, name)
+        _MF.export_midi({'format': 1, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+                         'title': 'fx', 'end_beat': 16.0, 'source': p_,
+                         'tracks': [{'index': 0, 'name': 'v', 'channel': 0, 'program': 0,
+                                     'drum': False, 'notes': sorted(ns)}]}, p_, fmt=1)
+        return p_
+
+    base = w('base.mid', [])
+    truth = w('truth.mid', [X, Y, Z])
+    views = [('ymt3_a', w('ymt3_a.mid', [X])), ('ymt3_b', w('ymt3_b.mid', [Y])),
+             ('ymt3_c', w('ymt3_c.mid', [Y])), ('ymt3_d', w('ymt3_d.mid', [Z])),
+             ('bp_a', w('bp_a.mid', [X])), ('bp_b', w('bp_b.mid', [Y])),
+             ('bp_c', w('bp_c.mid', [Y]))]
+    vspec = sum([['--view', '%s=%s' % (lab, p_)] for (lab, p_) in views], [])
+    low = [('ymt3_a', w('low_a.mid', [X], drop=64)), ('bp_a', w('low_b.mid', [X], drop=64))]
+    lspec = sum([['--view', '%s=%s' % (lab, p_)] for (lab, p_) in low], [])
+
+    def run(tag, extra, viewspec):
+        out = os.path.join(d, 'out_%s.mid' % tag)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = VA.main([truth, base, out] + extra + viewspec)
+        got = buf.getvalue()
+        assert rc == 0, 'vote_apply 退出码 %r（%s）' % (rc, tag)
+        pitches = sorted({x[2] for x in VA.load_pitched(out)})
+        return [p_ for p_ in pitches if p_ not in (60, 62, 64)], got
+
+    # ① 族名解析：含下划线取前缀（标签式），不含下划线整串当族名（显式式）
+    assert (VA.family_of('ymt3_novox') == 'ymt3' and VA.family_of('bp_harm_on0.5') == 'bp'
+            and VA.family_of('bp') == 'bp'), \
+        '族名解析坏了：%r / %r / %r' % (VA.family_of('ymt3_novox'),
+                                       VA.family_of('bp_harm_on0.5'), VA.family_of('bp'))
+
+    # ② 族票 ≥1：跨族共识（X）进，只有一族提的（Z）不进
+    fam1, o1 = run('fam1', ['--family-min', '1', '--s1'], vspec)
+    assert fam1 == [67, 69], '族票≥1 应收 {67,69}（跨族共识 + 两族都提），实收 %r' % (fam1,)
+    # ③ 族票 ≥2：X 的 YMT3 只有 1 个视图 ⇒ 卡掉
+    fam2, _o = run('fam2', ['--family-min', '2'], vspec)
+    assert fam2 == [69], '族票≥2 应收 {69}（X 的 YMT3 只 1 个视图），实收 %r' % (fam2,)
+    # ④ 旧视图票 k=3：Y 有 4 个标签、X 只有 2 个 ⇒ 收 {Y} —— 与族票≥1 **必须不同**
+    kv3, _o = run('k3', ['--k', '3'], vspec)
+    assert kv3 == [69], '旧路径 k=3 应收 {69}（同族多视图各算一票），实收 %r' % (kv3,)
+    assert kv3 != fam1, '族票与视图票给出了同一个结果 —— 族票退化成视图票了'
+    kv2, _o = run('k2', ['--k', '2'], vspec)
+    assert kv2 == [67, 69], '旧路径 k=2 应收 {67,69}，实收 %r' % (kv2,)
+    # ⑤ 规则开关的默认口径：`--family-min` 不写 N = 1；两个规则同时给 = 报错（别猜）
+    bare, _o = run('bare', ['--family-min'], vspec)
+    assert bare == fam1, '`--family-min`（不写 N）应等于 N=1，实收 %r' % (bare,)
+    try:
+        with redirect_stdout(io.StringIO()):
+            VA.main([truth, base, os.path.join(d, 'out_bad.mid'), '--k', '3',
+                     '--family-min', '1'] + vspec)
+        raise AssertionError('--k 与 --family-min 同时给居然不报错（规则互斥被静默吞掉）')
+    except SystemExit as e:
+        assert '互斥' in str(e), '互斥报错的文案没说清：%r' % (str(e),)
+
+    # ⑥ S1：两个已知覆盖率（主夹具 1.000 / 低夹具 0.667）+ 建议方向
+    #    ⚠ 打印精度是 `%.3f` ⇒ 判据容差取 5e-4（第一版拿 1e-6 比 2/3，被舍入判成 FAIL）
+    m1 = re.search(r'S1（base 被视图覆盖率）= ([\d.]+)', o1)
+    assert m1 and abs(float(m1.group(1)) - 1.0) < 5e-4, \
+        'S1 读数不是 1.000（base 三个音都被认到）：%r' % (o1[-400:],)
+    assert '别开投票' in o1, 'S1=1.000（≥阈值 0.825）应建议别开投票'
+    _kl, o_low = run('low', ['--family-min', '1', '--s1'], lspec)
+    m2 = re.search(r'S1（base 被视图覆盖率）= ([\d.]+)', o_low)
+    assert m2 and abs(float(m2.group(1)) - 2.0 / 3.0) < 5e-4, \
+        '低覆盖夹具的 S1 应 = 2/3（视图漏掉 base 的 64）：%r' % (o_low[-400:],)
+    assert '可以开投票' in o_low, 'S1=0.667（< 0.825）应建议可以开投票'
+
+    # ⑦ 自指告警：拿 base 当真值时，打印的 F1 不是精度（PITFALLS：无真值时的假读数）
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        VA.main([base, base, os.path.join(d, 'out_self.mid'), '--family-min', '1'] + vspec)
+    assert '真值 == base' in buf.getvalue(), '真值就是 base 时没告警（会把自指 F1 当成精度）'
+
+    # ⑧ **判据自证**：族名 = 视图名（把族名当视图名）⇒ 族票退化成视图票，结果必须变
+    _orig, VA.family_of = VA.family_of, (lambda lab: lab)
+    try:
+        deg, _o = run('deg', ['--family-min', '1'], vspec)
+    finally:
+        VA.family_of = _orig
+    assert deg != fam1, '族名被当成视图名（族票退化成视图票）仍给同一结果 —— 这条检查抓不到'
+    return ('族票/视图票两条规则分得开（收 %r vs %r）· S1 读数 1.000/0.667 与阈值建议均对 · '
+            '自指告警在 · 注入"族名=视图名"被抓' % (fam1, kv3))
+
+
+@check
 def t_transcribe_arr_by_source():
     """**引擎生成层必须按来源开关**（退回"段名规则"会让它段段全开）。
 
