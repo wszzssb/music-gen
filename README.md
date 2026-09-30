@@ -217,6 +217,13 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `setup_soundfont.py` | 下载并安装 FluidSynth + GeneralUser GS 到 `vendor\` |
 | `probe_mirrors.py` / `check_soundfont.py` | GitHub 镜像 / 音源可下载性探测 |
 
+**提取流水线的应用层规则**（不跑模型、只改装配，2026-09-30 实测）：
+`tools\vote_family_rule.py` —— **族票**（同族多视图算**一票**；实测 9 视图"票数≥3" **+0.0041**
+→ "每族≥1票" **+0.0083**，10 首 9 涨 1 跌）+ **S1 自适应开关**（`S1 = base 被视图覆盖率`，
+↔ ΔF1 的 ρ = −0.782，阈值 0.825 事前判断开不开投票）。
+⚠ **故意留在 `tools\` 没进 `scripts\`**：它还没配自检 + 变异用例，也不算进 `scripts\` 清单预算；
+字段口径与实测表 → `docs\HANDOFF-TRANSCRIBE.md` §12.4/§12.7。
+
 ### ML 工具链（可选）：见 `ML.md`
 
 纯 numpy 管线做不到的事（扒旋律、音源分离、母带匹配）用现成工具解决：**Demucs** 分离声部
