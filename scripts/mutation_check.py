@@ -2599,6 +2599,38 @@ def main():
     results.append(case('多视图链的装配退回 --k（视图票）', 'vote_views_plan',
                         _views_vote_by_k))
 
+    # 73. **还原曲的 `render.json` 里 `composer: null` 不许把判据崩掉**（2026-10-01 实测）。
+    #     `make_song` 对"只有 song.json"的曲目写的就是 `composer: null`（还原曲全是这种），
+    #     而 `chord_names_match_notes` 原来的 `c.get('composer', '')` 在"键存在但值为 null"
+    #     时返回 **None**（默认值不生效）→ `'/' in None` → **TypeError**：合法的曲目被判
+    #     "数据契约未通过"。夹具 = 一首真曲的 song.json + `composer: null` 的 render.json。
+    #     ⚠ 这是**反向用例**（真数据必须放行）：期望"没报"，报了才是错。
+    def _composer_null():
+        import shutil
+        d = os.path.join(TMP, 'composer_null')
+        os.makedirs(d, exist_ok=True)
+        src = None
+        for cand in real_song_dirs():
+            if os.path.exists(os.path.join(cand, 'song.json')):
+                src = cand
+                break
+        if src is None:
+            raise SkipCase('没有可当夹具的曲目（song.json）')
+        shutil.copy2(os.path.join(src, 'song.json'), os.path.join(d, 'song.json'))
+        json.dump({'composer': None, 'mid': 'x.mid', 'out': 'x_sf'},
+                  open(os.path.join(d, 'render.json'), 'w', encoding='utf-8'))
+        return Mut(st, 'song_dirs', lambda **k: [d])
+    results.append(case_dual('还原曲 composer=null（判据不许崩）', 'chord_names_match_notes',
+                             _composer_null, expect_caught=False))
+
+    # 74. **扒带接续链退回"不传 --no-melody"** 必须被抓（2026-10-01 实测 BGM35）：
+    #     那会让每个扒带成品多出一条 melody 副本（实测 340/340 与 Piano 轨同刻同音），
+    #     而且它会**伪装成**"旋律强拍贴合只 60%"的达标问题（判据量错了对象）。
+    def _ymt3_melody_dup_regressed():
+        return Mut(st, '_ymt3_restore_mode_ok', lambda src: True)
+    results.append(case('扒带接续链不传 --no-melody（melody 副本复发）',
+                        'ymt3_restore_mode_wired', _ymt3_melody_dup_regressed))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

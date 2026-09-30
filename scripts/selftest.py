@@ -1436,8 +1436,14 @@ def t_chord_names_match_notes():
         if not os.path.exists(p):
             continue
         c = json.load(open(p, encoding='utf-8'))
-        comp = c.get('composer', '')
-        if '/' in comp or '\\' in comp or not comp.endswith('.py'):
+        # ⚠ `composer` **可以是 null**（`make_song` 对"只有 song.json"的曲目就是这么写的，
+        #   还原/扒带曲全是这种）—— `c.get('composer', '')` 在"键存在但值是 None"时返回
+        #   **None**（默认值不生效），下一行 `'/' in None` 直接 TypeError：
+        #   实测 `bgm35_extract` 因此被判"数据契约未通过"，而它数据完全合法
+        #   （库里 princess_charm 有 compose.py 才一直没暴露）。判据不许把合法的曲目崩掉。
+        comp = c.get('composer') or ''
+        if not isinstance(comp, str) or '/' in comp or '\\' in comp \
+                or not comp.endswith('.py'):
             continue
         fp = os.path.join(d, comp)
         if not os.path.exists(fp):
@@ -7755,6 +7761,43 @@ def t_ymt3_reports_decode_steps():
     assert not _ymt3_steps_ok(src.replace('a.shape[-1]', 'a.shape[0]')), \
         '判据自证失败：不数解码步数仍判通过'
     return 'YMT3 自报解码步数 + 撞上限告警在位'
+
+
+def _ymt3_restore_mode_ok(src):
+    """`transcribe_ymt3.py` 的**接续链**是否走还原模式（传了 `--no-melody`）。
+
+    依据（2026-10-01 实测 · 扒 `BGM35`）：不传的话 `transcribe_to_song.py` 会把
+    `--melody-from`（默认 Piano）那条轨的**高音区**再抄一份成 melody 层，而那条轨**照旧整轨发声**
+    ⇒ 同一个音两条轨同时响（PITFALLS 255 ③ 那个病）。实测 melody **340/340（100%）**与 Piano 轨
+    同刻同音；它还会让 `melody_chord_fit` 报"强拍贴合只 **60%**" —— 那条判据量的是**副本**、
+    不是编配本身（判据被引到了错的对象上，同族：坑 287 的"拿显示用的舍入值去比"）。
+
+    修好后标准入口会自动清空 melody 并写 `patterns.melody_exempt`，**音留在原轨不丢**
+    （实测清空后 `check_song` 5/5、曲库守卫 15/15 全过）。
+    ⚠ 少数情况要保留副本：手工跑 `transcribe_to_song.py ... --keep-melody`。
+    """
+    m = re.search(r'def _run_song_pipeline.*?(?=\ndef |\Z)', src, re.S)
+    if not m:
+        return False
+    body = m.group(0)
+    return '"--no-melody"' in body or "'--no-melody'" in body
+
+
+@check
+def t_ymt3_restore_mode_wired():
+    """**扒带接续链必须走还原模式**（否则每个成品都带一条 melody 副本，只有耳朵发现得了）。
+
+    依据见 `_ymt3_restore_mode_ok` 的 docstring（实测 340/340 重复 + 那条"60%"假警报）。
+    判据**读源码、不跑模型**（秒级，同 `t_ymt3_grouped_inference`）。
+    **判据自证**：把 `--no-melody` 从接续命令里删掉 → 必须判坏。
+    """
+    src = open(YM33_SRC, encoding='utf-8').read()
+    assert _ymt3_restore_mode_ok(src), (
+        'transcribe_ymt3.py 的接续链没传 --no-melody：还原曲会多出一条 melody 副本，'
+        '与主奏轨 100% 重复发声（PITFALLS 255 ③ / 297）')
+    assert not _ymt3_restore_mode_ok(src.replace('"--no-melody", ', '')), \
+        '判据自证失败：把 --no-melody 从接续命令里删掉仍判通过'
+    return 'YMT3 接续链走还原模式（--no-melody 在位，判据自证通过）'
 
 
 @check

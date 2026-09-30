@@ -2086,3 +2086,24 @@
      **正确读法**：它是**自洽天花板**（"链能复现自己那套内容到什么程度"）与**回归护栏**
      （改了链，这个数掉了就是真掉了），**不是准确率**；对原曲的精度仍然只能靠带真值的留出集。
      同族：坑 266「同源不能当独立证据」· §12.6「拿 base 当假真值的自指 F1」。
+
+297. **扒带成品进曲库要齐"三件套"，而且别拿"副本"当判据对象**（2026-10-01，扒 BGM35 实测）。
+     三件事**全是静默的**（命令 exit 0、音照出、音量照响）：
+     ① **接续链漏传 `--no-melody`** ⇒ 每个扒带成品都多一条 melody 副本：实测它
+        **340/340（100%）**与 Piano 轨同刻同音（PITFALLS 255 ③ 那个病：同一份转录两条轨一起响，
+        一条 Melody 音色一条原音色）。更坏的是它会**伪装成达标问题** —— `melody_chord_fit`
+        报"强拍贴合只 **60%**"，量的是**那条副本**、不是编配本身。
+        已修：`transcribe_ymt3._run_song_pipeline` 补 `--no-melody`（要副本手工加 `--keep-melody`）
+        + 守卫 `t_ymt3_restore_mode_wired`（读源码、带注入用例）；修后在 BGM35 上重跑，
+        song.json 与手工修出版**逐字节相同**。
+     ② **`render.json` 的 `composer: null` 会让判据自己崩**：`make_song` 对"只有 song.json"
+        的曲目写的就是 `null`，而 `chord_names_match_notes` 原来写 `c.get('composer', '')` ——
+        **键存在但值是 None 时默认值不生效** ⇒ `'/' in None` → `TypeError`，
+        合法曲目被判"数据契约未通过"（库里 `princess_charm` 有 compose.py，所以一直没暴露）。
+        已修 + 反向变异用例（真数据必须放行）。
+     ③ **新曲目入库缺件会红两条**：`render_json_schema`（缺 composer）· `notes_present`
+        （缺 `notes.md`）。曲目目录必须齐 **`song.json` + `compose.py` + `notes.md` + `render.json`**
+        （composer 指向本目录的 compose.py）。⚠ **`make_song` 只保留已有的 composer、不会自动补**
+        ⇒ 每次重渲染后都要再确认一次（它会把 null 原样写回去）。
+     ⇒ 通用判据：**"这条判据量的是我要交付的那个对象吗？"** —— 副本 / 显示值 / 代理量都会骗人
+        （同族：坑 287「拿显示用的舍入值去比」· 坑 296「自洽天花板不是精度」）。

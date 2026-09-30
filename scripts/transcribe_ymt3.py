@@ -406,7 +406,13 @@ def _run_song_pipeline(audio_path, mid_path, out_dir, name, song_name=None):
     sname = song_name or (re.sub(r"[^0-9A-Za-z_]+", "_", name).strip("_")[:40] or "restored")
     cmd = [py, os.path.join(here, "transcribe_to_song.py"), sname,
            "--bpm", "%.4f" % bpm, "--chords-log", chords_txt,
-           "--auto", "--audio", audio_path]
+           # ⚠ **必须带 `--no-melody`**（还原模式）：不传的话 transcribe_to_song 会把
+           #   `--melody-from`（默认 Piano）那条轨的**高音区**再抄一份成 melody 层，
+           #   而那条轨照旧整轨发声 ⇒ 同一个音两条轨同时响（PITFALLS 255 ③）。
+           #   2026-10-01 实测（BGM35）：melody **340/340（100%）**与 Piano 轨同刻同音；
+           #   它还会让 `melody_chord_fit` 报"强拍贴合只 60%"——量的是那条副本、不是编配本身。
+           #   要保留副本（少数情况）手工跑 `transcribe_to_song.py ... --keep-melody`。
+           "--no-melody", "--auto", "--audio", audio_path]
     for eng, (p, _n) in sorted(files.items()):
         cmd += ["--mid", "%s=%s" % (eng, p)]
     if "Drums" in files:
