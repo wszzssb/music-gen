@@ -1795,7 +1795,10 @@ def t_play_midi_safe():
 
 @check
 def t_audio_semantics():
-    """渲染结果的时长与结构要对得上：总长≈谱面长度；有音符的段落不能是静音"""
+    """渲染结果的时长与结构要对得上：总长≈**尾部可见内容**长度；有音符的段落不能是静音
+
+    ⚠ 时长判据**不拿"谱面总长"当期望值**：段末留白（`section_gap` 式收尾）会让谱面比内容长，
+    那是编配手法、不是缺陷 —— 详见下面 `content_sec` 处的实测记录（2026-09-30）。"""
     for d in songs_or_fail():
         name = os.path.basename(d)
         p = os.path.join(d, 'render.json')
@@ -1812,9 +1815,25 @@ def t_audio_semantics():
         bar = song_engine.bar_beats(data) * 60.0 / data['bpm']
         y, sr = sf.read(wav, dtype='float64', always_2d=True)
         dur = len(y) / sr
-        expect = nbars * bar
+        # ⚠ **期望时长要以"最后一个音符结束在哪"为准，不是"谱面总长"**（2026-09-30 实测）。
+        #   旧口径 `expect = nbars * bar` 把**尾部留白**当成缺陷：`dear_good_friends`
+        #   （还原曲）最后一音结束于 199.85 拍而谱面 208 拍（52 小节）—— 差 8.15 拍
+        #   ≈ 6.1 秒，与用户口径"有转变可以，但要过渡自然或**中间有空白**"（技能 §0）
+        #   完全一致；那首歌的音频 150.76s 其实**比 MIDI 还长 1.6s**（混响尾），
+        #   却被报成"音频短了 4.5s"。这就是"用测不准的尺子判分"（同上 §10 第 10 条）。
+        #   新口径 `min(谱面, 内容结束)` —— **只收紧不放松**：
+        #     · 内容结束在谱面内 → 与旧口径**逐字节相同**（全库只有带留白的曲子会变）；
+        #     · 内容溢出谱面 → 取谱面（旧行为）；
+        #     · 音频被截断（渲染丢了尾巴）→ 照样 FAIL（内容结束 = 最后一个音）。
+        last_beat = 0.0
+        for _tr, _v in ev.items():
+            for (_st, _dd, _m, _vv) in _v:
+                last_beat = max(last_beat, _st + _dd)
+        content_sec = last_beat * 60.0 / data['bpm']
+        expect = min(nbars * bar, content_sec)
         assert expect - 0.6 <= dur <= expect + 8.0, \
-            '%s 时长 %.1fs 与谱面 %.1fs 不符（多出的是混响尾，正常 ≤8s）' % (name, dur, expect)
+            '%s 时长 %.1fs 与谱面 %.1fs 不符（尾部可见内容结束于 %.1fs；多出的是混响尾，正常 ≤8s）' % (
+                name, dur, expect, content_sec)
         mono = y.mean(axis=1)
         bar0 = 0
         B = song_engine.bar_beats(data)
@@ -7849,9 +7868,14 @@ def t_bass_register():
     修法已固化进引擎：`song_engine.SUB_FLOOR = 24`，8 处 sub 层全改成
     `max(bass - 12, SUB_FLOOR)`。这条检查守住它不被人改回去。
     **判据自证**：`SUB_FLOOR` 归零（= 旧行为）→ 最低的那个 sub 分支必须掉到 24 以下。
+
+    ⚠ **还原曲可以带理由豁免**（`patterns.bass_exempt`，口径同 `melody_exempt`）：
+    这条门是从**生成路径**的模板标定的；还原曲的低音**服从原曲**（用户 2026-09-25
+    "判据服从原曲"）。实测 `siren_end2` bar96 那个 29.1Hz 是用户认可版本里刻意保留的，
+    消融显示它让 20–40Hz 好 9.0dB —— 那种情况该写**带数字的理由**放行，而不是改音去过门。
     """
     import song_engine as SE
-    bad, checked = [], 0
+    bad, excused, checked = [], [], 0
     for d in songs_or_fail():
         try:
             data = SE.load(os.path.join(d, 'song.json'))
@@ -7866,9 +7890,25 @@ def t_bass_register():
         checked += 1
         lo = min(ps)
         if lo < BASS_FLOOR:
-            bad.append('%s Bass 最低 %d(%.1fHz) < %d'
-                       % (os.path.basename(d), lo, 440.0 * 2 ** ((lo - 69) / 12.0), BASS_FLOOR))
+            # **带理由豁免**（口径同 `melody_exempt` / `density_exempt`：理由空白 = 没写 = 不放行）。
+            # 依据（2026-09-30 · `siren_end2` 实测）：用户认可的版本在 bar96 刻意保留了一个
+            # **29.1Hz（p22）** 的超低音，而消融实测 v19（保 29.1Hz）在 **20–40Hz 比 v20
+            # （升八度到 p34）好 9.0dB** ⇒ 对这首歌"掉下 C1"是**忠实原曲**、不是缺陷
+            # （`track_ranges_musical` 是**生成路径**的守卫；还原曲按"判据服从原曲"，用户 2026-09-25）。
+            # 豁免要写**实测数字**，不许写空话。
+            if _exempt_named(data, 'bass_exempt'):
+                excused.append('%s（%d，%.1fHz）' % (os.path.basename(d), lo,
+                                                    440.0 * 2 ** ((lo - 69) / 12.0)))
+            else:
+                bad.append('%s Bass 最低 %d(%.1fHz) < %d'
+                           % (os.path.basename(d), lo, 440.0 * 2 ** ((lo - 69) / 12.0), BASS_FLOOR))
     assert checked >= 5, '可判曲目太少（%d）—— 这条检查会空转' % checked
+    # **判据自证**：豁免必须**理由非空白**才放行（口径同 `melody_exempt`，空话放行不了东西）
+    assert _exempt_named({'patterns': {'bass_exempt': {'note': '   '}}}, 'bass_exempt') == {}, \
+        '判据自证失败：空白理由也被当成豁免'
+    assert _exempt_named({'patterns': {'bass_exempt': {'note': '原曲 bar96 实测 29.1Hz'}}},
+                         'bass_exempt') == {'note': '原曲 bar96 实测 29.1Hz'}, \
+        '判据自证失败：非空理由没被认作豁免'
     # 引擎常量必须与真值一致（漂移了就要么改引擎、要么改真值，不能两边各写一份）
     assert SE.SUB_FLOOR == BASS_FLOOR, \
         ('引擎的 `SUB_FLOOR` = %s，与真值下界 %d（C1）不一致 —— 次声波守卫会被绕过'
@@ -7885,8 +7925,9 @@ def t_bass_register():
     assert lo_old < BASS_FLOOR, \
         ('判据自证失败：SUB_FLOOR 归零后 offbeat 的 sub 仍到 %d（应低到 %d = F0 21.8Hz）'
          % (lo_old, 29 - 12))
-    print('        %d 首：Bass 最低音全部 ≥ %d（C1 = 32.7Hz；旧行为会掉到 %d）'
-          % (checked, BASS_FLOOR, lo_old))
+    print('        %d 首：Bass 最低音全部 ≥ %d（C1 = 32.7Hz；旧行为会掉到 %d）%s'
+          % (checked, BASS_FLOOR, lo_old,
+             ('；带理由豁免 %d 首：%s' % (len(excused), ', '.join(excused))) if excused else ''))
     assert not bad, '贝斯掉进次声波：%s' % '；'.join(bad[:4])
 
 

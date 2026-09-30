@@ -31,7 +31,29 @@ _cu.setup()
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-DEFAULT_LIB = r'D:\test\dt_midi'
+
+
+def default_lib():
+    """默认曲库根 —— 与面板**同一套优先级**（`studio/server.py` main 里那段）。
+
+    ⚠ 为什么不能写死（2026-09-30 实测）：原来硬编码 `D:\\test\\dt_midi`，
+    而那个目录**早已不存在**；同时**面板真正用的**是 `studio/.libpath` 里记的
+    `D:\\test\\siren_end2_交付`（一个只有 1 首、且没有 song.json 的交付目录，
+    面板于是走 `probe_lib` 的 single 布局）。结果是：**面板显示 1 首、
+    这个体检工具却在报另一个不存在的目录「0 项」** —— 两个工具说的不是同一件事，
+    "曲库坏了" 的排查会从一开始就走错方向。
+    优先级：`--lib`（调用方显式给）> `BGM_STUDIO_LIB` > `studio/.libpath` > 工具链 `songs/`。
+    """
+    lp = os.path.join(ROOT, 'studio', '.libpath')
+    for cand in (os.environ.get('BGM_STUDIO_LIB'),
+                 (open(lp, encoding='utf-8').read().strip()
+                  if os.path.isfile(lp) else None)):
+        if cand and os.path.isdir(cand):
+            return cand
+    return os.path.join(ROOT, 'songs')
+
+
+DEFAULT_LIB = default_lib()
 
 
 def _is_link_like(path):
@@ -105,6 +127,12 @@ def scan(lib):
             kind = '悬空链接'
         elif is_link:
             kind = '链接'
+        elif os.path.isdir(p) and not os.listdir(p):
+            # ⚠ 空目录**不是**「纯音频目录」（2026-09-30 实测：`songs_direct\\export\\` 空目录
+            #   被标成"纯音频目录"，用户会以为那里有东西坏了）。它既没有 song.json、
+            #   也没有音频 → 面板的 `probe_lib`/`has_audio` 根本不会把它当曲目。
+            #   单独一类，处置也不同：直接删（它是 `EXPORT_DIR` 的残留）。
+            kind = '空目录'
         elif os.path.isdir(p) and not os.path.isfile(os.path.join(p, 'song.json')):
             kind = '纯音频目录'
         elif os.path.isdir(p):
@@ -119,7 +147,8 @@ def scan(lib):
 
 def main():
     ap = argparse.ArgumentParser(add_help=True)
-    ap.add_argument('--lib', default=DEFAULT_LIB)
+    ap.add_argument('--lib', default=DEFAULT_LIB,
+                    help='曲库根；默认与面板同一套优先级（%s）' % DEFAULT_LIB)
     ap.add_argument('--clean', action='store_true', help='删掉悬空 junction（只删链接）')
     ap.add_argument('--json', action='store_true')
     a = ap.parse_args()
@@ -129,16 +158,17 @@ def main():
         print(json.dumps(rows, ensure_ascii=False, indent=1))
     else:
         print('曲库：%s（%d 项）' % (a.lib, len(rows)))
-        bad = [r for r in rows if r['kind'] in ('悬空链接', '纯音频目录', '散装文件')]
+        bad = [r for r in rows if r['kind'] in ('悬空链接', '纯音频目录', '散装文件', '空目录')]
         for r in rows:
             mark = {'正常曲目': 'OK  ', '链接': 'OK  ', '纯音频目录': '音频',
-                    '悬空链接': '悬空', '散装文件': '散件'}[r['kind']]
+                    '悬空链接': '悬空', '散装文件': '散件', '空目录': '空  '}[r['kind']]
             print('  %s %-36s %s' % (mark, r['name'], r['kind']))
-        print('\n合计：正常 %d · 纯音频目录 %d · 悬空链接 %d · 散装文件 %d'
+        print('\n合计：正常 %d · 纯音频目录 %d · 悬空链接 %d · 散装文件 %d · 空目录 %d'
               % (sum(1 for r in rows if r['kind'] in ('正常曲目', '链接')),
                  sum(1 for r in rows if r['kind'] == '纯音频目录'),
                  sum(1 for r in rows if r['kind'] == '悬空链接'),
-                 sum(1 for r in rows if r['kind'] == '散装文件')))
+                 sum(1 for r in rows if r['kind'] == '散装文件'),
+                 sum(1 for r in rows if r['kind'] == '空目录')))
         if bad:
             print('⚠ 面板能列出它们，但读 `song.json` 的操作会报「纯音频目录 / 读不到曲目」——'
                   '这是**曲库里的链接残留与散装文件**，不是曲子坏了。')
@@ -146,6 +176,7 @@ def main():
             print('  · 纯音频目录 → 有意做 A/B 试听可留（面板 `need_json=False` 放行）；'
                   '**交付物/中间产物请移出曲库**')
             print('  · 散装文件 → 曲库只放**曲目目录**；音频文件请放进曲目目录或曲库外的交付目录')
+            print('  · 空目录 → 通常是 `export/` 残留（面板不会当曲目）；确认无用后手动删')
     if a.clean:
         n = 0
         for r in rows:

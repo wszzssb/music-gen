@@ -78,7 +78,7 @@
 ## 5. 快速自查
 
 ```powershell
-$py = "<工具链根>/venv/python.exe"; cd <工具链根>
+$py = "<工具链根>\.venv\Scripts\python.exe"; cd <工具链根>
 & $py scripts\token_audit.py          # 预算余量
 & $py scripts\selftest.py --fast      # 守卫（含路由/指针/预算）
 & $py scripts\mutation_check.py       # 新检查是否"坏得起来"
@@ -87,6 +87,10 @@ $py = "<工具链根>/venv/python.exe"; cd <工具链根>
 ⚠ **别把 `selftest` 与 `mutation_check` 并发跑**：变异测试会真渲染、占用临时目录与引擎状态，
 实测并发时 `determinism_and_bytes` 会**假 FAIL**（"已交付的 .mid 与当前引擎输出不一致"），
 串行重跑即 PASS。要么串行，要么错开跑。
+
+⚠ **自检的依赖装在主 `.venv`**（2026-09-30 起含 `librosa` 等；原先只有 `.venv-ml` 有，
+于是 `bpm_fit_gate` 会以 `ModuleNotFoundError` 假 FAIL —— 一条与代码无关的红灯）。
+主 venv 缺库时**先看那条 FAIL 是不是环境问题**，再当回归查。
 
 > 判据：**只读这一份就知道往哪写、动哪些守卫、怎么验**。读完还得问 = 约定漏了，补进来。
 

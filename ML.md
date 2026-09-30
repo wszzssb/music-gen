@@ -10,6 +10,14 @@
 上游一发布就该重新评估）。所以另建 `.venv-ml`，**别与主 venv 混用**
 （它是交付管线的一部分，另一个对话也依赖它）。
 
+> ⚠ **2026-09-30 实测更新：cp314 轮子已经齐了** —— `pip install librosa` 在**主 venv**
+> 装成功（`librosa 1.0.0` + `scipy 1.18.1` · `numba 0.67.0` · `llvmlite 0.49.0` ·
+> `scikit-learn 1.9.1` 全是 **cp314** 轮子），**且 `numpy` 没被动过**（仍 `2.5.3`）。
+> 为什么值得装：自检项 `bpm_fit_gate` 在 `.venv` 下曾因 `ModuleNotFoundError: librosa`
+> FAIL —— 于是"照文档用主 venv 跑自检"会看到一条**与代码无关的红灯**（环境问题冒充回归）。
+> 现在 **`selftest.py` 在主 venv 可全绿**（实测 175 项）。
+> **仍只装在 `.venv-ml` 的**：`torch` / `torchaudio` / `demucs` / `matchering` / `pyloudnorm`。
+
 ```powershell
 py -3.13 -m venv .venv-ml
 .\.venv-ml\Scripts\python.exe -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128

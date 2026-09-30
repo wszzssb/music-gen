@@ -197,6 +197,30 @@ def case(label, check, mutate):
     return ok
 
 
+def case_dual(label, check, mutate, expect_caught=True):
+    """`case` 的**带期望值**版本：`expect_caught=False` = 这一组是**对照组**。
+
+    为什么要加（2026-09-30 实测）：给 `t_bass_register` 开"带理由豁免"之后，判据天生有
+    **两个方向**要验 —— 注入故障（抹掉豁免 / 理由空白）**必须报**，而真理由**必须放行**。
+    用 `case()` 跑对照组会显示"**漏了**"（它假定"没抓到故障"就是失败），实测那轮 240/241，
+    那条"漏"其实是**用例语义错**、不是自检坏。⇒ 对照组的失败条件是"**报了**"。
+    """
+    try:
+        with mutate():
+            caught, why = run_check(check)
+    except SkipCase as e:
+        print('  %-5s %-34s → %s' % ('跳过', label, e))
+        return True
+    if caught is None:
+        print('  %-5s %-34s → %s' % ('**崩了**', label, why))
+        return False
+    ok = (caught == expect_caught)
+    tag = ('抓到' if caught else '没报')
+    print('  %-5s %-34s → %s' % ('OK' if ok else '**反了**', label,
+                                 '%s：%s' % (tag, why)))
+    return ok
+
+
 def case_check_song(label, path, break_fn):
     """针对 check_song.py 里**独立于 selftest** 的那条判据做变异测试。
 
@@ -1299,6 +1323,51 @@ def main():
     results.append(case('贝斯 sub 层掉进次声波（SUB_FLOOR 归零）',
                         'bass_register',
                         lambda: Mut(_se, 'SUB_FLOOR', 0)))
+
+    # ①b/①c（2026-09-30 加，配 `t_bass_register` 新开的**带理由豁免**）：
+    #   豁免一旦加得上，就有两个新风险 —— ① 空话也能放行（防线形同虚设）；
+    #   ② 真理由也放行不了（守卫变成永远 FAIL 的噪声）。两条都要验。
+    #   夹具 = 真曲 `siren_end2`（Bass 实测低到 p22=29.1Hz）的 **6 份副本**，
+    #   注入 = 只改第 0 份的 `patterns.bass_exempt`。
+    #   ⚠ **为什么必须 6 份**（本用例前后踩了三次，别改回 1 份）：
+    #     ① 只注入 1 个临时目录 → 撞上 `t_bass_register` 里 `checked >= 5` 的空转保护，
+    #        三组全都以"可判曲目太少"失败，**根本没验到豁免**；
+    #     ② 夹具放真曲库内 → `songs_or_fail` 按"真实曲目"核对数量（1 vs 37）→ 又被挡；
+    #     ③ 夹具放曲库外 + 6 份 → 才真的在验豁免。
+    def _real_sub_bass(patterns_patch, n_copies=6):
+        """把真曲 song.json 复制 n 份到**曲库外**临时目录，只改第 0 份的 patterns"""
+        import shutil
+        src = os.path.join(ROOT, 'songs', 'siren_end2', 'song.json')
+        if not os.path.exists(src):
+            raise SkipCase('没有 Bass 低于 C1 的真曲（siren_end2）当夹具')
+        root = os.path.join(TMP, 'sub_bass')
+        shutil.rmtree(root, ignore_errors=True)
+        dirs = []
+        for i in range(n_copies):
+            d = os.path.join(root, 'case_%02d' % i)
+            os.makedirs(d)
+            j = json.load(open(src, encoding='utf-8'))
+            j.setdefault('patterns', {})
+            if i == 0:
+                patterns_patch(j['patterns'])
+            json.dump(j, open(os.path.join(d, 'song.json'), 'w', encoding='utf-8'),
+                      ensure_ascii=False, indent=1)
+            dirs.append(d)
+        return Mut(st, 'song_dirs', lambda **k: dirs)
+
+    results.append(case_dual('次声波豁免：注入故障该报', 'bass_register',
+                             lambda: _real_sub_bass(lambda p: p.pop('bass_exempt', None)),
+                             expect_caught=True))
+    results.append(case_dual('次声波豁免：理由空白该报', 'bass_register',
+                             lambda: _real_sub_bass(
+                                 lambda p: p.update({'bass_exempt': {'note': '   '}})),
+                             expect_caught=True))
+    # ⚠ **对照组**（豁免有效时**必须不报**）：`case()` 的语义是"注入故障必须被抓"，
+    #   拿它跑对照组会显示"**漏了**"（实测 240/241 —— 那条"漏"就是这条）。
+    #   豁免类判据天生要验**两个方向**，所以用 `case_dual(expect_caught=False)`。
+    results.append(case_dual('次声波豁免：真理由必须放行（对照组）', 'bass_register',
+                             lambda: _real_sub_bass(lambda p: None),
+                             expect_caught=False))
     # ② 落点分散门被压到 0 → 每段都会"破门"，必须被抓（证明判据真的量得到落点集中）
     results.append(case('旋律落点分散门归零',
                         'melody_onset_spread',
