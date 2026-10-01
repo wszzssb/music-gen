@@ -836,12 +836,35 @@ def aggregate(theme, rows, feats, min_n=MIN_TEMPLATES):
                              for f in feats[:3])))
     mel.pop('_dur_total', None)
 
-    # 曲式：段落长度取"常用进行长度 × 2"与模板总量的中位，铺满整数个段落
+    # 曲式：段落长度取"常用进行长度 × 2"，**段数跟随该主题自己的模板长度中位**
     progs = progs4 or progs2
     span = len(progs[0]['romans']) if progs else 4
     sec_bars = max(4, min(16, span * 2))
     tot_med = sorted(f['bars'] for f in feats)[len(feats) // 2]
-    nsec = max(2, min(8, int(round(tot_med / float(sec_bars)))))
+    # ⚠ **段数上限 8 → 14（2026-10-01 改）**：原来 `min(8, …)` 把 15 个主题里的 **13 个**
+    # 压成同一个 plan（`Intro + 8×8 + Outro = 72 小节`），而段名表又是硬编码的
+    # `['A','A2','B','A3','C','A4','B2','A5']` —— 于是"日常/夜晚/海边/悲伤/圆舞"生成出来的
+    # 曲子**段落结构逐字相同**（用户 2026-10-01 追问"form.plan 本来就相同怎么回事"）。
+    #
+    # 依据 = 各主题自己 16 首模板的小节数中位（**逐文件精确量**，不含任何推测）：
+    #   night 52→6 段 · neon 56→7 · retro 63→8 · battle/mystery 73→9 · classic 78→10
+    #   · seaside/tender 82→10 · daily 94→12 · folk_tale 100→12 · lounge 102→13
+    #   · cheerful/sorrow 112→14 · gorgeous 126→16→14（撞上限）
+    # 结果：15 个主题 → **8 种段数 / 8 种总长**（改前 3 种，其中 13 个完全相同）。
+    # ⚠ **上限 14 是产品约束（BGM 时长 ≤ ~120 小节）不是测量值** —— 只有 gorgeous
+    #   一个主题撞上限（它的 plan 是**截断**的），溯源时别当成实测段数。
+    # ⚠ **"段界在哪"目前没有过关的尺子，所以这里只改段数/总长，不假装知道段界**
+    #   （2026-10-01 试过三把，都没过"已知答案"自检，逐条记在这里防重犯）：
+    #     ① 逐 4 小节块起音数 + DP/BIC 变点：段数**顶到 K 上限**（K 是输入参数 →
+    #        拟合噪声，13/15 首模板都撞上限）；
+    #     ② 自相似矩阵 + 棋盘核 novelty：拿我们**已知段长 8 小节**的曲子当输入，
+    #        主峰给 4、只命中 3~5/9 个已知段界，而白噪声上检出 **9~14 段**（≈恒真）；
+    #     ③ 逐小节起音数自相关主峰：已知答案同样给 4 —— 量到的是**和弦循环周期**，
+    #        不是乐句周期（r 只有 0.25~0.40，本来就是噪声量级）。
+    #   → 尺子（含 `--selftest` 用例）与作废理由见 `PITFALLS.md` **300**；重建主题包
+    #     必须跟着重新注入音色池（否则 `prog_pool` 被静默删掉）见 `PITFALLS.md` **301**。
+    NSEC_MIN, NSEC_MAX = 3, 14
+    nsec = max(NSEC_MIN, min(NSEC_MAX, int(round(tot_med / float(sec_bars)))))
     # **引子与尾声**（2026-09-15 补）：真实模板普遍"前 4 小节稀疏进入、末段收束" ——
     # cheerful 10 首里 7 首前 4 小节有鼓，但合计只有**中位 18 点**（主段约 22 点/小节），
     # 也就是引子明显比主段稀。旧版 `plan` 是硬编码段名表（`A/A2/B/…`），**没有 intro/outro**

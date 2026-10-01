@@ -5,6 +5,8 @@ r"""新歌脚手架（song.json 方案）：**新歌只写一个 JSON，不写�
 用法:
   # ① 主题路径（**推荐 / 唯一合规**）：依据 = 同主题多首 MIDI 模板聚合出的主题模板包
   python new_song.py 35_seaside --theme seaside [--ref BGM16c] [--seed 7] [--energy-gain 1.0]
+  #   ⚠ `--seed` **省略时按曲名派生**（同名可复现、异名出新曲）—— 见 `seed_from_name`：
+  #     旧行为是写死默认 7，于是"同一主题再建一首"拿到的是**逐音相同**的同一首曲子。
   # ② 复现/改歌：从现成曲目复制骨架（**不算模板依据**，会被 check_song 标记为非白名单）
   python new_song.py 06_morning --from 05_d135_cheerful [--style gorgeous]
   python new_song.py --list-styles        # 引擎风格预设
@@ -173,8 +175,13 @@ def auto_render_params(ref):
 
 
 # ---------------------------------------------------------------- 主题路径
-def theme_progressions(pack):
-    """主题包 → 可用的和声进行候选（主进行优先，去重保序）"""
+def theme_progressions(pack, seed=None):
+    """主题包 → 可用的和声进行候选（主进行优先，去重保序）
+
+    ⚠ `seed`（2026-10-01 加）：**主进行留在第 0 位**（保住主题身份），**其余候选按 seed 轮换**
+      —— 同一主题的不同曲子于是 B/C 段走不同的进行，而每条候选都来自模板实测
+      （各主题包有 3~5 条进行、票数 3~14）。不传 seed 时行为与以前逐字一致。
+    """
     h = pack.get('harmony') or {}
     out = []
 
@@ -188,6 +195,10 @@ def theme_progressions(pack):
     for p in (h.get('progressions_2') or [])[:1]:
         add(list(p.get('symbols') or []) * 2)
     add(h.get('pool_progression'))
+    if seed is not None and len(out) > 2:
+        import zlib
+        k = zlib.crc32(b'prog|%d' % (int(seed) & 0xFFFFFFFF)) % (len(out) - 1)
+        out = out[:1] + out[1 + k:] + out[1:1 + k]
     return out
 
 
@@ -276,13 +287,49 @@ FALLBACK_PROG = {
 }
 
 
-def theme_programs(pack, pick=0, verbose=False):
+def track_candidates(pack, track):
+    """某轨的**候选音色**（票数序）—— `theme_programs` 与 `theme_fit` 共用同一套过滤。
+
+    ⚠ 抽成独立函数（2026-10-01）：生成端"按 seed 在候选池里挑"之后，判据若还写
+      "必须等于第一候选"就会误报；两边共用同一个候选口径，判据才能写成**池成员判定**。
+    """
+    pool = (pack.get('arrangement') or {}).get('prog_pool') or {}
+    key = dict((t, k) for k, t in POOL_TO_TRACK).get(track)
+    if key is None:
+        return []
+    # Hook 的候选按 `HOOK_POOLS` 依次拼（uku 优先，空了往同主题的键盘/拨弦池找）
+    keys = HOOK_POOLS if track == 'Hook' else (key,)
+    cands = []
+    for k in keys:
+        for _v in (pool.get(k) or []):
+            p = int(_v)
+            if not (0 <= p <= 95) or p in cands:
+                continue
+            if track == 'Melody' and p in SLOW_ATTACK:
+                continue                      # 主奏不许慢起音（见 SLOW_ATTACK）
+            if track == 'Hook' and (p in NOT_PLUCK
+                                    or HF_LEVEL.get(p, 30.0) > HOOK_HF_MAX):
+                continue                      # 分解和弦不许弓弦/簧管、不许极响吉他
+            cands.append(p)
+    return cands
+
+
+def theme_programs(pack, pick=0, seed=None, verbose=False):
     """主题模板的**实际音色** → `song.json` 的 `programs`（覆盖引擎风格预设）
 
     依据 = `arrangement.prog_pool`：`extract_theme_timbres.py --inject` 扫 8~10 首同主题
     模板、**每首一票**（取该声部音符最多的那条轨）选出的真实 GM 音色，按频次排序。
     `pick=0` ＝ 该主题**最常用**的那个音色（实测 classic＝钢琴/大键琴、battle＝原声贝斯、
     neon＝原声贝斯＋方波主音）；多候选留给"同主题换音色"的变体。
+
+    ⚠ **`seed`（2026-10-01 加）**：不传时所有轨取同一个 `pick`（行为与以前逐字一致）；
+      传了 seed 就**逐轨独立**在候选池里挑 —— 同一主题的不同曲子于是配器不同。两条约束
+      保证"挑出来的仍是模板证据、且不跨族乱搭"：
+        ① 只在**与首选同族**的候选里挑（`theme_pack.role_of_program`；否则 battle 的
+           strings 池里那个**定音鼓 47**、daily 的 **大号 58** 会被塞进弦乐声部）；
+        ② 非主奏轨最多看到**前 2 个**候选（长尾票数低、听感风险大）。
+      ⚠ **`Melody` 不参与**（见下面那条注释）：`programs.Melody` 留画像首选，
+        主奏的多样性由段级 `melody_prog` 序列承担。
 
     ⚠ 为什么 `ep → Melody`：`ROLE_TO_ARR` 把 lead/reed/pipe 三族都折成 `ep`，这正是
       主奏族（排箫 75 / 单簧管 71 / 方波主音 80）—— 这才是"主奏该用什么音色"的模板证据。
@@ -292,23 +339,10 @@ def theme_programs(pack, pick=0, verbose=False):
       写成裸 int 会 `TypeError: 'int' object is not iterable`。
     """
     import song_engine
-    pool = (pack.get('arrangement') or {}).get('prog_pool') or {}
+    import zlib
     out = {}
-    for key, track in POOL_TO_TRACK:
-        # Hook 的候选按 `HOOK_POOLS` 依次拼（uku 优先，空了往同主题的键盘/拨弦池找）
-        keys = HOOK_POOLS if track == 'Hook' else (key,)
-        cands = []
-        for k in keys:
-            for _v in (pool.get(k) or []):
-                p = int(_v)
-                if not (0 <= p <= 95) or p in cands:
-                    continue
-                if track == 'Melody' and p in SLOW_ATTACK:
-                    continue                  # 主奏不许慢起音（见 SLOW_ATTACK）
-                if track == 'Hook' and (p in NOT_PLUCK
-                                        or HF_LEVEL.get(p, 30.0) > HOOK_HF_MAX):
-                    continue                  # 分解和弦不许弓弦/簧管、不许极响吉他
-                cands.append(p)
+    for _key, track in POOL_TO_TRACK:
+        cands = track_candidates(pack, track)
         if not cands:
             # ⚠ 缺角色时**不要**掉到 `STYLES[engine_style].programs`（2026-09-19）：
             #   古典预设的 `Bass=Contrabass(43)` / `Pad=Choir Aahs(52)` 正是用户听到的
@@ -320,7 +354,24 @@ def theme_programs(pack, pick=0, verbose=False):
             if verbose:
                 print('  %s 缺主题音色 → 兜底 %d' % (track, _fb))
             continue
-        out[track] = (cands[min(pick, len(cands) - 1)], song_engine.CH[track])
+        if seed is None:
+            out[track] = (cands[min(pick, len(cands) - 1)], song_engine.CH[track])
+            continue
+        if track == 'Melody':
+            # ⚠ **主奏不参与 seed 挑选**（2026-10-01）：`programs.Melody` 要留**画像首选**
+            #   （票数第一的那个），`theme_fit.py` 的"主奏音色"判据比的正是它；段级的多样性
+            #   由 `melody_prog` 序列（`lead_candidates` + seed 旋转）承担。
+            #   实测踩点：让 Melody 也按 seed 挑时，lounge 65→71、battle 75→73 →
+            #   theme_fit 当场判"主奏音色 ✗"。
+            out[track] = (cands[0], song_engine.CH[track])
+            continue
+        # **逐轨按 seed 挑**（2026-10-01，见 docstring 那两条约束）
+        import theme_pack as _tp
+        fam = _tp.role_of_program(cands[0])
+        same = [p for p in cands if _tp.role_of_program(p) == fam] or cands[:1]
+        cap = len(same) if track == 'Melody' else min(len(same), 2)
+        h = zlib.crc32(('%d|%s' % (int(seed), track)).encode('utf-8')) & 0xFFFFFFFF
+        out[track] = (same[h % cap], song_engine.CH[track])
     if verbose:
         print('  音色依据（模板实际）：%s'
               % ' · '.join('%s=%d' % (k, v[0]) for k, v in sorted(out.items())))
@@ -580,6 +631,27 @@ def theme_guitar_arp(pack):
     return [0, 1, 3, 2]                       # 窄音型（密集邻音回旋，留在中音区）
 
 
+def seed_from_name(name):
+    """曲名 → seed（**没显式给 `--seed` 时**用它，2026-10-01 加）。
+
+    为什么要有它（用户 2026-10-01 问"会不会每次生成主题的音乐都是一样的"）：
+      · `--seed` 原来写死默认 **7**，而面板前端**没有 seed 输入框** → 面板里给同一主题
+        再建一首，拿到的音乐与上一首**逐音相同**（实测 theme=night 同 seed 两次：
+        `song.json` 只有 `name` 一个键不同，旋律 (段,小节,拍,音高) 四元组 **119/119 全同**）；
+      · 换 seed 8 后只有 **5/119** 相同、seed 42 有 24/119 相同 —— 也就是说
+        **只有"旋律 + BPM"跟 seed 走**（`_bpm_from_pack`），段结构/和弦/音色全来自主题包、
+        与 seed 无关。所以"同主题再写一首"**必须换 seed** 才会是新曲子。
+      · 100-107 里 6 首都是 `seed: 7`（只有 sorrow=203 / lounge=304 是手工传的）。
+
+    做法：曲名 CRC32 取模一个素数 → **同名必得同 seed（可复现）**、异名几乎必不同。
+    ⚠ 用 `zlib.crc32` 而**不是** `hash()`：CPython 的字符串 hash 每进程随机加盐，
+      拿它当 seed 会"每次生成都不一样"，那会毁掉"同输入 → 同输出"这条纪律。
+    """
+    import zlib
+    h = zlib.crc32(str(name).encode('utf-8')) & 0xFFFFFFFF
+    return 1 + h % 99991
+
+
 def _bpm_from_pack(pack, seed):
     """按主题模板包的**真实 BPM 范围**取一个值（不再固定用中位数）。→ (bpm, 来源说明)
 
@@ -615,7 +687,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     gtr_beats = song_engine.guitar_beats((pack.get('rhythm') or {}).get('high_slot_share'),
                                          dense=0.55)
     plan = (pack.get('form') or {}).get('plan') or []
-    progs = theme_progressions(pack)
+    progs = theme_progressions(pack, seed=seed)
     if not plan or not progs:
         raise SystemExit('主题包 %s 缺 form.plan / harmony（先重跑 theme_pack.py）'
                          % pack.get('theme'))
@@ -732,19 +804,20 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     # 这是"乐器选择不像"的一条主因（用户 2026-09-18："乐器选择还是不像，**在 MIDI 里也一样**"
     # —— 即不是音源的锅，是 MIDI 层就没换）。
     #
-    # 规则（两条都有实测依据）：
-    #   ① **同角色的段落用同一个音色** —— 曲式该有的可预期性（与 `arr_by_role` 同口径）；
+    # 规则（三条都有实测依据）：
+    #   ① 前两位（引子 + 第一个主歌）拿**钢琴族保守音色** —— 曲式该有的可预期性，
+    #      也是 2026-09-22"引子拿方波独奏 = 前面部分非常奇怪"那条教训的落地；
     #   ② 只用**起音 ≤20ms** 的音色：颤音琴(11) 42ms 实测"慢半拍"被用户点名淘汰
-    #      （`t_lead_timbre_attack` 在守）。
-    # 候选池按"与钢琴的距离"排：0 钢琴 → 13 木琴 → 8 钢片琴 → 4 电钢 → 24 尼龙吉他 → 9 钟琴。
-    _mel_tpl = (theme_programs(pack).get('Melody') or (None,))[0]
-    _MEL_PROGS = melody_prog_pool(_mel_tpl)
-    _role_at = {}
-    for _s in secs:
-        _r = song_engine.role_of_section(_s['name'])
-        if _r not in _role_at:
-            _role_at[_r] = len(_role_at)
-        _s['arr']['melody_prog'] = _MEL_PROGS[_role_at[_r] % len(_MEL_PROGS)]
+    #      （`t_lead_timbre_attack` 在守；候选已在 `lead_candidates` 里过滤）；
+    #   ③ **第 3 段起按主题自己的主奏池轮换**（2026-10-01 用户"都要多样化"）——
+    #      旧版按"角色首次出现顺序"取固定小池，导致主题音色只落在 Outro（实测 100-107
+    #      只占 3.3%~6.2%）。现在 A2/A3/B/B2/C… 逐段换主题主奏音色（"同一支旋律换乐器再陈述"），
+    #      起始音色由 seed 决定 → 同主题不同曲子也不同。
+    _mel_tpl = (theme_programs(pack, seed=seed).get('Melody') or (None,))[0]
+    _MEL_PROGS = melody_prog_pool(_mel_tpl, seed=seed, leads=lead_candidates(pack))
+    _MEL_SEQ = melody_prog_seq(_MEL_PROGS, len(secs))
+    for _i, _s in enumerate(secs):
+        _s['arr']['melody_prog'] = _MEL_SEQ[_i]
     # **引子渐入**（`arr.perc_in` → `song_engine.perc_part(inbars=…)`）：真实模板里引子是
     # "b1–b2 安静、b3–b4 鼓组进来"（cheerful 10 首里 7 首前 4 小节有鼓、合计中位 18 点，
     # 而单看 b1 多数是 0）。整段一次性全开会在段落切换处造成亮度突变
@@ -755,7 +828,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
             _s['arr']['perc_in'] = 2
     # **音色平衡补偿**：音色按模板真值取用后，轨间高频平衡必须跟着调（见 `hf_balance`）。
     # 放在 `d` 组装前、`energy_mix` 之后 —— 段间曲线先写，补偿再叠加，互不覆盖。
-    _hb = apply_hf_balance(secs, theme_programs(pack), pack.get('engine_style'))
+    _hb = apply_hf_balance(secs, theme_programs(pack, seed=seed), pack.get('engine_style'))
     if _hb:
         print('  音色平衡补偿（按 2.5-5kHz 实测）：%s'
               % ' · '.join('%s %+.1fdB' % (k, v) for k, v in sorted(_hb.items())))
@@ -772,7 +845,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
          # 小提琴，battle 有排箫/钢弦吉他，neon 有方波主音/合成弦乐，lounge/night 有
          # 中音·次中音萨克斯。用户判据"乐器选择不像"就卡在这一层。
          # 只写"模板里有证据"的那几个轨，其余仍继承预设（`song_engine` 是逐键 update）。
-         'programs': theme_programs(pack, verbose=True),
+         'programs': theme_programs(pack, seed=seed, verbose=True),
          'patterns': {'bass_style': (pack.get('rhythm') or {}).get('bass_style', 'simple'),
                       'perc_style': (pack.get('rhythm') or {}).get('perc_style', 'light'),
                       # **乐句级力度曲线**（opt-in，见 `song_engine.mel_dyn_env`）：
@@ -1060,11 +1133,28 @@ def fix_melody_register(data, gap_min=None, gap_max=None, verbose=True):
     return fixed
 
 
-def melody_prog_pool(mel_tpl):
-    """段级主奏音色的**候选池**（顺序 = 角色首次出现顺序拿到的音色）。
+def lead_candidates(pack, cap=4):
+    """主题的**主奏候选**（`ep` 池去掉慢起音，票数序）—— 每个都有模板票数。
 
-    池序 = **从保守到特色**：**4 电钢** → 0 钢琴 → 13 木琴 → 8 钢片琴 → **模板音色**
-    → 24 吉他 → 9 钟琴。
+    ⚠ 为什么要它（2026-10-01，用户"都要多样化"）：段级主奏音色原来只会从
+      `melody_prog_pool` 那个**固定小池**里按角色取，结果 100-107 实测**主题自己的主奏音色
+      只在 Outro 响 4 小节（占 3.3%~6.2%）**，其余 94% 是钢琴族 —— 8 个主题听感被抹平。
+      主题池里本来就有 2~6 个主奏候选（battle 排箫/短笛/贝斯主音/长笛/方波/萨克斯），
+      全部来自模板实测 —— 这才是"该主题的主奏该长什么样"的证据。
+    """
+    pool = (pack.get('arrangement') or {}).get('prog_pool') or {}
+    out = []
+    for _v in (pool.get('ep') or []):
+        p = int(_v)
+        if 0 <= p <= 95 and p not in SLOW_ATTACK and p not in out:
+            out.append(p)
+    return out[:cap]
+
+
+def melody_prog_pool(mel_tpl, seed=None, leads=None):
+    """段级主奏音色的**候选池**（顺序 = 段落从前往后拿到的音色）。
+
+    池序 = **从保守到特色**：**4 电钢** → 0 钢琴 → **主题主奏池**（票数序、按 seed 轮换）。
 
     ⚠ **池首 0 钢琴 → 4 电钢**（2026-09-24；用户口径"从头写一遍验证流程"暴露出来的）：
     重写 31 首后 `selftest` 报「"只响 0.几秒"触发 **20/31 首（>30%）= 恒真噪声**」——
@@ -1079,13 +1169,41 @@ def melody_prog_pool(mel_tpl):
     于是引子成了"高音方波独奏"（首音 93 = A6 · 力度 91），用户原话
     "**前面部分非常奇怪**"；而这段池序注释自己写的就是"从保守到特色"，
     把最特色的音色放在最保守的位置上，是自相矛盾。
+    → 前两位（引子 + 第一个主歌）保持**钢琴族保守音色**，主题主奏音色从第 3 位起。
 
-    原注释的顾虑"模板音色排最前，否则 `programs.Melody` 会被段级值立刻覆盖 = 白设"
-    —— 那个顾虑只要求它**在池子里**，不要求排最前。插在**第 4 位**即可两面都满足：
-    引子/主歌/副歌各拿保守音色，桥段或第二个副歌拿到模板音色。
+    ⚠ **第 3 位起全是主题主奏音色**（2026-10-01 改，用户"都要多样化"）：旧池第 3 位起是
+      `13 木琴 / 8 钢片琴 / 模板音色 / 24 吉他 / 9 钟琴` —— 于是曲子里 94% 的主奏是钢琴族
+      （实测 100-107：主题音色只占 3.3%~6.2%）。现在改成**主题自己的主奏候选轮换**
+      （`leads`，票数序、按 seed 旋转），主题身份从头到尾都在，且不同曲子起始音色不同。
+      传 `leads` 为空时退回旧池（老调用/池缺 `ep` 的主题）。
     """
-    return tuple(dict.fromkeys([p for p in (4, 0, 13, 8, mel_tpl, 24, 9)
-                                if p is not None]))
+    if not leads:
+        return tuple(dict.fromkeys([p for p in (4, 0, 13, 8, mel_tpl, 24, 9)
+                                    if p is not None]))
+    ls = list(dict.fromkeys([p for p in leads if p is not None]))
+    if seed is not None and len(ls) > 1:
+        import zlib
+        k = zlib.crc32(b'lead|%d' % (int(seed) & 0xFFFFFFFF)) % len(ls)
+        ls = ls[k:] + ls[:k]
+    head = [4, 0]
+    if mel_tpl is not None and mel_tpl not in ls:
+        ls = ls + [mel_tpl]               # 兜住老口径：programs.Melody 必须在池里
+    return tuple(dict.fromkeys(head + ls))
+
+
+def melody_prog_seq(pool, n_sec):
+    """池 → **n 段的实际序列**：前两段照池序（引子/第一主歌保守），之后只在池身轮换。
+
+    为什么不让整池 `i % len(pool)` 一路轮下去（2026-10-01）：那样第 4 段就会绕回
+    "4 电钢 / 0 钢琴"，把主题主奏音色又稀释掉（sorrow 那种池长 4 的曲子只剩 53% 是主题音色）。
+    """
+    if not pool or n_sec <= 0:
+        return []
+    head, body = list(pool[:2]), list(pool[2:]) or list(pool[:1])
+    seq = head[:n_sec]
+    for i in range(max(0, n_sec - len(seq))):
+        seq.append(body[i % len(body)])
+    return seq
 
 
 def legato_melody(data, fill=0.9):
@@ -1165,10 +1283,16 @@ def dry_compose(song_json):
         return False
 
 
-def theme_mode(new, theme, ref_name=None, seed=7, ncand=4, energy_gain=None,
+def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
                 force=False, bpm=None):
     """`--theme` 路径：按主题模板包生成一首新歌"""
     import theme_pack as tp
+    # **没给 seed 就按曲名派生**（2026-10-01）：不给的话默认 7 → 同一主题每首一样，
+    # 实测见 `seed_from_name` 顶部那段。显式 `--seed N` 仍然优先。
+    if seed is None:
+        seed = seed_from_name(new)
+        print('  seed=%d —— 未显式指定，按曲名「%s」派生'
+              '（同名可复现；要换一版加 `--seed N`）' % (seed, new))
     pack = tp.load_pack(theme)
     # ⚠ `--bpm` = **显式指定**：把主题的 BPM 范围"塌缩成一点"，`_bpm_from_pack` 自然取到它
     #   —— 不必把参数一路透传到 `build_from_theme`（少改一处就少一处出错的机会）。
@@ -1320,9 +1444,8 @@ def write_notes(dst, new, data, pack, ref):
              '| 和声 | %s（来源 %s） |'
              % (' '.join((pack.get('harmony') or {}).get('primary') or []),
                 (pack.get('harmony') or {}).get('primary_source')),
-             '| 曲式 | %d 段 × %d 小节 = %d 小节 |'
+             '| 曲式 | %d 段 / 共 %d 小节（模板中位；段数跟随主题模板长度） |'
              % (len((pack.get('form') or {}).get('plan') or []),
-                (pack.get('form') or {}).get('section_bars', 0),
                 (pack.get('form') or {}).get('total_bars', 0)),
              '', '## 模板清单（来源可溯源；.mid 不进仓库，重建见 `fetch_midi_lib.py`）', '',
              '| 模板 | 风格 | 速度 | 来源 |', '|---|---|---|---|']
@@ -1450,7 +1573,7 @@ def main():
         return _rc
     new = args[0]
     ref_name = sys.argv[sys.argv.index('--ref') + 1] if '--ref' in sys.argv else None
-    seed = int(sys.argv[sys.argv.index('--seed') + 1]) if '--seed' in sys.argv else 7
+    seed = int(sys.argv[sys.argv.index('--seed') + 1]) if '--seed' in sys.argv else None
     ncand = int(sys.argv[sys.argv.index('--candidates') + 1]) \
         if '--candidates' in sys.argv else 4
     egain = float(sys.argv[sys.argv.index('--energy-gain') + 1]) \

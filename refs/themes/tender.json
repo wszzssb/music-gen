@@ -979,7 +979,7 @@
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 72,
+  "total_bars": 88,
   "plan": [
    {
     "name": "Intro",
@@ -1023,6 +1023,16 @@
    },
    {
     "name": "A5",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A2",
     "bars": 8,
     "prog": 0
    },

@@ -8424,7 +8424,22 @@ def t_melody_prog_pool_order():
             assert pool.index(tpl) >= 2, \
                 '模板音色 %d 不该占"引子/主歌"两位（前两位），实得第 %d 位：%r' % (
                     tpl, pool.index(tpl), pool)
-    print('        池首=保守音色 · 模板音色在池内且不占前两位（试了 80/71/48/0）')
+    # ---- **新口径（2026-10-01，用户"都要多样化"）**：段级主奏音色不再只从固定小池取，
+    # 而是**主题自己的主奏候选轮换**（否则实测主题音色只占全曲 3.3%~6.2%，8 个主题被抹平）。
+    # 钉四件：① 前两位仍是保守音色；② 池身正好是主题候选；③ 序列前两段保守、之后只用主题候选；
+    #        ④ 换 seed 会换起始顺序（否则"多样化"是空转）、且序列里不许有慢起音音色。
+    _leads = [73, 71, 65]
+    _pool = NS.melody_prog_pool(71, seed=3, leads=_leads)
+    assert tuple(_pool[:2]) == (4, 0), '前两位必须是保守音色：%r' % (_pool,)
+    assert set(_pool[2:]) == set(_leads), '池身必须正好是主题主奏候选：%r' % (_pool,)
+    _seq = NS.melody_prog_seq(_pool, 6)
+    assert _seq[:2] == [4, 0], '序列前两段必须保守：%r' % (_seq,)
+    assert set(_seq[2:]) <= set(_leads), '第 3 段起只该用主题候选：%r' % (_seq,)
+    assert not (set(_seq) & set(NS.SLOW_ATTACK)), '主奏序列里不许有慢起音音色：%r' % (_seq,)
+    _orders = {tuple(NS.melody_prog_pool(71, seed=s, leads=_leads)[2:]) for s in range(1, 12)}
+    assert len(_orders) > 1, '不同 seed 必须给出不同的主奏顺序（否则多样化是空转）'
+    print('        池首=保守音色 · 模板音色在池内且不占前两位（试了 80/71/48/0）'
+          ' · 池身=主题主奏候选、按 seed 换序（%d 种顺序）' % len(_orders))
 
 
 @check

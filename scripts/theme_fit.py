@@ -138,6 +138,10 @@ def fit(path, rows=None):
     pack = next((r for r in rows if r['theme'] == theme), None)
     if pack is None:
         return None, ['主题包 %s 不存在' % theme]
+    # ⚠ **`pack` 是"画像行"，不是主题包 JSON**（2026-10-01 踩到）：判据要查"音色在不在候选池里"
+    #   就得读真正的包文件 —— 第一版拿画像行去调 `ns.track_candidates()`，池取不到 →
+    #   静默退化成"等于首选"（**判据看着还是 ✓，其实没查**）。这里显式读包。
+    pj = load_pack(theme)
     exp = pack['progs']
     got = {k: (v[0] if isinstance(v, (list, tuple)) else v)
            for k, v in (d.get('programs') or {}).items()}
@@ -159,16 +163,32 @@ def fit(path, rows=None):
     add('拍号', list(mt) == list(pack['meter'] or [4, 4]), '%s/%s' % (mt[0], mt[1]),
         '%s/%s' % tuple(pack['meter'] or [4, 4]))
     # ③ 主奏音色（且报与几个其它主题相同）
+    #    ⚠ 判据 = **在该主题的主奏候选池里**（2026-10-01 改）：生成端现在会**按 seed 在
+    #    候选池里挑**（`new_song.theme_programs(seed=…)` / 段级 `melody_prog` 序列），
+    #    所以"必须等于票数第一那个"会误报。`programs.Melody` 本身设计上仍留画像首选。
     lead = got.get('Melody')
     same = [t for t in lead_groups(rows).get(lead, []) if t != theme]
-    add('主奏音色', lead == exp.get('Melody'),
-        '%s %s' % (lead, gm_name(lead)), '%s %s' % (exp.get('Melody'), gm_name(exp.get('Melody'))),
+    lead_pool = ns.track_candidates(pj, 'Melody') or [exp.get('Melody')]
+    add('主奏音色', lead in lead_pool,
+        '%s %s' % (lead, gm_name(lead)),
+        '%s %s（池 %s）' % (exp.get('Melody'), gm_name(exp.get('Melody')),
+                            '/'.join(str(p) for p in lead_pool)),
         ('⚠ 与 %d 个其它主题**同一个音色**：%s' % (len(same), ', '.join(same))) if same else '')
-    # ④ 各声部音色是否在池里
-    bad = [k for k, v in got.items() if k != 'Perc' and k in exp and v != exp[k]]
-    add('其它声部音色', not bad, ', '.join('%s=%s' % (k, got[k]) for k in sorted(got) if k != 'Perc'),
+    # ④ 各声部音色是否**在该声部的候选池里**（池成员判定，不是"等于第一候选"）
+    bad, off_pick = [], []
+    for k, v in got.items():
+        if k == 'Perc' or k not in exp:
+            continue
+        cands = ns.track_candidates(pj, k)
+        if cands and v not in cands:
+            bad.append('%s=%s 不在池 %s' % (k, v, '/'.join(str(p) for p in cands)))
+        elif v != exp[k]:
+            off_pick.append('%s=%s（首选 %s）' % (k, v, exp[k]))
+    add('其它声部音色', not bad,
+        ', '.join('%s=%s' % (k, got[k]) for k in sorted(got) if k != 'Perc'),
         ', '.join('%s=%s' % (k, exp[k]) for k in sorted(exp) if k != 'Perc'),
-        ('与画像首选不同的轨：%s（仍可能在该主题候选池里）' % ', '.join(bad)) if bad else '')
+        ('**不在池里**：%s' % '；'.join(bad)) if bad else
+        (('与画像首选不同但仍在池内：%s' % '、'.join(off_pick)) if off_pick else ''))
     # ⑤ 段落结构
     bars = sum(int(s.get('bars') or 0) for s in d.get('sections') or [])
     tot = (pack['form'] or {}).get('total_bars')
@@ -257,10 +277,28 @@ def selftest():
     b4['programs']['Melody'] = [(lead + 1) % 96, se.CH['Melody']]
     ok4, _ = run(b4)
     assert not ok4['主奏音色'], '主奏音色不符必须报'
+    # ⑤ **池外音色**必须报（2026-10-01 加）：判据从"等于首选"改成"在池里"之后，
+    #    必须证明它仍然**有牙齿** —— 把 Strings 换成一个不在该主题候选池里的音色。
+    pj = load_pack(r['theme'])
+    cands_s = ns.track_candidates(pj, 'Strings')
+    if cands_s:
+        outside = next(p for p in range(96) if p not in cands_s
+                       and p not in ns.SLOW_ATTACK)
+        b5 = copy.deepcopy(base)
+        b5['programs']['Strings'] = [outside, se.CH['Strings']]
+        ok5, _ = run(b5)
+        assert not ok5['其它声部音色'], \
+            '池外音色（Strings=%d，池 %s）必须报' % (outside, cands_s)
+    # ⑥ **池内但非首选**不该报（同一改动方向：多样性是允许的）
+    if len(ns.track_candidates(pj, 'Strings')) > 1:
+        b6 = copy.deepcopy(base)
+        b6['programs']['Strings'] = [ns.track_candidates(pj, 'Strings')[1], se.CH['Strings']]
+        ok6, _ = run(b6)
+        assert ok6['其它声部音色'], '池内非首选不该报（多样性被误判）'
     import shutil
     shutil.rmtree(td, ignore_errors=True)
-    print('theme_fit --selftest：正例全过 · 速度/拍号/主奏音色 三个反例各自被抓到'
-          '（%d 个主题 → %d 种主奏音色）' % (len(rows), len(lead_g)))
+    print('theme_fit --selftest：正例全过 · 速度/拍号/主奏音色/池外音色 四个反例各自被抓到'
+          '· 池内非首选不误报（%d 个主题 → %d 种主奏音色）' % (len(rows), len(lead_g)))
     return 0
 
 
