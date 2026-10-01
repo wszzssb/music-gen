@@ -358,6 +358,47 @@ def main():
             restore_style(self.old)
     results.append(case('风格预设通道冲突', 'styles_channels_and_programs', StyleMut))
 
+    # 3b. 单乐器独奏化（`solo_instrument.py`）：两条最容易被"优化掉"的规则各打死一次。
+    #     为什么要配用例：这个工具的四件事（鼓→音型 / 去重 / 裁长 / 低音区）**全是静默的** ——
+    #     失效了命令照样 exit 0、MIDI 照样合法，只有听感变差（PITFALLS 298）。
+    import solo_instrument as _si
+    results.append(case('独奏化：鼓不再转成音型', 'solo_instrument',
+                        lambda: Mut(_si, 'drums_to_notes',
+                                    lambda *a, **k: ([], {'in': 0, 'out': 0, 'by_kind': {}}))))
+    results.append(case('独奏化：不再去重同音高', 'solo_instrument',
+                        lambda: Mut(_si, 'dedupe', lambda notes, tol=0.1: (list(notes), 0))))
+    # 可弹化（用户"让简单的音乐人用双手也能弹"）—— 削音整条失效 + 尺子门槛被抬到恒真
+    import probe_playable as _pp
+    # ⚠ 注入函数的签名要用 `*a, **k`：**被注入函数的参数表会变**（`make_playable` 2026-10-01
+    #   从 4 参变成 5 参 `(notes, mel_at, ctab, lv, split)`），写死参数个数的 lambda 会在
+    #   注入时直接 TypeError —— mutation 把它记成「**崩了**」而不是「抓到」，
+    #   于是这条用例**静默失效**（实测：251/252 里少的就是它）。签名放宽后照旧能抓到。
+    results.append(case('独奏化：可弹化削音失效', 'solo_instrument',
+                        lambda: Mut(_si, 'make_playable',
+                                    lambda *a, **k: (
+                                        list(a[0]),
+                                        {'in': len(a[0]), 'out': len(a[0]), 'drop_hand': 0,
+                                         'drop_beat': 0, 'drop_run': 0, 'drop_jump': 0,
+                                         'octave': 0}))))
+    results.append(case('可弹性尺子：门槛抬到恒真', 'probe_playable',
+                        lambda: Mut(_pp, 'LEVELS',
+                                    {'easy': {'poly': 99, 'span': 99, 'beat': 99, 'run': 99,
+                                              'jump': 99, 'rh': 99, 'lh': 99},
+                                     'normal': _pp.LEVELS['normal']})))
+    # 主题符合度检查（用户："能不能直接检查，不依靠千问"）—— 让它**恒过**，必须被抓
+    import theme_fit as _tf
+    _orig_fit = _tf.fit
+
+    def _fit_allok(path, rows=None):
+        rep, msg = _orig_fit(path, rows)
+        if rep:
+            for it in rep['items']:
+                it['ok'] = True          # 谁都算"符合画像" = 判据失效
+        return rep, msg
+
+    results.append(case('主题符合度判据恒过（谁都算符合）', 'theme_fit',
+                        lambda: Mut(_tf, 'fit', _fit_allok)))
+
     # 4. 旋律小节越界
     d3 = temp_song_dir(lambda x: x['melody'].__setitem__('m', [[5, 0, 1, 74]]))
     results.append(case('旋律小节偏移越界', 'melody_within_sections',
@@ -743,11 +784,18 @@ def main():
 
         class RouteSizeMut:
             def __enter__(self):
+                import re as _re
                 self.p = _skill
                 self.old = open(self.p, encoding='utf-8').read()
+                # ⚠ **别硬编码体量数字**（2026-10-01 实测踩到）：原来写死 `| ≈3.3k |`，
+                #   而 CHEATSHEET 长到 5.1k、路由表数字跟着改成 `| ≈5.1k |` 之后，
+                #   这次 replace **静默失配** → 什么都没注入 → 检查照常通过 →
+                #   用例从「抓到」变成「**漏了**」（250/251）。改成**正则匹配任意 ≈Nk**。
+                new = _re.sub(r'\|\s*≈\d+(?:\.\d+)?k\s*\|', '| ≈0.7k |', self.old, count=1)
+                assert new != self.old, \
+                    '注入失配：SKILL.md 路由表里没有 `| ≈Nk |` 形式的体量数字'
                 with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
-                    fh.write(self.old.replace('`CHEATSHEET.md`', '`CHEATSHEET.md`')
-                             .replace('| ≈3.3k |', '| ≈0.7k |', 1))
+                    fh.write(new)
 
             def __exit__(self, *a):
                 with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:

@@ -190,6 +190,65 @@ studio\stop.cmd     # 停
 参数：`--dur-floor`（时值下限，只动旋律层，默认 0.55 拍）· `--absorb-into`（YMT3 的合成器通道并进哪条轨，默认 Strings —— 并进 Piano 会用钢琴音色弹它）· `--thr-extra`（Guitar/Strings 是单来源层，套 `--merge-thr` 会把整层砍掉）；改过参数要 `--from bass --force bass` 重跑。
 判据 → `docs/RESTORE-METHOD.md` §4b · PITFALLS 206/207。
 
+### 单乐器独奏化（"提取 MIDI 之后完全用钢琴 / 只用一件乐器演奏"）
+
+```powershell
+& $py scripts\solo_instrument.py dear_good_friends        # → songs\dear_good_friends_solo\（.mid + _sf.ogg + notes.md）
+& $py scripts\solo_instrument.py bgm35_extract --instrument strings --drums drop
+& $py scripts\solo_instrument.py siren_end --dry          # 只出处理表，不写盘
+& $py scripts\solo_instrument.py <曲> --no-render         # 只要 song.json（稍后自己 make_song）
+& $py scripts\solo_instrument.py --selftest               # 7 条不变量（合成夹具，不碰曲库）
+```
+
+它做四件"只改 `programs` 做不到"的事：**鼓 → 乐器音型**（鼓轨在**通道 10** 上 `program` 无效，
+改成钢琴音色也还是鼓声）· **跨轨同刻同音高去重** · **长音裁剪**（`--max-beats`，钢琴靠衰减）·
+**低音区整理**（`--low-floor` 默认 33 = A1）。旋律仍走 `melody` 字段（守卫与乐句力度都不丢）。
+
+**可弹化（`--playable`，默认 `off` = 不削、保真优先）**：
+⚠ **2026-10-01 用户试听判定："感觉效果不好，算了"** —— 即使按音乐重要性削（和弦内音 +3 / 根音再 +1 ·
+和弦外音 −2 · 踩拍点 +1.5 · 长音 +1 · 鼓写音 −1.5，保留率 和弦内/外 59%/37% · 踩拍点/弱拍 69%/53%），
+**简化版仍不如保真版**，默认已改回不削。要试就显式加 `--playable easy|normal`
+（`easy` = 左手 ≤2 音 · 右手 ≤3 含旋律 · 单手跨度 ≤八度 · 每拍 ≤6 · 同音串 ≤3，门槛取库内
+86 首钢琴曲的 p10~p50 偏简单侧）。⚠ 反面教材：第一版按"几何位置"削（左手取最低音、右手取
+离旋律最近），实测**和弦内音保留 51% vs 外音 54%（无区分）· 踩拍点 39% vs 弱拍 56%（反向）**，
+用户当场听出"没有聚集关键特征 …… 反而留下了一些错误或不重要的音"（PITFALLS 299）。
+量任意曲子（含现成 `.mid`）：
+
+```powershell
+& $py scripts\probe_playable.py songs\dear_good_friends_solo\song.json      # 体检（档 easy）
+& $py scripts\probe_playable.py <x.mid> --level normal --split 62 --json    # 换档/换分界/机器可读
+& $py scripts\probe_playable.py --selftest                                  # 尺子自检（正例/负例）
+```
+
+**钢琴手法补过渡（`--fills auto`，默认 off）**：原曲的过渡常由**别的乐器**做（鼓 fill /
+贝斯推进 / 合成器 riser），全钢琴化之后就"硬切"。`auto` 按**每个段界自己的原曲证据**选手法
+（技能 §20：不许一刀切）：段末 2 小节鼓事件 ≥ 全曲均值 ×1.15（= 有过门）→ 段首和弦分解（`arp`）·
+后 2 小节音数 > 前 ×1.4（变密）→ 右手级进上行 + 左手八度推进（`run_up`）· 前 > 后 ×1.4（变疏）→
+下行渐弱（`run_down`）· 两边都 <6 音 → **留白**（`rest`）。素材只取"段末和弦 ∪ 段首和弦"的音级、
+力度 70~88（低于旋律 96）、跑动占段末 `--fill-beats`（默认 2 拍）。实测 `bgm35_extract`：
+**23 个段界 → 164 音**（run_up 7 · run_down 6 · arp 2 · rest 8），段界前 2 拍的音数
+**171 → 335（中位 7 → 16）**。⚠ 这些音是**新造的**（不是原曲内容）—— 报告与 `notes.md` 里逐段界列明。
+
+渲染用 `make_song --no-tune`：**autotune 会硬把独奏版往原曲混音推**，而编制变了（5–18kHz 塌是物理结果）。
+⚠ `--instrument` 用 GM 0（真钢琴）时 `check_song` 会提示"只响 0.几秒"（掉 12dB 只要 0.24s）——
+要持续型出对照版用 `--instrument ep`（GM 4 电钢琴，钢琴族内）。全部坑 → `PITFALLS.md` 298。
+
+### 主题符合度检查（"这首像不像它标的主题" —— **不靠音频大模型**）
+
+```powershell
+& $py scripts\theme_fit.py 101_neon_drive      # 单曲：逐项对比它自己的主题画像
+& $py scripts\theme_fit.py --themes            # 主题间区分度总表（**选主题前先看这个**）
+& $py scripts\theme_fit.py --selftest
+```
+
+查六项（全部来自主题包画像，可复现）：**BPM 区间 / 拍号 / 主奏音色 / 各声部音色 / 段落 /
+旋律形态**。⚠ 实测（2026-10-01）：**15 个主题只有 7 种主奏音色**，**GM 73 长笛独占 8 个**
+（daily/folk_tale/neon/retro/seaside/sorrow/tender/waltz）—— 这几首生成出来**听感都像轻音乐**，
+与"霓虹电子/海边/悲伤/圆舞曲"的主题名对不上。各主题池里其实有更贴的候选
+（neon 池有 81 锯齿/80 方波 · sorrow/waltz 池有 0 钢琴 · 25 钢弦吉他），
+只是 `new_song.theme_programs(pick=0)` 取的是**池里第一个**。
+**换法**：改 `song.json` 的 `programs.Melody`（段级 `arr.melody_prog` 会覆盖它，要一起看）。
+
 ### 多视图投票装配（族票 · 应用层，**不跑模型**）
 
 ```powershell

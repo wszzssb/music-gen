@@ -140,11 +140,21 @@ def report(songs_dir=None, meldir=None):
     items = {}
     for d in sorted(glob.glob(os.path.join(songs_dir or SONGS, '*'))):
         p = os.path.join(d, 'song.json')
-        if os.path.isfile(p):
-            n, is44 = notes_of(p)
-            f = feats(n, is44)
-            if f:
-                items[os.path.basename(d)] = f
+        if not os.path.isfile(p):
+            continue
+        # **派生曲不参与**（`derived_from`，如 `solo_instrument.py` 出的单乐器独奏版）：
+        # 它与源曲**共用同一条旋律**（改编只换乐器），算进来会变成"孪生对"——
+        # 那是判据误伤（口径同 `selftest.t_melody_distinct`；实测 2026-10-01：
+        # `dear_good_friends_solo` / `bgm35_extract_solo` 各给库里添一对 100% 孪生）。
+        try:
+            if json.load(open(p, encoding='utf-8')).get('derived_from'):
+                continue
+        except Exception:                                             # noqa: BLE001
+            pass
+        n, is44 = notes_of(p)
+        f = feats(n, is44)
+        if f:
+            items[os.path.basename(d)] = f
     profs = {}
     for p in sorted(glob.glob(os.path.join(meldir or MELDIR, '*.json'))):
         pf = prof_feats(json.load(open(p, encoding='utf-8')))

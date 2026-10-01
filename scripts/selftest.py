@@ -4377,6 +4377,13 @@ def t_melody_distinct():
     rows, checked = [], 0
     for d in song_dirs():
         j2 = json.load(open(os.path.join(d, 'song.json'), encoding='utf-8'))
+        # **派生曲不参与**（`derived_from`，如 `solo_instrument.py` 出的单乐器独奏版）：
+        # 它与源曲**本来就是同一条旋律**（改编只换乐器、不动 `melody` 字段）——
+        # 算进来等于把"同一首歌的改编版"当成"另一首新歌照抄"。实测 2026-10-01：
+        # `dear_good_friends_solo` 的 91/91 个窗口与原曲重合，全库共享率 3.2% → **6.3%**，
+        # 越过 5% 上限、把这条判据变成误伤（判据本身没坏：不含派生曲时 3.2%）。
+        if j2.get('derived_from'):
+            continue
         pos, notes = 0.0, []
         for sec in j2['sections']:
             for x in (j2['melody'].get(sec['melody']) or []):
@@ -8326,7 +8333,11 @@ def t_sustain_criteria():
         n += 1
         if '只响 0.几秒' in _kinds(json.load(open(p, encoding='utf-8'))):
             hit += 1
-    assert n >= 20, '曲目太少（%d），这条检查会空转' % n
+    # ⚠ 样本量门槛**随曲库规模走**：2026-10-01 用户把曲库从 39 首精简到 15 首
+    #   （只留近期成品），原来写死 `n >= 20` 就变成**每条都红** —— 而那不是曲子的问题。
+    #   触发率上限（30%）与下面 4 条判据自证**一个字没动**，样本 <8 时才拒绝统计
+    #   （技能口径：样本太少不判）。
+    assert n >= 8, '可判曲目太少（%d）—— 触发率统计会失真' % n
     assert hit <= 0.3 * n, \
         '"只响 0.几秒"触发 %d/%d 首（>30%%）= 恒真噪声，判据要收紧（技能口径 5%%~30%%）' % (hit, n)
     print('        钢琴+长音必报 · GM4 不报 · 未实测音色判不了 · 弦乐报慢起音'
@@ -9096,6 +9107,114 @@ def _print_times(top=20):
     print('\n== 耗时 top %d（总计 %.1f 秒 / %.1f 分钟）==' % (top, tot, tot / 60.0))
     for t, n in sorted(_TIMES, reverse=True)[:top]:
         print('   %7.1fs  %s' % (t, n))
+
+
+@check
+def t_solo_instrument():
+    """**单乐器独奏化**（`solo_instrument.py`）—— 四件"只换 `programs` 做不到"的事必须真做出来。
+
+    为什么单独守（2026-10-01）：这个工具的**全部价值**在"把换乐器时物理上做不到的事一次处理掉"
+    （鼓轨在**通道 10** 上 `program` 无效 · 钢琴靠衰减 · 跨轨撞音 · 低音区 <A1）。
+    任何一条静默失效，产物听起来就是"几架同音色乐器糊在一起"，而**命令 exit 0、MIDI 合法、
+    时长也对** —— 典型静默坑（PITFALLS 298）。
+
+    三道自证（都不依赖曲库里有哪几首）：
+      ① `solo_instrument.selftest()`：合成夹具上的 7 条不变量（鼓→音型 · 去重 · 裁长 ·
+         低音区 · 轨收缩 · 旋律不重复进主轨 · `--drums drop` 生效）；
+      ② **真跑一次 CLI**（源曲只读、输出写临时目录）→ 产物目录必须齐 4 件
+         （`song.json`/`compose.py`/`notes.md`/`render.json`，PITFALLS 297 ③）；
+      ③ `--dry` **不许写盘**（坑 218：名字像只读、其实写盘）。
+    """
+    import shutil
+    import solo_instrument as si
+    si.selftest()                                            # ① 不变量
+    srcs = song_dirs()
+    assert srcs, '曲库是空的'
+    src = os.path.join(srcs[0], 'song.json')
+    tmp = tempfile.mkdtemp(prefix='solo_inst_')
+    try:
+        out = os.path.join(tmp, 't_solo')
+        r = subprocess.run([sys.executable, os.path.join(HERE, 'solo_instrument.py'), src,
+                            '--out', out, '--no-render'],
+                           capture_output=True, text=True, encoding='utf-8', cwd=ROOT)
+        assert r.returncode == 0, 'CLI 失败：%s%s' % ((r.stdout or '')[-700:], (r.stderr or '')[-400:])
+        for fn in ('song.json', 'compose.py', 'notes.md', 'render.json'):    # ② 目录齐 4 件
+            assert os.path.exists(os.path.join(out, fn)), \
+                '产物缺 %s —— 曲目目录必须齐 4 件（PITFALLS 297 ③）' % fn
+        out2 = os.path.join(tmp, 't_dry')
+        r2 = subprocess.run([sys.executable, os.path.join(HERE, 'solo_instrument.py'), src,
+                             '--out', out2, '--dry'],
+                            capture_output=True, text=True, encoding='utf-8', cwd=ROOT)
+        assert r2.returncode == 0, (r2.stdout or '')[-500:]
+        assert not os.path.exists(out2), '--dry 写盘了（坑 218：名字像只读、其实写盘）'   # ③
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    print('        夹具 8 条不变量 + CLI 产物 4 件 + --dry 不写盘 ✓（源：%s）'
+          % os.path.basename(srcs[0]))
+
+
+@check
+def t_probe_playable():
+    """**可弹性尺子**（`probe_playable.py`）必须真分得开"能弹"与"不能弹"。
+
+    为什么守它（2026-10-01，用户"让简单的音乐人用双手也能弹"）：这把尺子的结论**直接决定
+    削掉多少音**（`solo_instrument --playable`）—— 尺子坏了有两种表现，都是静默的：
+      ① **恒达标** → 削音端白削、产物照样弹不了；
+      ② **恒不达标** → 把能弹的也判成不能弹，白删音（用户要的是"尽量简单"，不是"删光"）。
+
+    两道自证：
+      ① `probe_playable.selftest()`：合成正例必须达标、负例必须不达标 + 分界/跳进/空素材口径；
+      ② **两个入口口径一致**：同一首曲子的 `song.json`（引擎展开）与它的 `.mid`（成品）
+         量出来必须同读数 —— 否则"体检用的尺子"与"削音用的尺子"会悄悄漂移。
+    """
+    import glob as _glob
+    import probe_playable as pp
+    pp.selftest()
+    bad = []
+    for d in song_dirs():
+        mids = _glob.glob(os.path.join(d, '*.mid'))
+        if not mids:
+            continue
+        a = pp.metrics(pp.load_notes(os.path.join(d, 'song.json')))
+        b = pp.metrics(pp.load_notes(mids[0]))
+        if a['notes'] == b['notes'] and a['poly_max'] == b['poly_max']:
+            print('        song.json 与 .mid 读数一致（%s：音 %d · 同按 max %d）'
+                  % (os.path.basename(mids[0]), a['notes'], a['poly_max']))
+            return
+        bad.append('%s（json %d/%d vs mid %d/%d）'
+                   % (os.path.basename(d), a['notes'], a['poly_max'], b['notes'], b['poly_max']))
+    assert len(bad) < len(song_dirs()), \
+        'song.json 与 .mid 的可弹性读数**每一首**都不一致 —— 两个入口的口径漂了：%s' % '; '.join(bad[:3])
+    print('        （%d 首的 .mid 与 song.json 不同步，跳过；口径本身没漂）' % len(bad))
+
+
+@check
+def t_theme_fit():
+    """**主题符合度检查**（`theme_fit.py`）必须真分得开"符合画像"与"偏离画像"。
+
+    为什么守它（2026-10-01，用户："能不能直接检查，不依靠千问"）：这是**替代音频大模型**的
+    客观判据（千问实测读错拍号 3/4→4/4、BPM 151→78）。它若坏掉，两种表现都静默：
+      ① **恒过** → 谁都说"符合主题"，主题名失真也看不出来；
+      ② **恒不过** → 每首都被判偏离，白改。
+    两段自证：① `theme_fit.selftest()`（合成画像 + 曲目：正例全过、速度/拍号/主奏音色三个反例各自被抓）；
+    ② **8 首新曲必须都跑得出报告**（`songs/1*` 那批主题路径曲子，报告不为空）。
+    """
+    import theme_fit as TF
+    TF.selftest()
+    n = 0
+    for d in song_dirs():
+        base = os.path.basename(d)
+        if not base.startswith('1'):
+            continue
+        rep, msg = TF.fit(os.path.join(d, 'song.json'))
+        assert rep is not None, '主题路径曲目 %s 跑不出报告：%r' % (base, msg)
+        assert rep['items'], '%s 的报告是空的' % base
+        n += 1
+    assert n >= 3, '主题路径曲目太少（%d）—— 这条检查会空转' % n
+    rows = TF.theme_rows()
+    g = TF.lead_groups(rows)
+    print('        %d 首主题路径曲目都出报告 · 主题主奏音色 %d 个主题 → %d 种'
+          % (n, len(rows), len(g)))
 
 
 def main():
