@@ -43,7 +43,7 @@ def find_file(d, stem):
 
 
 def load(path, secs=40.0, start=0.0):
-    x, sr = metrics.read_audio(path, dtype='float64')
+    x, sr = _metrics.read_audio(path, dtype='float64')
     i0 = int(start * sr)
     x = x[i0:i0 + int(secs * sr)]
     if x.shape[1] == 1:
@@ -153,6 +153,10 @@ def main():
 
 
 import cli_utf8 as _cu; _cu.setup()
-import metrics      # noqa: E402  # 统一音频读取（含 ffmpeg 兜底）
+# ⚠ **必须起别名**（2026-10-02 修）：本模块自己有一个同名函数 `metrics(mono, sr)`
+#   （line 70），而 `import metrics` 在**文件末尾**执行 → 把那个函数**覆盖成模块对象**，
+#   于是所有 `metrics(m, sr)` 调用当场 `TypeError: 'module' object is not callable`
+#   （实测：`stem_compare.py --ref … --cur …` 直接崩，第一行表头都出不来）。
+import metrics as _metrics      # noqa: E402  # 统一音频读取（含 ffmpeg 兜底）
 if __name__ == '__main__':
     sys.exit(main())
