@@ -258,6 +258,9 @@ ARR_PACKS = (
     {'uku': True, 'arp': True, 'glock': True, 'ep': True, 'perc': 3,
      'pad': True, 'strings': True, 'shimmer': True},
 )
+# 副歌可用的三个"亮色家族"档位（2 钟琴亮 8k+ / 3 电钢亮 1–5k / 4 全开）——
+# 排列按 seed 轮换，见 `arr_family_order`。桥段也从这三个里定点取一个。
+_ARR_FAMILY = (2, 3, 4)
 
 # ⚠ **引擎读 `patterns` 的键必须全在这里**。与 `ARR_KEYS` 同理，但这里原来更危险：
 #   `arr` 的无效键至少有 print 警告，`patterns` **连白名单都没有** —— 键名拼错
@@ -300,22 +303,51 @@ PAT_KEYS = (
 )
 
 
-def arr_pack_idx(role, nth=0, tier=1):
+def arr_family_order(seed):
+    """副歌"亮色家族"的**排列**（按 seed 轮换，确定性）。
+
+    为什么（2026-10-01，用户听完 100-107："我听了确实还是有点像"）：旧行为把副歌的档位
+    写死成"第 1 次档 2（钟琴）/ 第 2 次档 3（电钢）/ 第 3 次档 4（全开）"—— 于是**每首曲子的
+    "第几次副歌最满、哪个副歌是钟琴还是电钢"完全一样**；实测那 8 首的逐段编配开关
+    （哪一段加 uku / 钟琴 / 弦乐 / 垫子）**逐段同构**，8 首只有 sparse 与非 sparse 两档。
+    修法是**只换排列、不新增编制**：仍然是 `ARR_PACKS` 里那三档已验证的编制，
+    但不同 seed 的曲子从不同的家族起步（副歌之间仍不重复、仍逐次加厚）。
+    """
+    k = _arr_hash(seed, 'arrfam') % len(_ARR_FAMILY)
+    return _ARR_FAMILY[k:] + _ARR_FAMILY[:k]
+
+
+def _arr_hash(seed, salt):
+    """(salt, seed) → 稳定哈希（**不能用 `hash()`**：CPython 每进程加盐 → 每次生成都不同）。"""
+    import zlib
+    return zlib.crc32(('%s|%d' % (salt, int(seed) & 0xFFFFFFFF)).encode('utf-8')) & 0xFFFFFFFF
+
+
+def arr_pack_idx(role, nth=0, tier=1, seed=None):
     """段落角色 + 第几次出现 → 编制档下标（见 `ARR_PACKS`）
 
     主歌恒定档 1（同一角色应当可预期）；副歌按出现次序 2 → 3 → 4 → 4（升级但不重复）；
     桥段固定档 3（换音色，做"这里不一样"）；引子/尾声档 0（只有钢琴+贝斯+垫子）。
+
+    ⚠ **`seed`（2026-10-01 加）**：不传时**逐字节等于老行为**；传了就按
+      `arr_family_order` 轮换副歌家族顺序、并让桥段在三个家族里定点取一个
+      —— 同主题不同曲子的**编配布局**（哪段最厚、哪段是哪种亮色）由此不同。
     """
     if tier <= 0:
         return 1
     r = str(role)
     if r in ('intro', 'outro'):
         return 0
-    if r == 'bridge':
-        return 3
     if r == 'A':
         return 1
-    return min(2 + nth, len(ARR_PACKS) - 1)
+    if seed is None:
+        if r == 'bridge':
+            return 3
+        return min(2 + nth, len(ARR_PACKS) - 1)
+    _order = arr_family_order(seed)
+    if r == 'bridge':
+        return _order[_arr_hash(seed, 'arrbridge') % len(_order)]
+    return _order[min(nth, len(_order) - 1)]
 
 
 def role_of_section(name):
@@ -359,7 +391,7 @@ def arr_sparse(arr):
     return out
 
 
-def arr_by_role(base, roles, energy=None, tier=1, sparse=False):
+def arr_by_role(base, roles, energy=None, tier=1, sparse=False, seed=None):
     """**按段落角色**改编制（opt-in；`patterns.arr_by_role` 或 `song.json.arr_by_role`）
 
     参数：
@@ -371,6 +403,9 @@ def arr_by_role(base, roles, energy=None, tier=1, sparse=False):
               0 = 保守（只保留 BASE + 一种亮色），用在模板证据薄的主题上
       sparse  bool       —— 削薄（走 `arr_sparse`）：关掉 pad/strings/glock/ep 四层。
               舞曲/欢快类主题（`perc_style` 为 dance/pump）用它 —— 实测 happy +72%。
+      seed    int|None   —— **编配布局的跨曲区分**（2026-10-01 加）：不传 = 老行为；
+              传了则副歌家族顺序按 seed 轮换、桥段在三个家族里定点取（见 `arr_pack_idx`）。
+              ⚠ 只是**换排列**，不新增编制 —— 每档仍是 `ARR_PACKS` 里那份已验证的组合。
 
     返回**新的** list（不改入参）。性质（自检 `arr_role_variety` 断言这些）：
       · BASE 每段都在（bass/piano 永不为假）
@@ -396,7 +431,7 @@ def arr_by_role(base, roles, energy=None, tier=1, sparse=False):
         a = out[i]
         a['glock_all'] = False               # 角色编制不继承段落级 glock_all（那会让亮色段过满）
         nth = seen.get(role, 0)
-        _idx = arr_pack_idx(role, nth, tier)
+        _idx = arr_pack_idx(role, nth, tier, seed=seed)
         pack = ARR_PACKS[_idx]
         if role in ('B', 'bridge'):
             seen[role] = nth + 1

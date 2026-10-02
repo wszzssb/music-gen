@@ -1936,7 +1936,8 @@ def main():
     results.append(case('编配：段落编制不随角色变（旧行为）',
                         'arr_role_variety',
                         lambda: Mut(_se, 'arr_by_role',
-                                    lambda base, roles, energy=None, tier=1, sparse=False:
+                                    lambda base, roles, energy=None, tier=1, sparse=False,
+                                    seed=None:
                                     [dict(b or {}) for b in base])))
     # ⑱ 削薄（`sparse`）失效：原样返回 → `t_arr_role_variety` 的机制断言必须抓到
     results.append(case('编配：削薄失效（sparse 不关层）',
@@ -2220,6 +2221,16 @@ def main():
                                     lambda t: tuple(dict.fromkeys(
                                         [p for p in (t, 0, 13, 8, 4, 24, 9)
                                          if p is not None])))))
+    # ㉘b **主奏音色的跨主题分配退回"池内票数第一"** → 15 个主题又只剩 7 种
+    #     （GM 73 长笛独占 8 个主题），用户"我听了确实还是有点像"就是这么来的。
+    results.append(case('主奏音色退回"池内首选"（区分度塌回 7 种）', 'melody_prog_pool_order',
+                        lambda: Mut(_ns, 'lead_assign',
+                                    lambda: dict((t, (_ns.lead_candidates(p) or [None])[0])
+                                                 for t, p in _ns._theme_packs().items()))))
+    # ㉘c **编配布局的 seed 置换失效**（副歌家族顺序恒为老顺序 2→3→4）→ 同主题不同曲子
+    #     的编配布局又完全一样（实测 100-107 里 6 首 seed=7 就是这么被抹平的）。
+    results.append(case('编配布局置换失效（家族顺序恒老序）', 'arr_role_variety',
+                        lambda: Mut(_se, 'arr_family_order', lambda seed: (2, 3, 4))))
 
     # ㉙ **"流畅度"与"突兀声"两个量法坏不坏得起来**（用户 2026-09-22 要求沉淀成守卫）。
     #     ① 突兀声的对齐窗口改窄到 0 → 正常音头（起音延迟 42~78ms）全被判成"没有起音的杂音"

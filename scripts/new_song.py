@@ -354,7 +354,7 @@ def theme_programs(pack, pick=0, seed=None, verbose=False):
             if verbose:
                 print('  %s 缺主题音色 → 兜底 %d' % (track, _fb))
             continue
-        if seed is None:
+        if seed is None and track != 'Melody':
             out[track] = (cands[min(pick, len(cands) - 1)], song_engine.CH[track])
             continue
         if track == 'Melody':
@@ -363,7 +363,12 @@ def theme_programs(pack, pick=0, seed=None, verbose=False):
             #   由 `melody_prog` 序列（`lead_candidates` + seed 旋转）承担。
             #   实测踩点：让 Melody 也按 seed 挑时，lounge 65→71、battle 75→73 →
             #   theme_fit 当场判"主奏音色 ✗"。
-            out[track] = (cands[0], song_engine.CH[track])
+            # 🆕 2026-10-01 第二改：首选从"池内票数第一"换成**跨主题分配**的默认主奏
+            #   （`lead_assign`）—— 票数第一在 15 个主题里只有 7 种（长笛独占 8 个主题），
+            #   用户听感"还是有点像"。分配只在**本主题候选池内**挑，判据（池成员）不变；
+            #   `pick` 显式非 0 时仍按老口径取（保留"同主题换音色做变体"的用法）。
+            _ld = cands[min(pick, len(cands) - 1)] if pick else lead_assign().get(pack.get('theme'))
+            out[track] = (_ld if _ld in cands else cands[0], song_engine.CH[track])
             continue
         # **逐轨按 seed 挑**（2026-10-01，见 docstring 那两条约束）
         import theme_pack as _tp
@@ -678,6 +683,19 @@ def _bpm_from_pack(pack, seed):
     return float(v), '主题模板范围 %g~%g（按 seed=%s 定点取）' % (float(lo), float(hi), seed)
 
 
+def _voice_seed(short, salt):
+    """曲名 → **编配布局 / 主奏起点**的种子（与旋律 seed 解耦）。
+
+    为什么不能用 `--seed`（2026-10-01，dry-run 实测）：100-107 里 6 首当初是显式
+    `--seed 7`（见 PITFALLS 302）—— 拿同一个数驱动编配置换，`arr_family_order(7)`
+    恰好等于老顺序 2→3→4，于是那 6 首的编配布局**一字未变**（只有 seed 203/304 两首变了）。
+    而"每首曲子不一样"要的是**曲子身份**：同名 ⇒ 同布局（可复现）、异名 ⇒ 不同布局。
+    用 `zlib.crc32`（**不能用 `hash()`**：每进程随机加盐 → 每次生成都不一样）。
+    """
+    import zlib
+    return zlib.crc32(('%s|%s' % (short, salt)).encode('utf-8')) & 0xFFFFFFFF
+
+
 def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     """主题模板包 → song.json 数据（**作曲依据全在包里**）"""
     import build_song
@@ -736,7 +754,8 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
         # 而 width/rms/质心几乎没动 —— 见 `song_engine.arr_sparse` 的实测记录。
         _sparse = (pack.get('rhythm') or {}).get('perc_style') in ('dance', 'pump')
         arrs = song_engine.arr_by_role([s['arr'] for s in secs], roles,
-                                       energy=(eused or None), tier=1, sparse=_sparse)
+                                       energy=(eused or None), tier=1, sparse=_sparse,
+                                       seed=_voice_seed(short, 'arr'))
         for s, a in zip(secs, arrs):
             s['arr'] = a
     # **段间密度曲线**（"按段对齐"的密度层，`mix_target.density_curve_db`）：
@@ -814,7 +833,8 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     #      只占 3.3%~6.2%）。现在 A2/A3/B/B2/C… 逐段换主题主奏音色（"同一支旋律换乐器再陈述"），
     #      起始音色由 seed 决定 → 同主题不同曲子也不同。
     _mel_tpl = (theme_programs(pack, seed=seed).get('Melody') or (None,))[0]
-    _MEL_PROGS = melody_prog_pool(_mel_tpl, seed=seed, leads=lead_candidates(pack))
+    _MEL_PROGS = melody_prog_pool(_mel_tpl, seed=_voice_seed(short, 'lead'),
+                                  leads=lead_pool_for_theme(pack))
     _MEL_SEQ = melody_prog_seq(_MEL_PROGS, len(secs))
     for _i, _s in enumerate(secs):
         _s['arr']['melody_prog'] = _MEL_SEQ[_i]
@@ -1151,6 +1171,119 @@ def lead_candidates(pack, cap=4):
     return out[:cap]
 
 
+# ---------------------------------------------------------------- 主奏音色的**跨主题分配**
+# 2026-10-01（用户听完 100-107："我听了确实还是有点像"）：画像层的首选撞车严重 ——
+# 实测 15 个主题只有 7 种 `programs.Melody`，其中 **GM 73 长笛独占 8 个主题**
+# （daily/folk_tale/neon/retro/seaside/sorrow/tender/waltz）、GM 68 双簧管 2 个。
+# 于是"霓虹电子 / 海边 / 悲伤 / 圆舞曲"的第一印象都是同一种长笛。
+#
+# ⚠ **不引入池外音色**（`theme_fit` 的判据与 PITFALL 303 都钉着这条）：只在
+#   **各主题自己的 `ep` 候选池内**重排与分配，每个结果都带模板票数。
+#   算法（确定性，同包同结果）：
+#     ① 二分图（主题 ↔ 候选音色）求**最大匹配** —— 让尽可能多的主题拿到"独占音色"；
+#     ② 匹配不到的主题按 (该音色是否已被占, 跨主题共用数, 池内票数序) 取最小者。
+_LEAD_CACHE = {}
+# 分配只在**票数序前 3 位**里挑：长尾候选票数低、听感风险大（同 PITFALL 303 里
+# "非主奏轨最多看到前 2 个候选"那条口径）。实测把上限放到 4 时，neon（霓虹电子）
+# 会被分到**排箫 75**（池内第 4 位）—— 区分度上去了，但依据变弱、音色也不贴主题。
+_ASSIGN_CAP = 3
+
+
+def _assign_pool(pack):
+    """参与跨主题分配的候选（票数序前 `_ASSIGN_CAP` 位）。"""
+    return lead_candidates(pack)[:_ASSIGN_CAP]
+
+
+def _theme_packs():
+    """15 个主题包（键 = 主题名）。只读 `arrangement.prog_pool`，与生成路径同一份数据。"""
+    if 'packs' in _LEAD_CACHE:
+        return _LEAD_CACHE['packs']
+    out = {}
+    d = os.path.join(ROOT, 'refs', 'themes')
+    try:
+        files = sorted(os.listdir(d))
+    except OSError:
+        files = []
+    for f in files:
+        if not f.endswith('.json') or f.endswith('_melody.json'):
+            continue
+        try:
+            with open(os.path.join(d, f), encoding='utf-8') as fh:
+                out[f[:-5]] = json.load(fh)
+        except (OSError, ValueError):
+            continue
+    _LEAD_CACHE['packs'] = out
+    return out
+
+
+def theme_lead_shares():
+    """主奏候选音色 → **被几个主题的分配池共用**（跨主题区分度的分母；1 = 独占）。
+
+    ⚠ 分母与 `lead_assign` 用的是同一份池（`_assign_pool`，票数序前 3）——
+      否则段级池排序会拿一个和分配不一致的"常见度"（长尾候选的分母虚高）。
+    """
+    if 'shares' in _LEAD_CACHE:
+        return _LEAD_CACHE['shares']
+    n = {}
+    for _t, p in _theme_packs().items():
+        for q in _assign_pool(p):
+            n[q] = n.get(q, 0) + 1
+    _LEAD_CACHE['shares'] = n
+    return n
+
+
+def lead_assign():
+    """主题 → **默认主奏音色**（跨主题去重分配，确定性；见上面那段注释）。"""
+    if 'assign' in _LEAD_CACHE:
+        return _LEAD_CACHE['assign']
+    packs = _theme_packs()
+    pool = dict((t, _assign_pool(p)) for t, p in packs.items())
+    pool = dict((t, v) for t, v in pool.items() if v)
+    match = {}                      # 音色 → 主题（当前匹配）
+
+    def _aug(t, seen):
+        for q in pool[t]:
+            if q in seen:
+                continue
+            seen.add(q)
+            if q not in match or _aug(match[q], seen):
+                match[q] = t
+                return True
+        return False
+
+    # 池窄的先挑（选择少的先安排），tie 用主题名 → 同输入永远同输出
+    order = sorted(pool, key=lambda t: (len(pool[t]), t))
+    for t in order:
+        _aug(t, set())
+    out = dict((t, q) for q, t in match.items())
+    shares = theme_lead_shares()
+    used = set(out.values())
+    for t in order:                  # 没匹配上的：挑"被共用最少"的（允许复用，但要记账）
+        if t in out:
+            continue
+        cands = pool[t]
+        best = min(cands, key=lambda q: (1 if q in used else 0,
+                                         shares.get(q, 99), cands.index(q)))
+        out[t] = best
+        used.add(best)
+    _LEAD_CACHE['assign'] = out
+    return out
+
+
+def lead_pool_for_theme(pack):
+    """某主题的段级主奏池，**按跨主题区分度排序**（默认主奏 → 共用少的 → 票数序）。
+
+    为什么要重排（2026-10-01）：段级 `melody_prog` 序列是"池身按 seed 轮换"，池若是
+    票数序，长笛（8 个主题共用）就会在多数主题里排前面 → 8 首曲子的中段仍是同一种音色。
+    """
+    cands = lead_candidates(pack)
+    shares = theme_lead_shares()
+    d = lead_assign().get(pack.get('theme'))
+    rest = sorted([q for q in cands if q != d],
+                  key=lambda q: (shares.get(q, 99), cands.index(q)))
+    return ([d] if d in cands else []) + rest
+
+
 def melody_prog_pool(mel_tpl, seed=None, leads=None):
     """段级主奏音色的**候选池**（顺序 = 段落从前往后拿到的音色）。
 
@@ -1176,6 +1309,19 @@ def melody_prog_pool(mel_tpl, seed=None, leads=None):
       （实测 100-107：主题音色只占 3.3%~6.2%）。现在改成**主题自己的主奏候选轮换**
       （`leads`，票数序、按 seed 旋转），主题身份从头到尾都在，且不同曲子起始音色不同。
       传 `leads` 为空时退回旧池（老调用/池缺 `ep` 的主题）。
+
+    ⚠ **保守头从"前两位"缩到"第一位"**（2026-10-01 第三次修，用户听完 100-107：
+      "**我听了确实还是有点像**"）。实测那 8 首的逐段主奏序列：**第 1 段 4 电钢 8/8、
+      第 2 段 0 钢琴 8/8** —— 每首曲子的前 12 小节（引子 4 + 主歌 8）主奏音色**完全相同**，
+      而用户"听一下"听到的正是这一段。所以：
+        · 第 1 段（引子 = 独奏位）**仍是 4 电钢** —— 2026-09-22 那条教训（引子拿到
+          GM 80 方波独奏 → "前面部分非常奇怪"）说的是**独奏位**，这条原样保留；
+        · 第 2 段（第一个主歌，**全编制**、不是独奏位）起就用**该主题的主奏音色**
+          （`lead_pool_for_theme` 的区分度序，按 seed 旋转起点）→ 8 首的第一印象由此分开；
+        · `0 钢琴` 退出池首位置：它是**衰减型**（技能第 17 条：掉 12dB 只要 0.19~0.25s），
+          在长音旋律上正是"只响 0.几秒"的元凶，没有必要为"保守"再留一个位置。
+      守卫 `t_melody_prog_pool_order` 同步改（第 1 位保守的断言保留，前两位 == (4,0) 那条
+      改成"第 1 位保守 + 第 2 位必须是该主题候选"）。
     """
     if not leads:
         return tuple(dict.fromkeys([p for p in (4, 0, 13, 8, mel_tpl, 24, 9)
@@ -1185,21 +1331,23 @@ def melody_prog_pool(mel_tpl, seed=None, leads=None):
         import zlib
         k = zlib.crc32(b'lead|%d' % (int(seed) & 0xFFFFFFFF)) % len(ls)
         ls = ls[k:] + ls[:k]
-    head = [4, 0]
+    head = [4]
     if mel_tpl is not None and mel_tpl not in ls:
         ls = ls + [mel_tpl]               # 兜住老口径：programs.Melody 必须在池里
     return tuple(dict.fromkeys(head + ls))
 
 
 def melody_prog_seq(pool, n_sec):
-    """池 → **n 段的实际序列**：前两段照池序（引子/第一主歌保守），之后只在池身轮换。
+    """池 → **n 段的实际序列**：第 1 段照池序（引子保守），之后只在池身轮换。
 
-    为什么不让整池 `i % len(pool)` 一路轮下去（2026-10-01）：那样第 4 段就会绕回
-    "4 电钢 / 0 钢琴"，把主题主奏音色又稀释掉（sorrow 那种池长 4 的曲子只剩 53% 是主题音色）。
+    为什么不让整池 `i % len(pool)` 一路轮下去（2026-10-01）：那样第 3 段就会绕回
+    "4 电钢"，把主题主奏音色又稀释掉（sorrow 那种池长 4 的曲子只剩 53% 是主题音色）。
+    ⚠ 2026-10-01 第二改：保守头从 2 段缩到 1 段（见 `melody_prog_pool`），因为 8 首曲子的
+    **前两段主奏完全相同**（第 1 段 4 电钢 8/8、第 2 段 0 钢琴 8/8）正是"还是有点像"的来源。
     """
     if not pool or n_sec <= 0:
         return []
-    head, body = list(pool[:2]), list(pool[2:]) or list(pool[:1])
+    head, body = list(pool[:1]), list(pool[1:]) or list(pool[:1])
     seq = head[:n_sec]
     for i in range(max(0, n_sec - len(seq))):
         seq.append(body[i % len(body)])

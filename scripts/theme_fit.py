@@ -272,14 +272,20 @@ def selftest():
     b3['meter'] = [3, 4] if list(r['meter'] or [4, 4]) != [3, 4] else [4, 4]
     ok3, _ = run(b3)
     assert not ok3['拍号'], '拍号不符必须报'
-    b4 = copy.deepcopy(base)
+    pj = load_pack(r['theme'])
     lead = r['progs'].get('Melody')
-    b4['programs']['Melody'] = [(lead + 1) % 96, se.CH['Melody']]
+    # ⚠ **反例必须是"池外"音色**（2026-10-01 修）：判据已改成"在候选池里"，再拿
+    #   `lead + 1` 当反例就不成立了 —— 实测 battle 的分配结果是 72 短笛，而 73 长笛
+    #   **就在它的池里**（[75,72,87,73]）→ 反例当场失效（`theme_fit --selftest` 报红）。
+    _lead_pool = ns.track_candidates(pj, 'Melody') or [lead]
+    _out_p = next(p for p in range(96) if p not in _lead_pool)
+    b4 = copy.deepcopy(base)
+    b4['programs']['Melody'] = [_out_p, se.CH['Melody']]
     ok4, _ = run(b4)
-    assert not ok4['主奏音色'], '主奏音色不符必须报'
+    assert not ok4['主奏音色'], \
+        '主奏音色不符（池外 %d，池 %s）必须报' % (_out_p, _lead_pool)
     # ⑤ **池外音色**必须报（2026-10-01 加）：判据从"等于首选"改成"在池里"之后，
     #    必须证明它仍然**有牙齿** —— 把 Strings 换成一个不在该主题候选池里的音色。
-    pj = load_pack(r['theme'])
     cands_s = ns.track_candidates(pj, 'Strings')
     if cands_s:
         outside = next(p for p in range(96) if p not in cands_s

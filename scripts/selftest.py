@@ -6716,6 +6716,36 @@ def t_arr_role_variety():
     assert any(a.get('strings') or a.get('pad') for a in _plain), \
         '不传 sparse 时也没有任何段开 strings/pad —— 上一条断言量不到"削薄"'
 
+    # **编配布局的跨曲区分**（2026-10-01 加，用户"我听了确实还是有点像"）：
+    # 钉三件 —— ① `seed` 缺省**逐字节等于老行为**；② 不同 seed 必须给出**不同布局**
+    # （否则"每首曲子不一样"是空转）；③ 换的只是**排列**：非引子/尾声段拿到的编制
+    # 仍然逐字段取自 `ARR_PACKS`（同一套已验证的档位），不是新造编制。
+    def _fam(a):
+        return tuple([bool((a or {}).get(k)) for k in se.ROLE_COLOR]
+                     + [bool((a or {}).get(k)) for k in se.ROLE_LIFT]
+                     + [int((a or {}).get('perc') or 0)])
+
+    def _layout(rows):
+        return tuple(_fam(a) for a in rows)
+
+    _known = {_fam(dict(p)) for p in se.ARR_PACKS}
+    assert _layout(se.arr_by_role(base, roles, energy=None, tier=1)) == \
+        _layout(se.arr_by_role(base, roles, energy=None, tier=1, seed=None)), \
+        'seed 缺省时行为变了（老曲目会跟着变 —— 必须逐字节不变）'
+    _layouts = set()
+    for _sd in range(1, 25):
+        _layouts.add(_layout(se.arr_by_role(base, roles, energy=None, tier=1, seed=_sd)))
+    assert len(_layouts) >= 3, \
+        '不同 seed 只给出 %d 种编配布局（换排列没生效）' % len(_layouts)
+    for _l in _layouts:
+        for _nm, _f in zip(names, _l):
+            if se.role_of_section(_nm) in ('intro', 'outro'):
+                continue          # 引子/尾声的老特例（perc 强制 1 + perc_in）不在此列
+            assert _f in _known, \
+                '置换后出现了 ARR_PACKS 之外的编制（凭空造编制）：%s → %r' % (_nm, _f)
+    print('        编配布局：seed 缺省=老行为 · 24 个 seed → %d 种布局（都取自 ARR_PACKS）'
+          % len(_layouts))
+
     # ② 端到端
     import theme_pack as tp
     bad, checked, meds = [], 0, []
@@ -6748,7 +6778,7 @@ def t_arr_role_variety():
     # 变异自证：还原成旧行为（原样返回）→ 必须失败
     _old = se.arr_by_role
     try:
-        se.arr_by_role = lambda base, roles, energy=None, tier=1, sparse=False: \
+        se.arr_by_role = lambda base, roles, energy=None, tier=1, sparse=False, seed=None: \
             [dict(b) for b in base]
         pack = tp.load_pack('cheerful')
         d = ns.build_from_theme(pack, 'arr_role_probe', seed=1, ncand=1)
@@ -8430,16 +8460,33 @@ def t_melody_prog_pool_order():
     #        ④ 换 seed 会换起始顺序（否则"多样化"是空转）、且序列里不许有慢起音音色。
     _leads = [73, 71, 65]
     _pool = NS.melody_prog_pool(71, seed=3, leads=_leads)
-    assert tuple(_pool[:2]) == (4, 0), '前两位必须是保守音色：%r' % (_pool,)
-    assert set(_pool[2:]) == set(_leads), '池身必须正好是主题主奏候选：%r' % (_pool,)
+    assert _pool[0] == 4, '第 1 段（引子）必须是保守音色 4 电钢：%r' % (_pool,)
+    assert set(_pool[1:]) == set(_leads), '第 2 段起必须正好是主题主奏候选：%r' % (_pool,)
     _seq = NS.melody_prog_seq(_pool, 6)
-    assert _seq[:2] == [4, 0], '序列前两段必须保守：%r' % (_seq,)
-    assert set(_seq[2:]) <= set(_leads), '第 3 段起只该用主题候选：%r' % (_seq,)
+    assert _seq[0] == 4, '序列第 1 段必须保守（引子/独奏位）：%r' % (_seq,)
+    assert set(_seq[1:]) <= set(_leads), '第 2 段起只该用主题候选：%r' % (_seq,)
+    assert _seq[1] == _pool[1], \
+        '第 2 段必须拿池身首位（8 首曲子的第一印象由此分开）：%r / %r' % (_seq, _pool)
     assert not (set(_seq) & set(NS.SLOW_ATTACK)), '主奏序列里不许有慢起音音色：%r' % (_seq,)
-    _orders = {tuple(NS.melody_prog_pool(71, seed=s, leads=_leads)[2:]) for s in range(1, 12)}
+    _orders = {tuple(NS.melody_prog_pool(71, seed=s, leads=_leads)[1:]) for s in range(1, 12)}
     assert len(_orders) > 1, '不同 seed 必须给出不同的主奏顺序（否则多样化是空转）'
-    print('        池首=保守音色 · 模板音色在池内且不占前两位（试了 80/71/48/0）'
-          ' · 池身=主题主奏候选、按 seed 换序（%d 种顺序）' % len(_orders))
+    # ---- **跨主题区分度**（2026-10-01 第二改，用户"我听了确实还是有点像"）：
+    # 分配前 15 个主题只有 7 种主奏音色、GM 73 长笛独占 8 个主题；分配后必须显著变多，
+    # 且**每个结果都在该主题自己的候选池里**（不许为了区分度引入池外音色）。
+    _asg = NS.lead_assign()
+    _packs = NS._theme_packs()
+    assert len(_asg) == len(_packs) >= 15, '分配必须覆盖全部主题：%d / %d' % (
+        len(_asg), len(_packs))
+    for _t, _q in sorted(_asg.items()):
+        assert _q in NS.lead_candidates(_packs[_t]), \
+            '分配结果必须在**该主题**的候选池里（池外音色 = 违反依据纪律）：%s→%s' % (_t, _q)
+    assert len(set(_asg.values())) >= 12, \
+        '跨主题区分度不足：只有 %d 种主奏音色（分配前 7 种、实测 13）' % len(set(_asg.values()))
+    _flute = sorted(t for t, q in _asg.items() if q == 73)
+    assert len(_flute) <= 2, '长笛不该再独占 8 个主题：%r' % (_flute,)
+    print('        池首=保守音色 · 池身=主题主奏候选、按 seed 换序（%d 种顺序）'
+          ' · 跨主题分配：15 主题 → %d 种主奏音色（长笛 %d 个主题）'
+          % (len(_orders), len(set(_asg.values())), len(_flute)))
 
 
 @check
