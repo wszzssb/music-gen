@@ -1,5 +1,10 @@
 # 交接：19 首生成曲的听感修复（2026-09-18 第二轮止）
 
+> 🆕 **最新一轮 = §10（2026-10-02）「"像不像 / 哪里不像"这条线」** ——
+> 本地音频大模型换成**音乐专用**的 Music Flamingo 7B（能力已标定）+ 两把新尺子入库
+> （`scripts\who_plays_lead.py` 判"这条旋律在参考曲里是谁在弹"· `scripts\midi_diff.py` 判"改完到底动了哪一层"）
+> \+ BGM35 复刻的主奏音色对齐（交付已更新）。**接手先读 §10**，§1–§9 是更早几轮的状态。
+
 > **下一个对话从这里开始，不要重新摸索。** 本文所有数字都是可复现的实测值。
 > 用户听感四条 → **鼓像打字机 / 伴奏撞主奏 / 段界硬切 三条已修完并全库验证**；
 > **只剩「旋律怪」（+ `theme_timbre_pool`）**，下面给口径、位置与已排除的方向。
@@ -442,4 +447,78 @@ tr["program_changes"] = [[0, prog[tr["name"]]]]   # 同刻的 program_change 一
 本轮 8 首**逐首新旧读数完全一致**（103 从 +10 → +12，略好）⇒ 改动没有引入这项。
 `accomp_exempt` 目前只豁免"和弦贴合率"，**没有豁免音区分离** —— 还原曲要过这条得先想清楚
 "判据服从原曲"怎么落（同 §19 的口径），别为了过指标改内容。
+
+---
+
+## 10. 【2026-10-02】**"像不像 / 哪里不像"这条线 —— 交接**
+
+> 用户这一轮定的口径（**与"好不好听"分开**）：
+> **"不是回答好不好听，只是要判断像不像，哪里不像"**。
+>
+> 本轮做了两件事：① 把本地音频大模型从**通用**的 Qwen2-Audio 换成**音乐专用**的
+> Music Flamingo 7B，并把它**标定到能当判据的程度**；② 用它 + 两把新尺子把
+> **BGM35 复刻**的主奏音色对齐（并更新交付）。
+>
+> 三份配套文档：`docs/AUDIO-CRITIC.md` **§11**（模型能力标定全表）·
+> `PITFALLS.md` **304 / 305 / 306** · `deliveries/bgm35_extract/notes.md` **§6**（那次改动的完整记录）。
+
+### 10.1 关键结论（照着用，别重新摸）
+
+| 结论 | 依据（都可复现） |
+|---|---|
+| **"像不像"是可量的**：先判"这条旋律在参考曲里**是谁在弹**"，再判"**我们用了什么**" | BGM35：参考 `other 49% · guitar 34% · piano 9%`，我们改前 `piano 88%` → 改后 `other 66% · guitar 29%` |
+| ⚠ **必须按音高判，不能按响度** | 按 RMS 包络会被低音/鼓骗：同一素材打出 `bass 36% · drums 32%` 当"主奏" → `scripts/who_plays_lead.py` 就是这条的落地 |
+| **改音色要分段**；**旋律混在伴奏轨里时要拆轨** | 前半段 `Melody` 轨是空的、旋律在 `Piano` 轨 → 按分轨证据挪 **419 音**，**音符一个不改**（总数 8461 不变） |
+| **改完必须读回 `.mid`** | 渲染 `rc=0`、成绩单照出，也可能什么都没改 —— 本轮真踩（从备份恢复漏重放后半段音色）→ `scripts/midi_diff.py` |
+| **模型只能当"描述器"，不能当裁判** | Music Flamingo：BPM 8/8 在 5% 内（可当判据）· 乐器只信大类 · **真假音源判错** · 判不了"哪版更好" |
+
+### 10.2 下一个对话从这几件里挑（按价值排序）
+
+1. **把"主奏音色对照"接进交付链**（最值）：`who_plays_lead.py` 已经是现成的尺子，
+   缺的是"接在哪一步 + 判据门定多少"。建议落点 = `timbre_audit.py`（它现在只看"整段谁最响"，
+   抓不到"主奏用错音色"这一类）或 `preflight`。
+   **验收**：对三首已知曲（改后的 `bgm35_extract` / `dear_good_friends` / `siren_end2`）
+   给出稳定一致的读数，且**触发率落在有区分度区间**（技能口径 5%~30%，别做成恒真）。
+2. **BGM35 剩下的 12 处同刻同音**（`Piano`↔`Melody`，**改前就有**，都在 138.6 秒后）：
+   清它只需从 `Piano` 轨删那 12 个音 + 重渲染，**代价**是音符总数 8461 → 8449
+   （就不再是"只动音色那一层"了）。
+3. **"模型 vs 耳朵"的重合度实验**（`docs/AUDIO-CRITIC.md` §11.7）：这是"Music Flamingo
+   到底有没有用"的唯一判据，也最贵 —— **需要用户配合**（他独立出清单，模型那份先不给看）。
+   口径照 `docs/AUDIO-CRITIC.md` §8-1（只看时间 ±5 秒命中 + 报 ±3/±8 敏感度）。
+4. **结构分段换问法**（§11.7）：它现在不给段名、只给 `silence` 边界，但那个边界
+   意外命中了我们的段界（A→A2 19.0 vs 已知 19.1）—— 试 2~3 个问法（技能 §5 第 6 条）。
+
+### 10.3 红线（本轮踩过 / 实测过，别再踩）
+
+1. **从备份恢复是复合操作** —— 恢复之后**必须重放全部改动**（PITFALLS **306**）。
+2. **音频塔不能 offload 到 CPU** —— accelerate 会把它留在 **meta device**，
+   `generate` 崩 `Tensor.item() cannot be called on meta tensors`，而且**等于没听音频**
+   （PITFALLS **305**）。7B 的 4bit + 音频塔全上 8GB 卡是够的：`device_map={'': 0}`。
+3. **模型侧**：必须 greedy（采样 5 次 5 种答案）· 单段 ≤30 秒（>30 触发长度告警，
+   上下文只有 1200）· **A/B 必须同窗长同起点**（换窗长就是换输入）· 乐器名只信大类。
+4. **临时脚本别落 `scripts/`**（PITFALLS 202，自检会把 `scripts/*.py` 全当入口脚本扫）——
+   本轮全部在 `D:\test\_tmp\theme-timbre\`。
+5. **报告口径**：只给"结论 + 差距表 + 一句还没验证什么"；**说"已完成"必须附独立证据**。
+
+### 10.4 素材与路径（绝对路径，别猜）
+
+| 类别 | 路径 |
+|---|---|
+| **模型**（15.4GB，仓库不收） | `D:\test\hf-models\music-flamingo-2601-hf\`（`--model` / `$MF_MODEL` 可改） |
+| 下载口径 | 走 **hf-mirror**（`huggingface.co` 不通、github 不通）；**单连接 ≈5MB/s，16 线程并行也一样**（服务器限权）→ 15.4GB ≈ **51 分钟**；ModelScope 上没有这个模型 |
+| 工具（已入库） | `scripts\ask_music_critic.py` · `who_plays_lead.py` · `midi_diff.py` · `ask_audio_critic.py` |
+| 本轮临时脚本 | `D:\test\_tmp\theme-timbre\`（`split_lead_front.py` 拆轨 · `lead_timbre_plan.py` 改法表 · `apply_front.py` 应用+渲染 · `mf_bench.py` 能力标定 · `final_check.sh` 复测） |
+| 参考曲（真实录音） | `D:\test\galgame\ピュアソングガーデン！解包\Bgm\BGM35.ogg`（331.9 秒） |
+| 我们的版本 | `songs\bgm35_extract\`（改后）· 改前备份 `D:\test\_bgm35_extract_backup_20261002\` |
+| 分轨（6 轨 demucs） | `D:\test\_tmp\theme-timbre\stems_bgm35\htdemucs_6s\{BGM35,bgm35_extract_sf}\` |
+| 判决数据 | `D:\test\_tmp\theme-timbre\{midi_diff.json, wpl_melody.json, mc_compare_final.json, lead_timbre_plan.json, preflight_new\preflight.md}` |
+| 交付（已更新） | `deliveries\bgm35_extract\`（song.json + `.mid` + `_sf.ogg` + notes.md §6 + preflight.txt + compose.py） |
+
+### 10.5 本轮的自检状态：**182/184**
+
+- 新增：`t_music_critic_contracts`（模型四口径）· `t_who_plays_lead_contracts`（按音高 vs 按响度）·
+  `t_midi_diff_contracts`（拍→秒 / 差异表）；`mutation_check` **259/259**。
+- 剩两条：`accompaniment_harmony`（**既有状态**，见 §9.5 —— 拉低中位的是还原曲与 `104_lounge_night`）
+  与 `doc_map_fresh`（改完文档重跑 `python scripts\doc_map.py` 即消）。
+
 
