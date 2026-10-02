@@ -5144,6 +5144,80 @@ def t_music_critic_contracts():
           'BPM 解析正确' % (M.MAX_SEC, M.DEVICE_MAP))
 
 
+@check
+def t_who_plays_lead_contracts():
+    """**"这条旋律在参考曲里是谁在弹"必须按音高判，不能按响度**（2026-10-02 实测定案）。
+
+    背景：给 BGM35 复刻做"哪里不像"时，第一版拿**起音窗口内 RMS 最大者**当赢家 →
+    参考曲上打出 `bass 36% · drums 32%` 当"主奏"（主奏不可能在低频）——
+    典型的"判据量错了对象"（PITFALLS 251）。改成按**音高**（基频 + 前两个谐波）后
+    同一素材给出 `other 49% · guitar 34% · piano 9%`，与用户听感、`.mid` 音色三方一致。
+
+    这里用一个**低频大振幅 + 旋律频率小振幅**的合成夹具钉死这条：
+    按音高判必须选旋律那条；按响度判会选低频那条（= 被拆掉的错口径）。
+    """
+    import numpy as np
+    import who_plays_lead as W
+
+    sr = 16000
+    t = np.arange(int(0.3 * sr)) / float(sr)
+    low = (0.9 * np.sin(2 * np.pi * 100 * t)).astype('float32')      # "bass"：能量大
+    mel = (0.1 * np.sin(2 * np.pi * 440 * t)).astype('float32')      # "旋律"：能量小
+    e = {'bass': W.band_amp(low, sr, 0.0, 440.0), 'other': W.band_amp(mel, sr, 0.0, 440.0)}
+    assert e['other'] > e['bass'] * 3, \
+        ('按音高判失效：440Hz 的音上，100Hz 的大信号不该压过 440Hz 的小信号 —— %s' % e)
+    assert W.pick_winner(e) == 'other', '按音高判该选 other，实得 %s（%s）' % (
+        W.pick_winner(e), e)
+    # **反例自证**：按响度（RMS）判会选 bass ⇒ 这就是被拆掉的那个口径
+    rms = {'bass': float(np.sqrt((low ** 2).mean())), 'other': float(np.sqrt((mel ** 2).mean()))}
+    assert max(rms, key=rms.get) == 'bass', \
+        '夹具没起到"响度判会选错"的作用：%s' % rms
+    # 判据是**相对**谁强（与绝对响度无关）：整体很小时照样判
+    assert W.pick_winner({'a': 1e-6, 'b': 0.0}) == 'a', '相对比较坏了'
+    assert W.pick_winner({'a': 0.0, 'b': 0.0}) is None, '全 0 该返回 None'
+    assert W.pick_winner({}) is None, '空输入该返回 None'
+    # 分轨族口径：默认把 other/guitar/vocals 当"旋律乐器"
+    assert set(W.DEFAULT_LEAD) == {'other', 'guitar', 'vocals'}, W.DEFAULT_LEAD
+    assert W.STEMS == ('drums', 'bass', 'other', 'vocals', 'guitar', 'piano'), W.STEMS
+    print('        按音高判 vs 按响度判（夹具上响度会选错）· 相对比较 · 空输入安全')
+
+
+@check
+def t_midi_diff_contracts():
+    """**"改前 vs 改后"的 MIDI 对照**：拍→秒换算 + 只列有差异的轨 + 音符总数。
+
+    为什么单独守（2026-10-02 真用到，而且当场抓到一个错）：
+    把 `bgm35_extract` 从备份恢复改音色时，**只重放了前半段的 program**、
+    后半段的静默丢了 —— 渲染日志一切正常，是这张表（program 只有 6 个而不是 13 个）
+    才暴露出来。⚠ 所以它的"列全"与"换算对"都必须有断言。
+    """
+    import midi_diff as D
+
+    # ① 拍→秒：150 BPM 时 1 拍 = 0.4 秒（`spb` 写反过一次的典型）
+    assert D.beat_progs_to_sec([(0, 0), (16, 81), (264, 81)], 150) == \
+        [(0.0, 0), (6.4, 81), (105.6, 81)], D.beat_progs_to_sec([(16, 81)], 150)
+    assert D.beat_progs_to_sec([(120, 27)], 60) == [(120.0, 27)], 'BPM 60 时 1 拍 = 1 秒'
+    assert D.beat_progs_to_sec([(4, 5)], None) == [(2.0, 5)], 'bpm 缺失该按 120 兜底（1 拍 = 0.5 秒）'
+    # ② 差异识别：只列音符数或 program 变了的轨；两样都没变的不列
+    a = {'Melody': {'notes': 160, 'progs': [(0.0, 0)]},
+         'Piano': {'notes': 2376, 'progs': [(0.0, 0)]},
+         'Bass': {'notes': 835, 'progs': [(0.0, 32)]}}
+    b = {'Melody': {'notes': 579, 'progs': [(0.0, 0), (112.0, 81)]},
+         'Piano': {'notes': 1957, 'progs': [(0.0, 0)]},
+         'Bass': {'notes': 835, 'progs': [(0.0, 32)]}}
+    rows = D.diff(a, b)
+    names = [r['track'] for r in rows]
+    assert names == ['Melody', 'Piano'], '差异表该只列 Melody/Piano，实得 %s' % names
+    assert rows[0]['notes'] == (160, 579) and rows[0]['progs'][1] == [(0.0, 0), (112.0, 81)], \
+        'Melody 那条差异没读全：%s' % (rows[0],)
+    assert D.diff(a, a) == [], '完全相同该返回空 diff'
+    # ③ 总数口径（调用方靠它说"只动了音色那一层"）
+    assert sum(v['notes'] for v in a.values()) == sum(v['notes'] for v in b.values()), \
+        '夹具本身该满足"总数不变"（用来演示那句结论的前提）'
+    print('        拍→秒换算正确（含 bpm 缺失兜底）· 差异表只列变了的轨 · 空 diff 正确')
+
+
+
 
 @check
 def t_bass_timbre_is_low():

@@ -2578,6 +2578,28 @@ def main():
                                          (dur or min(tr, tm) / max(1, int(n or 1))))
                                         for i in range(max(1, int(n or 1)))])))
 
+    # 69c. **"谁在弹这条旋律"退回按响度判**（2026-10-02 的第一版就是它）：
+    #      拿 RMS 最大者当赢家 → 参考曲上打出 `bass 36% · drums 32%` 当"主奏"。
+    #      ⚠ 注入的是 `band_amp`（把"按音高量谱峰"换成"量整体 RMS"）而不是 `pick_winner`
+    #      —— 后者只是取最大，换个实现照样返回对的那条，**抓不到这条口径退化**。
+    import numpy as _np
+    import who_plays_lead as _wpl
+    results.append(case('主奏归属退回"按响度判"（低频压过旋律）',
+                        'who_plays_lead_contracts',
+                        lambda: Mut(_wpl, 'band_amp',
+                                    lambda sig, sr, t, f0, nfft=8192, win=0.18:
+                                    float(_np.sqrt((sig[int(t * sr):int((t + win) * sr)]
+                                                    ** 2).mean())))))
+    # 69d. **`midi_diff` 的拍→秒换算写错**（把 spb 当 bps）→ 时间线整体差 3.6 倍，
+    #      "program 落在哪个段"全错（而它正是"改到位没有"的判据）。
+    import midi_diff as _md
+    results.append(case('midi_diff：拍→秒换算写反（时间线全错）',
+                        'midi_diff_contracts',
+                        lambda: Mut(_md, 'beat_progs_to_sec',
+                                    lambda progs, bpm: [(round(float(b) * float(bpm or 120)
+                                                               / 60.0, 1), int(p))
+                                                        for (b, p) in progs])))
+
     # 69. 扒带曲**静默走抽样**必须被抓（2026-09-26，用户："**我需要每次提取时都能达到 V1 的准度**"）。
     #     注入 = 把夹具扒带曲的 `patterns.notes_extra_full` **删掉**（只吃引擎默认 → 意图没留痕）。
     #     ⚠ 这正是"默认值能被翻转、行为却静默改变"的那类故障：字段在不在，差 46% 的音符。

@@ -132,6 +132,18 @@ $ml = "<根>\.venv-ml\Scripts\python.exe"      # ⚠ 主 venv 没有 torch，必
 #   能力标定 / 两条静默坑 / 模型位置 → `docs/AUDIO-CRITIC.md` §11
 ```
 
+### 复刻/改曲后"到底动了哪一层" + "这条旋律是谁在弹"（2026-10-02）
+
+```powershell
+& $py scripts\midi_diff.py 改前.mid 改后.mid     # 逐轨音符数 / 音域 / program change 时间线（秒）
+#   ↑ 改完曲子先跑这条：实测靠它抓到"从备份恢复后只重放了前半段音色改动、后半段静默丢了"
+
+& $py scripts\who_plays_lead.py <demucs分轨目录> <song.json> --track Melody --by-sec 30
+& $py scripts\who_plays_lead.py <分轨目录> <song.json> --track Piano --melody-proxy --end 135
+#   ↑ "参考曲里这条旋律到底是谁在弹"（**按音高判**，不按响度 —— 按响度会被低音/鼓骗）
+#     `--melody-proxy`＝旋律混在伴奏轨里时取"每小节最高音"当代理 · `--by-section` 按段落汇总
+```
+
 ### 逐轨事件（面板卷帘 / 排查用）
 
 ```powershell
