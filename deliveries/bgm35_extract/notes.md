@@ -57,3 +57,48 @@ DR beat tracking 独立给出 **152.0 BPM** ⇒ 取 **150 BPM / 4/4**（≈1.6s 
 - 和弦表由 `analyze_chords` 自动出（32 种和弦）：伴奏"贴合率"只有 45–54%（Hook/Pad/Piano/Strings），
   已按"符合原曲、不改音"写 `patterns.accomp_exempt` —— 和弦识别本身的分辨力（`m7↔7`、`sus4↔7`）约 39%，
   所以"贴合率低"有多少是识别错、多少是编配本身，**这一轮判不了**。
+
+---
+
+## 6. 【2026-10-02】主奏音色对齐（用户口径："像不像 / 哪里不像"）
+
+### 6.1 问题（三方证据，互相独立）
+
+| 证据 | 读数 |
+|---|---|
+| **分轨判据**（`scripts/who_plays_lead.py`，按**音高**判"谁在弹这条旋律"） | 参考曲：`other 49% · guitar 34% · piano 9%`；**我们改前：piano 88%** |
+| `.mid` 读回 | 我们那版 `Melody` 轨只有 **1 个** program change（GM 0 钢琴），整曲一个音色 |
+| 音频大模型 A/B（`ask_music_critic.py`，12 段同窗同问） | 参考曲 11/12 段 "synth lead"；我们那版是 piano/sax 为主 |
+
+### 6.2 改法（**只动音色与轨分配，音符总数 8461 一个没变**）
+
+1. **后半段（135–305 秒）** —— 段级主奏音色按参考曲分轨证据：
+   `S09/S17 → GM 81`（锯齿主音，参考曲那段是 `other`）· `S22 → GM 27`（清音电吉他，参考 `guitar 62%`）·
+   其余段显式写回 `0`（参考曲那段本来就是钢琴）。
+2. **前半段（0–135 秒）** —— `Melody` 轨原本是空的，旋律**混在 `Piano` 轨里**（它同时承担伴奏）：
+   按参考分轨证据**拆轨 419 音**（`Piano → Melody`；逐段 S03 10 · S04 148 · S06 156 · S07 27 ·
+   S08 11 · S09 67），再给 S03/S04/S06/S07/S08 段级音色 `81`。
+   ⚠ 按 `(时刻, 音高)` **成组**决策 —— 逐个音判会在同一 key 上留下"一个挪走一个留下"的同刻同音。
+
+### 6.3 验证
+
+| 尺子 | 改前 | 改后 |
+|---|---|---|
+| 主奏归属（`who_plays_lead`） | piano 88% | **other 66% · guitar 29% · piano 3%**（旋律族 **95%**，参考 92%） |
+| 模型 A/B（12 段同窗） | piano/sax 为主 | **12/12 段 "synth"**（参考 11/12） |
+| `midi_diff`（读回 `.mid`） | Melody 160 音 / 1 个 program | **Melody 579 音 / 13 个 program，逐个落在段起点** |
+| `timbre_audit`（音色体检） | 1/24 段预警 | 同样 1 段（S12 高频嘶声，**改前就有**） |
+| `preflight`（交付前体检） | 无 FAIL | **无 FAIL**（密度更靠近原曲：总起音 1005 → **741**，原曲 818） |
+
+⚠ **没改的**：12 处 `Piano`↔`Melody` 同刻同音**改前就存在**（都在 138.6 秒之后，
+属原有那 160 音的范围），本轮未处理 —— 要清就单独做（从 `Piano` 轨删掉那 12 个音）。
+
+### 6.4 复现命令
+
+```powershell
+$py = "<根>\.venv\Scripts\python.exe"; $ml = "<根>\.venv-ml\Scripts\python.exe"
+& $py scripts\who_plays_lead.py <demucs分轨目录> song.json --track Melody --by-sec 60
+& $py scripts\midi_diff.py <改前.mid> <改后.mid>
+& $ml scripts\ask_music_critic.py --compare <原曲.ogg> bgm35_extract_sf.ogg --segments 12
+```
+
