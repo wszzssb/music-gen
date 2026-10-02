@@ -121,6 +121,17 @@ $ml = "<根>\.venv-ml\Scripts\python.exe"      # ⚠ 主 venv 没有 torch，必
 #   输出：**整曲时间轴上的指控清单**（可直接跳到问题点）+ 稳定线索表；越界 / 没给时间的单列不硬映射
 ```
 
+### "像不像 / 哪里不像"（Music Flamingo 7B，音乐专用；2026-10-02）
+
+```powershell
+& $ml scripts\ask_music_critic.py <音频> --segments 12                  # 逐段描述（单段 ≤30 秒）
+& $ml scripts\ask_music_critic.py --compare 参考.ogg 我的.ogg --segments 12
+#   ↑ **主用法**：同段同问、并排读差异（判差异 ≠ 判好坏）
+& $ml scripts\ask_music_critic.py <音频> --repeat 3 --json out.json     # 同段问三次（验证稳定性）
+# ⚠ 必须 greedy（采样 5 次 5 种答案）；BPM 实测 8/8 在 5% 内，乐器**只信大类**；
+#   能力标定 / 两条静默坑 / 模型位置 → `docs/AUDIO-CRITIC.md` §11
+```
+
 ### 逐轨事件（面板卷帘 / 排查用）
 
 ```powershell

@@ -2327,3 +2327,22 @@
      ⚠ **三处一起改 ⇒ 归因不明**（技能 §18）：用户若说"好些了"，分不清是哪一处起作用。
      回滚：`D:\test\_regen_backup3_100-107\`（覆盖回 `songs\` 即可；`.wav` 未备份，
      `make_song.py <曲目>` 可重生成）。
+
+305. **把音频塔"offload 到 CPU" = 它根本没加载，模型照样一本正经地描述音乐**（2026-10-02）。
+     现场：照搬 `ask_audio_critic.py` 那套 4bit 写法
+     `device_map={'model.audio_tower': 'cpu', 'model.language_model': 0, '': 0}` 去加载
+     **Music Flamingo 7B** —— `from_pretrained` **成功**（14 秒、830 个权重都"加载"了），
+     但日志里那句 `Some parameters are on the meta device because they were offloaded to
+     the cpu` **是假象**：那些参数留在 **meta device**，随后 `generate` 崩在
+     `RuntimeError: Tensor.item() cannot be called on meta tensors`
+     （抛出点是 transformers 的 `_prepare_special_tokens` 里 `torch.isin(eos, pad)`）。
+     ⇒ 与坑 **227**（`audios=` 复数被 `transformers 5.17` 静默忽略）**同一族**：
+     **"没听到音频也能出结论"**。这一族最危险的地方是**它不报"我没听到"**。
+     正解：7B 的 4bit（≈4.5GB）+ 音频塔**全上 8GB 卡**（`{'': 0}`）—— 够用；
+     判据落成守卫：`ask_music_critic.DEVICE_MAP` 里**不许出现 audio_tower**，
+     自检 `t_music_critic_contracts` + 变异用例盯着。
+     **同族第二条**（同日实测）：**换窗长 = 换输入** —— 同一首 BGM35、同一位置（165.9 秒起），
+     **27.7 秒窗**说"参考=synth lead / 我的=saxophone"，**30 秒窗**说"参考=saxophone /
+     我的=bell-like synth"（**两版说反了**）。greedy 只保证**同一输入**逐字一致 ⇒
+     做 A/B 必须**同窗长、同起点**，并跨窗复核一次。
+     能力标定全表 → `docs/AUDIO-CRITIC.md` §11；工具 `scripts/ask_music_critic.py`。

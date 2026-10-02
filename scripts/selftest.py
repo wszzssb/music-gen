@@ -5076,6 +5076,76 @@ def t_audio_critic_contracts():
 
 
 @check
+def t_music_critic_contracts():
+    """**Music Flamingo 描述器（`ask_music_critic.py`）的四条硬口径**（2026-10-02 标定）。
+
+    为什么单独守：它的坑**全都会静默出错** —— 程序不报错，但结论是错的：
+      ① **单段 >30 秒** → 触发 `exceeded the model's predefined maximum length (1200)`
+         （实测 147 秒、60 秒都报过）；README 写的"20 分钟"是**总时长**不是单次上下文；
+      ② **音频塔丢 CPU** → accelerate 把它留在 **meta device**（警告 "offloaded to the cpu"
+         是假象）→ `generate` 崩在 `Tensor.item() cannot be called on meta tensors`，
+         而且**音频塔根本没加载**（等于没听音频就描述，同 PITFALLS 227）；
+      ③ **默认采样** → 实测同段 5 次给出 **5 种答案**（比 Qwen 的单次 74% 噪声还差）→
+         必须 greedy（greedy 三次逐字一致，实测）；
+      ④ 模型**不在仓库里**（15.4GB）：位置解析必须"显式 > 本地目录 > HF id"，不能硬编码。
+    另外钉住"从回答里抠 BPM"这个能力标定用的解析器（实测 8/8 在 5% 内靠它量）。
+    """
+    import inspect
+    import subprocess
+    import ask_music_critic as M
+
+    # ① 单段上限：字面量 30 秒 + 任何切法都不越界 + 超长会被夹住
+    assert M.MAX_SEC == 30.0, \
+        '单段上限被改成 %.0f 秒 —— 实测 >30 秒就触发模型长度告警（上下文只有 1200）' % M.MAX_SEC
+    for _n in (1, 3, 12):
+        for (_st, _du) in M.bounds(300.0, _n):
+            assert _du <= M.MAX_SEC, '切 %d 段时出现 %.1f 秒的段（> %.0f）' % (_n, _du, M.MAX_SEC)
+    assert M.bounds(300.0, dur=120)[0][1] <= M.MAX_SEC, \
+        '--dur 120 没被夹到上限：%s' % (M.bounds(300.0, dur=120),)
+    assert M.bounds(100.0, dur=28) == [(0.0, 28.0)], '--dur 28 该原样：%s' % (M.bounds(100.0, dur=28),)
+    # ①b **`--compare` 分支也必须夹**（2026-10-02 真踩过）：它原来自己算 `min(时长)/n`，
+    #    绕过了 `bounds()` → `--segments 2` 时每段 **165.9 秒**，模型当场超上下文。
+    #    所以两条路径必须共用 `ab_bounds()`，这里对 N=1/2/12/40 逐条断言。
+    for _n in (1, 2, 12, 40):
+        for (_st, _du) in M.ab_bounds(331.9, 334.8, _n):
+            assert _du <= M.MAX_SEC, \
+                '--compare --segments %d 切出 %.1f 秒的段（> %.0f）' % (_n, _du, M.MAX_SEC)
+    _ab = M.ab_bounds(331.9, 334.8, 2)
+    assert _ab[0][1] <= M.MAX_SEC and len(_ab) == 2, \
+        '--compare 两段版切错了（踩过的现场：每段 165.9 秒）：%s' % (_ab,)
+    assert M.ab_bounds(100.0, 400.0, 1)[0][1] <= M.MAX_SEC, \
+        '两版时长不同时该取**短的那个**：%s' % (M.ab_bounds(100.0, 400.0, 1),)
+
+    # ② 音频塔必须在卡上（meta device 那个坑）
+    assert not any('audio_tower' in str(_k) for _k in M.DEVICE_MAP), \
+        ('device_map 里出现了 audio_tower=%r —— accelerate 会把它留在 meta device：'
+         'generate 崩 + 音频塔没加载' % M.DEVICE_MAP)
+
+    # ③ 默认必须 greedy
+    _d = inspect.signature(M.MusicCritic.ask).parameters['do_sample'].default
+    assert _d is False, 'ask() 的 do_sample 默认成了 %r —— 实测采样 5 次 5 种答案' % (_d,)
+
+    # ④ 模型位置解析：显式优先；本地目录存在就用本地；都没有才回落到 repo id
+    assert M.resolve_model('X:/somewhere') == 'X:/somewhere', '显式 --model 没被优先使用'
+    _r = M.resolve_model()
+    assert _r == M.REPO_ID or os.path.isdir(_r), \
+        '解析结果既不是存在的目录也不是 repo id：%r' % (_r,)
+
+    # ⑤ BPM 解析（能力标定用的那把尺子）
+    assert M.parse_bpm('The tempo is 130.43 BPM.') == 130.43, 'BPM 解析坏了'
+    assert M.parse_bpm('150') == 150.0 and M.parse_bpm('no digits here') is None, 'BPM 解析边界坏了'
+
+    # ⑥ CLI 能渲染 help（argparse 里裸 % 会在这里炸；不该需要 torch）
+    r = subprocess.run([sys.executable, os.path.join(HERE, 'ask_music_critic.py'), '--help'],
+                       capture_output=True, text=True, encoding='utf-8', errors='replace',
+                       timeout=180)
+    assert r.returncode == 0, '--help 打不出来：%s' % ((r.stderr or r.stdout or '')[:200])
+    print('        单段 ≤ %.0f 秒 · 音频塔在卡上（%s）· 默认 greedy · 模型位置可解析 · '
+          'BPM 解析正确' % (M.MAX_SEC, M.DEVICE_MAP))
+
+
+
+@check
 def t_bass_timbre_is_low():
     """**Bass 轨必须用低音乐器音色**（用户 2026-09-21 定："以后要用 bass 时就这样来"）。
 

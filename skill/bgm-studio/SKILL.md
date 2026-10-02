@@ -18,7 +18,7 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
 | 全貌：目录、工具清单、验证状态、产物 | `README.md` | ≈15.7k |
 | 出症状（杂音/错音/调参不收敛/占用率对不上） | `PITFALLS.md` 按编号查 | 别整读 |
 | **要新增内容**（往哪写、动哪些守卫） | `docs/CONVENTION.md` | ≈2.0k |
-| **音频大模型当"嘴替"**（本地 Qwen2-Audio：用法 · 六条硬约束 · 实测边界 · **下一步交接**） | `docs/AUDIO-CRITIC.md` | ≈4.2k |
+| **音频大模型当"嘴替"**（Qwen2-Audio 逐段线索 + **Music Flamingo "像不像"描述器**：用法 · 硬约束 · **能力标定** · 下一步交接） | `docs/AUDIO-CRITIC.md` | ≈8.2k |
 | **扒谱·分轨·多乐器转录·母带匹配**（`.venv-ml`：Demucs / `transcribe_ymt3.py` / matchering） | `ML.md` | ≈4.8k |
 | **还原/扒带参考曲**（七步工序 · 有效/无效做法 · 度量纪律） | `docs/RESTORE-METHOD.md` | ≈5.7k |
 | **有真值时量准**（提取精度审计：尺子四处必修 · 度量口径三处 · 装配 · 天花板实验 · **多视图装配+边际精度判据**） | `docs/TRANSCRIBE-AUDIT.md` | ≈5.2k |

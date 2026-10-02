@@ -268,3 +268,95 @@ $env:HF_HUB_OFFLINE = "1"; $env:TRANSFORMERS_OFFLINE = "1"
 频谱质心差 **−1423Hz → −85Hz**；但 happy **始终没有**在喜段稳定压过 sad/tense（0.13–0.31 抖动）
 ⇒ **"转悲为喜"只做到一半**，最终仍以耳朵为准。
 **用法定位**：适合**同曲改版前后做回归对照**，不适合单独当验收门（与 §5 六条硬约束同源）。
+
+---
+
+## 11. 【2026-10-02】Music Flamingo 7B —— **音乐专用**的"差异描述器"
+
+> 用户提问："本地的千问2是不是太垃圾了，**有没有更强的本地部署能识别音乐的模型**"，
+> 并当场定了口径："**不是回答好不好听，只是要判断像不像，哪里不像**"。
+> 工具已入库：`scripts/ask_music_critic.py`；模型权重**不在仓库里**（15.4GB）。
+
+### 11.1 先纠正判断：Qwen2-Audio 不是"垃圾"，是**错配**
+
+它是 2024 年的**通用音频对话**模型（音乐只是其中一项技能）。三条硬伤都在 §6.1/§8-1
+有实测：恒真（8/8 段全判"有问题"）· 0.2dB 微扰就翻判定 · 与用户耳朵**重合 0**。
+而 2026 年已经出现**音乐专用**的开源权重（下表），能力面完全不同。
+
+### 11.2 选型（本机条件：**8GB 显存** · `huggingface.co` 不通）
+
+| 模型 | 规模 | Q4 显存 | 关键数据 | 本机能不能跑 |
+|---|---|---|---|---|
+| **Music Flamingo**（NVIDIA，2025-11） | 7B（Qwen2.5-7B + AF3 音频塔） | ~5GB | MusicCaps **8.8**（Qwen3-Omni 7.2）· MuChoMusic **74.6**（52.1）· **中文歌词 WER 12.9**（GPT-4o 53.7）· 15 分钟总时长 + 每个音频 token 带绝对时间戳 | ✅ **transformers 5.17 已内置** `musicflamingo`/`audioflamingo3` |
+| MOSS-Music-8B（OpenMOSS，2026-05） | ~9B（Qwen3-8B） | 6–8GB | 音乐 QA 均 80.4% · 歌词 ASR 带时间对齐 · key/tempo/chord · intro/verse/chorus 分段 | ⚠ 要 `trust_remote_code`（其配置写的是 transformers 4.57，本机 5.17） |
+| Qwen3-Omni-30B-A3B | 30B 总/3B 激活 | ~16GB | 音乐非其强项 | ✗ 8GB 显存不现实 |
+
+**网络与下载实测**：`huggingface.co` **不通** · **`hf-mirror.com` 通** · modelscope / atomgit 通 ·
+**github 不通**（但不需要：架构在 transformers 里）。下载 **单连接 ≈5MB/s，16 线程并行还是
+5MB/s**（服务器端按账号限速）→ 15.4GB 花了 **51 分钟**；ModelScope 上**没有**该模型镜像。
+落地位置 `D:\test\hf-models\music-flamingo-2601-hf\`（`--model` 或 `$MF_MODEL` 可改）。
+**License：NVIDIA OneWay Noncommercial**（非商业）。
+
+### 11.3 能力标定（拿"已知答案"量它，全部实测）
+
+| 维度 | 实测 | 能不能当判据 |
+|---|---|---|
+| **速度 BPM** | 8 首已知 BPM **8/8 落在 5% 内**，中位误差 **0.9 BPM**（130.43/133 · 150/151 · 83.33/84 · 96.77/96 · 130.43/128 · 142.86/143 · 115.38/116 · 120/122） | ✅ **可以**（Qwen 当年把 151 报成 78） |
+| 调性 | 部分对：`Dsus4/Gm7/A7`→报 D minor ✓ · `Gmaj7/C6/D7`→报 G major ✓ · `Em7/D7/G6`→报 A minor ✗（实为 E minor，差一个下属） | ⚠ 参考 |
+| **主奏乐器** | **合成类准**：GM 80 方波 →"Synth lead" ✓ · 87 贝斯主音 →"Synth lead" ✓；**管乐类系统性偏**：GM 69 英国管 / 71 单簧管 → **稳定报"Accordion"**、70 巴松 →"Clarinet"、72 短笛 →"Flute"/"Synth lead" | ⚠ **只信大类**（synth / 管乐 / 钢琴），具体音色名会错 |
+| 真假音源 | ❌ **判错**：把我们 GM 音源渲染的曲子说成 "a real studio recording"（理由还写得头头是道） | ❌ 别用 |
+| 结构分段 | 问"列出段落与起止秒"时它**不用段落语言**，只给 `silence` 边界；但标出的 19.0 秒**恰好是 A→A2 的界**（已知 19.1） | ⚠ 换问法再说 |
+| **greedy 可复现** | ✅ 同段三次**逐字一致** | — |
+| **采样（`--sample`）** | ❌ **5 次 5 种答案**（比 Qwen 单次 74% 噪声还差） | **必须 greedy** |
+| 单段长度 | ⚠ `config.max_position_embeddings = 1200`：**60 秒就触发** "exceeded the model's predefined maximum length (1200)"（147 秒同样报）；README 写的"20 分钟"是**总时长**不是单次上下文 | 单段 ≤ 30 秒 |
+| 速度/显存 | 8GB 卡 4bit：加载 **12~18 秒** · 单段 **1.4~4.7 秒** | — |
+
+⚠ **它对切窗敏感**（2026-10-02 实测，同一首 BGM35、同一位置 165.9 秒起）：
+**27.7 秒窗 vs 30 秒窗**，它把"谁在领奏"在两版之间**说反了** ——
+12 段版（27.7 秒）：参考= synth lead、我的= saxophone；2 段版（30 秒）：
+参考= saxophone、我的= bell-like synth。greedy 只保证**同一输入**逐字一致，
+**换窗长就是换输入** ⇒ ① 做 A/B 时两版必须**同窗长、同起点**；② 跨窗复核一次再下结论；
+③ 单窗的"主奏是什么"不足以单独定案（配上 `.mid` / 频谱才算证据）。
+
+### 11.4 用法（工具已入库）
+```powershell
+$ml = "<工具链根>\.venv-ml\Scripts\python.exe"     # 主 venv 没有 torch
+& $ml scripts\ask_music_critic.py <音频> --ask "问什么"                 # 单段（默认前 30 秒）
+& $ml scripts\ask_music_critic.py <音频> --segments 12                  # 逐段
+& $ml scripts\ask_music_critic.py --compare 参考.ogg 我的.ogg --segments 12
+#   ↑ **"哪里不像"的主用法**：同段同问、并排读差异（§6.0 的口径：判差异 ≠ 判好坏）
+& $ml scripts\ask_music_critic.py <音频> --repeat 3 --json out.json     # 同段问三次看稳不稳
+```
+
+模型位置解析顺序：`--model` > `$MF_MODEL` > `D:\test\hf-models\music-flamingo-2601-hf` > HF repo id。
+
+### 11.5 两条**静默**坑（改这个工具前必看）
+
+1. **音频塔不能丢 CPU**。照搬 `ask_audio_critic` 的
+   `device_map={'model.audio_tower': 'cpu', …}` 时，accelerate 把那些参数留在 **meta device**
+   （警告 "Some parameters are on the meta device because they were offloaded to the cpu"
+   **是假象**），随后 `generate` 崩在 `Tensor.item() cannot be called on meta tensors`
+   —— 而且**音频塔根本没加载**（等于"没听音频就描述"，同 PITFALLS 227）。
+   7B 的 4bit（≈4.5GB）+ 音频塔全上 8GB 卡是够的 → 用 `{'': 0}`。
+2. **单段 >30 秒会超上下文**（见上表最后两行）—— 工具里 `MAX_SEC = 30.0` 是硬夹的，
+   自检 `t_music_critic_contracts` 用字面量守着，变异用例 ㊾ 盯着它。
+
+### 11.6 与 Qwen2-Audio 的分工（两个都留）
+
+| 工具 / 模型 | 回答什么问题 | 不回答什么 |
+|---|---|---|
+| `ask_audio_critic.py`（Qwen2-Audio 7B） | "**哪段听着可疑**"的线索清单（§6.4 稳定线索） | 判好坏、判音色对不对 |
+| `ask_music_critic.py`（Music Flamingo 7B） | "**像不像 / 哪里不像**"：同段同问的描述差异 | 判好坏、判真假音源、具体乐器名 |
+
+BGM35 一例（原曲 vs 我们的还原版，12 段同问）：MF 说原曲 11/12 段是 synth lead 领奏、
+我们那版主奏在 piano/sax/synth 之间跳；`.mid` 读回我们那版 `Melody = GM 0 钢琴`（单一音色）
+—— 方向与"乐器选择不像"一致，**但"萨克斯"这个具体名字是它编的**（我们那版没有萨克斯轨）。
+
+### 11.7 还没验证（下次接着做）
+
+- **与耳朵的重合度**：§8-1 那套口径（用户独立出清单、只看时间 ±5 秒命中）**还没在 MF 上做** ——
+  这是"它到底有没有用"的唯一判据，也是最贵的一步。
+- **结构分段的正确问法**：它现在不给段名，需要试 2~3 个问法（§5 第 6 条：问法会翻转输出）。
+- **"差多少算不像"**：现在只有描述差异，没有量级门槛（要配 `report_sections.py` / 频谱那些硬数字一起看）。
+- MOSS-Music-8B 没试（要 `trust_remote_code` + 旧版 transformers，风险高）。
+

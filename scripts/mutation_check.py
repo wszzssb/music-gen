@@ -2553,6 +2553,31 @@ def main():
     results.append(case('音频嘴替：默认离线被摘掉（照文档跑就联网）',
                         'audio_critic_contracts', _NoOfflineDefault))
 
+    # 69a. **Music Flamingo 描述器**（`ask_music_critic.py`，2026-10-02）的两条静默口径：
+    #      ① 单段上限被抬大 → 超 30 秒就触发模型长度告警（实测 147 秒、60 秒都报
+    #         "exceeded the model's predefined maximum length (1200)"）；
+    #      ② 音频塔被丢回 CPU → accelerate 把它留在 **meta device**，`generate` 崩在
+    #         `Tensor.item() cannot be called on meta tensors`，**而且音频塔根本没加载**
+    #         （等于"没听音频就描述"，同 PITFALLS 227 那类静默错）。
+    import ask_music_critic as _mc
+    results.append(case('Music Flamingo：单段上限被抬大（静默超上下文）',
+                        'music_critic_contracts',
+                        lambda: Mut(_mc, 'MAX_SEC', 120.0)))
+    results.append(case('Music Flamingo：音频塔丢 CPU（退化成 meta device）',
+                        'music_critic_contracts',
+                        lambda: Mut(_mc, 'DEVICE_MAP',
+                                    {'model.audio_tower': 'cpu', '': 0})))
+    # 69b. **`--compare` 分支绕过单段夹紧**（2026-10-02 真踩过）：原来它自己算
+    #      `min(时长)/n` → `--segments 2` 切出 **165.9 秒**的段（模型当场超上下文）。
+    #      注入 = 让 `ab_bounds` 退回那种不夹的写法。
+    results.append(case('Music Flamingo：--compare 不夹单段上限（165.9 秒的段）',
+                        'music_critic_contracts',
+                        lambda: Mut(_mc, 'ab_bounds',
+                                    lambda tr, tm, n=None, dur=None, max_sec=30.0: [
+                                        (i * (dur or min(tr, tm) / max(1, int(n or 1))),
+                                         (dur or min(tr, tm) / max(1, int(n or 1))))
+                                        for i in range(max(1, int(n or 1)))])))
+
     # 69. 扒带曲**静默走抽样**必须被抓（2026-09-26，用户："**我需要每次提取时都能达到 V1 的准度**"）。
     #     注入 = 把夹具扒带曲的 `patterns.notes_extra_full` **删掉**（只吃引擎默认 → 意图没留痕）。
     #     ⚠ 这正是"默认值能被翻转、行为却静默改变"的那类故障：字段在不在，差 46% 的音符。
