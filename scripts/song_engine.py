@@ -297,6 +297,18 @@ PAT_KEYS = (
     'bass_exempt',
     # 音域与还原
     'range_fix', 'legato_trim', 'notes_extra_full',
+    # 逐音力度的**来源留痕**（见 `transcribe_to_song.py`）：`{轨名: 分轨文件名}`，
+    # 量失败写 `'FAILED'`。引擎不读它（力度本身在 `notes_extra` 的第 5 位），
+    # 它只用来事后分辨"这一首量过力度"还是"退回恒 100 的打字机"。
+    'velocity_source',
+    # 逐音力度的**三种登记**（2026-10-04 加，全部只读留痕，引擎不读）：
+    #   `velocity_exempt`     —— 不适用（例如被带力度的新版取代），写实测理由放行
+    #   `velocity_pending`    —— 知道要修、素材在、**刻意没动**（用户已认可的成品）
+    #   `velocity_unverified` —— **素材已丢失，补不了**，只能如实标注
+    'velocity_exempt', 'velocity_pending', 'velocity_unverified',
+    # 打击乐的**两种登记**（2026-10-04 加，只读留痕）：还原曲"原曲没鼓却加了鼓"是本轮
+    # 实测到的真缺陷（1459 音 Perc、12.00s 硬切进来）；有据的写 exempt、查不了的写 unverified。
+    'perc_exempt', 'perc_unverified',
     # 钢琴反拍短音的力度/时值（opt-in，缺省 = 老行为逐字节不变）——
     # 只影响钢琴轨的**反拍和弦短音**，见 `piano_part` 的 docstring 与 2026-09-22 消融
     'piano_stab_dur', 'piano_stab_vel', 'hook_stab_vel',

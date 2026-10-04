@@ -93,9 +93,18 @@ def run_stems(audio, name, model):
       代码按单层找目录就会误判成"demucs 失败：0"）。
     """
     dst = os.path.join(STEMS, model, name)
-    if os.path.isdir(dst) and any(f.endswith('.wav') for f in os.listdir(dst)):
-        print('  分离结果已存在，跳过：%s' % dst)
+    # ⚠ 2026-10-04 修（PITFALLS 196 同族）：原来只判"目录里有任意一个 .wav"就当完整，
+    #   半套分轨（demucs 中途失败留下的 1~2 条）会被当成完整结果接着用。
+    #   模型名里带的主干数就是期望条数（`htdemucs`→4 · `htdemucs_6s`→6）。
+    _want = 6 if '_6s' in model else 4
+    _have = ([f for f in os.listdir(dst) if f.endswith('.wav')]
+             if os.path.isdir(dst) else [])
+    if len(_have) >= _want:
+        print('  分离结果已存在（%d 条分轨），跳过：%s' % (len(_have), dst))
         return dst
+    if _have:
+        print('  ! 已有 %d 条分轨但 `%s` 应有 %d 条 → **当作不完整，重新分离**：%s'
+              % (len(_have), model, _want, dst))
     cmd = [ml_python(), '-m', 'demucs', '-n', model, '-o', STEMS, audio]
     print('  分离中（%s）…' % model)
     r = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace')

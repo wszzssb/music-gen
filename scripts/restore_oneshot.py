@@ -151,6 +151,23 @@ def selftest(verbose=True):
     return all(v for _n, v in ok)
 
 
+def _find_stem(stems_dir, base):
+    """在分轨目录里找 `<base>.wav` —— **两种命名都认**。
+
+    ⚠ 2026-10-04 修（PITFALLS 196 同族）：本文件原来只写死 `h6_other.wav` /
+      `h6_bass.wav`，而**标准 demucs 输出是 `other.wav` / `bass.wav`**
+      （实测：`D:\\test\\_tmp\\reextract\\stems\\htdemucs_6s\\BGM35\\` 里就是无前缀的；
+      带 `h6_` 前缀的只出现在 `D:\\test\\_tmp\\lead-chain\\stems_h6\\`）。
+      ⇒ 用标准目录调本工具时，**持续层合片**与 **bass 增强**两步被整块跳过、
+      只打印一句警告，成品照样出 —— 正是"静默少做一步"的形状。
+    """
+    for nm in ('h6_%s.wav' % base, '%s.wav' % base):
+        p = os.path.join(stems_dir, nm)
+        if os.path.exists(p):
+            return p
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("song", nargs="?", help="曲名或 song.json")
@@ -197,16 +214,16 @@ def main():
         if a.dry:
             args += ["--dry"]
         sh(args, "arrange_voices")
-        if a.stems_dir and os.path.exists(os.path.join(a.stems_dir, "h6_other.wav")):
+        if a.stems_dir and _find_stem(a.stems_dir, "other"):
             args = [PY, os.path.join(HERE, "merge_sustain.py"), "--song-json", sj,
-                    "--ref", os.path.join(a.stems_dir, "h6_other.wav"), "--tracks", "Pad,Strings"]
+                    "--ref", _find_stem(a.stems_dir, "other"), "--tracks", "Pad,Strings"]
             args += ["--dry"] if a.dry else ["--apply"]
             sh(args, "merge_sustain")
         else:
-            print("  ⚠ 缺 h6_other.wav → 跳过持续层合片（合片判据要原曲能量）")
-        if a.stems_dir and os.path.exists(os.path.join(a.stems_dir, "h6_bass.wav")):
+            print("  ⚠ 缺 other.wav / h6_other.wav → 跳过持续层合片（合片判据要原曲能量）")
+        if a.stems_dir and _find_stem(a.stems_dir, "bass"):
             args = [PY, os.path.join(HERE, "filter_song_by_stem.py"), "--song-json", sj,
-                    "--stem", os.path.join(a.stems_dir, "h6_bass.wav"), "--track", "Bass"]
+                    "--stem", _find_stem(a.stems_dir, "bass"), "--track", "Bass"]
             if a.allow_stem_cut:
                 args += ["--apply"]
             sh(args, "filter_song_by_stem")

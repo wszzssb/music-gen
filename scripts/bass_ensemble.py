@@ -273,6 +273,31 @@ def main():
 
     base = midi_file.import_midi(a.base)
     spb = 60.0 / float(base.get('bpm') or 120.0)
+    # ── 拍值口径自检（2026-10-02 加，BGM35 实测的最大一条）────────────────────
+    # 本工具写回时是 `round(t / spb, 6)`，`spb` 取自**基准 MIDI 声明的 bpm**。
+    # 而上下游对"拍"的口径默认**不相等**（YourMT3 输出恒 120BPM；`transcribe_to_song`
+    # 写 song.json 时用的是**曲子 bpm**）—— 于是 Bass 整条轨被静默缩放：
+    # BGM35 实测 120 vs 149.8 ⇒ **0.801×**（末音 264.1 秒 / 全曲 331.9，266 秒后没有低音），
+    # 而帧级一致率把它读成"10.4%，先修识别"，归因完全错方向。
+    # 这里**不改数据**（本工具的语义就是"按基准的拍写回"），只把差异**喊出来**。
+    _srcs = {}
+    for spec in a.source:
+        _n, _p, _lo, _hi = parse_source(spec)
+        try:
+            _srcs[_n] = float(midi_file.import_midi(_p).get('bpm') or 120.0)
+        except Exception:                                      # noqa: BLE001
+            pass
+    if _srcs:
+        _base_bpm = float(base.get('bpm') or 120.0)
+        _diff = {k: round(v, 4) for k, v in _srcs.items() if abs(v - _base_bpm) > 0.01}
+        if _diff:
+            import beat_units
+            print('  ! %s' % beat_units.mismatch_msg(
+                list(_diff.values())[0], _base_bpm,
+                '来源 %s（基准 bpm %.4g）' % (','.join(_diff), _base_bpm)))
+            print('    若基准 MIDI 的 bpm **不是**目标曲子的 bpm，先把来源换成目标口径'
+                  '（`beat_units.convert_note_rows`）再替换，否则整轨会偏。'
+                  '写完请跑 `timeline_check.py` 核落点。')
     hit = False
     for tr in base['tracks']:
         if tr.get('name') == a.layer:

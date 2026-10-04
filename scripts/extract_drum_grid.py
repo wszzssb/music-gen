@@ -133,7 +133,8 @@ def main():
     if a.song:
         s = json.load(open(a.song, encoding='utf-8'))
         s.setdefault('patterns', {})['drum_grid'] = {'per_bar': per_bar}
-        json.dump(s, open(a.song, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+        import json_io
+        json_io.save(a.song, s)
         print('已写入 %s 的 patterns.drum_grid.per_bar' % a.song)
     if not (a.out or a.song):
         print(json.dumps({'per_bar': per_bar[:3]}, ensure_ascii=False)[:400])

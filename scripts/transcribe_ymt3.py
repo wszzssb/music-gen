@@ -363,8 +363,22 @@ def _split_by_engine_track(mid_path, name, out_dir):
     return files
 
 
-def _run_song_pipeline(audio_path, mid_path, out_dir, name, song_name=None):
+def _run_song_pipeline(audio_path, mid_path, out_dir, name, song_name=None,
+                       stems_dir=None):
     """接续走正路：切轨 → 和弦表 → `transcribe_to_song.py --auto` → song.json。
+
+    `stems_dir`：demucs 六轨目录（给 `transcribe_to_song --stems-dir`）——
+    **逐音力度从分轨音频量**。为什么要在这一环给（2026-10-03 实测，BGM35）：
+
+    YourMT3 的输出**每个音的力度恒为 100**（实测切轨后 8 条轨全部 1 种力度），
+    不量就是"打字机"。这一链默认**不量** ⇒ 实测 `bgm35_reextract` 的
+    Piano 2655 个音里 **2375 个恒 100**（中位 100）、Pad/Glock 各只有 **1 种**力度；
+    而量过之后这 7 条轨都拿到 **85 种**（中位 67~70）。
+
+    ⚠ **切轨 MIDI 是纯单轨**，所以逐轨护栏在这里不会拒任何轨 ——
+      它拒的是"拿整混音/逐分轨多轨文件去配单条分轨"那种用法
+      （见 `measure_velocity.do_one` 的 docstring）。实测 8 条里 7 条量成，
+      只有 `Melody`（配 `vocals.wav`）被正确拒绝 —— 那条分轨真的是空的。
 
     ⚠ **失败只警告、不中断**（转录产物照旧保留），并把可复制的手工命令打出来。
     """
@@ -413,6 +427,10 @@ def _run_song_pipeline(audio_path, mid_path, out_dir, name, song_name=None):
            #   它还会让 `melody_chord_fit` 报"强拍贴合只 60%"——量的是那条副本、不是编配本身。
            #   要保留副本（少数情况）手工跑 `transcribe_to_song.py ... --keep-melody`。
            "--no-melody", "--auto", "--audio", audio_path]
+    if stems_dir:
+        # 逐音力度：`transcribe_to_song --stems-dir` 会在 `read_notes` **之前**
+        # 拿 demucs 分轨量一遍（顺序反了补进来的音还是恒 100）。见本函数 docstring。
+        cmd += ["--stems-dir", stems_dir]
     for eng, (p, _n) in sorted(files.items()):
         cmd += ["--mid", "%s=%s" % (eng, p)]
     if "Drums" in files:
@@ -451,6 +469,13 @@ def main():
                          "实测那版\"不像\"用 EQ 修不回来。只有确实只要一份纯 MIDI 时才加它")
     ap.add_argument("--song-name", default=None,
                     help="接续生成 song.json 的曲目名（默认由音频名推导；会是 songs/<名>/）")
+    ap.add_argument("--stems-dir", default=None,
+                    help="**demucs 六轨目录**：接续那一步用它给每个音**量真实力度**"
+                         "（YourMT3 的力度恒 100 ⇒ 不量就是打字机）。"
+                         "实测 BGM35 加它之后 8 条轨里 7 条拿到 85 种力度"
+                         "（Piano 中位 100 → 67）；`Melody` 配 `vocals.wav` 会被"
+                         "逐轨护栏正确拒绝（那条分轨是空的）。配对表见 "
+                         "`transcribe_to_song.STEM_FILE`（Hook→guitar.wav · Strings→other.wav）")
     args = ap.parse_args()
 
     # ⚠ **扒谱开工清单**：打在入口、无法回避（理由与边界见 `_RESTORE_CHECKLIST` 上方那段）。
@@ -691,7 +716,8 @@ def main():
         else:
             print("\n── 接续正路：转录 → song.json（引擎编配）──", flush=True)
             try:
-                _run_song_pipeline(path, dst, out_dir, name, args.song_name)
+                _run_song_pipeline(path, dst, out_dir, name, args.song_name,
+                                   args.stems_dir)
             except Exception as _e:                                 # noqa: BLE001
                 print("  ! 接续出错（%s）—— 转录音符已保留，MIDI 照旧可用" % str(_e)[:80],
                       flush=True)

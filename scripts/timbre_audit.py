@@ -13,13 +13,26 @@ r"""timbre_audit.py —— **逐段"音色对不对"的自动体检**（把编�
 | 开头的"厚合成器垫" | `h6_other`，起音 **284ms**（软起音+持续） | **Strings 长音**（GM 49） | 高频嘶声 = 用户说的"**蚊子叫**"（2–6kHz 占比 2.73%→回退后 0.00%） |
 | 开头 18 秒的低音 | **不存在**（`h6_bass` −87/−81dB） | **Bass 13+29 音**（Acoustic Bass） | 凭空贝斯（源头筛掉 42 音） |
 
-## 判据（四层，全部可复核）
+## 判据（五层，全部可复核）
 
 ① **原曲侧**：逐段量 `stems_flat\*` 各分轨的 RMS → 主导分轨（能量最高）+ 它的**物理形态**
    （起音 10→90% 时间、谱质心）；② **我方侧**：逐段从 MIDI 数各轨音数 → 主导轨 +
    从渲染音频量同段特征；③ **对照**：原曲主导分轨 → 期望乐器族（other→垫子 ·
    piano→钢琴 · bass→贝斯 · vocals→人声/主奏 · drums→鼓）；
 ④ **判定**：期望族与我方主导轨不符 → 报警（并给出"该换成什么"）。
+⑤ **主奏归属对照**（2026-10-02 接进交付链）：前四层只看"**整段谁最响**"，
+   抓不到"**主奏旋律用错音色**"（旋律往往不是最响的那条）。第⑤层用
+   `who_plays_lead.py` 的按**音高**判定，逐段回答"我方这条旋律线在参考曲里是谁在弹"：
+
+```bash
+python scripts\timbre_audit.py <song.json> --ref <原曲.wav> --stems <分轨目录> --mine <我方.wav>
+#   第⑤层自动跑；--lead-track 指定我方主奏轨 · --no-lead 跳过（快跑）
+```
+
+⚠ **"用哪条轨量"会 3 倍地改变读数**（实测同一首：`Hook` 轨报警 33% vs `Piano` 轨 93%）
+   ⇒ 第⑤层**不猜**：候选轨各量一遍，取**旋律族占比最高**的那条，其余作为备选列出。
+   ⚠ **"原曲哪段最响"不能当"哪段有旋律"用**：实测参考曲里"主导分轨 ∈ 旋律族"的段
+   只占 **12%~17%**，据它做"覆盖判据"在改前/改后触发**同样 3 段**（无区分度，`PITFALLS.md` 307）。
 
 ⚠ 与 `probe_instruments.py` 的分工：那个查**原曲**（该用什么乐器），这个查**我方**
 （实际用了什么、差在哪）—— 两者接起来才是闭环。
@@ -61,6 +74,10 @@ HISS_RATIO = 3.0          # 且达原曲的这么多倍，才算"高频嘶声"
 SOFT_ATTACK_MS = 150.0    # 原曲起音慢于它 = 软起音（垫子/弦乐）
 HARD_ATTACK_MS = 30.0     # 我方起音快于它 = 硬起音（击弦）→ 形态不符
 CENTROID_RATIO = 2.0      # 相对差 >2.0（≈ 我方/原曲 >3 倍）才报（**仅供参考**：原曲分轨 vs 我方混音本不可比）
+# 第⑤层（主奏归属对照）的候选轨与口径
+LEAD_ORDER = ('Melody', 'Hook', 'Strings', 'Glock', 'Arp', 'Guitar', 'Synth', 'Piano', 'Organ')
+LEAD_EXCLUDE = ('Drums', 'Perc', 'Bass', 'Pad')   # 不当主奏参选：打击/低音/垫子
+MIN_LEAD_NOTES = 10       # 候选主奏轨至少这么多音（`Glock 6 音`这种点缀轨不参选）
 
 
 def onset_ms(y, sr):
@@ -126,7 +143,87 @@ def section_bounds(sj):
     return out
 
 
-def audit(song, ref, stems, mine):
+def lead_layer(song, stems, lead_track=None, thr=None, max_candidates=6):
+    """**第⑤层：主奏归属对照** —— "参考曲里这条旋律是谁在弹，我们用的是哪条轨"。
+
+    为什么单列一层（2026-10-02 实测）：上面四层量的是"**整段谁最响**"（编配层），
+    而用户说的"不像"最常出在**主奏旋律**上：参考曲是合成器/吉他弹的那条线，
+    我们拿钢琴弹了 —— 单看"谁最响"永远抓不到（旋律往往不是最响的那条）。
+    口径 = `who_plays_lead.py`（按**音高**判，不是按响度；按响度会被低音/鼓骗）。
+
+    ⚠ **"用哪条轨量"会 3 倍地改变读数** —— 实测同一首 `dear_good_friends`：
+    `Hook` 轨报警 **33%**、`Piano` 轨报警 **93%**（钢琴轨同时承担伴奏，它的音在参考曲里
+    大多被别的分轨盖过）。所以这里**不猜**：把所有候选轨各量一遍，
+    **取旋律族占比最高的那条**（= "我们哪条轨最像参考曲的主奏"），其余作为备选一并报出。
+    → `--lead-track` 可显式指定；`--no-lead` 跳过这一层。
+
+    → (结果 dict, None)：`{'picked','thr','candidates':[{track,notes,lead_share,rows,…}]}`
+    """
+    import who_plays_lead as W
+    thr = W.LEAD_SHARE_MIN if thr is None else thr
+    if not os.path.isdir(stems):
+        return None
+    sigs, sr = W.load_stems(stems)
+    if not sigs:
+        return None
+    ne = (json.load(open(song, encoding='utf-8')).get('notes_extra') or {}) if song else {}
+    ok = lambda t: t not in LEAD_EXCLUDE and len(ne.get(t) or []) >= MIN_LEAD_NOTES   # noqa: E731
+    names = [t for t in LEAD_ORDER if ok(t)]
+    names += [t for t in ne if t not in names and ok(t)]
+    if lead_track:
+        names = [lead_track] + [t for t in names if t != lead_track]
+    _bar, secs = W.song_timeline(song)
+    cands = []
+    for t in names[:max_candidates]:
+        pts = W.melody_points(song, t)
+        if not pts:
+            continue
+        _win, seg, agg = W.attribute(pts, sigs, sr, secs)
+        rows = W.section_verdicts(seg, secs, thr=thr)
+        s = W.summary(rows)
+        cands.append({'track': t, 'notes': agg['notes'],
+                      'lead_share': round(agg['lead_share'], 3),
+                      'n_judged': s['n_judged'], 'n_alarm': s['n_alarm'],
+                      'alarm_ratio': None if s['alarm_ratio'] is None else round(s['alarm_ratio'], 3),
+                      'alarms': [r['seg'] for r in s['alarms']], 'rows': rows})
+    if not cands:
+        return None
+    pick = max(cands, key=lambda c: (c['lead_share'], c['n_judged']))
+    return {'picked': pick['track'], 'thr': thr, 'candidates': cands, 'pick': pick}
+
+
+def lead_report(res, out=print):
+    """第⑤层的可读输出（含"换条轨会怎样"的备选读数）。"""
+    if not res:
+        out('⑤ 主奏归属对照：跳过（没有可用分轨 / 没有候选轨）')
+        return
+    out('⑤ 主奏归属对照（按音高判"参考曲里这条线是谁在弹"；门 旋律族 ≥ %.0f%%）'
+        % (100 * res['thr']))
+    out('   候选轨：' + ' · '.join(
+        '%s %s %.0f%%（%d 音%s）' % ('**' + c['track'] + '**' if c['track'] == res['picked'] else c['track'],
+                                     '' if c['alarm_ratio'] is None else '段报警%.0f%%' % (100 * c['alarm_ratio']),
+                                     100 * c['lead_share'], c['notes'],
+                                     '' if c['lead_share'] >= res['thr'] else ' ← 旋律族低于门')
+        for c in sorted(res['candidates'], key=lambda x: -x['lead_share'])))
+    p = res['pick']
+    if p['alarm_ratio'] is None:
+        out('   ⚠ 轨 %s 没有可判的段' % p['track'])
+    elif p['lead_share'] < res['thr']:
+        out('   **报警**：连最好的那条轨（%s）旋律族占比也只有 %.0f%% —— '
+            '这段旋律在我们的编配里**没有一条轨承担参考曲的主奏角色**' % (p['track'], 100 * p['lead_share']))
+    else:
+        out('   选中 **%s**（旋律族 %.0f%% ≥ 门）· 段级 **%d/%d 段报警（%.0f%%）**'
+            % (p['track'], 100 * p['lead_share'], p['n_alarm'], p['n_judged'],
+               100 * p['alarm_ratio']))
+        for r in p['rows']:
+            if not r['ok']:
+                out('     · %-7s %-12s 旋律族 %3.0f%%  %s'
+                    % (r['seg'], r['t'], 100 * r['lead_share'],
+                       ' · '.join('%s %d' % (k, v) for k, v in
+                                  sorted(r['share'].items(), key=lambda x: -x[1]))))
+
+
+def audit(song, ref, stems, mine, lead_track=None, do_lead=True):
     sj = json.load(open(song, encoding='utf-8')) if os.path.isfile(song) else None
     name = os.path.basename(os.path.dirname(song)) if sj else str(song)
     bpm = float(sj['bpm']) if sj else 145.96
@@ -199,7 +296,8 @@ def audit(song, ref, stems, mine):
         if not ok:
             bad.append(row)
     return {'song': name, 'rows': rows, 'mismatch': bad,
-            'n_bad': len(bad), 'n_total': len(rows)}
+            'n_bad': len(bad), 'n_total': len(rows),
+            'lead': lead_layer(song, stems, lead_track) if (do_lead and song) else None}
 
 
 def report(res, out=print):
@@ -216,6 +314,8 @@ def report(res, out=print):
         out('\n⚠ 有问题的段（%d 个）：' % len(res['mismatch']))
         for r in res['mismatch']:
             out('  %-6s %s' % (r['seg'], ' · '.join(r.get('issues') or [])))
+    out('')
+    lead_report(res.get('lead'), out)
 
 
 def selftest(verbose=True):
@@ -246,6 +346,9 @@ def main():
     ap.add_argument('--ref', help='原曲音频')
     ap.add_argument('--stems', help='demucs 分轨目录（h4_*/h6_*）')
     ap.add_argument('--mine', help='我方渲染音频')
+    ap.add_argument('--lead-track', default=None,
+                    help='第⑤层显式指定"我方主奏轨"（默认自动：取旋律族占比最高那条）')
+    ap.add_argument('--no-lead', action='store_true', help='跳过第⑤层（主奏归属对照）')
     ap.add_argument('--json', default=None)
     ap.add_argument('--selftest', action='store_true')
     a = ap.parse_args()
@@ -253,7 +356,7 @@ def main():
         return 0 if selftest() else 1
     if not (a.song and a.ref and a.stems and a.mine):
         ap.print_help(); return 1
-    res = audit(a.song, a.ref, a.stems, a.mine)
+    res = audit(a.song, a.ref, a.stems, a.mine, a.lead_track, not a.no_lead)
     report(res)
     if a.json:
         json.dump(res, open(a.json, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)

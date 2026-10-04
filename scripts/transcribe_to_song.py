@@ -23,6 +23,20 @@ python scripts/transcribe_to_song.py <曲名> \
     --mid Bass=.../bass.mid --mid Strings=.../other.mid --mid Drums=.../drums.mid
 ```
 
+**逐音力度**（`--stems-dir` / `--stem-audio`，2026-10-02 接进链）：
+
+```bash
+python scripts/transcribe_to_song.py <曲名> --bpm 75 ... \
+    --stems-dir D:/work/stems/htdemucs_6s/<曲名>      # demucs 六轨目录，自动配对
+```
+
+⚠ **为什么必须做**：YourMT3 的输出**每个音的力度恒为 100**（实测六条分轨 + 整混音，
+`other.mid` 8960 个音**全是 100**）——不量就是"打字机"。引擎的 `_vel_of` 认
+`notes_extra` 的第 5 位，所以力度必须**在 `read_notes` 之前**量好（顺序反了补进来的音还是 100）。
+实测 BGM35：逐轨力度种类 **Drums 1→93 · Hook 2→49 · Strings 2→49 · Piano 2→22**。
+
+量失败**不会静默**：`patterns.velocity_source` 会记下 `FAILED`，并在终端打出来。
+
 生成 `songs/<曲名>/song.json`（含 `chords` / `sections` / `melody` / `notes_extra`）。
 随后：`cp` 一份 `compose.py`（照 `songs/01_daily_morning/compose.py` 那 14 行）→
 `make_song.py <曲名>`。
@@ -55,7 +69,9 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -69,9 +85,51 @@ TRACKS = ('Piano', 'Bass', 'Hook', 'Strings', 'Pad', 'Arp', 'Glock', 'Drums', 'M
 # 一个段最多放多少音进 melody（防止把整轨钢琴都塞进旋律）
 MEL_MAX_PER_BAR = 2
 
+# demucs 六轨 → 引擎轨名 的默认配对（`--stems-dir` 用）。
+# ⚠ 这是**默认猜测，不是判据**。实测（BGM35，2026-10-02）：
+#   · `other.wav` 是个"大杂烩"分轨 —— `other.mid` 里 9 条乐器轨**全部**与它对得上
+#     （中位 −17 ~ −19 dB），所以 `other` 一条分轨可以喂多条引擎轨；
+#   · `bass.wav` 是**单乐器** —— `bass.mid` 里 7 条轨只有 `Bass` 对得上（−12.0 dB），
+#     另外 956 个泄漏音在 −63 ~ −70 dB。
+#   配错**不会静默**：`measure_velocity` 的逐轨护栏会把对不上的轨跳过并打印出来。
+STEM_FILE = {
+    'Piano': 'piano.wav', 'Bass': 'bass.wav', 'Drums': 'drums.wav',
+    'Hook': 'guitar.wav',                    # 吉他 → Hook（见 TRACKS 的约定 4）
+    'Strings': 'other.wav', 'Pad': 'other.wav',
+    'Arp': 'other.wav', 'Glock': 'other.wav',
+}
+# 量力度的固定参数（与 `measure_velocity` 的默认口径一致；它默认 `mode='rank'` 分位映射）
+VEL_P50, VEL_K, VEL_MAX_DB = 51.0, 9.0, 18.0
 
-def read_notes(path):
+
+def measure_velocity_for(track, mid_path, wav_path, tmpdir, transcript_bpm=None):
+    """用分轨音频给这条转录量逐音力度 → `(可用路径 | None, 说明)`。
+
+    **失败不抛**：调用方要能回退到转录自带力度**并大声报出来** ——
+    静默回退正是"打字机"听感里最难查的一种（转录的力度恒 100，从产物上看不出来）。
+    """
+    import measure_velocity as mv
+    out = os.path.join(tmpdir, '%s_vel.mid' % track)
+    try:
+        n = mv.do_one(wav_path, mid_path, out, VEL_P50, VEL_K, VEL_MAX_DB,
+                      report=True, guard=True, transcript_bpm=transcript_bpm)
+    except SystemExit as e:                       # 护栏拒写盘（一条轨都没对上）
+        return None, str(e)
+    except Exception as e:                                            # noqa: BLE001
+        return None, '%s: %s' % (type(e).__name__, e)
+    return out, '%d 音' % n
+
+
+def read_notes(path, dst_bpm=None, on_mismatch=None, leak_warn=True):
     """→ [(起始秒, 结束秒, 音高, 力度)]。
+
+    ⚠ **它会把文件里所有轨拍平进同一条引擎轨** —— 而 YMT3 的"逐分轨"输出
+      **不是单乐器**（`HANDOFF-BGM35-R2.md` §11.3：`bass.mid` 里 7 条轨，只有 `Bass`
+      与 `bass.wav` 对得上；另外 956 个音落在 −63~−70dB）⇒ 泄漏音**会真的进曲子**。
+      2026-10-04 实测复现：`Hook=<Hook.mid>` 把泄漏的鼓点铺进 Hook 层，成品在 **12.00s
+      突然出现底鼓+军鼓+闭镲**（用户："9 秒突然出现的鼓很奇怪"）。
+      ⇒ `leak_warn=True`（默认）时**打印多轨合并且音域重叠的证据**，但不改内容
+      （过滤是内容决策，要用户点头 —— 见那份 HANDOFF 的"本轮没动它，要处理请先问用户"）。
 
     ⚠ **不用 `mido`**：主 venv 里没有它（只有 `.venv-ml` 有），顶层 import 会让
       `selftest` 的 `import_all` 直接 FAIL（PITFALLS 173 同族）。
@@ -81,10 +139,47 @@ def read_notes(path):
     ⚠ **力度在 index 3**（`midi_file` 模型 = `[start_beat, dur_beat, pitch, vel]`）。
       它必须一路带到 `song.json` 的 `notes_extra` 第 5 位 —— 丢了力度就是"打字机"
       （实测对照：带力度的版本 17773/17773 全带，不带的 0/23033）。
+
+    ## `dst_bpm`：**拍值口径**（2026-10-02 加，BGM35 实测的最大一条）
+
+    转录产物声明的 bpm **不一定等于曲子 bpm**（YourMT3 的输出恒为 **120 BPM**）。
+    本函数按**转录自己声明的 bpm** 把 beat 换成秒，调用方随后按**曲子 bpm** 把秒换回 beat
+    —— 只要"秒"是真秒，这条链就是对的，所以这里**不改数据**，只做一件事：
+    `dst_bpm` 给了且与转录声明的 bpm 差 >1% 时，通过 `on_mismatch` **报出来**。
+
+    为什么必须报：BGM35 上 `bass_ensemble.py` 走的是另一条路（直接 `t/spb` 写 beat），
+    整条 Bass 轨被静默缩放 **0.801×**（末音 264.1 秒 / 全曲 331.9，266 秒之后没有低音），
+    而帧级一致率把它读成"10.4%，先修识别"—— **归因完全错方向**。
     """
     d = midi_file.import_midi(str(path))
-    spb = 60.0 / max(1e-9, float(d.get('bpm') or 120.0))
+    src_bpm = float(d.get('bpm') or 120.0)
+    if dst_bpm and on_mismatch:
+        on_mismatch(src_bpm, float(dst_bpm), os.path.basename(str(path)))
+    spb = 60.0 / max(1e-9, src_bpm)
     out = []
+    _trs = [tr for tr in (d.get('tracks') or []) if (tr.get('notes') or [])]
+    if leak_warn and len(_trs) > 1:
+        # 泄漏证据：多轨被合并 + 各轨音域互相重叠（单乐器分轨不该这样）
+        _spans = []
+        for tr in _trs:
+            ps = [int(x[2]) for x in tr['notes']]
+            _spans.append((tr.get('name') or '?', len(ps), min(ps), max(ps)))
+        _bad = []
+        for i, (n1, c1, lo1, hi1) in enumerate(_spans):
+            for j, (n2, _c2, lo2, hi2) in enumerate(_spans):
+                if i >= j:
+                    continue
+                ov = min(hi1, hi2) - max(lo1, lo2)
+                if ov > 6:                      # 重叠超过半八度 = 可疑
+                    _bad.append('%s(%d~%d) ∩ %s(%d~%d) = %d 半音' % (n1, lo1, hi1, n2, lo2, hi2, ov))
+        if _bad:
+            print('  ! [泄漏] %s 里有 %d 条有声轨会被**拍平进同一条引擎轨**：%s'
+                  % (os.path.basename(str(path)), len(_trs),
+                     '、'.join('%s %d 音' % (n, c) for n, c, _l, _h in _spans)))
+            print('      音域重叠证据：%s' % '；'.join(_bad[:3]))
+            print('      ⇒ 混进来的别的乐器**会真的进曲子**（实测：Hook 被塞进鼓点 → '
+                  '12.00s 突然出现底鼓）。要过滤得显式选轨/按音域筛，'
+                  '见 HANDOFF-BGM35-R2 §11.3')
     for tr in d.get('tracks') or []:
         for it in tr.get('notes') or []:
             if len(it) < 4:
@@ -262,12 +357,26 @@ def main():
                     help='--auto 用：目标段数（默认 25，取 novelty 最强的边界）')
     ap.add_argument('--drums-mid', default=None,
                     help='--auto 用：鼓分轨 MIDI（提取 drum_grid.per_bar）')
+    ap.add_argument('--stem-audio', action='append', default=[],
+                    help='轨=分轨.wav（可多次）—— 从这条分轨**量逐音力度**再写 notes_extra。'
+                         '⚠ 不给就是转录自带的力度，而 YMT3 的转录**恒为 100** ⇒ "打字机"')
+    ap.add_argument('--stems-dir', default=None,
+                    help='demucs 六轨目录：按 轨名→文件名 自动配对'
+                         '（Piano→piano.wav · Bass→bass.wav · Drums→drums.wav · '
+                         'Hook→guitar.wav · Strings/Pad/Arp/Glock→other.wav）；'
+                         '与 --stem-audio 同时给时后者优先')
+    ap.add_argument('--no-measure-velocity', action='store_true',
+                    help='即使给了 --stems-dir/--stem-audio 也**不量力度**'
+                         '（退回转录自带力度，用于 A/B 对照）')
     ap.add_argument('--sample', action='store_true',
                     help='回到旧的"服从段落结构"抽样（不写 notes_extra_full）；'
                          '默认**全量**，逐音照写')
     ap.add_argument('--full', action='store_true',
                     help='（已废弃，默认即全量；保留是为了旧命令行不报错）')
     ap.add_argument('--out', default=None, help='输出 song.json 路径（默认 songs/<name>/）')
+    ap.add_argument('--force', action='store_true',
+                    help='目标 song.json 已存在时**直接覆盖**（默认会先备份成 '
+                         '<song.json>.bak_before_transcribe 并打印提示）')
     a = ap.parse_args()
     # 面板守卫（硬形式）：没在跑就先拉起来 —— 见 scripts/studio_guard.py 顶部那段。
     try:
@@ -285,7 +394,9 @@ def main():
     drum_grid = None
     if a.auto:
         import subprocess
-        import tempfile
+        # ⚠ 别在这里再 `import tempfile` —— 那会把模块级的 `tempfile` **遮蔽成局部变量**，
+        #   于是同一函数里更早/更晚用到它的地方报 `UnboundLocalError`（本轮实测踩中，
+        #   被端到端测试当场抓住）。`tempfile` 已提到文件顶部。
         if not a.audio:
             raise SystemExit('--auto 需要 --audio <参考音频>（用来定段落）')
         tmp = tempfile.mkdtemp(prefix='tts_auto_')
@@ -408,6 +519,39 @@ def main():
         quotas[k] = int(v)
 
     ne, mel_src = {}, None
+    # —— 分轨音频配对（量力度用）——
+    # ⚠ **量力度必须在 `read_notes` 之前**：力度是跟着转录一起读进来的
+    #   （`midi_file` 的 `[start_beat, dur_beat, pitch, vel]`，力度在 index 3），
+    #   顺序反了补进来的音还是恒 100 —— 这就是 BGM35 那轮"先量力度、再补音"的由来。
+    _stem_map = {}
+    if a.stems_dir and not a.no_measure_velocity:
+        for _tr, _f in STEM_FILE.items():
+            _p = os.path.join(a.stems_dir, _f)
+            if os.path.exists(_p):
+                _stem_map[_tr] = _p
+        print('  [力度] --stems-dir %s → 配到 %d 条轨：%s'
+              % (a.stems_dir, len(_stem_map),
+                 '、'.join('%s←%s' % (k, os.path.basename(v))
+                           for k, v in sorted(_stem_map.items()))))
+    for _spec in a.stem_audio:
+        if '=' not in _spec:
+            raise SystemExit('--stem-audio 要写成 轨=分轨.wav，收到 %r' % _spec)
+        _tr, _p = _spec.split('=', 1)
+        if _tr not in TRACKS:
+            raise SystemExit('--stem-audio 的轨名 %r 不在 %s 里' % (_tr, TRACKS))
+        if not os.path.exists(_p):
+            raise SystemExit('--stem-audio 找不到 %s' % _p)
+        _stem_map[_tr] = _p
+    if a.no_measure_velocity and (a.stems_dir or a.stem_audio):
+        print('  [力度] --no-measure-velocity：**不量力度**，notes_extra 用转录自带值'
+              '（YMT3 恒 100 ⇒ 打字机；这是 A/B 对照模式）')
+    _vel_tmp = tempfile.mkdtemp(prefix='tts_vel_') if _stem_map else None
+    _vel_rec = {}
+    # 拍值口径的差异要**报一次**（每个来源文件一次），别让"转录 120BPM / 曲子 150BPM"
+    # 这种组合静默通过 —— 它是 BGM35 那条整轨缩放的温床（见 `read_notes` docstring）。
+    def _bpm_note(src_bpm, dst_bpm, fname):
+        import beat_units
+        beat_units.assert_same_bpm(src_bpm, dst_bpm, '转录 %s' % fname, tol=0.01)
     for spec in a.mid:
         if '=' not in spec:
             raise SystemExit('--mid 要写成 轨=文件，收到 %r' % spec)
@@ -416,7 +560,18 @@ def main():
             raise SystemExit('轨名 %r 不在引擎认识的 %s 里（吉他请用 Hook）' % (tr, TRACKS))
         if not os.path.exists(path):
             raise SystemExit('找不到 %s' % path)
-        notes = read_notes(path)
+        # —— 逐音力度：从分轨音频量（转录自己的力度是恒 100）——
+        _wav = _stem_map.get(tr)
+        if _wav:
+            print('  [力度] %s ← %s' % (tr, os.path.basename(_wav)))
+            _vp, _why = measure_velocity_for(tr, path, _wav, _vel_tmp)
+            if _vp:
+                path, _vel_rec[tr] = _vp, os.path.basename(_wav)
+            else:
+                print('  ! [力度] %s **量不了**（%s）—— 该轨退回转录自带力度'
+                      '（YMT3 恒 100，听感会变"打字机"）' % (tr, _why.strip()[:200]))
+                _vel_rec[tr] = 'FAILED'
+        notes = read_notes(path, dst_bpm=a.bpm, on_mismatch=_bpm_note)
         # 越界音**逐音**夹到最近的合法八度（否则引擎会**整轨**移八度，见 `range_fit`）
         notes = range_fit(notes, tr)
         # ⚠ **带第 5 位力度**（`[小节, 拍, 时值, 音高, 力度]`）：引擎的 `_vel_of` 就认它。
@@ -547,6 +702,17 @@ def main():
     #   ⚠ `--sample` 必须写 `False`、**不能只是"不写"** —— 引擎默认已翻成 True，
     #   "不写"等于全量，那样 `--sample` 就成了空转（本轮真踩：写完第一版才发现）。
     d['patterns']['notes_extra_full'] = not a.sample
+    # —— 力度来源留痕 ——
+    # ⚠ 与 `notes_extra_full` 同一个理由：**显式写盘**，不靠"没写就是默认"。
+    #   换引擎版本 / 换调用方时，`velocity_source` 能当场看出这一首的力度是
+    #   "从哪条分轨量的"，还是"根本没量过"（`FAILED`）—— 后者听感就是打字机，
+    #   而产物上看不出来（`notes_extra` 的力度字段照样有值，只是恒 100）。
+    if _vel_rec:
+        d['patterns']['velocity_source'] = dict(_vel_rec)
+        _bad = [k for k, v in _vel_rec.items() if v == 'FAILED']
+        print('  力度来源：%s%s'
+              % ('、'.join('%s←%s' % (k, v) for k, v in sorted(_vel_rec.items())),
+                 ('  ⚠ 其中 %s **没量成**（退回恒 100）' % '、'.join(_bad)) if _bad else ''))
     if a.sample:
         print('  ⚠ notes_extra 按 arr.density 抽样（--sample，写 notes_extra_full=false）：'
               '转录会被逐小节砍上限')
@@ -558,6 +724,20 @@ def main():
         d['patterns']['drum_grid'] = {'per_bar': drum_grid}
 
     out = a.out or os.path.join(ROOT, 'songs', a.name, 'song.json')
+    # —— **覆盖保护**（2026-10-04 加，PITFALLS 196 的同族）——
+    # `os.makedirs(..., exist_ok=True)` + 直接 save = **静默覆盖**：回滚点被吃掉，
+    # 而"命令 exit=0、日志正常"让人以为只是重跑了一遍（实测本曲第一次重跑时，
+    # 我是先手工 `rm -rf` 才拿到干净产物的 —— 那一步本不该由人记得）。
+    # 口径同 `new_song`：无 `--force` 时**备份 + 明说**，一个字都不静默丢。
+    if os.path.isfile(out) and not a.force:
+        bak = out + '.bak_before_transcribe'
+        try:
+            shutil.copy2(out, bak)
+            print('  ! 目标已存在 → 已备份为 %s' % os.path.basename(bak))
+            print('    要**整份重写**（不保留旧的回滚点）请加 --force；'
+                  '要换名字请加 --out')
+        except Exception as _e:                                    # noqa: BLE001
+            print('  ! 目标已存在，但备份失败（%s）—— 继续写盘会覆盖它' % str(_e)[:80])
     os.makedirs(os.path.dirname(out), exist_ok=True)
     json_io.save(out, d)
     print('写 %s（%d 段 / %d 小节 / %d 和弦种 / notes_extra %d 轨 %d 音）'

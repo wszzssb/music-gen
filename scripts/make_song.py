@@ -481,6 +481,19 @@ def main():
             pass
     elif '--no-render' not in sys.argv:
         print('[2/3] 渲染（不调参）')
+        # ⚠ **`--no-tune` 也要补齐元数据**（2026-10-02 实测踩到）：调参分支有
+        #   `setdefault(mid/out/composer/ref/song)`，而这一支原来没有 —— 于是走
+        #   `--no-tune`（A/B 快渲染、以及**面板的 render 任务**都用它）的曲目，
+        #   `render.json` 里永远缺 `mid`/`out`/`composer`：
+        #     · `t_render_json_schema` FAIL
+        #     · `studio/bridge.cmd_finalize` 拿 `cfg['out']` 拼出 `.wav` → 报
+        #       "没有 WAV 产物，先渲染：…\.wav"（`make_song` 于是**每轮 rc=1**，
+        #       而音频其实已经渲好了 —— 结论看着像失败、产物是新的，最误导的一种状态）
+        cfg.setdefault('composer', composer)
+        cfg.setdefault('mid', os.path.basename(mid))
+        cfg.setdefault('out', os.path.basename(out))
+        cfg.setdefault('ref', ref_name)
+        cfg.setdefault('song', song)
         render_midi.render(mid, out, rms_db=cfg['rms'], width=cfg['width'],
                            shelf_db=cfg['shelf'], hp_hz=cfg['hp'],
                            low_db=cfg['low'], drive=cfg['drive'],
@@ -517,7 +530,7 @@ def main():
         if os.path.exists(_wav):
             _m = measure(_wav, scorecard.load_ref(ref_name), midi_bpm(mid, data))
             cfg['last_bands'] = dict(_m['bands'])
-            with open(cfg_path, 'w', encoding='utf-8') as f:
+            with open(cfg_path, 'w', encoding='utf-8', newline='\n') as f:
                 json.dump(cfg, f, ensure_ascii=False, indent=1)
             print('  已记录本次频段（供下次比较）')
     except Exception as _e:                                     # noqa: BLE001
