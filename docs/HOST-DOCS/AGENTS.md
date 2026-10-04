@@ -6,24 +6,18 @@
 ## 动手前先读说明（**踩出来的，不是客套**）
 
 **同一类错犯到第三次 ⇒ "记住"已经失效，必须当场查、并把它写进硬形式**：
-- **先查文档再动手**：`SKILL.md` / `PITFALLS.md` / `README.md` / `docs/CONVENTION.md`
-  里**常常早已写明**这个坑（有条规矩在 SKILL 里标着"这是第二次犯"，第三次照样犯）。
-  改工具 / 生成成品前**先 grep 关键词**（例：`grep -n "面板" SKILL.md`）。
-- **`ok` ≠ 生效**：命令成功 ≠ 改动落地。报"已完成 / 已生效"之前必须有**一处独立证据**
-  （文件 mtime / 数值前后对比 / 二次请求）。
-- **先看退出码再过滤输出**（`| grep` / `| head` 会吞掉退出码、还让管道返回 0）；**别删日志**。
+- **先查文档再动手**：改工具 / 生成成品前**先 grep 关键词**
+  （`SKILL.md` / `PITFALLS.md` / `README.md` / `docs/CONVENTION.md` 里常常早已写明）。
+- **`ok` ≠ 生效**：报"已完成 / 已生效"之前必须有**一处独立证据**（mtime / 数值前后对比 / 二次请求）。
+- **先看退出码再过滤输出**（`| grep` / `| head` 会吞退出码、还让管道返回 0）；**别删日志**。
 
 ## 沟通与推理语言
 
 - **回答与所有面向用户的文字一律用中文**；代码 / 命令 / 路径 / 标识符保持原文。
-- 思维链中文：**当前只剩弱引导**（2026-10-01 复核：本机已改跑**桌面版** dsh，
-  preset 的 persona 覆盖了 `~/.dsh/cordis.patch.yml` 里那条 —— 实测本会话的 `system/message`
-  **6231 字符里没有那句**，`agentPreset: standard`）。**修法、证据、可复跑的复核命令 →
-  `~/.dsh/docs/COT-PERSONA.md` 顶部"2026-10-01 复核"节**（旧路径已全部失效，别再照旧表改）。
+- 思维链中文：**修法与复核命令 → `~/.dsh/docs/COT-PERSONA.md` 顶部"2026-10-01 复核"节**。
 - **别把话写绝对**（用户 2026-09-19 定）：**"永远 / 绝不 / 必然 / 唯一 / 一律 / 完全无效"
-  这类词，等于把一次实测升格成普遍规律** —— 实测吃过亏：一批文档查出约 750 处绝对化，
-  其中「逐段微调不可能修好」「段末压力度完全无效」**随后都被实测推翻**。
-  结论要带**适用范围 + 证据强度**（"在 X 条件下、试了 N 组参数"）；**只有守卫或物理强制时**才用绝对词。
+  这类词等于把一次实测升格成普遍规律**。结论要带**适用范围 + 证据强度**（"在 X 条件下、试了 N 组"）；
+  **只在守卫或物理强制时**才用绝对词。
 - **简短优先**；汇报只给：**结论 + 差距表 + 一句"还没验证什么"**；说"已完成"必须附**独立证据**。
 - **分钟级步骤先报"在做什么 + 预计多久"**（用户 2026-09-20 定）：静默跑几分钟会被当成卡住
   （实测被追问"怎么这么慢"）。开工前一行说清 **在做什么 · 约多久 · 出什么**；中途改范围也要说。
@@ -43,9 +37,8 @@
 ### ⚡ 本机 shell 约定（2026-09-17 定，用户明确要求换掉 PowerShell）
 
 **`pwsh` 工具实际跑的是 Windows PowerShell 5.1**（`>` 写出 UTF-16、`Set-Content -Encoding UTF8`
-带 BOM、半角双引号被吞）→ **一律改用 Git Bash**：
-`& 'D:\software\Git\bin\bash.exe' '<脚本.sh>'`
-（踩坑清单与原因 → `~/.dsh/docs/SHELL-NOTES.md`；**链接 / junction 的判据坑** → `~/.dsh/docs/FS-LINK-NOTES.md`）。
+带 BOM、半角双引号被吞）→ **改用 Git Bash**：`& 'D:\software\Git\bin\bash.exe' '<脚本.sh>'`
+（踩坑 → `~/.dsh/docs/SHELL-NOTES.md`；链接 / junction 判据 → `~/.dsh/docs/FS-LINK-NOTES.md`）。
 WSL 未安装发行版，不可用。
 
 **约定**：
@@ -54,60 +47,65 @@ WSL 未安装发行版，不可用。
    任何一个就停下、改成脚本**。
 2. bash 脚本开头固定：`export PYTHONIOENCODING=utf-8 LANG=C.UTF-8`（否则 python 打印中文乱码）。
 3. **读文件内容用 read 工具**（不要 `cat`）；**写文本用 write/edit 工具**（不要 shell 重定向）。
-4. **过滤输出 ≠ 检查结果**：长流程要么不过滤（写日志再 tail），要么**先看退出码**
-   （`| grep` 会吞掉 traceback 还让管道返回 0；Git Bash 无 `bc`，算术用 python/awk）。
-5. **绝不用 PowerShell 改含中文的文本文件**。
+4. **过滤输出 ≠ 检查结果**：长流程要么不过滤（写日志再 tail），要么**先看退出码**。
+5. **不用 PowerShell 改含中文的文本文件**。
 
 ## 思维链接入点（改思维链语言只改这里）
 
-思维链语言 = system 层 persona，**每条路由 / 每个模式各有自己的 persona**；
+思维链语言 = system 层 persona，每条路由 / 每个模式各有自己的 persona；
 **改法、路径、生效条件、npm 升级注意事项 → `~/.dsh/docs/COT-PERSONA.md`**。
 
 ## dsh 自身升级 → 先读流程（**先解决插件问题，再升级**）
 
-⚠ **先确认升的是哪一份**（2026-10-01 复核）：本机**两份并存** —— 跑着的是**桌面版**
-（`D:\software\dsh\DeepSeek Harness.exe`，代码在 `resources\app.asar`，走 app 自己的
-nightly 更新通道），而终端 `dsh --version` 指向的是 **npm 全局那份**（0.1.6-alpha.2）。
-"`dsh --version` 显示 0.1.6-alpha.2" **不代表桌面版是那个版本**。
+⚠ **先确认升的是哪一份**：本机**两份并存** —— 跑着的是**桌面版**
+（`D:\software\dsh\DeepSeek Harness.exe`，代码在 `resources\app.asar`，走 app 自己的 nightly 通道），
+而终端 `dsh --version` 指向 npm 全局那份（0.1.6-alpha.2）；**两者不必同版本**。
 
 **命中「升级 / 更新 dsh」「npm 装新版 dsh」「dsh 是不是该更新了」→ 先读
 `~/.dsh/docs/DSH-UPGRADE.md` 再动手**（用户 2026-09-22 定）。三条铁律：
-**先停服务再动包** —— 热升级会让带文件监视的插件连环自动重载，进程卡在
-「旧代码在内存 + 磁盘已是新版本」的混合态（实测耗掉 4 小时）·
-**先 `--dry-run` 验目标版本可装** —— 上游会漏发子包（0.1.5-rc.2/rc.3 整条线因缺
-`dsh-client-ui-sidebar-documentpreview@^0.1.5-rc.3` 装不上）·
-**逐个体检插件 peer 声明** —— 0.x 预发布 semver 匹配极严，
-`^0.1.0-rc.7` **不**容纳 `0.1.6-alpha.2`。
+**先停服务再动包**（热升级会让带文件监视的插件连环重载，卡在"旧代码在内存 + 磁盘已新版"的混合态）·
+**先 `--dry-run` 验目标版本可装**（上游会漏发子包）·
+**逐个核对插件 peer 声明**（0.x 预发布 semver 匹配极严）。
 
 ## 能常驻的东西 → 主动提醒沉淀
 
-发现"以后对话还能用"的东西（自检脚本 / 守卫 / 踩坑 / 口径 / 流程），主动提醒用户沉淀，
-别只留在临时目录或本次对话里。
+发现"以后对话还能用"的东西（自检脚本 / 守卫 / 踩坑 / 口径 / 流程），主动提醒用户沉淀。
 **往哪写、动哪些守卫、怎么验 → `D:\software\skill\music-gen\docs\CONVENTION.md`**（**先读它再动手**）。
 
-## 音乐任务 → 先加载 `bgm-studio` 技能再动手
+## 技能触发（**没有自动匹配** —— 全靠模型按 description 判断，所以最泛的说法也算）
 
-**命中下列任一词 → 立刻 `skill` 加载 `bgm-studio` 再动手**（**没有自动匹配**，全靠模型按
-description 判断；所以**最泛的「音乐 / 歌 / 曲子」也算**；**技能指针重要的写前面** ——
-catalog 有显示预算、超出**砍尾**；机制与维护 → `~/.dsh/docs/SKILL-LOADING.md`）：
+命中下表任一词 → **立刻 `skill` 加载对应技能再动手**（技能体不在仓库，路径见表）。
 
+**`bgm-studio`**（`D:\software\skill\music-gen`，用它自己的 venv）——
 **音乐 · song · music · 歌 · 曲子 · 写歌 · 作曲 · 来一首 · 做一个 · BGM · 配乐 · 主题曲 ·
 插入曲 · 音轨 · 伴奏 · 扒谱 · 扒和弦 · 扒成 MIDI · 音频转 MIDI · 转录 · 复刻某曲 ·
 还原某曲 · 照着某首做 · 仿照某曲 · MIDI 渲染成音频（ogg/wav）· 音色对齐 · 太电音 ·
 有杂音 · 太闷 · 不够宽 · 不够欢快 · 不像原曲 · 完全用指定乐器演奏 · 完全用钢琴 ·
 只用一件乐器 · 单乐器独奏 · 全用钢琴弹**
+→ 四条铁律与全部工序在技能 `SKILL.md`（改 `song.json` 前核基准 · 改必须分段 · 必须开
+studio 面板 `http://127.0.0.1:8765` · 还原第一道工序是"先量识别精度"）。
 
-## 系统崩溃 / 蓝屏 / 突然重启 → 先加载 `win-forensics` 技能再动手
-
-**命中下列任一词 → 立刻 `skill` 加载 `win-forensics` 再动手**（同样**没有自动匹配**，
-全靠模型按 description 判断；所以**最泛的「系统崩了 / 电脑重启了 / 死机了」也算**；
-技能体 `D:\software\win-forensics` —— `~/.dsh/skills/win-forensics` 是它的 junction）：
-
+**`win-forensics`**（`D:\software\win-forensics`；`~/.dsh/skills/win-forensics` 是 junction）——
 **蓝屏 · 系统突然重启 · 意外重启 · 自动重启 · 死机 · 卡死 · 黑屏 · 崩溃 · BSOD ·
 系统怎么回事 · 有没有检查报告 · 检查报告 · dump · minidump · 转储 · WinDbg ·
 事件日志 · 事件查看器 · 驱动冲突 · 开机报驱动加载失败 · WHEA · 硬件错误 ·
 卸载残留 · 杀软冲突 · 关了杀软还拦 · 360 阻拦 · 驱动版本太老**
-
-**四条铁律在技能 `SKILL.md`**（先取证后动手 · 管理员是硬门槛——用 `launch_admin.ps1` 弹 UAC，
+→ 四条铁律在技能 `SKILL.md`（先取证后动手 · 管理员是硬门槛——用 `launch_admin.ps1` 弹 UAC，
 别让用户自己开管理员终端 · 独立证据才算数 · 删除前先 `reg export` 备份）；
-含中文的 `.ps1` 必须 UTF-8 with BOM（坑与修法 → 技能 `PITFALLS.md` §1）。
+含中文的 `.ps1` 必须 UTF-8 with BOM（坑 → 技能 `PITFALLS.md` §1）。
+
+**`rpgmaker-toolkit`**（`D:\software\rpgmaker-toolkit`；`~/.dsh/skills/rpgmaker-toolkit` 是 junction）——
+**汉化 · 汉化不全 · 没翻译 · 翻译不全 · 机翻 · 乱码 · 中文补丁 · MTool · 翻译表 · 词典 ·
+补翻译 · RPG Maker · RPG制作大师 · VX Ace · VXAce · 龙头游戏 · 龙头 · rgss3a · rgssad ·
+rvdata2 · Scripts.rvdata2 · Game.rgss3a · 解包 · 拆包 · 提取素材 · 游戏报错 · 脚本错误 ·
+闪退 · 崩溃弹窗 · Script line · ZeroDivisionError · NoMethodError · 改存档 · 改道具 ·
+改数值 · CG回想 · 全CG**
+→ 四条铁律与 15 条实测坑在技能 `SKILL.md` / `docs/PITFALLS.md`（先 `rgss3a.py verify`
+验密钥再改档 · 改档先备份且尽量等长 · 汉化按三层分别量缺口 · 改脚本后比"代码骨架"）。
+
+**`win-input-automation`**（`D:\software\win-input-automation`；`~/.dsh/skills/win-input-automation` 是 junction）——
+**操控鼠标 · 操控键盘 · 帮我点 · 帮我按 · 帮我操作 · 自动化操作 · 模拟按键 · 按键精灵 ·
+连点器 · 代打 · 挂机 · 脚本控制窗口 · 自动答题 · 帮我答题 · 帮我做题目 · 游戏里按 ·
+帮我玩 · 自动输入 · 屏幕点击 · 控制别的程序 · 游戏自动化**
+→ 六条铁律与 17 条实测坑在技能 `SKILL.md` / `PITFALLS.md`（先跑 `winauto.py diag` 分层诊断 ·
+每次操作前重新定位窗口、不复用坐标 · 先量"按住多久=走几格"再批量按 · 验收只看独立证据）。

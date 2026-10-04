@@ -298,6 +298,20 @@ def main():
         return Mut(st, '_density_exempt', lambda j2: {})
     results.append(case('密度豁免没接上代码', 'density_dynamic_range', _density_exempt_ignored))
 
+    # 0b2d. **同音色旋律没被跳过**（2026-10-05 新口径）：把 `_prog_of_track` 换成"每轨都不同音色"
+    #       ⇒ 同音色曲重新参与"音区分离"，全库汇总量掉回门以下 → 检查必须红。
+    #       ⚠ 这条证明的是"同音色跳过被接上了"；它顺带证明"跳过失效会让判据红"
+    #       （否则这条口径就是个装饰品）。
+    def _same_timbre_ignored():
+        return Mut(st, '_prog_of_track', lambda j2, tr: hash(tr) % 100)
+    results.append(case('同音色旋律没被跳过', 'accompaniment_harmony', _same_timbre_ignored))
+
+    # 0b2e. **逐曲音区分离豁免没接上代码**（同上）：`accomp_exempt` 换成"永不豁免"
+    #       ⇒ 已声明 `sep` 的偏低曲重新进统计 → 检查必须红。
+    def _sep_exempt_ignored():
+        return Mut(st, '_exempt_named', lambda j2, key: {})
+    results.append(case('音区分离豁免没接上代码', 'accompaniment_harmony', _sep_exempt_ignored))
+
     # 0b3d. YMT3 引擎轨名表退回原来那 9 个（`Reed`/`Pipe` 被整轨静默丢掉 = 60% 的音）
     def _engine_map_regressed():
         import transcribe_ymt3 as Y

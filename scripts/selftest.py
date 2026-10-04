@@ -5108,6 +5108,20 @@ def _exempt_named(j2, key):
     return {k: v for k, v in ex.items() if isinstance(v, str) and v.strip()}
 
 
+def _prog_of_track(j2, tr):
+    """轨的 **GM program 号**（`song.json.programs` 没写就取引擎默认）。
+
+    用于 `t_accompaniment_harmony` 的"**同音色旋律不判音区分离**"（见该判据 docstring
+    的口径修正①）：bank 号（元组第二项）不参与比较 —— 音色身份只看 program 号。
+    """
+    v = ((j2 or {}).get('programs') or {}).get(tr)
+    if v is None:
+        v = song_engine.DEFAULT_PROGRAMS.get(tr)
+    if isinstance(v, (list, tuple)):
+        return v[0] if v else None
+    return v
+
+
 def _exempt_dims(j2):
     """`patterns.melody_exempt`：旋律维度的**带理由豁免**（口径同 `render.json` 的
     `align_exempt`）—— **理由为空 / 全空白视为没写**，一句空话放行不了任何东西；
@@ -7310,7 +7324,21 @@ def t_accompaniment_harmony():
       ② 伴奏轨（Hook/Piano/Arp/Strings/Pad）的**和弦贴合率 ≥ 95%**
       ③ 旋律与同拍伴奏最高音的**音区分离中位 ≥ 6 半音**（真实模板 +12）
     **判据自证**：把 `TR_SHIFT` 换回旧的半音偏移 → ①②③ 必须同时失败。
-    """
+
+    ⚠ **2026-10-05 两条口径修正**（用户"只把同音色旋律排除出该判据"）：
+      ① **同音色旋律不判音区分离**：旋律与**全部**发声伴奏轨同 program ⇒ 跳过③。
+         为什么（实测）：`bgm35_extract_solo` 的 Melody 160 个音里 **160/160（100%）**
+         在同拍上都能在伴奏 Piano 轨里找到**同音高**；`dear_good_friends` 97/97（100%）、
+         `bgm35_extract_solo_fills` 160/160 —— ③ 的"同拍伴奏最高音"量到的常常
+         **就是旋律自己**（40% / 41% / 76% 的窗口里最高音恰等于旋律音）。
+         同一件乐器（或同一条轨）里抠出来的旋律，不存在"被自己盖住"这回事；
+         本库这类曲目 6 首：`201_asa_learn` · `asa_no_kaori_vel_solo` ·
+         `bgm35_extract_solo{,_fills,_nodrum}` · `dear_good_friends_solo`。
+         ⚠ **只跳过音区分离这一项**，②和弦贴合照判（它对同音色曲同样有效）。
+      ② **逐曲带理由豁免** `patterns.accomp_exempt.sep`（口径同 `accomp_exempt.fit`：
+         理由空白 = 没写 = 不放行）。为什么需要：③ 的汇总量是**全库合并**的，
+         单曲读数会被别的曲平均掉 —— 实测交接那轮里"哪首拖后腿"就被定位错了。
+     """
     import bisect
     import song_engine as SE
     off = {k: v for k, v in SE.TR_SHIFT.items() if v % 12}
@@ -7321,7 +7349,8 @@ def t_accompaniment_harmony():
     if off:
         print('        TR_SHIFT 含非八度移调 %s —— 按效果判据核（不再按形式拦）' % off)
     ACC = ('Hook', 'Piano', 'Arp', 'Strings', 'Pad')
-    fit, sep, checked = [], [], 0
+    fit, checked = [], 0
+    sep_by_song, same_timbre_songs = [], []
     for d in songs_or_fail():
         try:
             data = SE.load(os.path.join(d, 'song.json'))
@@ -7343,12 +7372,22 @@ def t_accompaniment_harmony():
             cn = bar_ch[min(int(bar) % len(bar_ch), len(bar_ch) - 1)]
             e = data['chords'].get(cn)
             return {x % 12 for x in e[1]} if e else set()
+        # ② 伴奏和弦贴合
+        pm = _prog_of_track(data, 'Melody')
+        sounding = [tr for tr in ACC if any(n[3] > 0 for n in ev.get(tr, []))]
+        # ③ **同音色旋律不判音区分离**（见 docstring 的口径修正①）：
+        #    伴奏全是同 program ⇒ ③ 量到的是旋律自己，没有"被盖住"可言。
+        same_timbre = bool(sounding) and not any(
+            _prog_of_track(data, tr) != pm for tr in sounding)
         for tr in ACC:                                     # ② 伴奏和弦贴合
             notes = [n for n in ev.get(tr, []) if n[3] > 0]
             if len(notes) < 40:
                 continue
             ok = sum(1 for (t, _dd, m, _v) in notes if m % 12 in tset(t // B))
             fit.append((os.path.basename(d), tr, ok / len(notes)))
+        if same_timbre:
+            same_timbre_songs.append(os.path.basename(d))
+            continue
         # ③ 音区分离：旋律音 − 同拍（±0.125 拍）伴奏最高音
         acc, _m, clash = [], {}, 0
         for tr in ACC:
@@ -7357,6 +7396,7 @@ def t_accompaniment_harmony():
                     acc.append((round(t, 4), m))
         acc.sort()
         aks = [x[0] for x in acc]
+        _song_sep = []
         for (t, _dd, m, _v) in ev.get('Melody', []):
             i = bisect.bisect_left(aks, t - 0.125)
             hi = None
@@ -7367,9 +7407,10 @@ def t_accompaniment_harmony():
                     clash += 1
                 i += 1
             if hi is not None:
-                sep.append(m - hi)
+                _song_sep.append(m - hi)
+        if _song_sep:
+            sep_by_song.append((os.path.basename(d), _song_sep, clash))
     assert checked >= 5, '带和弦的曲目太少（%d）—— 这条检查会空转' % checked
-    assert len(sep) >= 200, '音区分离的样本太少（%d）—— 这条检查会空转' % len(sep)
     fmin = min(f for _n, _t, f in fit) if fit else 1.0
     # **按曲的带理由豁免**（`patterns.accomp_exempt.fit`，口径同 `melody_exempt`：
     # 理由空白 = 没写 = 不放行）。给的是**还原曲**：它的伴奏音是**抄来的真实演奏**，
@@ -7392,6 +7433,21 @@ def t_accompaniment_harmony():
                 _accomp_ok.append('%s/%s %.0f%%' % (nm, tr, f * 100))
             else:
                 bad.append('%s/%s 和弦贴合只有 %.0f%%' % (nm, tr, f * 100))
+    # ③ 音区分离：**带理由豁免的逐曲整首移出统计**（否则单曲读数被别的曲平均掉 ——
+    #    汇总量正是这条判据上一轮定位错真凶的原因）
+    sep, _sep_ok = [], []
+    for (nm, vals, _cl) in sep_by_song:
+        if 'sep' in _accomp_ex.get(nm, {}):
+            _v = sorted(vals)
+            _sep_ok.append('%s 中位 %+d / 在下 %.0f%%'
+                           % (nm, _v[len(_v) // 2],
+                              100.0 * sum(1 for x in _v if x < 0) / len(_v)))
+            continue
+        sep += vals
+    _nt_same, _nt_all = len(same_timbre_songs), len(sep_by_song) + len(same_timbre_songs)
+    assert len(sep) >= 200, \
+        ('音区分离的样本太少（%d）—— 这条检查会空转（同音色跳过 %d/%d 首）'
+         % (len(sep), _nt_same, _nt_all))
     sep.sort()
     sep_med = sep[len(sep) // 2]
     if sep_med < 6:
@@ -7400,15 +7456,18 @@ def t_accompaniment_harmony():
     if low > 0.15:
         bad.append('旋律有 %.0f%% 的音落在伴奏最高音之下（真实 1%%）' % (low * 100))
     # ③ **半音冲突率**（用户口径"主要是能流畅"的量化；真实曲目 6%）
+    clash = sum(cl for (_nm, _v, cl) in sep_by_song if 'sep' not in _accomp_ex.get(_nm, {}))
     clash_pct = 100.0 * clash / max(1, len(sep))
     if clash_pct > 10:
         bad.append('半音冲突 %.0f%%（门 10%%，真实 6%%）—— 旋律与同拍伴奏差 1 个半音，最刺耳'
                    % clash_pct)
     print('        伴奏和弦贴合最低 %.0f%%（%d 轨）· 音区分离中位 %+d 半音 · 旋律在下 %.0f%%'
-          ' · 半音冲突 %.0f%%%s'
-          % (fmin * 100, len(fit), sep_med, low * 100, clash_pct,
-             ('；%d 处带理由豁免：%s' % (len(_accomp_ok), ' / '.join(_accomp_ok)))
-             if _accomp_ok else ''))
+          ' · 半音冲突 %.0f%%｜同音色不判 %d 首%s%s'
+          % (fmin * 100, len(fit), sep_med, low * 100, clash_pct, _nt_same,
+             ('；%d 处带理由豁免：%s' % (len(_accomp_ok), ' / '.join(_accomp_ok[:6])))
+             if _accomp_ok else '',
+             ('；音区分离豁免 %d 首：%s' % (len(_sep_ok), ' / '.join(_sep_ok)))
+             if _sep_ok else ''))
     # **判据自证**：换回旧的半音偏移 → 贴合率必须崩（旧表实测 15~43%）
     _old = SE.TR_SHIFT
     try:

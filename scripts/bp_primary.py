@@ -569,5 +569,8 @@ def main():
     return 0
 
 
+import cli_utf8 as _cu; _cu.setup()   # 控制台编码兜底（GBK 下打印 ✓ 会崩）
+
+
 if __name__ == '__main__':
     sys.exit(main())

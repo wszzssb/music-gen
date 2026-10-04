@@ -29,7 +29,12 @@ for src, name in SRC:
         print('  跳过（源不存在）：%s' % src)
         continue
     txt = open(src, encoding='utf-8').read()
-    with open(os.path.join(DST, name), 'w', encoding='utf-8') as f:
+    # ⚠ `newline='\n'` 必须写（2026-10-05 实测）：仓库 `.gitattributes` 是 `* text=auto eol=lf`，
+    #   而 Windows 上文本模式写盘会把 `\n` 翻成 `\r\n` ⇒ 备份与仓库行尾不一致，
+    #   `git add` 时刷 "CRLF will be replaced by LF" 警告，且**同一份文件在不同机器上
+    #   检出的行尾随 core.autocrlf 而变**（实测 2026-10-05：宿主的 SHELL-NOTES.md 是 LF，
+    #   而同步出来的备份是 CRLF）。判据本身忽略行尾（只比正文），所以一直没暴露。
+    with open(os.path.join(DST, name), 'w', encoding='utf-8', newline='\n') as f:
         f.write(BANNER % src.replace('\\', '/') + txt)
     print('  %-16s → docs/HOST-DOCS/%-16s (%d 字节)' % (name, name, len(txt)))
 
