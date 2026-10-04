@@ -24,11 +24,13 @@ DEFAULT_PROGRAMS = {
     'Melody': (81, 0), 'Hook': (4, 1), 'Piano': (0, 2), 'Arp': (87, 3),
     'Pad': (89, 4), 'Strings': (48, 5), 'Bass': (38, 6), 'Glock': (9, 7),
     'Perc': (None, 9),
+    # 转录来的鼓（见 `CH` 里那段）：空轨会被 `write_midi` 跳过，所以注册它没副作用
+    'Drums': (None, 9),
 }
 DEFAULT_MIX = {
     'Melody': (76, 100), 'Hook': (48, 80), 'Piano': (86, 76), 'Arp': (92, 58),
     'Pad': (64, 68), 'Strings': (52, 70), 'Bass': (64, 90), 'Glock': (100, 74),
-    'Perc': (64, 80),
+    'Perc': (64, 80), 'Drums': (64, 80),
 }
 
 # ---------------------------------------------------------------- 风格预设
@@ -68,7 +70,17 @@ TR_RANGE = {
 }
 
 CH = {'Melody': 0, 'Hook': 1, 'Piano': 2, 'Arp': 3, 'Pad': 4, 'Strings': 5,
-      'Bass': 6, 'Glock': 7, 'Perc': 9}
+      'Bass': 6, 'Glock': 7, 'Perc': 9,
+      # **转录来的鼓**（2026-10-04 加）：`transcribe_to_song.py` 把扒带的鼓写在
+      # `notes_extra['Drums']`，而引擎的**生成**鼓桶叫 `Perc` —— 键名不一致导致
+      # `if _tr not in ev: continue` 把转录的鼓**整桶丢掉**（实测 `bgm35_reextract`
+      # 转录 3835 个鼓音，`ev` 里只有引擎生成的 `Perc` 2798 ⇒ 响的是凭空鼓）。
+      # 同名同通道（9）注册成第二把"鼓椅"：有转录鼓时用它，两者不会同时非空
+      # （`transcribe_to_song` 的还原路径已把 `arr.perc` 关成 0）。
+      'Drums': 9}
+
+# 有转录鼓时，`arr.perc` 必须为 0（否则两把鼓椅同时响 = 双份鼓点）。
+DRUM_TRACKS = ('Perc', 'Drums')
 
 
 def _progs(**over):
@@ -309,6 +321,13 @@ PAT_KEYS = (
     # 打击乐的**两种登记**（2026-10-04 加，只读留痕）：还原曲"原曲没鼓却加了鼓"是本轮
     # 实测到的真缺陷（1459 音 Perc、12.00s 硬切进来）；有据的写 exempt、查不了的写 unverified。
     'perc_exempt', 'perc_unverified',
+    # **主奏轨声明**（2026-10-04 加，只读留痕，引擎不读）：还原曲按设计没有 `Melody` 轨
+    #   （`--no-melody`），于是"伴奏不许盖过旋律"这条判据**从来没有覆盖过还原曲**
+    #   —— 实测《ほっとティータイム》：用户听感"背景声音压过主旋律"，而 Strings 在
+    #   2.5–5kHz 比主奏轨 Pad 高 **10.9dB**（15/24 段超标，最高 +28.5dB），全量自检全绿。
+    #   ⇒ 还原曲必须**显式声明哪条轨是主奏**（判据来自原曲，见 `lead_evidence`），
+    #   守卫 `t_track_balance` 才判得了它。
+    'lead_track', 'lead_evidence',
     # 钢琴反拍短音的力度/时值（opt-in，缺省 = 老行为逐字节不变）——
     # 只影响钢琴轨的**反拍和弦短音**，见 `piano_part` 的 docstring 与 2026-09-22 消融
     'piano_stab_dur', 'piano_stab_vel', 'hook_stab_vel',
@@ -542,6 +561,45 @@ def strong_beats(meter):
     return [0.0, round(num / 2.0 * unit, 4)]
 
 
+def apply_restore_no_gen(sections, notes_by_track):
+    """**还原曲的生成层默认关 · 输入了哪条轨才开哪条**（逐段判）。
+
+    抽成模块级函数是为了让 `selftest.t_restore_no_autogen` 能**行为测试**它
+    （读源码字面串太脆，注释里提一句旧写法就会误判——同 `transcribe_to_song.gen_layer_on`）。
+
+    为什么要有它：引擎是**作曲器**（生成曲的 song.json 只有和弦+段落，声部全靠它展开），
+    而还原路径是**覆盖式**的（`notes_extra[轨]` → `ev[轨]` 整轨替换）⇒ **没被覆盖的轨
+    就还是生成内容**。实测三代症状：`perc` 凭空 2293 鼓点（用户"吵"）· `bass` 427 音 ·
+    `piano/strings` 各 210 音。判据散在两个文件、语义还不一致 ⇒ 收敛到这一处。
+
+    `notes_by_track`：`{引擎轨名: [(小节, 拍, 时值, 音高, 力度), ...]}`（已剥掉 target 包装）。
+    返回 `{生成层: 开了几段}`（供日志/自检）。**只改"没显式写"的键** —— song.json 明写的优先。
+    """
+    GEN2SRC = {'bass': 'Bass', 'piano': 'Piano', 'strings': 'Strings',
+               'pad': 'Pad', 'glock': 'Glock', 'arp': 'Arp', 'shimmer': 'Arp'}
+    bars_of = {k: {int(n[0]) for n in v} for k, v in notes_by_track.items() if v}
+    bar0, on = 0, {}
+    for s in sections or []:
+        a = s.setdefault('arr', {})
+        explicit = set(a)                     # 显式写了的键：一律尊重
+        nb = int(s.get('bars') or 0)
+        rng = range(bar0, bar0 + nb)
+        for k, src in GEN2SRC.items():
+            if k in explicit:
+                continue
+            has = any(b in bars_of.get(src, ()) for b in rng)
+            a[k] = bool(has)
+            if has:
+                on[k] = on.get(k, 0) + 1
+        for k in ('uku', 'ep'):               # 引擎自有的装饰层：没有来源概念
+            a.setdefault(k, False)
+        if 'perc' not in explicit:
+            a['perc'] = 0                     # 鼓只来自转录（`notes_extra['Drums']`）
+        a.pop('perc_target', None)            # 逐段鼓点目标也属"生成鼓"
+        bar0 += nb
+    return on
+
+
 def load(path):
     try:
         with open(path, encoding='utf-8') as f:
@@ -589,6 +647,31 @@ def load(path):
     mix.update(preset.get('mix', {}))
     mix.update({k: tuple(v) for k, v in d.get('mix', {}).items()})
     d['mix'] = mix
+
+    # ── **还原曲：生成层默认关 · 输入了哪条轨才开哪条**（2026-10-04 定） ──────────
+    # 引擎的身份是**作曲器**（生成曲的 song.json 只有和弦+段落，所有声部都得由它展开）；
+    # 还原路径是**覆盖式**的：`notes_extra` 逐轨 `ev[轨] = …` 整轨替换 ⇒ **没被覆盖的轨
+    # 就还是生成内容**。所以"引擎总是自动生成音轨"不是 bug，是它的默认职责 ——
+    # 缺陷在于还原曲**没把不该生成的层关严**，实测踩了三轮、每次症状都不同：
+    #   · `perc` 按段名判（`'C'/'A'/'Ending'`），而 `--auto` 段名是 `S01…S24` ⇒ **恒真**
+    #     →《ほっとティータイム》凭空 2293 个鼓点，用户听感"吵"；
+    #   · `bass/piano/strings` 硬编码恒开（注释写"关掉会丢转录音"，**读回验证已推翻**）
+    #     → 同一首凭空 427 个贝斯音、两首 douzo 各凭空 210 个弦乐音；
+    #   · `arp/pad/glock/shimmer` 2026-09-25 才改 —— 只有这四个改过。
+    # 逐层关是打地鼠（漏一层就复发）⇒ 判据改成**自动**：
+    #   **有 `notes_extra` 的曲子 = 还原曲** ⇒ 生成层一律默认 **False**，
+    #   **哪条轨在本段有转录音就开哪条**（逐段判，见 `_GEN2SRC`）；`perc` 恒 0
+    #   （鼓来自转录 `notes_extra['Drums']`，见 `CH` 那段）。
+    #   `song.json` 里**显式写了的 `arr` 键优先**（要引擎补声部就明写，别靠默认）。
+    #   **没有 `notes_extra` 的曲子 = 生成曲** ⇒ 一个字都不动（`t_determinism_and_bytes`
+    #   会拿已交付的 .mid 与重跑逐字节比，改坏了当场红）。
+    _ne = d.get('notes_extra') or {}
+    _notes = {k: ((v.get('notes') if isinstance(v, dict) else v) or [])
+              for k, v in _ne.items()}
+    if any(_notes.values()):
+        _on = apply_restore_no_gen(d['sections'], _notes)
+        print('  [还原曲] 生成层默认关 ⇒ 只开有转录音的轨：%s（perc 恒 0，鼓走 Drums 轨）'
+              % ('、'.join('%s %d 段' % (k, v) for k, v in sorted(_on.items())) or '（全关）'))
     # --- 校验：**声明了却不生效的项要报出来**，否则就是"配置写了、声音里没有"（实测踩过：
     # `perc_style: light` + `perc_layers` 静默无效，见坑 81 的姊妹问题）
     lay = d.get('patterns', {}).get('perc_layers')
@@ -1572,6 +1655,17 @@ def build_events(d):
             #   （实测：全曲变成"每段 8 小节都同一套"的假象，鼓型根本没在段内变化）。
             def _band(name, _i=i):
                 """取当前小节该鼓件的 [[格,力度], ...]（兼容"每段一套"与"逐小节"）"""
+                # ⚠ **格式检查**（2026-10-04 加）：`per_bar` 的每一项必须是**按鼓件分键的
+                # dict**（`{'kick': [[格,力度], ...], 'snare': [...]}`，件名 → 条目表）；
+                # 写成"每小节一个扁平列表"（`[[格,力度,音高], ...]`）时，`.get` 会当场
+                # `AttributeError: 'list' object has no attribute 'get'` —— 实测踩过一次，
+                # 报错信息完全看不出"是格式写错了"。音高要写在**条目第三列**
+                # （`grid_entries` 支持 `[格,力度,音高]`），不是用键名当音高。
+                if isinstance(_dg, list):
+                    raise ValueError(
+                        'drum_grid.per_bar[%d] 是 list，必须是**按鼓件分键的 dict**'
+                        '（如 {"shaker": [[格, 力度, 音高], ...]}）—— 见 song_engine.build_events 的 _band'
+                        % (bar0 + i))
                 v = (_dg or {}).get(name) or []
                 if v and isinstance(v[0], list) and v[0] and isinstance(v[0][0], list):
                     return v[_i] if _i < len(v) else []

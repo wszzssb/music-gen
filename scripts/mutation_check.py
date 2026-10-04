@@ -298,13 +298,22 @@ def main():
         return Mut(st, '_density_exempt', lambda j2: {})
     results.append(case('密度豁免没接上代码', 'density_dynamic_range', _density_exempt_ignored))
 
-    # 0b3. 引擎生成层退回"段名规则"（2026-09-25：`--auto` 的段名是 S01…S24，
-    #      任何按 'A'/'B'/'C'/'Ending' 判断的规则对它们**恒为同一个值** → arp/pad/glock/shimmer
-    #      段段全开；实测引子第 1–4 小节转录 0~1 音、引擎却生成 17 音 → 用户"前面有点乱"）
-    def _arr_regressed():
-        import transcribe_to_song as T
-        return Mut(T, 'gen_layer_on', lambda c: True)
-    results.append(case('引擎生成层退回段名规则', 'transcribe_arr_by_source', _arr_regressed))
+    # 0b3d. YMT3 引擎轨名表退回原来那 9 个（`Reed`/`Pipe` 被整轨静默丢掉 = 60% 的音）
+    def _engine_map_regressed():
+        import transcribe_ymt3 as Y
+        return Mut(Y, '_ENGINE_MAP', {
+            'Acoustic Piano': 'Piano', 'Bass': 'Bass', 'Guitar (clean)': 'Hook',
+            'Strings': 'Strings', 'Chromatic Percussion': 'Glock', 'Organ': 'Pad',
+            'Synth Pad': 'Pad', 'Synth Lead': 'Melody', 'Drums': 'Drums'})
+    results.append(case('引擎轨名表退回 9 个（丢 Reed/Pipe）',
+                        'ymt3_engine_map_covers_names', _engine_map_regressed))
+
+    # 0b3e. **丢轨报告失效**（回到"静默丢"：产物看着正常、音没了）
+    def _unmapped_silent():
+        import transcribe_ymt3 as Y
+        return Mut(Y, 'unmapped_tracks', lambda m: [])
+    results.append(case('丢轨报告失效（退回静默丢）',
+                        'ymt3_engine_map_covers_names', _unmapped_silent))
 
     # 0b4. 逐段读数退化成"整曲一段"（2026-09-25 用户口径："以后要全曲读的先看看要不要分段"）
     def _whole_song():
@@ -2875,6 +2884,81 @@ def main():
     results.append(case('力度留痕键没进 PAT_KEYS（渲染时刷"不认识"）',
                         'restore_velocity_wired', _vel_key_unregistered))
 
+    # 78. **还原曲的轨间平衡**（2026-10-04）：判据此前只覆盖有 theme/style 的生成曲，
+    #     还原曲（没有 `Melody` 轨）**从来查不到** —— 实测《ほっとティータイム》用户听感
+    #     "背景声音压过主旋律"，Strings 比主奏 Pad 高 10.9dB（15/24 段、最高 +28.5dB），
+    #     而全量自检全绿。注入两个坏法：① 判据比较函数恒假；② 声明键没进 PAT_KEYS。
+    def _balance_always_ok():
+        import selftest as _st
+        return Mut(_st, '_balance_violates', lambda *a, **k: False)
+    results.append(case('轨间平衡：判据比较恒假（永远不超标）', 'track_balance', _balance_always_ok))
+
+    def _lead_key_unregistered():
+        import song_engine as _se2
+        return Mut(_se2, 'PAT_KEYS',
+                   tuple(k for k in _se2.PAT_KEYS if k != 'lead_track'))
+    results.append(case('还原曲主奏声明键没进 PAT_KEYS', 'track_balance', _lead_key_unregistered))
+
+    # 79. **还原曲的生成层自动判定**（2026-10-04，用户连问两轮"为什么总是自动生成音轨"/
+    #     "能不能关掉"）：判据收敛到 `song_engine.apply_restore_no_gen`。
+    #     注入两个坏法：① 整个函数退化成 no-op（= 回到"没被覆盖的轨就是生成内容"）；
+    #     ② 只把 perc 那一行改回"恒开"（最常见的那种漏一层）。
+    def _nogen_noop():
+        import song_engine as _se3
+        return Mut(_se3, 'apply_restore_no_gen', lambda sections, notes: {})
+    results.append(case('还原曲生成层自动判定失效（no-op）', 'restore_no_autogen', _nogen_noop))
+
+    class _PercAlwaysOn:
+        def __enter__(self):
+            import song_engine as _se4
+            self.m = _se4
+            self.old = _se4.apply_restore_no_gen
+
+            def patched(sections, notes):
+                on = self.old(sections, notes)
+                for s in sections or []:
+                    (s.setdefault('arr', {}))['perc'] = 2
+                return on
+            _se4.apply_restore_no_gen = patched
+            return self
+
+        def __exit__(self, *a):
+            self.m.apply_restore_no_gen = self.old
+    results.append(case('perc 那一行改回"恒开"', 'restore_no_autogen', _PercAlwaysOn))
+
+    # 80. **BP 为主的转录工具**（`bp_primary.py`）：它的价值全在**两把尺子 + 归属规则**上，
+    #     三者都会静默退化成"永远返回真"。注入四个坏法（2026-10-04）：
+    #     ① 鼓尺子自检恒真（那它就挡不住任何东西 —— 本项目已三次栽在"自检不过还量真音频"）；
+    #     ② 速度尺子自检恒真（同一天它连错两版：131.2 / 175.0 BPM 的假峰）；
+    #     ③ 音区兜底四档压平成一条轨（= 实测 BP 路径"归属塌成两条轨"那类病）；
+    #     ④ bass 能量门失效（会把底鼓当贝斯）。
+    def _drum_gate_always_true():
+        import bp_primary as _bp1
+        return Mut(_bp1, 'drum_selftest', lambda *a, **k: True)
+    results.append(case('BP 工具：鼓尺子自检恒真', 'bp_primary_contracts',
+                        _drum_gate_always_true))
+
+    def _tempo_ruler_always_true():
+        import bp_primary as _bp2
+        return Mut(_bp2, 'tempo_selftest', lambda *a, **k: True)
+    results.append(case('BP 工具：速度尺子自检恒真', 'bp_primary_contracts',
+                        _tempo_ruler_always_true))
+
+    def _fallback_flat():
+        import bp_primary as _bp3
+        return Mut(_bp3, 'fallback_track', lambda p: 'Hook')
+    results.append(case('BP 工具：音区兜底压平成一条轨', 'bp_primary_contracts', _fallback_flat))
+
+    def _bass_gate_off():
+        import bp_primary as _bp4
+        _orig = _bp4.assign
+
+        def patched(bp_notes, prior=None, gate=None):
+            return _orig(bp_notes, prior, None)      # 把能量门丢掉
+        return Mut(_bp4, 'assign', patched)
+    results.append(case('BP 工具：bass 能量门失效（底鼓当贝斯）', 'bp_primary_contracts',
+                        _bass_gate_off))
+
     def _vel_stem_pairing_wrong():
         import transcribe_to_song as _tts
         bad = dict(_tts.STEM_FILE)
@@ -2921,6 +3005,126 @@ def main():
         return Mut(_L, 'song_dirs', old)
     results.append(case('曲库不去重（符号链接导致每首扫两遍）',
                         'lib_scanners_ruler', _lib_scan_double_counts))
+
+    # 81. **"去鼓版"（`strip_drums.py`）与本轮修的两条判据**（2026-10-04）。
+    #     三个坏法都是**静默**的：命令 exit 0、MIDI 合法、鼓却回来了或判据又恒真。
+    def _strip_grid_kept():
+        import strip_drums as _SD
+        _orig = _SD.strip
+        return Mut(_SD, 'strip', lambda d: _orig(d) and d['patterns'].__setitem__(
+            'drum_grid', {'per_bar': [{'snare': [[0, 100]]}]}))
+    results.append(case('去鼓：网格没删（鼓会照网格重生）',
+                        'strip_drums_contracts', _strip_grid_kept))
+
+    def _verify_blind():
+        import strip_drums as _SD
+        return Mut(_SD, 'verify_midi', lambda p: (True, [], []))
+    results.append(case('去鼓：独立核对尺子恒判"无鼓"',
+                        'strip_drums_contracts', _verify_blind))
+
+    def _restore_perc_explicit():
+        """**对照组**：还原曲的 `arr.perc` 显式为真（老代码写死的 2）时，不许再报"通道冲突"。
+
+        现场（2026-10-04）：`asa_no_kaori` 的 `arr.perc` 全段写着 2，而 `notes_extra.Drums`
+        只有 **1 个**音 —— 它被判 "`Perc` 与 `Drums` 都用通道 9" 是**假冲突**（数据合法：
+        还原曲的 `Perc` 由 `apply_restore_no_gen` 恒置 0，鼓只来自转录轨）。
+        本用例把"显式值优先"这条（引擎语义，见 `t_restore_no_autogen` ②）注入成
+        "自动判定强行把 `perc` 写成 2" —— 数据仍是合法的还原曲，判据**必须照样通过**。
+        没有这类夹具曲目时跳过（它会被删，硬编码曲名不该把整轮弄崩）。"""
+        import song_engine as _se5
+        _orig = _se5.apply_restore_no_gen
+
+        def patched(sections, notes_by_track=None):
+            on = _orig(sections, notes_by_track)
+            for s in sections:
+                s.setdefault('arr', {})['perc'] = 2      # 无视"显式优先"，强行开生成鼓
+            return on
+        if not os.path.exists(os.path.join(ROOT, 'songs', 'asa_no_kaori', 'song.json')):
+            raise SkipCase('没有 asa_no_kaori 当"arr.perc 显式开着"的夹具')
+        return Mut(_se5, 'apply_restore_no_gen', patched)
+    results.append(case_dual('还原曲 arr.perc 显式为真（对照组，不该报）',
+                             'channels_and_programs', _restore_perc_explicit,
+                             expect_caught=False))
+
+    # ⚠ 这里**故意不写**"两把鼓椅都有音 ⇒ 判红"的注入：那条状态在本管线里**到不了**
+    #   （`apply_restore_no_gen` 对还原曲恒置 `perc: 0`，鼓只可能来自转录 `Drums` 轨；
+    #   见 `song_engine.DRUM_TRACKS`）。变异用例只注**到得了**的故障 ——
+    #   注一个只能靠手改数据复现的状态，等于给自己造一条假防线（坑 251 的同族）。
+
+    # 82. **逐轨精度审计的尺子**（`audit_stems.py`，2026-10-04 用户："应用到以后的所有音乐生成和提取上"）。
+    #     这套判据的价值全在"尺子可信"，而它有两处会静默退化（都是"看起来还在量"）：
+    #     ① 音高带门被放到 0/大 → 谁都算命中（精度虚高）；
+    #     ② 静音窗不返回 None 而返回 0 → "分轨没声"被算成"空音"（精度虚低）。
+    def _hit_gate_loose():
+        import audit_stems as _AS
+        return Mut(_AS, 'HIT', 0.0)
+    results.append(case('精度审计：命中门放到 0（谁都算命中）',
+                        'audit_stems_contracts', _hit_gate_loose))
+
+    def _silence_returns_zero():
+        import audit_stems as _AS
+        _orig = _AS._ratio
+
+        def patched(mono, sr, t, f0):
+            r = _orig(mono, sr, t, f0)
+            return 0.0 if r is None else r        # 静音不再返回 None
+        return Mut(_AS, '_ratio', patched)
+    results.append(case('精度审计：静音窗返回 0（精度被压低）',
+                        'audit_stems_contracts', _silence_returns_zero))
+
+    def _stem_map_incomplete():
+        import audit_stems as _AS
+        bad = dict(_AS.STEM_OF)
+        bad.pop('Glock', None)
+        return Mut(_AS, 'STEM_OF', bad)
+    results.append(case('精度审计：映射表漏轨（该轨静默跳过）',
+                        'audit_stems_contracts', _stem_map_incomplete))
+
+    # 83. **两个闸门**（2026-10-04 泛化测试补，用户："都修一下"）。三个坏法都静默：
+    #     ① "整层缺失"档被摘掉 → 只吐一层的曲子（13 个解码通道出 1 个）在报告里看不出问题；
+    #     ② 准入门被放到"恒可修" → 上游坏掉的曲子照样进"去鼓/补层"（实测浪费一整天）；
+    #     ③ 解码撞上限不再拦 → 逐音精度 4.8% 的转录被一路接续成 song.json。
+    def _missing_layer_check_off():
+        import audit_stems as _AS
+        return Mut(_AS, 'LAYER_COVER_FRAC', 0.0)     # 覆盖 0% 也算"够了" ⇒ 档位形同虚设
+    results.append(case('精度审计：整层缺失档被摘掉（覆盖门放 0）',
+                        'audit_stems_contracts', _missing_layer_check_off))
+
+    def _gate_always_fixable():
+        import audit_stems as _AS
+        return Mut(_AS, 'PREC_GATE', 0.0)
+    results.append(case('准入闸门：精度门放到 0（恒可修）',
+                        'audit_stems_contracts', _gate_always_fixable))
+
+    def _decode_cap_ignored():
+        import transcribe_ymt3 as _TY
+        return Mut(_TY, 'DECODE_CAP_WARN', 9999)
+    results.append(case('解码撞上限不再拦（阈值放到天上）',
+                        'audit_stems_contracts', _decode_cap_ignored))
+
+    def _drum_source_bp_default():
+        """**鼓的来源退回"BP 优先"**（用户 2026-10-04："BP 的鼓搞不好就还是用 YMT3"）。
+
+        现场：BP 路径的鼓由"分轨起音分频"造，判据自检 3/3 通过，却在《どうぞめしあがれ》
+        上塞了 638/795 个军鼓（每小节 14/17 点），而原曲 `drums` 分轨 RMS −34.2dB、
+        几乎没有 <120Hz ⇒ **原曲没有鼓组**（`PITFALLS` 316）。⇒ 默认必须是 YMT3 的鼓。
+        注入方式：守卫读的是 `inspect.getsource(main)`（源码文本），所以**真的改文本**再喂给它
+        —— 比"把函数换掉"更贴实地模拟"有人把默认值改回 bp 并提交"。"""
+        import inspect as _ins
+        _orig = _ins.getsource
+        _cache = {}
+
+        def fake(obj, *a, **k):
+            src = _cache.get(id(obj))
+            if src is None:
+                src = _orig(obj, *a, **k)
+                if getattr(obj, '__name__', '') == 'main':
+                    src = src.replace("default='ymt3'", "default='bp'")
+                _cache[id(obj)] = src
+            return src
+        return Mut(_ins, 'getsource', fake)
+    results.append(case('BP 鼓来源退回 BP 优先（默认该是 YMT3）',
+                        'bp_primary_contracts', _drum_source_bp_default))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):

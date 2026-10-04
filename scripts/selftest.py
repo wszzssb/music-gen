@@ -747,13 +747,58 @@ def t_restore_velocity_wired():
     #    `transcribe_ymt3.py`（YMT3 → 切轨 → 调 transcribe_to_song），它不传 ⇒
     #    照官方入口跑出来的曲子力度**依旧恒 100**（实测 BGM35 的 Piano 2655 个音里
     #    2375 个是 100、Pad/Glock 各只有 1 种力度）。
+    #    ⚠ **2026-10-04 改成行为测试**：原来只断言"源码文本里有 `--stems-dir`" +
+    #      `inspect.signature` 里有 `stems_dir` —— 而变异用例 76c 是把
+    #      `_run_song_pipeline` **整个换成 no-op**，文本与签名**照样在** ⇒
+    #      那条变异长期显示「**漏了**」（实测 275/276）。**坏不了的检查等于没检查。**
+    #      现在改成：真调一次，把它发出的命令**截获**下来看有没有 `--stems-dir`。
     import inspect
+    import subprocess as _sub
     import transcribe_ymt3 as ty
     ysrc = open(os.path.join(HERE, 'transcribe_ymt3.py'), encoding='utf-8').read()
     assert '"--stems-dir"' in ysrc, 'transcribe_ymt3.py 没有 --stems-dir 开关'
-    params = inspect.signature(ty._run_song_pipeline).parameters
-    assert 'stems_dir' in params, \
+    assert 'stems_dir' in inspect.signature(ty._run_song_pipeline).parameters, \
         'transcribe_ymt3._run_song_pipeline 没接 stems_dir ⇒ 官方入口跑出来还是打字机'
+    _cw = os.path.join(TMP, 'chain_wired')
+    os.makedirs(_cw, exist_ok=True)
+    _aud = os.path.join(_cw, 'a.wav')
+    sf.write(_aud, (np.sin(2 * np.pi * 440 * np.arange(22050 * 3) / 22050) * 0.5).astype('float32'),
+             22050)
+    _cmid = os.path.join(_cw, 'c.mid')
+    midi_file.export_midi({'format': 1, 'division': 480, 'bpm': 120.0,
+                           'timesig': [4, 4], 'end_beat': 4.0, 'title': 't',
+                           'tracks': [{'index': 0, 'name': 'Acoustic Piano', 'channel': 0,
+                                       'program': 0, 'drum': False, 'mute': False,
+                                       'solo': False, 'hidden': False,
+                                       'notes': [[float(i), 0.4, 60, 100] for i in range(4)],
+                                       'ccs': [], 'program_changes': [], 'markers': []}]}, _cmid)
+
+    class _FakeCP:
+        returncode = 0
+        stdout = ''
+        stderr = ''
+
+    _calls = []
+
+    def _fake_run(cmd, *a, **k):
+        _calls.append(cmd)
+        return _FakeCP()
+
+    _orig_run = _sub.run          # ⚠ `_run_song_pipeline` 内部才 `import subprocess`，
+    _sub.run = _fake_run          #    所以要打在 **subprocess 模块本身**上（不是 ty 的属性）
+    try:
+        ty._run_song_pipeline(_aud, _cmid, _cw, 'wiredtest',
+                              stems_dir=os.path.join(_cw, 'stems'))
+    finally:
+        _sub.run = _orig_run
+    _cmds = [' '.join(str(x) for x in c) if isinstance(c, (list, tuple)) else str(c)
+             for c in _calls]
+    _hit = [c for c in _cmds if 'transcribe_to_song.py' in c]
+    assert _hit, ('`_run_song_pipeline` 压根没调 transcribe_to_song'
+                  '（被换成 no-op 了？截获到的命令：%r）' % (_cmds,))
+    assert '--stems-dir' in _hit[0], (
+        '官方入口发出的命令里没有 `--stems-dir` ⇒ 照官方入口跑出来的曲子力度恒 100'
+        '（截获到：%s）' % _hit[0])
 
 
 @check
@@ -1108,6 +1153,7 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
              os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF-FAILS7.md'),
              os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'),
              os.path.join(ROOT, 'studio', 'README.md'),
              os.path.join(os.path.expanduser('~'), '.dsh', 'skills',
@@ -1691,17 +1737,66 @@ def t_styles_channels_and_programs():
 
 @check
 def t_channels_and_programs():
-    """每首歌的 MIDI 通道不重复（否则后一个 program change 会盖掉前一个）、program 合法"""
+    """每首歌的 MIDI 通道不重复（否则后一个 program change 会盖掉前一个）、program 合法
+
+    ⚠ **"占通道"只算真有音的轨**（2026-10-04 修）。原判据拿 `data['programs']` 逐键查重，
+    而 2026-10-04 那天引擎新增了第二把"鼓椅" `Drums`（`DEFAULT_PROGRAMS` 里
+    `Perc`/`Drums` 都是 `(None, 9)`，见 `song_engine.DRUM_TRACKS`）⇒ 于是**每一首**
+    曲目都恒报 "$X 与 $Y 都用通道 9"，而其中一把椅子**一个音都没有**。
+    实测现场（同一天两处）：`douzo_ymt3` 的**去鼓版**被判"数据契约未通过"（那份数据
+    完全合法 —— `write_midi` 只写**非空**轨 `if not ev.get(name): skipped.append(name)`，
+    两把鼓椅不可能同时响，去鼓版正是这条语义的一个实例）；紧接着 `100_battle_dawn`
+    （生成曲）也被同一条判红。
+    新口径 = 引擎口径 + "人手写的配置要认"：轨**真的会产出音**、或**`song.json` 里
+    亲手写了 `programs[轨]`**，才算占通道 ——
+    · **还原曲**（有任何 `notes_extra` 转录音）⇒ 发声的只有**有转录音的轨**
+      （`apply_restore_no_gen`：生成层默认全关、`perc` 恒 0、鼓只走 `Drums` 轨 ——
+      所以 `asa_no_kaori` 那类"`arr.perc` 全开但转录鼓只有 1 个音"的曲子，
+      `Perc` 是不出声的，不该来抢通道 9）；
+    · **生成曲**（没有转录音）⇒ `arr` 里显式打开的层发声（引擎按它展开声部）。
+    引擎**补齐**的默认项（生成曲的 `Perc`/`Drums`、`DEFAULT_PROGRAMS` 里的预设声部）
+    若既没音、又没被手写进 `song.json`、也没 `arr` 开关，就不算占通道
+    （`write_midi` 压根不写它们）。
+    ⚠ **两把鼓椅之间不算冲突**（`prog is None` 那一档）：`Perc`/`Drums` 同占通道 9 是引擎
+    **设计**（`DRUM_TRACKS`：有转录鼓时用 `Drums`、没有才用生成的 `Perc`），而
+    `douzo_ymt3`/`bgm35_extract`/`dear_good_friends` 这批还原曲的 `arr` 是**旧代码写死的**
+    （`perc: 2` 全段），于是"两面都写着开着"却只有一把真有音 —— 判红就是假冲突。
+    真冲突（两条**带音色**的轨抢通道，如 `Hook` 与 `Bass` 都是 1）照样判红
+    （变异用例"两轨用同一 MIDI 通道"仍红 —— ⚠ 这条**必须保留**：只按"有音"判时，
+    那张临时夹具里 `Bass` 没写 `notes_extra` ⇒ 冲突当场漏抓，是本轮变异测试自己抓出来的）。
+    """
     for d in songs_or_fail():
         name = os.path.basename(d)
-        data = song_engine.load(os.path.join(d, 'song.json'))
+        path = os.path.join(d, 'song.json')
+        data = song_engine.load(path)
+        try:                       # 手写的 programs（引擎补齐的那份在 `data` 里）
+            with open(path, encoding='utf-8') as f:
+                raw_prog = set((json.load(f).get('programs') or {}).keys())
+        except Exception:                                  # noqa: BLE001
+            raw_prog = set()
+        ne = data.get('notes_extra') or {}
+        _notes = {tr: ((v.get('notes') if isinstance(v, dict) else v) or [])
+                  for tr, v in ne.items()}
+        restore = any(_notes.values())          # 还原曲：引擎只让"有转录音"的轨发声
+        on = set()                              # 生成曲：某段的 arr 显式打开的层
+        if not restore:
+            for sec in data.get('sections') or []:
+                for k, v in (sec.get('arr') or {}).items():
+                    if v:
+                        on.add(k.lower())
+        in_use = set()
+        for tr in data['programs']:
+            if _notes.get(tr) or tr.lower() in on or tr in raw_prog:
+                in_use.add(tr)
         seen = {}
         for tr, (prog, chan) in data['programs'].items():
             assert 0 <= chan <= 15, '%s/%s 通道非法 %s' % (name, tr, chan)
-            if chan in seen:
+            # 鼓组轨（prog 为 None）= 引擎管理的"鼓椅"，与另一把鼓椅同占通道 9 属设计内
+            if tr in in_use and prog is not None and chan in seen:
                 raise AssertionError('%s: %s 与 %s 都用通道 %d（音色会互相覆盖）'
-                                     % (name, tr, seen[chan], chan))
-            seen[chan] = tr
+                                     % (name, seen[chan], tr, chan))
+            if tr in in_use and prog is not None:
+                seen[chan] = tr
             if prog is not None:
                 assert 0 <= prog <= 127, '%s/%s program 非法 %s' % (name, tr, prog)
             else:
@@ -1841,13 +1936,71 @@ def t_track_balance():
             continue
         checked += 1
         top_k = max(rest, key=lambda k: rest[k])
-        if rest[top_k] > mel + 6.0:
+        if _balance_violates(mel, rest[top_k]):
             bad.append('%s: %s %.1fdB 比 Melody %.1fdB 高 %.1fdB' % (
                 os.path.basename(os.path.dirname(p)), top_k, rest[top_k],
                 mel, rest[top_k] - mel))
     assert checked >= 1, '没有可查的曲目（夹具太少，这条检查会空转）'
     assert not bad, '伴奏盖住旋律（"一轨和其它不平衡"）：%s' % '；'.join(bad)
-    print('        %d 首：伴奏轨都未盖过旋律（阈值 +6dB，用未归一化 raw 量）' % checked)
+    print('        %d 首生成曲：伴奏轨都未盖过旋律（阈值 +6dB，用未归一化 raw 量）' % checked)
+
+    # ── 2026-10-04 补：**还原曲也要判**（判据此前从未覆盖到它们） ──────────────────
+    #   还原曲按设计没有 `Melody` 轨（`--no-melody` 清空），而上面那段还要求
+    #   `style ∈ (dance, daily)` + 有 `theme` ⇒ **还原曲一律被跳过**。
+    #   实测《ほっとティータイム》：用户听感"背景声音压过主旋律"，Strings 在 2.5–5kHz
+    #   比主奏轨 Pad 高 **10.9dB**（15/24 段超标、最高 +28.5dB），而全量自检**全绿**。
+    #   ⇒ 还原曲必须显式声明主奏轨 `patterns.lead_track`（判据来自**原曲**，
+    #   实测数字记在 `patterns.lead_evidence`）。没声明**打印出来**（缺口要可见），
+    #   声明了就按同一把尺子判。
+    assert 'lead_track' in song_engine.PAT_KEYS, \
+        'patterns.lead_track 没进 PAT_KEYS ⇒ 渲染时每个还原曲都会刷"引擎不认识这个键"'
+    # 判据自证：比较函数两个方向都要成立（否则"永远不超标"也能算通过）
+    assert _balance_violates(20.0, 27.0) and not _balance_violates(20.0, 25.0), \
+        '判据自证失败：+6dB 边界判反了（或恒真/恒假）'
+    r_bad, r_checked, undeclared = [], 0, []
+    for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
+        if r_checked >= 2:               # 逐轨 solo 要渲染 N 次，全库跑太慢
+            break
+        try:
+            d = song_engine.load(p)
+        except Exception:                                          # noqa: BLE001
+            continue
+        _ne = d.get('notes_extra') or {}
+        if not any((v.get('notes') if isinstance(v, dict) else v) for v in _ne.values()):
+            continue                     # 生成曲已在上面判过
+        nm = os.path.basename(os.path.dirname(p))
+        lead = str((d.get('patterns') or {}).get('lead_track') or '').strip()
+        if not lead:
+            undeclared.append(nm)
+            continue
+        by = {r['name']: r['abs']['2500-5000'] for r in pt.solo_song(p)}
+        if lead not in by:
+            undeclared.append('%s（lead_track=%s 但该轨没有 solo 数据）' % (nm, lead))
+            continue
+        rest = {k: v for k, v in by.items()
+                if k in ('Hook', 'Arp', 'Strings', 'Pad', 'Piano') and k != lead}
+        if not rest:
+            continue
+        r_checked += 1
+        top_k = max(rest, key=lambda k: rest[k])
+        if _balance_violates(by[lead], rest[top_k]):
+            r_bad.append('%s: 主奏 %s %.1fdB，伴奏 %s %.1fdB 高 %.1fdB'
+                         % (nm, lead, by[lead], top_k, rest[top_k],
+                            rest[top_k] - by[lead]))
+    assert not r_bad, '还原曲里伴奏盖过主奏：%s' % '；'.join(r_bad)
+    if r_checked:
+        print('        %d 首还原曲：按 `patterns.lead_track` 判，伴奏均未盖过主奏' % r_checked)
+    if undeclared:
+        print('        ⚠ %d 首还原曲**没声明主奏轨**（判不了，缺口可见）：%s'
+              % (len(undeclared), '、'.join(undeclared[:5])))
+
+
+def _balance_violates(lead_db, accomp_db, thr=6.0):
+    """伴奏是否盖过主奏 —— **抽成模块级函数**，好让自检做判据自证、让变异能注入。
+
+    口径与 `t_track_balance` 一致：伴奏比主奏高 **超过 thr dB** 才算盖住。
+    """
+    return accomp_db > lead_db + thr
 
 
 @check
@@ -8953,31 +9106,485 @@ def t_vote_views_plan():
 
 
 @check
-def t_transcribe_arr_by_source():
-    """**引擎生成层必须按来源开关**（退回"段名规则"会让它段段全开）。
+def t_ymt3_engine_map_covers_names():
+    """**YMT3 写出的每个轨名都要有引擎归属** —— 否则那条轨被整轨**静默丢掉**。
 
-    依据（2026-09-25 实测 · 扒《......已至。》，用户听感"**前面有点乱**"）：
-    `transcribe_to_song.py` 的 `arr` 原来按**段名**判断 —— `'arp': nm not in ('C', 'Ending')`，
-    而它自己 `--auto` 生成的段名是 **`S01…S24` + `Ending`** → 该条件**恒为 True**，
-    引擎**凭空生成**的层（arp / pad / glock / shimmer）**每一段**都开着。
-    后果：引子第 1–4 小节转录只有 **0~1 个音**，引擎却生成了 **Arp 13 + Pad 4** 个音 ——
-    开头的主角成了原曲根本没有的琶音与垫子。
-    正解见 `transcribe_to_song.gen_layer_on`：**只看本段有没有该来源的转录音**。
-    **判据自证**：把判据换成"恒 True"（= 旧段名规则在 `S01…S24` 上的实际行为）→ 必须判坏。
+    依据（2026-10-04 实测 · 《ほっとティータイム》）：`_ENGINE_MAP` 只有 9 个名字，
+    而 YMT3 的轨名来自它自己的族表（`amt/src/config/vocabulary.py` 的
+    `GM_INSTR_EXT_CLASS`，**15 个**）—— `Reed`(610 音) 与 `Pipe`(53 音) 不在表里，
+    于是被整轨丢掉：1101 音丢 **663 = 60%**，恰是内容最多的两条，
+    而**产物零报错、从任何角度看都正常**（这一条是"工具不报错 ≠ 生效"的另一种形态：
+    它连"改了没生效"都算不上，是**内容直接消失**）。
+
+    判据两向：
+      · **契约向**：`YMT3_TRACK_NAMES` 每个名字都必须映射到 `transcribe_to_song.TRACKS`
+        里真实存在的引擎轨名（映射到不存在的名字 = 换个法子的丢）
+      · **行为向**：`unmapped_tracks()` 必须把没覆盖的轨**报出来**（返回，不是打印完就算）
+
+    ⚠ `YMT3_TRACK_NAMES` 抄的是**外部仓库的常量**（别处没有那个仓库时读不到）——
+      比的是"契约 vs 映射表"、与仓库在不在无关，所以换机器不会假 FAIL；
+      但**换权重/换 YourMT3 版本后要重核** `vocabulary.py` 的族表。
     """
+    import transcribe_ymt3 as _Y
     import transcribe_to_song as _T
-    assert _T.gen_layer_on(0) is False, (
-        'gen_layer_on(0) 必须为 False —— 本段没有该来源的转录音时，引擎不许凭空生成这一层')
-    assert _T.gen_layer_on(3) is True, 'gen_layer_on(3) 必须为 True（有来源就该开）'
-    _src = open(os.path.join(HERE, 'transcribe_to_song.py'), encoding='utf-8').read()
-    _body = _src.split('def gen_layer_on', 1)[-1]
-    for _k in ("'arp': gen_layer_on(", "'pad': gen_layer_on(", "'glock': gen_layer_on(",
-               "'shimmer': gen_layer_on("):
-        assert _k in _body, 'arr 里的 %s 没走 gen_layer_on（会被"段名规则"重新写死）' % _k
-    # 判据自证：换成恒 True 后，上面第一条断言必须失败
-    _bad = lambda c: True                                            # noqa: E731
-    assert not (_bad(0) is False), '判据自证失败：恒 True 仍被判为"按来源"'
-    return '生成层按来源开关（arr 的 arp/pad/glock/shimmer 走 gen_layer_on）'
+    miss = [n for n in _Y.YMT3_TRACK_NAMES if n not in _Y._ENGINE_MAP]
+    assert not miss, (
+        'YMT3 会写出、但引擎轨名表里没有的名字：%s ⇒ 这些轨会被**整轨静默丢掉**'
+        '（实测丢过 60%% 的音）。补进 `transcribe_ymt3._ENGINE_MAP`，'
+        '值取 `transcribe_to_song.TRACKS` 里的一条：%s' % (miss, list(_T.TRACKS)))
+    bad = sorted({_Y._ENGINE_MAP[n] for n in _Y.YMT3_TRACK_NAMES} - set(_T.TRACKS))
+    assert not bad, ('引擎轨名表映射到了**不存在的引擎轨**：%s（合法值：%s）'
+                     % (bad, list(_T.TRACKS)))
+    # 行为向：造一条"没被覆盖"的轨，必须被报出来
+    _m = {'tracks': [{'name': 'Acoustic Piano', 'notes': [[0, 1, 60, 100]]},
+                     {'name': 'Theremin From Mars', 'notes': [[0, 1, 61, 100], [1, 1, 62, 100]]}]}
+    _got = _Y.unmapped_tracks(_m)
+    assert _got == [('Theremin From Mars', 2)], (
+        'unmapped_tracks 必须报出未映射的轨（拿到 %r）—— 静默返回空 = 退回"静默丢轨"'
+        % (_got,))
+    assert _Y.unmapped_tracks({'tracks': [{'name': 'Reed',
+                                           'notes': [[0, 1, 60, 100]]}]}) == [], (
+        'Reed 现在必须在映射表里（实测它正是被丢掉的那条 · 610 音）')
+    return ('引擎轨名表覆盖 YMT3 全部 %d 个轨名 · 未映射的轨会被**报出**（不再静默丢）'
+            % len(_Y.YMT3_TRACK_NAMES))
+
+
+@check
+def t_restore_no_autogen():
+    """**还原曲不许自动生成音轨**：成品里出现的轨 == 转录（`notes_extra`）里有的轨。
+
+    为什么有这条（2026-10-04，用户连着问了两轮"为什么总是自动生成音轨"/"能不能关掉"）：
+      引擎是**作曲器**（生成曲的 song.json 只有和弦+段落，声部全靠它展开），
+      而还原路径是**覆盖式**的 —— `notes_extra[轨]` 只是 `ev[轨]` 的整轨替换
+      ⇒ **没被覆盖的轨仍然是生成内容**。判据此前散在两个文件、语义还不一致，
+      实测三代症状、每轮修一层：
+        · `perc` 按段名判（`'C'/'A'/'Ending'`），`--auto` 段名 `S01…S24` ⇒ **恒真**
+          →《ほっとティータイム》凭空 2293 鼓点、逐秒起音 1098 vs 原曲 253（用户"吵"）；
+        · `bass/piano/strings` 硬编码恒开 → 同曲凭空 427 贝斯音 · 两首 douzo 各 210 弦乐音；
+        · `arp/pad/glock/shimmer` 2026-09-25 才改。
+      现在收敛到 `song_engine.apply_restore_no_gen`：**有 notes_extra = 还原曲** ⇒
+      生成层默认 **False**、只开"本段有转录音"的轨；`perc` 恒 0。
+
+    判据两向 + 自证：
+      · **还原向**：拿库内真还原曲跑 `build_events`，`ev` 里的**非空轨**必须都在
+        `notes_extra` 里（多出来的就是凭空生成）；
+      · **生成向**（对照组）：**没有** `notes_extra` 的曲子**一个 `arr` 键都不许被改**
+        （否则生成曲会被这条规则误伤 —— `t_determinism_and_bytes` 是它的下游保险）；
+      · **判据自证**：把 `apply_restore_no_gen` 换成"什么都不做"，还原向必须判坏。
+    """
+    import song_engine as se
+    # ① 行为：函数本身必须真的关（直接喂合成输入，不依赖库内数据）
+    secs = [{'name': 'S01', 'bars': 2}, {'name': 'S02', 'bars': 2}]
+    notes = {'Piano': [[1, 0.0, 1.0, 60, 90]], 'Drums': [[0, 0.0, 0.5, 36, 90]]}
+    on = se.apply_restore_no_gen(secs, notes)
+    assert on.get('piano') == 1, 'piano 只该在第 2 段开（那段才有转录音），拿到 %r' % (on,)
+    for k in ('bass', 'strings', 'pad', 'glock', 'arp', 'shimmer', 'uku', 'ep'):
+        assert secs[0]['arr'].get(k) in (False, 0, None), \
+            '第 1 段没有转录音，`arr.%s` 必须是关的（拿到 %r）' % (k, secs[0]['arr'].get(k))
+    assert all(s['arr'].get('perc') == 0 for s in secs), 'perc 必须恒 0（鼓只来自转录）'
+    # **显式值优先**：song.json 明写的不能被自动判定顶掉
+    secs2 = [{'name': 'S01', 'bars': 2, 'arr': {'perc': 2}}]
+    se.apply_restore_no_gen(secs2, {})
+    assert secs2[0]['arr']['perc'] == 2, '显式写的 arr.perc 被自动判定顶掉了（说明"显式优先"坏了）'
+    # ② 还原向：库内真还原曲 —— **只查"自动判定"这条规则**。
+    #    ⚠ 第一版把显式写了的键也算进去 → 立刻红了 9 首**既有**还原曲
+    #    （`bgm35_extract` Perc 3795 · `siren_end2` Perc 2435 · `dear_good_friends`
+    #      Melody 97+Perc 416…）—— 它们的 `arr` 是**旧代码写死的**，而引擎语义是
+    #    "显式优先"，所以那是**历史数据**、不是这条规则的失效。两者必须分开：
+    #      ① 本判据查"没有显式写的键有没有被自动关严"；
+    #      ② 显式开着生成层的**旧曲**另列一份清单（`未迁移`），让人决定要不要重整。
+    bad, legacy, checked = [], [], 0
+    for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
+        try:
+            raw = json.load(open(p, encoding='utf-8'))
+            d = se.load(p)
+        except Exception:                                          # noqa: BLE001
+            continue
+        ne = d.get('notes_extra') or {}
+        have = {k for k, v in ne.items()
+                if (v.get('notes') if isinstance(v, dict) else v)}
+        if not have:
+            continue                     # 生成曲：这条规则不该碰它
+        checked += 1
+        # ②a 显式开着生成层的旧曲：单独列，不算 FAIL
+        _exp_on = sorted({k for s in (raw.get('sections') or [])
+                          for k, v in (s.get('arr') or {}).items()
+                          if v and k not in ('density', 'mix', 'melody_prog', 'ending_fade')})
+        if _exp_on:
+            legacy.append('%s(%s)' % (os.path.basename(os.path.dirname(p)),
+                                      '/'.join(_exp_on[:3])))
+        # ②b 自动判定：ev 的非空轨必须都在 notes_extra 里
+        _raw_secs = raw.get('sections') or []
+        _explicit_keys = [set((s.get('arr') or {}).keys()) for s in _raw_secs]
+        _explicit_union = set().union(*_explicit_keys) if _explicit_keys else set()
+        ev = se.build_events(d)
+        ev = ev if hasattr(ev, 'items') else ev[0]
+        # `Melody` 可能是**作者内容**：那几首的旋律在 `song.json` 自己的 `melody` /
+        # 段级 `melody_extra` 里（不是引擎拿和弦生成的）。两者必须分开 ——
+        # 实测第一版没分，把 `dear_good_friends` 的 97 个旋律音、`asa_no_kaori_vel` 的
+        # 117 个当成了"凭空生成"。
+        _mel_authored = bool(d.get('melody')) and any(
+            (d.get('melody') or {}).get(s.get('melody') or '', [])
+            or s.get('melody_extra') for s in (d.get('sections') or []))
+        extra = []
+        for k, v in ev.items():
+            if not v or k in have:
+                continue
+            if k == 'Melody' and _mel_authored:
+                continue                 # 作者的旋律，不是引擎生成
+            # 引擎侧桶名与 arr 键名不同（Perc 桶 ↔ perc 开关）：只有**没被显式打开**才算违规
+            _sw = {'Perc': 'perc', 'Drums': 'perc'}.get(k, k.lower())
+            if _sw in _explicit_union and any((s.get('arr') or {}).get(_sw)
+                                              for s in _raw_secs):
+                continue                 # 显式开着 → 历史数据，已在 legacy 里列出
+            extra.append('%s %d 音' % (k, len(v)))
+        if extra:
+            bad.append('%s: %s' % (os.path.basename(os.path.dirname(p)), '、'.join(extra)))
+    assert checked >= 1, '库里没有可查的还原曲 —— 这条检查会空转'
+    assert not bad, ('还原曲凭空多出生成轨（应"输入哪个才开哪个"）：' + '；'.join(bad))
+    # ③ 生成向对照组：无 notes_extra 的曲子，arr 一个键都不许被改
+    gen_checked = 0
+    for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
+        try:
+            raw = json.load(open(p, encoding='utf-8'))
+        except Exception:                                          # noqa: BLE001
+            continue
+        ne = raw.get('notes_extra') or {}
+        if any((v.get('notes') if isinstance(v, dict) else v) for v in ne.values()):
+            continue
+        before = [set((s.get('arr') or {}).keys()) for s in (raw.get('sections') or [])]
+        try:
+            d = se.load(p)
+        except Exception:                                          # noqa: BLE001
+            continue
+        after = [set((s.get('arr') or {}).keys()) for s in (d.get('sections') or [])]
+        gen_checked += 1
+        assert before == after, ('生成曲 %s 的 arr 键被动了（这条规则只该管还原曲）'
+                                 % os.path.basename(os.path.dirname(p)))
+    print('        %d 首还原曲：无显式开关时不会有凭空生成 · %d 首生成曲未被触碰'
+          % (checked, gen_checked))
+    if legacy:
+        print('        ⚠ %d 首**旧曲**显式开着生成层（历史数据，要重整得逐首确认）：%s'
+              % (len(legacy), '、'.join(legacy[:6])))
+
+
+@check
+def t_bp_primary_contracts():
+    """`bp_primary.py`（BP 为主的还原转录）的**契约与尺子**。
+
+    为什么有这条（2026-10-04）：这个工具的价值全在**两把尺子**和**归属规则**上，
+    而三者都容易静默退化成"永远返回真"：
+      · `drum_selftest` —— 分频判据的自检。**本项目已三次栽在"自检不过还量真音频"**，
+        所以它是硬门（不过就 `return 1`）；它自己退化就等于门没了。
+      · `tempo_selftest` —— 速度尺子。同一天里它**连错两版**：① 初值集合不覆盖 0.6857s
+        ⇒ 锁到 131.2 BPM 假峰；② 改成"取命中率最高"⇒ 报 175 BPM（= 87.5×2）。
+        **命中率与周期不可比（网格越密命中越多）**，所以本工具只做"核对给定 BPM"。
+      · `assign` —— 归属。音区兜底 + **bass 分轨能量门**（低音区的音要先证明 bass 真在响，
+        否则会把底鼓当贝斯）。
+
+    ⚠ **听感判据不在本检查里**：实测"净覆盖"指标说 BP 更好（71.4% vs 62.0%），
+    而**用户听感说原路 V1 最好** —— 指标赢不了耳朵（`SKILL` §9c），
+    工具 `__doc__` 里已如实记下这条与三处差距。本检查只管**契约不烂**。
+    """
+    import bp_primary as BP
+    assert BP.__doc__ and all(k in BP.__doc__ for k in ('何时用', '三步', '用法', '边界')), \
+        'bp_primary.__doc__ 缺"何时用/三步/用法/边界"里的章节（约定 A：文档写清用法）'
+    assert '听感' in BP.__doc__ and 'V1' in BP.__doc__, \
+        'bp_primary.__doc__ 必须记下"实测听感不如原路 V1"（否则下一个人会拿它替掉正路）'
+    # ⚠ **鼓默认取 YMT3**（用户 2026-10-04 定："如果你找不到怎么把 BP 的鼓做好，以后还是用 YMT3"）。
+    #   三条都要钉：默认值 · 帮助文本写明 · 源码里真的按先验 MIDI 取鼓轨（不是只声明）。
+    import inspect
+    _sig = inspect.getsource(BP.main)
+    assert "'--drum-source'" in _sig and "default='ymt3'" in _sig, \
+        'bp_primary 的 `--drum-source` 默认值不是 ymt3 —— 用户口径是"BP 的鼓搞不好就还是用 YMT3"'
+    assert 'YMT3 鼓通道' in _sig and "'drum' in str(x[3]).lower()" in _sig, \
+        'bp_primary 的鼓没有真的从先验（YMT3）MIDI 的鼓轨取 —— 声明了默认值却没接上＝静默失效'
+    assert '--drum-source bp' in _sig, \
+        'bp_primary 的提示里没有"要 BP 分频鼓得显式加 --drum-source bp"（人不知道就只会用默认）'
+    # ① 两把尺子必须真的过（行为）
+    assert BP.drum_selftest(verbose=False) is True, \
+        '鼓尺子自检不过 —— 按纪律它必须挡住真音频（合成件 3/3 才对）'
+    assert BP.tempo_selftest(verbose=False) is True, \
+        '速度尺子自检不过（合成 click，偏差须 <0.15 BPM）'
+    # 判据自证（**两把尺子都要**：只给鼓尺子加自证时，速度尺子那条变异用例当场"漏了"）——
+    # 把拟合换成"恒报 999 BPM"，速度尺子自检必须红。
+    _ofit = BP.fit_tempo
+    BP.fit_tempo = lambda *a, **k: (999.0, 0.9, 100)
+    try:
+        assert BP.tempo_selftest(verbose=False) is False, \
+            '判据自证失败：fit_tempo 恒报 999 BPM，速度尺子自检居然还过'
+    finally:
+        BP.fit_tempo = _ofit
+    # 判据自证：把分类器换成"恒判底鼓"，自检必须红
+    _orig = BP.classify_drums
+    BP.classify_drums = lambda *a, **k: [(0.0, BP.KICK)] * 4
+    try:
+        assert BP.drum_selftest(verbose=False) is False, \
+            '判据自证失败：分类器恒判底鼓，鼓尺子自检居然还过'
+    finally:
+        BP.classify_drums = _orig
+    # ② 归属的边界与低音门（行为）
+    assert (BP.fallback_track(40), BP.fallback_track(60), BP.fallback_track(70),
+            BP.fallback_track(80)) == ('Bass', 'Hook', 'Piano', 'Glock'), \
+        '音区兜底的四档边界变了：%r' % [BP.fallback_track(p) for p in (40, 60, 70, 80)]
+    _bp = [(0.0, 0.3, 40)]                       # 低音区一个音
+    _no_gate, _ = BP.assign(_bp, None, None)
+    assert 'Bass' in _no_gate, '没有低音门时，低音区的音该归 Bass（拿到 %r）' % (_no_gate,)
+    import numpy as _np
+    _silent = (_np.arange(10) * 0.1, _np.full(10, -90.0), -30.0)   # bass 分轨全静 → 门不过
+    _gated, _ = BP.assign(_bp, None, _silent)
+    assert 'Bass' not in _gated, \
+        'bass 分轨全静时**不许**把低音区的音归 Bass（会把底鼓当贝斯）：%r' % (_gated,)
+    # ③ 先验优先：给了 YMT3 通道就必须听它的
+    _pr, _st = BP.assign([(0.0, 0.3, 40)], [(0.0, 40, 'Acoustic Piano')], None)
+    assert 'Piano' in _pr, '给了 YMT3 先验（Acoustic Piano）却没按它归属：%r' % (_pr,)
+    assert any('先验' in str(k) for k in _st), '来源明细里没有"先验"这一档'
+    print('        鼓尺子 3/3 + 速度尺子 4/4 + 归属边界/低音门/先验优先 都成立（含判据自证）')
+    return 'bp_primary 契约：两把尺子自检通过 · 归属四档边界 + 低音门 + 先验优先'
+
+
+@check
+def t_strip_drums_contracts():
+    """`strip_drums.py`（去鼓版）的**契约 + 独立核对尺子**（2026-10-04）。
+
+    为什么有这条：这个工具的四件事里**三件是静默的** —— `notes_extra.Drums` 清空、
+    `patterns.drum_grid` 删除、逐段 `arr.perc` 关掉；漏掉任何一件，命令照样 `exit 0`、
+    MIDI 照样合法，**鼓又回来了**（或凭空换了一套鼓点）而没人知道。所以：
+      ① **数据层**：拿一份合成夹具跑 `strip()`，断言"鼓音 0 / 网格没了 / 逐段 perc=0"
+         且**非鼓内容逐字节不变**（`Hook`/`Bass`/和弦/旋律一个音都不许动）；
+      ② **独立证据层**：`verify_midi()` 必须**分得开**有鼓与无鼓的 `.mid`
+         （判据自证：造一条通道 9 的 note-on 进去 → 必须判红；去掉 → 必须判绿）；
+      ③ **库内两条**：去鼓版与源版都必须在场，且去鼓版**没有**任何打击乐。
+
+    ⚠ 判据自证（②）用的是**真造一份带鼓的 MIDI**，不是打桩 —— "尺子在已知正例上也报警"
+    这类坑本项目踩过（`PITFALLS` 284：起音共位率/线性泄漏在**真鼓窗**上就已经 100% 触发）。
+    """
+    import tempfile
+    import strip_drums as SD
+    assert SD.__doc__ and all(k in SD.__doc__ for k in ('什么时候用', '用法')), \
+        'strip_drums.__doc__ 缺"什么时候用/用法"章节（约定 A）'
+    tmp = tempfile.mkdtemp(dir=TMP)
+    # 夹具：鼓 + 网格 + 三条非鼓轨；`arr.perc` 显式开着（生成曲形态，逐段都要关）
+    fix = {'name': 'stripfix', 'bpm': 120, 'meter': [4, 4], 'style': 'daily',
+           'chords': {'C': [36, [55, 60, 64, 67]]},
+           'melody': {'m': [[0, 0, 1, 72]]},
+           'sections': [{'name': 'A', 'bars': 2, 'chords': ['C', 'C'], 'melody': 'm',
+                         'arr': {'perc': 2, 'piano': True}}],
+           'notes_extra': {'Drums': [[0, 0.0, 0.25, 38, 100], [0, 1.0, 0.25, 36, 90],
+                                     [1, 2.0, 0.25, 42, 80]],
+                           'Hook': [[0, 0.5, 0.5, 64, 70]],
+                           'Bass': [[0, 0.0, 1.0, 36, 80]]},
+           'patterns': {'drum_grid': {'per_bar': [{'snare': [[0, 100]]},
+                                                  {'kick': [[4, 100]]}]}}}
+    p = os.path.join(tmp, 'song.json')
+    with open(p, 'w', encoding='utf-8') as f:
+        json.dump(fix, f, ensure_ascii=False)
+    d = json.load(open(p, encoding='utf-8'))
+    _before = json.dumps({k: v for k, v in d.items()
+                          if k not in ('notes_extra', 'patterns', 'sections')},
+                         sort_keys=True, ensure_ascii=False)
+    ch = SD.strip(d)
+    assert ch, 'strip() 什么都没改却也不报错（静默失效）'
+    assert SD._notes(d['notes_extra']['Drums']) == [], \
+        'notes_extra.Drums 没清空：%r' % (d['notes_extra']['Drums'],)
+    assert 'drum_grid' not in d['patterns'], \
+        'patterns.drum_grid 没删 —— 引擎会照网格**重新生成**一整条鼓（鼓没少）'
+    assert all((s.get('arr') or {}).get('perc') == 0 for s in d['sections']), \
+        '逐段 arr.perc 没关干净（漏一段就掉进 perc_part 固定套路，凭空敲）'
+    assert SD._notes(d['notes_extra']['Hook']) == [[0, 0.5, 0.5, 64, 70]] \
+        and SD._notes(d['notes_extra']['Bass']) == [[0, 0.0, 1.0, 36, 80]], \
+        '非鼓轨被误改（工具只许动打击乐）'
+    _after = json.dumps({k: v for k, v in d.items()
+                         if k not in ('notes_extra', 'patterns', 'sections')},
+                        sort_keys=True, ensure_ascii=False)
+    assert _before == _after, '非鼓字段（和弦/旋律/曲名以外）被改了'
+    assert SD.strip(json.loads(json.dumps(fix))) is not None and \
+        SD._notes(json.loads(json.dumps(fix))['notes_extra']['Drums']), \
+        'strip() 改了**传入的副本**却把源对象也改了（深拷贝被破坏）'
+    # ② 独立尺子：造一份真带鼓的 MIDI，`verify_midi` 必须判红
+    import mido
+    mp = os.path.join(tmp, 'withdrums.mid')
+    mf = mido.MidiFile(ticks_per_beat=480)
+    tr = mido.MidiTrack()
+    tr.append(mido.MetaMessage('track_name', name='Drums', time=0))
+    tr.append(mido.Message('note_on', channel=9, note=38, velocity=99, time=0))
+    tr.append(mido.Message('note_off', channel=9, note=38, velocity=0, time=120))
+    mf.tracks.append(tr)
+    mf.save(mp)
+    ok, rows, bad = SD.verify_midi(mp)
+    assert not ok and bad, '判据自证失败：MIDI 里明明有通道 9 的鼓，verify_midi 却判"无打击乐"'
+    mp2 = os.path.join(tmp, 'nodrums.mid')
+    mf2 = mido.MidiFile(ticks_per_beat=480)
+    tr2 = mido.MidiTrack()
+    tr2.append(mido.MetaMessage('track_name', name='Piano', time=0))
+    tr2.append(mido.Message('note_on', channel=2, note=60, velocity=80, time=0))
+    tr2.append(mido.Message('note_off', channel=2, note=60, velocity=0, time=120))
+    mf2.tracks.append(tr2)
+    mf2.save(mp2)
+    ok2, _r2, bad2 = SD.verify_midi(mp2)
+    assert ok2 and not bad2, 'verify_midi 把没有鼓的 MIDI 判红了（假阳性）：%r' % (bad2,)
+    # ③ 库内两条都在场（去鼓版由本工具产出；缺了就说明派生没落地）
+    lib = os.path.join(ROOT, 'songs')
+    misses = []
+    for nm in ('douzo_ymt3', 'douzo_ymt3_nodrum'):
+        if not os.path.exists(os.path.join(lib, nm, 'song.json')):
+            misses.append(nm)
+    if misses:
+        print('        （曲库缺 %s —— 本项跳过库内核对，部署时不带这两首是正常的）'
+              % '、'.join(misses))
+    else:
+        _nd = json.load(open(os.path.join(lib, 'douzo_ymt3_nodrum', 'song.json'),
+                             encoding='utf-8'))
+        _src = json.load(open(os.path.join(lib, 'douzo_ymt3', 'song.json'),
+                              encoding='utf-8'))
+        assert SD._notes((_nd.get('notes_extra') or {}).get('Drums')) == [], \
+            'songs/douzo_ymt3_nodrum 的 Drums 轨不是空的（去鼓版里还有鼓音）'
+        # ⚠ 源曲这一条**要认"已按证据清理过"**：本曲的源版鼓音在 2026-10-04 被证明
+        #   95% 没有能量（`PITFALLS` 316）后**整层清掉了**（`desc` 有留痕）。
+        #   老写法断言"源版必须有鼓音"，于是**清理本身把守卫判红** —— 判据不许把
+        #   "按证据修正"当成"数据被改坏"（同族：坑 251 的"读数可疑先查判据"）。
+        _cleaned = '凭空鼓' in str(_src.get('desc') or '')
+        if not _cleaned:
+            assert SD._notes((_src.get('notes_extra') or {}).get('Drums')), \
+                'songs/douzo_ymt3 的源版鼓音不见了（源曲被去鼓工具改坏了？）'
+        else:
+            assert SD._notes((_src.get('notes_extra') or {}).get('Drums')) == [], \
+                '源版 `desc` 说"已清掉凭空鼓"，但 Drums 轨还有音（留痕与数据不一致）'
+    print('        数据层：鼓清空 + 网格删除 + 逐段 perc=0 + 非鼓内容零改动（含判据自证）')
+    return 'strip_drums 契约：清鼓三处齐备 · 独立尺子分得开真假 · 库内去鼓版与源版都在场'
+
+
+@check
+def t_audit_stems_contracts():
+    """`audit_stems.py`（逐轨精度审计＝**每个提取任务的第一道工序**）的契约与尺子。
+
+    为什么有这条（2026-10-04，用户："**我要你可以应用到以后的所有音乐生成和提取上**"）：
+    这套判据的价值全在**尺子可信**上，而它有三个会静默退化的地方：
+      ① **音高带判据**：`_ratio` 必须分得开"这条分轨此刻在不在弹这个音"——
+         合成 440Hz 正弦：在 440 带上给 1.0、在 1200 带上给 0.0；分不开就等于掷硬币；
+      ② **静音窗必须返回 `None`**（不是 0）：0 会被下游当成"分轨此刻没这个音"，
+         于是一段**根本没乐器在响**的地方被算成"空音"，系统性压低精度
+         —— 实测全零数组经 FFT 后仍有 1e-30 残差，`sum()==0` 那种写法抓不住（本轮踩到）；
+      ③ **轨→分轨的映射表要覆盖引擎全部轨名**，且**4 轨分轨下判不了的轨要显式标注**
+         （第一版直接 `continue` ⇒ Piano/Hook/Glock 整行消失，看报告的人以为它们没问题）。
+    **判据自证**：把 `HIT` 门调到 0（"谁都算命中"）后必须立刻失去分辨力。
+    ⚠ 第一版自证写成"`_ratio(...) >= HIT`"—— 门为 0 时**恒真**，于是变异用例当场
+    报"**漏了**"：自证必须断言**门本身**在合理区间、且 `EMPTY < HIT`（这才是"能分辨"的前提）。
+    """
+    import numpy as np
+    import audit_stems as AS
+    # 0) 门本身必须是"能分辨"的形状（变异用例就注这一条：把 HIT 放到 0）
+    assert 0.1 <= AS.HIT <= 0.6, \
+        'HIT 门 = %.3f，不在合理区间 [0.1, 0.6]（太小 ⇒ 谁都算命中；太大 ⇒ 全算空音）' % AS.HIT
+    assert 0.0 < AS.EMPTY < AS.HIT, \
+        'EMPTY(%.3f) 必须 > 0 且 < HIT(%.3f) —— 否则"空"与"命中"两档无区分' % (AS.EMPTY, AS.HIT)
+    # ① 尺子行为（合成件，已知答案）
+    sr = 22050
+    tone = 0.5 * np.sin(2 * np.pi * 440.0 * np.arange(sr) / sr)
+    assert (AS._ratio(tone, sr, 0.1, 440.0) or 0) >= AS.HIT, \
+        '纯 440Hz 正弦在 440 的音高带上没判成"命中" —— 尺子分不开，后面所有读数都不可信'
+    assert (AS._ratio(tone, sr, 0.1, 1200.0) or 0) < AS.EMPTY, \
+        '纯 440Hz 正弦在 1200 的音高带上没判成"空" —— 尺子没有分辨力'
+    # ② 静音窗必须 None（不是 0）
+    assert AS._ratio(np.zeros(sr), sr, 0.1, 440.0) is None, \
+        '全静音窗返回了数（应 None）：这会把"分轨没声"算成"空音"，系统性压低精度'
+    # ③ 映射表覆盖全部引擎轨名 + 4 轨的不可信清单
+    import song_engine as _se
+    miss = [t for t in _se.CH if t not in AS.STEM_OF]
+    assert not miss, 'audit_stems.STEM_OF 少了这些引擎轨：%s（它们会被静默跳过）' % miss
+    assert {'Piano', 'Hook', 'Glock'} <= AS.NEEDS_6S, \
+        'NEEDS_6S 少了 Piano/Hook/Glock —— 4 轨分轨下它们会被当成"可信读数"（实测 Pad 55.6%→0%）'
+    # ④ 判据自证：门调到 0 必须失去分辨力
+    old = AS.HIT
+    try:
+        AS.HIT = 0.0
+        assert AS._ratio(tone, sr, 0.1, 1200.0) >= AS.HIT, '门为 0 时本该"谁都算命中"'
+    finally:
+        AS.HIT = old
+    # ⑤ 工具自检本身可用
+    assert AS.selftest() is True, 'audit_stems.selftest() 不过'
+    # ⑥ **"整层缺失"档**（2026-10-04 泛化测试补）：某首慢速抒情曲转录**只吐出 1 条轨**
+    #    （13 个解码通道只出 1 个），而逐轨审计**只报那 1 轨**——没被转录的 5 层在报告里
+    #    根本不出现（空集合假通过）。三条都要钉：函数签名收这个参数 · 判据用的是
+    #    "该层在响小节里有多少有我方对应轨的音"（不是某条轨自己的 act−gap）·
+    #    `other` 不参与判定（它是 Demucs 的其余桶，不是一件乐器）。
+    import inspect as _ins
+    _src = _ins.getsource(AS.audit)
+    assert 'accept_missing' in _ins.signature(AS.audit).parameters, \
+        'audit() 少了 accept_missing —— "有意移除的层"没法声明，去鼓/去人声的曲子会被误判'
+    assert "cov_bars" in _src and "LAYER_COVER_FRAC" in _src, \
+        'audit() 里没有"整层缺失"判据（cov_bars / LAYER_COVER_FRAC）—— 整层漏音会静默通过'
+    assert "'other'" not in _src.split('for nm in (')[1].split(')')[0], \
+        '`other` 被算进"整层缺失"了 —— 它是 Demucs 的其余桶（钢琴/吉他/人声残留都在里面），' \
+        '当"层"判会让每一首都误报缺失'
+    assert 0.1 <= AS.LAYER_COVER_FRAC <= 0.9, \
+        'LAYER_COVER_FRAC = %r 不在合理区间 [0.1, 0.9]（放 0 ⇒ 任何覆盖都算"够了"，档位形同虚设）' \
+        % (AS.LAYER_COVER_FRAC,)
+    # **行为验证**（比"常量在区间内"硬）：造一首"只有钢琴轨、但分轨里鼓/bass 都在响"的曲子，
+    # `audit()` 必须把 drums/bass 列进"整层缺失"。含判据自证：把覆盖门放 0 ⇒ 必须不再报。
+    import tempfile as _tf
+    import soundfile as _sf
+    _d = _tf.mkdtemp(dir=TMP)
+    _sr = 22050
+    _bar = 2.0                                   # 120BPM 4/4 → 2s/小节
+    _t = np.arange(int(_sr * _bar * 12)) / _sr
+    # 钢琴层：每小节一段 440Hz；鼓层：宽频噪声脉冲；bass 层：80Hz
+    _pn = 0.3 * np.sin(2 * np.pi * 440 * _t)
+    _bs = 0.3 * np.sin(2 * np.pi * 80 * _t)
+    _dr = np.zeros_like(_t)
+    for _i in range(0, len(_t), int(_sr // 2)):
+        _dr[_i:_i + 200] = np.random.RandomState(_i).randn(min(200, len(_t) - _i)) * 0.5
+    for _nm, _x in (('piano', _pn), ('bass', _bs), ('drums', _dr), ('other', _pn)):
+        _sf.write(os.path.join(_d, _nm + '.wav'), _x, _sr)
+    _song = os.path.join(_d, 'song.json')
+    json.dump({'name': 'fix', 'bpm': 120, 'meter': [4, 4],
+               'chords': {'C': [36, [55, 60, 64]]},
+               'melody': {'m': [[0, 0, 1, 72]]},
+               'sections': [{'name': 'A', 'bars': 12, 'chords': ['C'] * 12, 'melody': 'm'}],
+               'notes_extra': {'Piano': [[b, 0.0, 1.0, 69, 90] for b in range(12)]}},
+              open(_song, 'w', encoding='utf-8'), ensure_ascii=False)
+    _ref = os.path.join(_d, 'ref.wav')
+    _sf.write(_ref, _pn + _bs + _dr, _sr)
+    _rows, _is6, _miss, _gate = AS.audit(_song, _d, _ref, verbose=False)
+    _stems = {m['stem'] for m in _miss}
+    assert 'drums' in _stems and 'bass' in _stems, \
+        '行为验证失败：分轨里鼓/bass 明显在响、而曲子只有 Piano 轨，`audit()` 却没报整层缺失（拿到 %r）' % (_stems,)
+    _oldf = AS.LAYER_COVER_FRAC
+    try:
+        AS.LAYER_COVER_FRAC = 0.0
+        _m2 = AS.audit(_song, _d, _ref, verbose=False)[2]
+        assert not _m2, '判据自证失败：覆盖门放 0 后仍报缺失（说明那条门没在起作用）'
+    finally:
+        AS.LAYER_COVER_FRAC = _oldf
+    # ⑦ **准入闸门**（同一次泛化测试）：修工序只许在"可修"的曲子上做
+    assert 0.3 <= AS.PREC_GATE <= 0.8 and 0.3 <= AS.REC_GATE <= 0.8, \
+        '准入门（PREC_GATE/REC_GATE）不在合理区间：[%.2f, %.2f]' % (AS.PREC_GATE, AS.REC_GATE)
+    assert "verdict" in _src and "'unusable'" in _src, \
+        'audit() 没有"可修/别做"结论 —— 上游坏掉的曲子会被一路修下去（实测浪费一整天）'
+    assert "unexpected" in _src, \
+        'audit() 没把"有意移除的层"从准入判定里排除（`unexpected`）—— 去鼓/去人声的曲子会被永远判 unusable'
+    # ⑧ **解码撞上限 = 不许当素材**：判据要在，且阈值要在合理区间
+    import transcribe_ymt3 as _TY
+    assert 100 <= _TY.DECODE_CAP_WARN <= 256, \
+        'DECODE_CAP_WARN = %r 不在 [100, 256] 合理区间' % (_TY.DECODE_CAP_WARN,)
+    _tysrc = _ins.getsource(_TY.main)
+    assert 'DECODE_CAP_WARN' in _tysrc and 'rejected' in _tysrc, \
+        'transcribe_ymt3 主流程没用 DECODE_CAP_WARN 拦"解码撞上限"的转录（只打印＝没闸门）'
+    # 判据回放（真实读数）：拦得住撞上限那首、放得过稀疏那首
+    def _blocked(steps, cap=256):
+        med = sorted(steps)[len(steps) // 2]
+        hit = sum(1 for s in steps if s >= cap)
+        return med >= _TY.DECODE_CAP_WARN or hit * 2 >= max(1, len(steps))
+    assert _blocked([256, 152, 256, 200, 240]), \
+        '判据回放失败：实测撞上限那首（中位 240）本该被拦 —— 闸门形同虚设'
+    assert not _blocked([122, 57, 194, 57, 135, 73, 56]), \
+        '判据回放失败：稀疏曲（中位 73）被误拦 —— 闸门会挡住正常素材'
+    print('        尺子：440 带命中 / 1200 带判空 / 静音 None / 映射覆盖 %d 轨 / 判据自证 OK'
+          % len(AS.STEM_OF))
+    print('        闸门：整层缺失档 + 准入（precision≥%.0f%% & recall≥%.0f%%）'
+          ' + 解码撞上限阈值 %d（回放：拦得住/放得过都对）'
+          % (100 * AS.PREC_GATE, 100 * AS.REC_GATE, _TY.DECODE_CAP_WARN))
+    return 'audit_stems 契约：音高带分得开 · 静音返回 None · 映射覆盖引擎全轨 · 判据自证 + 工具自检'
 
 
 @check
