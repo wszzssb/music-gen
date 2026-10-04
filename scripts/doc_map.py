@@ -98,6 +98,8 @@ GROUPS = [
         ('docs/HANDOFF-TRANSCRIBE.md', '接手"密集混音提取精度"：现状数字 · 已证伪清单 · 下一步候选（含验收判据）· §11 换专用模型的三问 · §12 k 标定与无监督开关'),
         ('docs/HANDOFF-FAMILY-VOTE.md', '接手"把族票接进 vote_apply"：任务与四条验收判据 · 素材绝对路径 · 本轮踩的纪律 · 不建议再做的方向'),
         ('docs/HANDOFF-BGM35.md', '接手 BGM35 3:31–3:41：**用专用识别模型回答 Q1/Q2/Q3**（结论已回填到 HANDOFF-TRANSCRIBE §11 + 交付目录 notes.md §8）'),
+        ('docs/HANDOFF-BGM35-R2.md', '接手 BGM35 **整曲**还原（**当前交接**）：Bass 整轨时间轴被压 0.801× 的定位与修法 · 重复组 137→55 为何达不到 ~13 · 整层空洞按秒补 78→9 · 力度平坦是 YMT3 通病（1→93 种）· 音色自适应族内选 · 全库扫描结论 · 回滚备份 · 8 个坑'),
+        ('docs/HANDOFF-BGM35-RESTORE.md', '**【历史·读数已过期】**BGM35 整曲还原的上一轮交接（含一条同源自证的假数 84.9%）—— 现行版本见 `HANDOFF-BGM35-R2.md`'),
         ('ML.md', '扒谱·分轨·多乐器转录·母带匹配（.venv-ml 的重工具）'),
         ('docs/MAKE-IT-SOUND-ALIKE.md', '把"乱"当可测量问题：三个量 · 三处失控根因 · 四条听感修法'),
         ('docs/AUDIT-CHECKLIST.md', '开工前必查清单（四层 + 必须人耳的第 5 层）'),

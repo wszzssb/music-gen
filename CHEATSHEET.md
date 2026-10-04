@@ -142,6 +142,16 @@ $ml = "<根>\.venv-ml\Scripts\python.exe"      # ⚠ 主 venv 没有 torch，必
 & $py scripts\who_plays_lead.py <分轨目录> <song.json> --track Piano --melody-proxy --end 135
 #   ↑ "参考曲里这条旋律到底是谁在弹"（**按音高判**，不按响度 —— 按响度会被低音/鼓骗）
 #     `--melody-proxy`＝旋律混在伴奏轨里时取"每小节最高音"当代理 · `--by-section` 按段落汇总
+
+& $py scripts\who_plays_lead.py <分轨目录> <song.json> --track Melody --by-section --verdict
+#   ↑ **交付前判定**：逐段报"旋律族占比 < 0.50"的段（含义＝这段我们认作旋律的音，
+#     在参考曲里不是旋律乐器在弹）＋ 报警段占比。三首实测段级 **27% / 33% / 15%**；
+#     ⚠ 落在 5%~30% 才有区分度，别把门调到"全过"。--fail-under 改门 · --selftest 尺子自检
+
+& $py scripts\timbre_audit.py <song.json> --ref <原曲.wav> --stems <分轨目录> --mine <我方.wav>
+#   ↑ 已接第⑤层（自动跑）：**候选轨各量一遍、取旋律族占比最高那条**当"我方主奏"，
+#     再逐段报"哪几段不像"。⚠ 别手指定轨：同一首 dgf 用 Hook 是 33%、用 Piano 是 93%。
+#     `--lead-track` 显式指定 · `--no-lead` 跳过这一层（快跑）
 ```
 
 ### 逐轨事件（面板卷帘 / 排查用）

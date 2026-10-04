@@ -474,11 +474,27 @@ tr["program_changes"] = [[0, prog[tr["name"]]]]   # 同刻的 program_change 一
 
 ### 10.2 下一个对话从这几件里挑（按价值排序）
 
-1. **把"主奏音色对照"接进交付链**（最值）：`who_plays_lead.py` 已经是现成的尺子，
-   缺的是"接在哪一步 + 判据门定多少"。建议落点 = `timbre_audit.py`（它现在只看"整段谁最响"，
-   抓不到"主奏用错音色"这一类）或 `preflight`。
-   **验收**：对三首已知曲（改后的 `bgm35_extract` / `dear_good_friends` / `siren_end2`）
-   给出稳定一致的读数，且**触发率落在有区分度区间**（技能口径 5%~30%，别做成恒真）。
+1. **✅ 已完成（2026-10-02 第二轮）—— 把"主奏音色对照"接进交付链**：落点 = `timbre_audit.py`
+   **第⑤层**（`who_plays_lead.py` 加 `--verdict` 判定 + 门 `LEAD_SHARE_MIN = 0.50`；
+   `timbre_audit` 一条命令自动跑第⑤层，`--lead-track` 指定 / `--no-lead` 跳过）。
+   **验收实测（段级报警率）**：`bgm35_extract` **27%**（3/11）· `dear_good_friends` **33%**（3/9）·
+   `siren_end2` **15%**（2/13）· 有音段合计 **8/33 = 24%** —— 落在有区分度的 5%~30% 里。
+   ⚠ **三条实测口径**（全部写进坑 **307**，别再摸）：
+   ① **"参考曲哪条分轨最响" ≠ "哪段有旋律"** —— 参考侧逐段主导分轨 ∈ 旋律族的段只占
+   **12%~17%**（4/24 · 2/15 · 3/25），据它做的"覆盖判据"在改前/改后触发**同样 3 段**（S01/S16/Ending，
+   那几段 `other` 是垫子）→ **无区分度，弃**；
+   ② **"用哪条轨量"差 3 倍**（同一首 dgf：`Hook` 33% vs `Piano` 93% vs `Drums` 32%）→ 判据**自己选轨**
+   （候选各量一遍、取旋律族占比最高那条，其余列备选；打击/低音/垫子不参选）；
+   ③ **无音的段不进判定**（否则 `bgm35_extract` 的 3/11 = 27% 会"变成" 3/24 = 13%，
+   同一份读数**换个分母就能过**）。
+   **尺子自洽性**（拿已知音色的素材验，不是同模型自证）：我们自己两版渲染各自分轨再量 ——
+   改前主奏 GM 0 钢琴 → `piano 84%`；改后 GM 81 锯齿 → `other 82%`。
+   守卫：`t_who_plays_lead_contracts`（扩了 4 组断言：占比/无音段/摊平布局/选轨）+ `mutation_check`
+   三条注入（无音段进判定 · 摊平布局读不到 · 打击轨参选）。
+   **本次素材与读数**（绝对路径）：新造分轨 `D:\test\_tmp\lead-chain\stems\htdemucs_6s\{dgf,siren_end2}\` ·
+   读数 `D:\test\_tmp\lead-chain\{v_*.json, ta_*.json, wpl_*.json}` · 临时脚本同目录。
+   **还没做的**：第⑤层只在"有 demucs 分轨"的还原曲上跑得起来（原创曲没参考分轨）；
+   逐段判定**没有**接进 `preflight.py`（它仍是"无真值"那条链）。
 2. **BGM35 剩下的 12 处同刻同音**（`Piano`↔`Melody`，**改前就有**，都在 138.6 秒后）：
    清它只需从 `Piano` 轨删那 12 个音 + 重渲染，**代价**是音符总数 8461 → 8449
    （就不再是"只动音色那一层"了）。
@@ -514,11 +530,24 @@ tr["program_changes"] = [[0, prog[tr["name"]]]]   # 同刻的 program_change 一
 | 判决数据 | `D:\test\_tmp\theme-timbre\{midi_diff.json, wpl_melody.json, mc_compare_final.json, lead_timbre_plan.json, preflight_new\preflight.md}` |
 | 交付（已更新） | `deliveries\bgm35_extract\`（song.json + `.mid` + `_sf.ogg` + notes.md §6 + preflight.txt + compose.py） |
 
-### 10.5 本轮的自检状态：**182/184**
+### 10.5 本轮的自检状态：**183/184**
+- 新增：`t_music_critic_contracts`（模型四口径）· `t_who_plays_lead_contracts`（按音高 vs 按响度；
+  **第二轮又扩了 4 组**：占比口径 / 无音段不进判定 / 摊平布局可读 / 选轨取旋律族最高）·
+  `t_midi_diff_contracts`（拍→秒 / 差异表）；`mutation_check` **262/262**（第二轮 +3 条注入：
+  无音段进判定 · 摊平布局读不到 · 打击轨参选）。
+- 剩一条：`accompaniment_harmony`（**既有状态**，见 §9.5 —— 拉低中位的是还原曲与 `104_lounge_night`）。
+  第二轮把 `doc_map_fresh` 消掉了（改完文档重跑 `python scripts\doc_map.py`）→ 182/184 → **183/184**
+  （全量 `selftest --fast` 实测 133 秒；`docs_budget_and_skill_intact` 期间**抬窄过一次**
+  —— CHEATSHEET 抬到 6100 实测 6104 → 按"实测 + 余量"重抬到 6400，同 `CONVENTION` 文首第三种翻车）。
 
-- 新增：`t_music_critic_contracts`（模型四口径）· `t_who_plays_lead_contracts`（按音高 vs 按响度）·
-  `t_midi_diff_contracts`（拍→秒 / 差异表）；`mutation_check` **259/259**。
-- 剩两条：`accompaniment_harmony`（**既有状态**，见 §9.5 —— 拉低中位的是还原曲与 `104_lounge_night`）
-  与 `doc_map_fresh`（改完文档重跑 `python scripts\doc_map.py` 即消）。
+> **下一步的交接在另一份文档**：`docs/HANDOFF-BGM35-R2.md`（**当前**）——
+> 那四步待办**已全部做完**并附独立证据：① 修掉两个缺陷（Bass 整轨时间轴被压 **0.801×** —— 末音
+> 264.1 秒 / 全曲 331.9，修后 329.6 秒 · 落点中位 112.0 → **59.4 ms**；同轨重复组 137 → **55**，
+> 余下的都有音频证据、**"~13"这个目标达不到**）② 整层空洞**按秒**补（"完全没覆盖的秒" 78 → **9**；
+> ⚠ `preflight` ⑧ 那 483→395 秒是**判据口径问题**：它把六条分轨全映射到同一条轨）
+> ③ 音色自适应成一条命令（`pick_timbre.py`，Hook 当前音色在吉他族里排 8/8）④ Melody **结论是保持现状**
+> （`vocals` 分轨 RMS −81.1dB 全空、六条分轨全是复音 ⇒ 这曲子没有独奏旋律层）。
+> 另外扫出一条**全库通病**：**YourMT3 把每个音的力度都写成 100** ⇒ 已修（Drums 1 → **93** 种力度）。
+> 上一轮的 `docs/HANDOFF-BGM35-RESTORE.md` **读数已过期**（含一条同源自证的假数 84.9%），只作历史。
 
 
