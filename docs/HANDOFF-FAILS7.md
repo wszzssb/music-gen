@@ -113,3 +113,30 @@ py="D:/software/skill/music-gen/.venv/Scripts/python.exe"; cd /d/software/skill/
 "$py" scripts/mutation_check.py                 # 变异
 "$py" scripts/token_audit.py                    # 预算
 ```
+
+---
+
+## 附：曲库清理（2026-10-05，用户："songs 只保留最终成品"）
+
+曲库从 **35 首 → 16 首**（1815 MB → **812 MB**）。⚠ **`songs/` 在 `.gitignore` 里、没有版本网，
+删除不可逆**，本节是唯一留痕。
+
+**保留 16 首**：`100`–`108`（9 首，当日按现流程重写并换新曲调）· `201_asa_learn` ·
+`asa_no_kaori_vel` · `dear_good_friends` · `douzo_r2_nodrum` · `douzo_ymt3_nodrum` ·
+`hot_tea_time` · `siren_end2`
+
+**已删 19 首**（依据全是它们自己 `notes.md` 的自述或实测）：
+`asa_no_kaori`（"中间产物·已被 `_vel` 取代"）· `asa_no_kaori_vel_solo` ·
+`bgm35_extract` + `_solo` + `_solo_fills` + `_solo_nodrum` · `bgm35_reextract` · `bgm35_v2`（自述 A/B）·
+`dear_good_friends_solo` · `douzo_bp` + `douzo_bp_ymtdrum` + `douzo_np` + `douzo_np2` + `douzo_tool`
+（自述"实验版，非交付"）· `douzo_r2`（自述"对照用"）· `douzo_ymt3` + `douzo_ymt3_nodrum_ab`
+（与保留的 `_nodrum` 三份 MIDI 逐字节相同）· `s01_r` + `s02_r`（自述"泛化测试·准入 unusable"）
+
+⚠ **遗留矛盾（下次接手要修）**：`deliveries/bgm35_extract/`（git 里那份交付快照）**仍在**，
+而它自述"被 `bgm35_reextract` 取代"、`reextract` 也已随本轮删除 ⇒ 仓库里现在推广的是
+**被取代的那一版**。要么重新交付 `reextract`，要么更新 `deliveries/bgm35_extract/notes.md` 的说明。
+
+⚠ **判据口径提醒**：多条判据是**全库汇总**的（伴奏分离的在下比例、密度起伏汇总、
+`song_dirs()` 计数类）。删歌会改变这些汇总读数，所以**清库后必须重跑全量自检**。
+本轮实测：**201/201 通过**（删到 16 首没有因此冒红）。
+
