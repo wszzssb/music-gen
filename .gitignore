@@ -102,3 +102,8 @@ songs_imitate/
 #        `deliveries/bgm35_extract/`（用户 2026-10-01：「上传GitHub」—— 扒带成品两版 MIDI + 谱面
 #        + 体检读数；音频成品留本地，体积大且可重生成）。
 #   口径不变：**只放用户点名要传的那一首**，别整目录倒。
+
+# ---- ⑥ GM 音色能力探针的渲染缓存（2026-10-04 加）----
+#     _gmcap/gm_probe.wav 有 **134MB**，是一条命令可重生成的探针音频（纯 FluidSynth）→ 不入库。
+#     表本身（gm_capability.json）小、有用，但它与 wav 同目录 ⇒ 整目录排除，需要时重跑生成。
+_gmcap/

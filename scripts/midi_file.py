@@ -8,7 +8,7 @@ r"""midi_file.py —— **标准 MIDI 文件的导入 / 导出**（编辑器的�
 
 数据模型（**只存事实，不做修正**；量化/移调/力度都是编辑器的活）：
   {
-    "format": 1, "division": 480, "bpm": 120.0, "timesig": [4, 4],
+    "format": 1, "division": 480, "bpm": 120.0, "mpqn": 500000, "timesig": [4, 4],
     "end_beat": 32.0, "title": "...",
     "tracks": [
       {"index": 0, "name": "Melody", "channel": 0, "program": 0,
@@ -19,6 +19,12 @@ r"""midi_file.py —— **标准 MIDI 文件的导入 / 导出**（编辑器的�
        "markers": [[beat, text], ...]}
     ]
   }
+
+⚠ **`mpqn` 必须与 `bpm` 同时给出**（2026-10-04 实测踩过）：本函数一直只给 `bpm`，
+而下游脚本普遍写 `spb = (d.get('mpqn') or 500000) / 1e6` —— 键不存在 → 一律按
+**120BPM** 换算。BGM35 的两份 MIDI 是 150BPM，于是同一份文件被算成"末音 411.3s、
+1178 个音越出音频时长"，其实真值是 329.04s、一个都不越界；同一口径错还让
+"对源曲的覆盖"从 **82% 误报成 12%**。一个缺失的键造出了一整类假缺陷。
 
 用法（也当 CLI 用）:
   python scripts\midi_file.py info <file.mid>              # 打印结构摘要
@@ -67,6 +73,10 @@ def import_midi(path, title=None):
     div = float(r['division'] or 480)
     num, den = r['timesig'] or (4, 4)
     out = {'format': r['format'], 'division': int(div), 'bpm': round(r['bpm'], 4),
+           # ⚠ `mpqn` 与 `bpm` 是同一条事实的两种写法，**两个都给**：下游普遍写
+           # `d.get('mpqn') or 500000`，只给 `bpm` 会让它们静默按 120BPM 换算
+           # （实测把 150BPM 的曲子算错 25%，还据此报出"1178 个音越界"的假缺陷）。
+           'mpqn': int(round(60_000_000 / max(1.0, float(r['bpm'])))),
            'timesig': [int(num), int(den)],
            'title': title or os.path.splitext(os.path.basename(path))[0],
            'end_beat': round(r['end_tick'] / div, 4),

@@ -65,7 +65,14 @@ def probe(path):
     tot_s = fit_s = 0
     for si, sec in enumerate(d['sections']):
         base = sum(s['bars'] for s in d['sections'][:si])
-        for (b, bt, du, p) in d['melody'].get(sec['melody'], []):
+        # ⚠ 两种"本段没有旋律"的合法写法都要兜住（2026-10-04 实测崩溃）：
+        #   ① 段里没有 `melody` 键（扒带/直写曲的段常不挂旋律）② `melody` 的值是 None。
+        #   原写法 `sec['melody']` 会 KeyError；而这行在 `mutation_check` 第 63 组里被调用，
+        #   于是"曲库里多一首无旋律的曲子"会让整份变异检查**直接 traceback**（不是 FAIL）。
+        _mk = sec.get('melody')
+        if _mk is None:
+            continue
+        for (b, bt, du, p) in (d.get('melody') or {}).get(_mk, []):
             notes.append((base * 4 + b * 4 + bt, du, p))
             ons[int(round(bt * 4)) % 16] = ons.get(int(round(bt * 4)) % 16, 0) + 1
             if round(bt, 2) in strong and b < len(sec.get('chords') or []):

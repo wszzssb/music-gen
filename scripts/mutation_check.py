@@ -1232,6 +1232,43 @@ def main():
     results.append(case('低音根音读成固定值', 'probe_peaks_reads_root',
                         lambda: Mut(pp, 'pick_root', lambda peaks: 0)))
 
+    # 61. 两条**与任务无关的静默失效**（2026-10-04 加，BGM35 直写版踩出来的）
+    #     ① 引擎按段落边界切格子，超出段落总长的 `notes_extra` 音会被**静默丢弃**
+    #        （那一稿丢了 400+ 音、标称时长 325s→259s，而所有既有检查全绿）
+    #     ② `midi_file.import_midi` 漏给 `mpqn` 键 → 下游 `mpqn or 500000` 一律按 120BPM 算，
+    #        把 150BPM 的曲子算错 25%（据此报出"1178 个音越界"的假缺陷、覆盖率 82%→12%）
+    _f61 = _st.fixture_song()
+    _sj61 = os.path.join(_f61, 'song.json') if _f61 else ''
+    if _sj61 and os.path.exists(_sj61):
+        class _OverflowNotes:
+            def __enter__(self):
+                self.old = open(_sj61, encoding='utf-8').read()
+                d = json.loads(self.old)
+                tot = sum(int(s.get('bars') or 0) for s in d.get('sections') or [])
+                ne = d.setdefault('notes_extra', {})
+                lst = ne.setdefault('Piano', [])
+                if not lst:                       # 生成曲的 notes_extra 可能是空的
+                    lst.append([0, 0.0, 1.0, 60, 90])
+                lst.append([tot + 1, 0.0, 1.0, 62, 90])   # 落在段落之外
+                json.dump(d, open(_sj61, 'w', encoding='utf-8', newline='\n'),
+                          ensure_ascii=False, indent=1)
+                return d
+
+            def __exit__(self, *a):
+                open(_sj61, 'w', encoding='utf-8', newline='\n').write(self.old)
+        results.append(case('notes_extra 有音落在段落之外', 'notes_extra_within_sections',
+                            lambda: _OverflowNotes()))
+
+    import midi_file as _mf61
+    _real_import = _mf61.import_midi
+
+    def _drop_mpqn(path, title=None):
+        got = _real_import(path, title) if title else _real_import(path)
+        got.pop('mpqn', None)                     # 回到"只给 bpm 不给 mpqn"的旧行为
+        return got
+    results.append(case('import_midi 不给 mpqn（旧行为）', 'import_midi_tempo_exposed',
+                        lambda: Mut(_mf61, 'import_midi', _drop_mpqn)))
+
     # 60. 面板/CLI 共用的"逐轨事件出口"丢轨（面板会看不见东西，渲染却照样出声）
     import song_events as se
     _real_dump = se.dump
@@ -2600,6 +2637,84 @@ def main():
                                                                / 60.0, 1), int(p))
                                                         for (b, p) in progs])))
 
+    # 69e. **把"主奏音色对照"接进交付链时定的三条口径**（2026-10-02）：
+    #      ① **无音的段若也进判定**（占比记 0）→ 报警率被稀释：实测 `bgm35_extract`
+    #         有音段是 3/11（27%），全段算就是 3/24（13%）—— 一个是"有区分度"、一个已经在
+    #         区间外，而**同一份读数换个分母就能"过"**（技能口径点名的"恒真/空转"温床）。
+    #      ② `load_stems` 退回"只认 `st + '.wav'`" → **摊平布局**（`h6_other.wav`，
+    #         `restore_oneshot`/`timbre_audit` 用的就是它）一条都读不到 —— 静默失效，
+    #         表现只是一句"分轨目录里没有 wav"，很容易被当成"这首没分轨"而跳过。
+    #      ③ `LEAD_EXCLUDE` 失效（打击/低音/垫子参选主奏）→ 会挑中一条**伴奏轨**去代表主奏：
+    #         实测同一首 `dear_good_friends`，`Hook` 轨报警 33%、`Piano` 轨 93%、`Drums` 32%。
+    import who_plays_lead as _wpl2
+
+    def _verdicts_include_silent(seg, buckets, lead_stems=None, thr=None):
+        rows = []
+        for _nm, _a, _b in buckets:
+            c = {s: seg[(_nm, s)] for s in _wpl2.STEMS if seg[(_nm, s)]}
+            _tot = sum(c.values())
+            _ls = (sum(c[s] for s in (lead_stems or _wpl2.DEFAULT_LEAD) if s in c)
+                   / float(_tot)) if _tot else 0.0
+            rows.append({'seg': _nm, 't': '', 'notes': _tot, 'share': c, 'lead_share': _ls,
+                         'ok': _ls >= (thr if thr is not None else _wpl2.LEAD_SHARE_MIN)})
+        return rows
+
+    results.append(case('主奏归属：无音的段也进判定（稀释报警率）',
+                        'who_plays_lead_contracts',
+                        lambda: Mut(_wpl2, 'section_verdicts', _verdicts_include_silent)))
+
+    def _load_stems_plain(stem_dir):
+        """坏法：只认 demucs 原生命名，不认 `h6_`/`h4_` 摊平布局。"""
+        out, sr = {}, None
+        for _st in _wpl2.STEMS:
+            _p = os.path.join(stem_dir, _st + '.wav')
+            if os.path.isfile(_p):
+                out[_st], sr = _wpl2.load_mono(_p)
+        return out, sr
+
+    results.append(case('主奏归属：摊平布局 h6_*.wav 读不到分轨',
+                        'who_plays_lead_contracts',
+                        lambda: Mut(_wpl2, 'load_stems', _load_stems_plain)))
+
+    import timbre_audit as _ta2
+    results.append(case('主奏归属：打击/低音轨也能当主奏参选',
+                        'who_plays_lead_contracts',
+                        lambda: Mut(_ta2, 'LEAD_EXCLUDE', ())))
+
+    # 69f. **低音层增强工序**（2026-10-02 固化）的两条口径，各自对应一次实测翻车：
+    #      ① thr 抬回 0.90 → 只保留"两来源都支持"的音：实测 475 音、漏检 **47%**
+    #         （技能已证伪的"高阈值合并 = 高精度低召回"）；
+    #      ② 八度核对退回"基频 + 前两次谐波之和" → 判据被"低八度的 2 次谐波 = 高八度基频"
+    #         污染（合成夹具上 549.3 vs 549.6 **几乎不可分**），实测把 **73.1% 读成 80.6%**。
+    import bass_layer_enhance as _ble
+
+    def _band_amp_contaminated(y, sr, t, pitch, win=0.20, nfft=16384):
+        """坏法：比"基频 + 前两次谐波之和" —— 两个八度候选互相污染。"""
+        i0 = max(0, int(t * sr))
+        i1 = min(len(y), i0 + int(win * sr))
+        if i1 - i0 < 2048:
+            return 0.0
+        seg = y[i0:i1] * _np.hanning(i1 - i0)
+        sp = _np.abs(_np.fft.rfft(seg, n=nfft))
+        fr = _np.fft.rfftfreq(nfft, 1.0 / sr)
+        f0 = 440.0 * 2 ** ((pitch - 69) / 12.0)
+        tot = 0.0
+        for h in (1, 2, 3):
+            f = f0 * h
+            if f > sr * 0.45:
+                break
+            m = (fr >= f * 0.97) & (fr <= f * 1.03)
+            if m.any():
+                tot += float(sp[m].max())
+        return tot
+
+    results.append(case('低音层：thr 抬回"只保留 both"档（漏检 47%）',
+                        'bass_layer_enhance_contracts',
+                        lambda: Mut(_ble, 'DEFAULT_THR', 0.90)))
+    results.append(case('低音层：八度判据退回"基频+谐波和"（被污染）',
+                        'bass_layer_enhance_contracts',
+                        lambda: Mut(_ble, 'band_amp', _band_amp_contaminated)))
+
     # 69. 扒带曲**静默走抽样**必须被抓（2026-09-26，用户："**我需要每次提取时都能达到 V1 的准度**"）。
     #     注入 = 把夹具扒带曲的 `patterns.notes_extra_full` **删掉**（只吃引擎默认 → 意图没留痕）。
     #     ⚠ 这正是"默认值能被翻转、行为却静默改变"的那类故障：字段在不在，差 46% 的音符。
@@ -2736,6 +2851,76 @@ def main():
         return Mut(st, '_ymt3_restore_mode_ok', lambda src: True)
     results.append(case('扒带接续链不传 --no-melody（melody 副本复发）',
                         'ymt3_restore_mode_wired', _ymt3_melody_dup_regressed))
+
+    # 75. **力度护栏退回"全文合计"** 必须被抓（2026-10-02，把 `measure_velocity` 接进还原链）。
+    #     注入 = 让对齐抽检**恒判"对得上"**（= 逐轨护栏从不跳过任何轨，退化成旧的全文行为）。
+    #     这正是 BGM35 上实测的坏形态：`bass.mid` 的 956 个泄漏音把中位拖到 −59.9dB，
+    #     一条能量准的贝斯轨（−12.0dB）被连坐拒掉；而 `piano.mid` 反过来 ——
+    #     3 条 −63dB 的泄漏轨被映射成"看着正常"的噪声力度。
+    #     ⇒ 注入后"够不着的轨不许被改写"与"一条都没对上要拒写盘"两条都必须红。
+    def _vel_guard_degenerates():
+        import measure_velocity as _mv
+        return Mut(_mv, 'alignment_suspect',
+                   lambda wav, notes, spb, **kw: (False, -10.0, '注入：恒判对得上'))
+    results.append(case('力度护栏退回全文合计（泄漏轨不再跳过）',
+                        'measure_velocity_per_track_guard', _vel_guard_degenerates))
+
+    # 76. 还原链的力度接入被摘掉 / 接错，必须被抓（同上一轮的 2026-10-02 改造）。
+    #     两个面：① 留痕键没进 `PAT_KEYS`（引擎每次渲染都打"不认识这个键"）；
+    #             ② `STEM_FILE` 配对写错（把 `Hook` 也指到 `other.wav`）。
+    def _vel_key_unregistered():
+        import song_engine as _se
+        return Mut(_se, 'PAT_KEYS',
+                   tuple(k for k in _se.PAT_KEYS if k != 'velocity_source'))
+    results.append(case('力度留痕键没进 PAT_KEYS（渲染时刷"不认识"）',
+                        'restore_velocity_wired', _vel_key_unregistered))
+
+    def _vel_stem_pairing_wrong():
+        import transcribe_to_song as _tts
+        bad = dict(_tts.STEM_FILE)
+        bad['Hook'] = 'other.wav'
+        return Mut(_tts, 'STEM_FILE', bad)
+    results.append(case('分轨配对写错（Hook 指到 other.wav）',
+                        'restore_velocity_wired', _vel_stem_pairing_wrong))
+
+    # 76c. **官方链入口不透传**（只接了 `transcribe_to_song`、没接 `transcribe_ymt3`）——
+    #      这是"接进链只接了一半"的形态：照官方入口跑出来的曲子力度**依旧恒 100**
+    #      （实测 BGM35 的 Piano 2655 个音里 2375 个是 100）。
+    def _ymt3_stems_not_passed():
+        import transcribe_ymt3 as _ty
+        return Mut(_ty, '_run_song_pipeline',
+                   lambda audio_path, mid_path, out_dir, name, song_name=None,
+                   stems_dir=None: None)
+    results.append(case('官方链入口不透传 --stems-dir（力度恒 100）',
+                        'restore_velocity_wired', _ymt3_stems_not_passed))
+
+    # 77. **跨曲扫描工具的判据烂掉**必须被抓（2026-10-02）。
+    #     这两个工具的 `--selftest` 存在了很久，却**从没被主自检引用** ⇒ 烂了没人知道。
+    #     注入两个本轮真抓到的坏法：
+    #     ① D3 的门退回 `if velstat:`（只看 song.json）⇒ 生成曲整块跳过、看起来像"通过"；
+    #     ② 曲库不去重 ⇒ `songs`（符号链接）与 `songs_direct` 各扫一遍，命中数翻倍。
+    def _d3_gate_regressed():
+        import lib_defect_scan as _L
+        return Mut(_L, 'd3_should_run', lambda velstat, mid_vel: bool(velstat))
+    results.append(case('D3 的门退回只认 song.json（生成曲静默漏判）',
+                        'lib_scanners_ruler', _d3_gate_regressed))
+
+    def _lib_scan_double_counts():
+        import lib_defect_scan as _L
+
+        def old(lib=None, only=None):
+            out = []
+            for base in ([lib] if lib else [os.path.join(_L.ROOT, b) for b in _L.LIBS]):
+                if not os.path.isdir(base):
+                    continue
+                for d in sorted(os.listdir(base)):
+                    p = os.path.join(base, d)
+                    if os.path.isfile(os.path.join(p, 'song.json')) and (not only or d == only):
+                        out.append(p)
+            return out
+        return Mut(_L, 'song_dirs', old)
+    results.append(case('曲库不去重（符号链接导致每首扫两遍）',
+                        'lib_scanners_ruler', _lib_scan_double_counts))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
