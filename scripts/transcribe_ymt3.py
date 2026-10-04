@@ -297,6 +297,17 @@ _RESTORE_CHECKLIST = (
 )
 
 
+# ── **解码撞上限 = 这次转录不能当素材**（2026-10-04 泛化测试定的闸门）──────────
+# 判据：中位步数 ≥ `DECODE_CAP_WARN`，**或** ≥半数 batch 撞上限 ⇒ 拒绝接续（写进报告并跳过）。
+# 依据（同一条链、同一台机、两首曲子）：
+#   · 撞上限的那首（`[256, 152, 256, 200, 240]`，8 轨 / 6855 音）⇒ 逐音精度 **Piano 4.8% ·
+#     Hook 21.6% · Drums 32.9%**；下游"去鼓/补层"修不动（错在音符本身）。
+#   · 不撞的稀疏曲（`[122, 57, 194, …]` 中位 73）⇒ 精度 **75~87%**，可交付。
+# ⚠ 单条分轨本来就会撞（实测 256 步）—— 那是**预期**的（只影响速度），所以别拿它当异常；
+#   本闸门针对的是**整混音**撞上限这种"内容让模型失控"的情形。
+DECODE_CAP_WARN = 200
+
+
 def _print_restore_checklist():
     print('┌─ 扒谱开工清单（全文 → docs/RESTORE-METHOD.md §10）' + '─' * 18)
     for line in _RESTORE_CHECKLIST:
@@ -315,16 +326,59 @@ def _print_restore_checklist():
 #   （开头起音密度 21.7 vs 原曲 28.5，见 RESTORE-METHOD §10）。
 #   所以把正路做成**默认**，绕开要**显式** `--no-song`。
 _ENGINE_MAP = {
+    # ⚠ 2026-10-04 实测（《ほっとティータイム》）：原表只有 **9 个**名字，而 YMT3 写出的轨名
+    #   来自它自己的乐器族表（`amt/src/config/vocabulary.py` 的 `GM_INSTR_EXT_CLASS`，
+    #   **15 个**名字）—— `Reed`(610 音) 与 `Pipe`(53 音) 不在表里，于是被**整轨静默丢掉**：
+    #   1101 音里丢 **663（60%）**，而丢掉的恰是内容最多的两条。产物看上去完全正常、零报错。
+    #   ⇒ 补全全部 15 个名字，并加 `unmapped_tracks()` 把"没映射上的轨"**当场报出来**。
+    #   归属只按乐器族就近（引擎只有 8 条有音高的轨）：管乐族 Reed/Brass → `Pad`（持续型），
+    #   Pipe/Chromatic Percussion → `Glock`（高音点缀），Singing/Synth Lead → `Melody`。
     "Acoustic Piano": "Piano",
-    "Bass": "Bass",
-    "Guitar (clean)": "Hook",          # 引擎的"吉他"就叫 Hook
-    "Strings": "Strings",
+    "Electric Piano": "Piano",
     "Chromatic Percussion": "Glock",
     "Organ": "Pad",
-    "Synth Pad": "Pad",
+    "Guitar (clean)": "Hook",          # 引擎的"吉他"就叫 Hook
+    "Guitar (distortion)": "Hook",
+    "Bass": "Bass",
+    "Strings": "Strings",
+    "Brass": "Pad",
+    "Reed": "Pad",
+    "Pipe": "Glock",
     "Synth Lead": "Melody",
+    "Synth Pad": "Pad",
+    "Singing Voice": "Melody",
+    "Singing Voice (chorus)": "Melody",
     "Drums": "Drums",
 }
+
+# YMT3 会写出的轨名全集 —— **这是"契约"不是"参考"**。
+# 来源：`amt/src/config/vocabulary.py` 的 `GM_INSTR_EXT_CLASS`（+ `_PLUS` 的两个 Singing）。
+# `_ENGINE_MAP` 漏掉任何一个，那条轨就被整轨丢掉；自检 `t_ymt3_engine_map_covers_names`
+# 拿这张表逐项比对。⚠ 它抄的是**外部仓库的常量**（本机没有该仓库时无法自动读），
+# 所以在这里显式入账，并在自检里注明出处与"换权重后要重核"。
+YMT3_TRACK_NAMES = (
+    "Acoustic Piano", "Electric Piano", "Chromatic Percussion", "Organ",
+    "Guitar (clean)", "Guitar (distortion)", "Bass", "Strings", "Brass",
+    "Reed", "Pipe", "Synth Lead", "Synth Pad",
+    "Singing Voice", "Singing Voice (chorus)", "Drums",
+)
+
+
+def unmapped_tracks(m):
+    """多轨转录里**没有被 `_ENGINE_MAP` 覆盖**的轨 → `[(名字, 音数), ...]`。
+
+    为什么单独抽成一个函数：这些轨原来是**静默丢掉**的（`if not eng: continue`），
+    产物从任何角度看都正常 —— 实测丢掉 60% 的音而**零报错**。
+    抽出来是为了让自检能对它做**行为测试**，而不是去读源码里的字面串
+    （同 `transcribe_to_song.gen_layer_on` 的理由）。
+    """
+    out = []
+    for tr in (m.get("tracks") or []):
+        ns = tr.get("notes") or []
+        nm = str(tr.get("name") or "")
+        if ns and nm not in _ENGINE_MAP:
+            out.append((nm or "?", len(ns)))
+    return out
 
 
 def _split_by_engine_track(mid_path, name, out_dir):
@@ -337,6 +391,19 @@ def _split_by_engine_track(mid_path, name, out_dir):
     import midi_file
     m = midi_file.import_midi(mid_path)
     buckets, progs = {}, {}
+    # ⚠ **丢轨必须出声**（2026-10-04 实测）：映射表漏名字时这些轨是静默丢弃的，
+    #   实测丢掉 60% 的音而零报错 —— 产物看着完全正常。
+    _lost = unmapped_tracks(m)
+    if _lost:
+        _tot_lost = sum(n for _nm, n in _lost)
+        _tot_all = sum(len(tr.get("notes") or []) for tr in (m.get("tracks") or []))
+        print("  ! [丢轨] %d 条转录轨**不在引擎轨名表里**，会被整轨丢掉：%s"
+              % (len(_lost), "、".join("%s(%d 音)" % (nm, n) for nm, n in _lost)), flush=True)
+        print("      丢掉 %d / %d 音 = **%.0f%%** ⇒ 要么补 `_ENGINE_MAP`，"
+              "要么用官方接口手工指定：`transcribe_to_song.py --mid <引擎轨>=<文件>`"
+              "（引擎认识的轨名：%s）"
+              % (_tot_lost, _tot_all, 100.0 * _tot_lost / max(_tot_all, 1),
+                 "/".join(sorted(set(_ENGINE_MAP.values())))), flush=True)
     for tr in m.get("tracks", []):
         eng = _ENGINE_MAP.get(str(tr.get("name") or ""))
         if not eng or not (tr.get("notes") or []):
@@ -659,6 +726,30 @@ def main():
                   "      耗时 ∝ 步数：同机实测全混音 109 步 = 0.149 s/段 · 分轨 256 步 = 0.600 s/段。\n"
                   "      与电平无关（±12dB 都不变）；要快只能少跑或不跑该输入 → ML.md"
                   "「分轨输入会慢 3–11 倍：模型不吐 <eos>」。" % (_hit, len(_steps), _cap), flush=True)
+        # ── **质量闸门：解码撞上限 = 这次转录不能当素材**（2026-10-04 泛化测试定的）──
+        # 依据：某首明亮流行曲（8 轨 / 6855 音）解码步数 `[256, 152, 256, 200, 240]`
+        # ⇒ 逐音精度 **Piano 4.8% · Hook 21.6% · Drums 32.9%**（该修的下游修不动）。
+        # 而同一台机、同一条链在稀疏曲上是 `[122, 57, 194, …]`（中位 73）⇒ 精度 75~87%。
+        # ⇒ **中位步数 ≥ DECODE_CAP_WARN 或 ≥半数 batch 撞上限** = 上游失败，**别往下接续**。
+        #    （`--no-song` 只出 MIDI 时也照样报，因为坏的是转录本身。）
+        if _cap and (_med >= DECODE_CAP_WARN or _hit * 2 >= max(1, len(_steps))):
+            print("\n✗ **解码撞上限 ⇒ 本次转录不许当素材**（中位 %d / 上限 %d，撞上限 %d/%d 个 batch）\n"
+                  "   实测这条判据的价值：撞上限的那首逐音精度只有 **4.8%~57%%**（Piano 4.8%% / "
+                  "Hook 21.6%%），\n"
+                  "   而不撞上限的稀疏曲是 **75~87%%**。先解决输入再谈别的：\n"
+                  "   · 换 `--bsz` 重跑 · 或**按分轨分别转录**（单条分轨本来就是分布外，注意它也会撞）·\n"
+                  "   · 或把音频**切片**（60s 一段）逐段转录再拼 · 或换一个更合适的模型\n"
+                  "   ⚠ 下游的「去鼓/补层」这类修工序**修不动这个错**（错在音符本身，不在编配）。"
+                  % (_med, _cap, _hit, len(_steps)), flush=True)
+            report.append({"name": name, "midi": dst, "seconds": round(dur, 1),
+                           "segments": n_seg, "notes": len(notes),
+                           "decode_steps": _steps, "decode_cap": _cap,
+                           "decode_cap_hits": _hit, "rejected": True,
+                           "reason": "decode_hit_cap"})
+            if args.no_song:
+                continue            # 已经是"只要 MIDI"模式 ⇒ 只标记，不再接续（下面本来也不接）
+            # ⚠ **不接续**：把坏转录喂进 song.json 只会生产一份看着像成品的废数据。
+            continue
 
         t3 = time.time()
         n_ch = model.task_manager.num_decoding_channels

@@ -270,23 +270,6 @@ def chord_tones(name):
     return bass, [60 + pc + s for s in steps]
 
 
-def gen_layer_on(src_count):
-    """**引擎生成层**（`arp / pad / glock / shimmer`）该不该开 —— **只看本段有没有该来源的转录音**。
-
-    ⚠ 别退回"段名规则"（2026-09-25 实测，用户听感"前面有点乱"的根因）：
-    旧写法是 `'arp': nm not in ('C', 'Ending')`，而本工具 `--auto` 生成的段名是
-    **`S01…S24` + `Ending`** —— 没有任何一段等于 `'C'`，于是这个条件**恒为 True**，
-    引擎**凭空生成**的层在**每一段**都开着。实测后果：引子第 1–4 小节转录只有 **0~1 个音**，
-    引擎却在那里生成了 **Arp 13 + Pad 4** 个音（开头的主角成了琶音和垫子）。
-
-    正解：**没有来源音的生成层一律不开** —— 还原曲的编制由转录决定，引擎不该补原曲
-    根本没有的声部；而且这是**逐段**判断（不是全曲一刀切）。
-    抽成模块级函数是为了让 `selftest.t_transcribe_arr_by_source` 能**行为测试**它
-    （读源码里的字面串太脆：注释里提一句旧写法就会误判）。
-    """
-    return int(src_count) > 0
-
-
 def range_fit(notes, tr):
     """把**越界音**移到最近的合法八度；**合法音一个不动**（还原曲要"符合原曲"）。
 
@@ -371,8 +354,7 @@ def main():
     ap.add_argument('--sample', action='store_true',
                     help='回到旧的"服从段落结构"抽样（不写 notes_extra_full）；'
                          '默认**全量**，逐音照写')
-    ap.add_argument('--full', action='store_true',
-                    help='（已废弃，默认即全量；保留是为了旧命令行不报错）')
+    ap.add_argument('--full', action='store_true',                    help='（已废弃，默认即全量；保留是为了旧命令行不报错）')
     ap.add_argument('--out', default=None, help='输出 song.json 路径（默认 songs/<name>/）')
     ap.add_argument('--force', action='store_true',
                     help='目标 song.json 已存在时**直接覆盖**（默认会先备份成 '
@@ -450,20 +432,11 @@ def main():
             if t:
                 chords[cn] = [t[0], t[1]]
 
-    # —— 来源盘点（**必须排在段落之前**）——
-    # `arr` 的"引擎生成层"开关要按**本段是否真有该来源的转录音**逐段决定，见下面 `arr` 那段。
-    _src_bars = {}
-    for spec in a.mid:
-        if '=' not in spec:
-            continue                      # 格式错留给下面正式读取时报，这里只做盘点
-        _tr0, _p0 = spec.split('=', 1)
-        if not os.path.exists(_p0):
-            continue
-        _src_bars.setdefault(_tr0, []).extend(int(st / bar_sec) for (st, _e, _pp, _vv) in read_notes(_p0))
-
-    def _src_in(tr, lo, hi):
-        """本段内该来源轨的音符数（0 = 原曲这一段没有这个声部）。"""
-        return sum(1 for b in _src_bars.get(tr, ()) if lo <= b < hi)
+    # ⚠ **生成层的"来源盘点"已移进引擎**（2026-10-04）：`song_engine.apply_restore_no_gen`
+    #   直接拿 `notes_extra` **逐段**判"这条轨这一段有没有转录音"，据此开关生成层。
+    #   原来这里有一份 `_src_bars/_src_in` + `gen_layer_on` + `perc_level`，
+    #   与引擎各判一份 ⇒ 语义漂移（`perc` 就是那么漏的：本文件按来源关、引擎按段名开）。
+    #   单一真源 = 引擎那一份；本文件只负责写 `notes_extra` 与**非生成类**的段级参数。
 
     # —— 段落 ——
     starts = [int(round(b / bar_sec)) for b in bounds]
@@ -492,23 +465,24 @@ def main():
             #   原曲那段本来几乎是空的。
             #   正解：**没有来源音的生成层一律不开**（还原曲的编制由转录决定，
             #   引擎不该补原曲根本没有的声部），而且**逐段**判断，不是全曲一刀切。
-            #   ⚠ `bass/piano/strings` 必须**恒开**：正式读取后 `notes_extra` 会
-            #     `ev[_tr] = …` **整轨覆盖**它们，但 `if _tr not in ev: continue`
-            #     意味着**关掉就等于把转录的音整轨丢掉**（不是"不生成"）。
-            'arr': {'bass': True, 'piano': True, 'strings': True,
-                    'pad': gen_layer_on(_src_in('Pad', lo, hi)),
-                    'uku': False,
-                    'arp': gen_layer_on(_src_in('Arp', lo, hi)),
-                    'glock': gen_layer_on(_src_in('Glock', lo, hi)),
-                    'ep': False,
-                    'shimmer': gen_layer_on(_src_in('Arp', lo, hi)),
-                    'perc': 0 if nm in ('C', 'Ending') else (1 if nm == 'A' else 2),
-                    'density': 0 if nm == 'C' else (1 if nm == 'Ending' else mid_d)},
+            # ⚠ **生成层的开关不在这里写**（2026-10-04 改，见文件后半段那段注释）：
+            #   引擎对"有 `notes_extra` 的还原曲"**默认全关生成层**，只开有转录音的轨，
+            #   而且**逐段**判（`_src_in(轨, lo, hi)` 那套已移进引擎，判据同一份）。
+            #   这里若再写一遍 `arr.bass/piano/strings/...`，就成了"显式值优先"，
+            #   会把引擎的自动判定顶掉 —— 前几轮打地鼠（perc→bass→piano/strings）
+            #   正是因为开关散在两个地方、语义还不一致。
+            #   本工具只留**非生成类**的段级参数：密度档 / 收尾渐弱（`ending_fade`）。
+            'arr': {'density': 0 if nm == 'C' else (1 if nm == 'Ending' else mid_d)},
             'mode': a.key_mode,
         })
         if nm == 'Ending':
             secs[-1]['arr']['ending_fade'] = 3      # 实测收尾 3 小节力度趋 0
         mel[nm] = []
+
+    # **生成层的开/关不再由本工具决定**（2026-10-04）—— 引擎对"有 `notes_extra` 的曲子"
+    # 默认全关生成层、只开有转录音的轨，并**自己打印**开了哪几条（`[还原曲] 生成层默认关…`）。
+    # 这里不再重复打印：两处各打一份必然漂移，而且"配置写了、声音里没有"正是前几轮的病根。
+    print('  [编配] 生成层交给引擎自动判（还原曲默认全关，哪条轨有转录音就开哪条）')
 
     # —— 逐轨音符 ——
     quotas = {}
@@ -702,6 +676,12 @@ def main():
     #   ⚠ `--sample` 必须写 `False`、**不能只是"不写"** —— 引擎默认已翻成 True，
     #   "不写"等于全量，那样 `--sample` 就成了空转（本轮真踩：写完第一版才发现）。
     d['patterns']['notes_extra_full'] = not a.sample
+    # ⚠ **生成层的关/开不再由本工具写死**（2026-10-04 改）：引擎现在自己判 ——
+    #   有 `notes_extra` 的曲子（= 还原曲）生成层**默认全关**，**哪条轨在本段有转录音
+    #   就开哪条**；`perc` 恒 0（鼓走转录的 `Drums` 轨）。
+    #   所以下面 `arr` 里只留**非生成类**的键（density / melody_prog / mix / ending_fade…），
+    #   把 `bass/piano/strings/pad/arp/glock/shimmer/perc` 全部**不写** ——
+    #   写了就成"显式值优先"，会把引擎的自动判定顶掉（这正是前几轮打地鼠的根源）。
     # —— 力度来源留痕 ——
     # ⚠ 与 `notes_extra_full` 同一个理由：**显式写盘**，不靠"没写就是默认"。
     #   换引擎版本 / 换调用方时，`velocity_source` 能当场看出这一首的力度是
