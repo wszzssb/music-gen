@@ -223,6 +223,30 @@ studio\stop.cmd     # 停
 参数：`--dur-floor`（时值下限，只动旋律层，默认 0.55 拍）· `--absorb-into`（YMT3 的合成器通道并进哪条轨，默认 Strings —— 并进 Piano 会用钢琴音色弹它）· `--thr-extra`（Guitar/Strings 是单来源层，套 `--merge-thr` 会把整层砍掉）；改过参数要 `--from bass --force bass` 重跑。
 判据 → `docs/RESTORE-METHOD.md` §4b · PITFALLS 206/207。
 
+**第一道工序：逐轨精度审计**（**每个提取/还原任务都跑**，用户 2026-10-04 定）
+
+```powershell
+# ① 分轨（**必须 6 轨**：piano/guitar 才拆得开；4 轨下 Pad 55.6%→0%、Hook 65%→81% 是假象）
+& $ml -m demucs -n htdemucs_6s -o <分轨输出目录> <原曲44k.wav>     # 199s 音频实测 33 秒
+# ② 逐轨量「精度 + 召回 + 缺口小节」——"我发的音对不对"＋"原曲有的我漏没漏"
+& $py scripts\audit_stems.py <曲目> --stems "<分轨输出目录>\htdemucs_6s\<曲名>" --ref <原曲44k.wav> [--json 读数.json]
+& $py scripts\audit_stems.py --selftest        # 尺子自检（440Hz 合成件 + 判据自证）
+& $py scripts\audit_stems.py <曲目> --stems <分轨> --ref <混音> --gate   # 准入：unusable 则非零退出
+#   ⚠ **两个闸门别跳**：① 报告里的「整层缺失」= 分轨有内容但我方**没有对应轨**
+#      （实测某曲 13 个解码通道只出 1 个，漏掉的 5 层在逐轨表里根本不出现）；
+#      有意移除的层用 `--accept-missing drums,vocals` 声明，否则会一直判 unusable。
+#   ② 准入 `fixable` 才许进「去鼓/补层」这类修工序 —— 上游错音下游修不动（PITFALLS 320）。
+#   ⚠ 转录阶段另有一道：`transcribe_ymt3` 在**中位解码步数 ≥200 或 ≥半数 batch 撞上限**时
+#      拒绝接续 song.json（撞上限那首逐音精度只有 4.8%~57%，不撞的 75~87%）。
+#   ⚠ 判据：可信轨**精度 ≥70% 才动手改内容**；**召回缺口 = 漏内容**，与"错音"分开修
+#   ⚠ 4 轨跑时 Piano/Hook/Glock 会显式列成「测不到」（不许整行消失）
+#   ⚠ 实测价值：某曲鼓轨 1250 音精度 **3%**（整层凭空，害人连听四版）→ PITFALLS 316
+# ③ 若"原曲没有鼓组"（drums 分轨 RMS 比全混音低 >15dB、几乎无 <120Hz）：去鼓 + 补沙锤层
+& $py scripts\strip_drums.py <曲目> --dry                       # 先看处理表（三处一起清）
+& $py scripts\shaker_layer.py <曲目> --ref-drums <drums.wav> --dry   # 照实测高频律动建网格（只放 GM 82/70）
+#   ⚠ 网格三条静默契约（件名/第三列/静音门）→ PITFALLS 317
+```
+
 ### 单乐器独奏化（"提取 MIDI 之后完全用钢琴 / 只用一件乐器演奏"）
 
 ```powershell
