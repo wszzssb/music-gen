@@ -57,8 +57,14 @@ def lint_dirs(songs):
     文档分级 `docs_host_classification`）。沙箱里没有这些目录时，它们会一致地报"不存在" ——
     那是**沙箱造成的假报，不是数据问题**，却会在每次渲染前伪装成"未通过 N 项"红字，
     把真正的数据错误淹掉。
+    ⚠ **沙箱名必须带 PID（2026-10-05 修）**：原来是写死的 `_lint_sandbox`，于是
+    **两个 `check_song` 进程并发时互相拆台** —— 进程 A 建好沙箱、进程 B 走到
+    `os.path.exists(dst)` 见 `refs/` 已存在就**跳过复制**，A 跑完 `cleanup()` 把整棵删掉，
+    B 的判据再去读 `refs/themes/<主题>.json` ⇒ 报 **"主题包不存在"**（实测 4 路并发：9 首里
+    7 首 1 秒内 rc=1，报的就是这条；同一首串行跑 rc=0）。渲染本身并发是安全的
+    （每首写自己的 `songs/<id>/`），**卡住并行的只是这个沙箱**。
     """
-    tmp_root = os.path.join(ROOT, '_lint_sandbox')
+    tmp_root = os.path.join(ROOT, '_lint_sandbox_%d' % os.getpid())
     songs_dir = os.path.join(tmp_root, 'songs')
     os.makedirs(songs_dir, exist_ok=True)
     for s in songs:

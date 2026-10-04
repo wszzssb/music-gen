@@ -164,7 +164,8 @@ def repo_docs():
     self_rel = os.path.relpath(OUT, ROOT).replace('\\', '/')
     out = []
     for base, dirs, files in os.walk(ROOT):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS
+                   and not d.startswith('_lint_sandbox')]   # 沙箱名带 PID，按前缀排
         for f in files:
             if f.lower().endswith('.md'):
                 rel = os.path.relpath(os.path.join(base, f), ROOT).replace('\\', '/')
