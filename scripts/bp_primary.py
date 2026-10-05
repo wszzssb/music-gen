@@ -258,8 +258,45 @@ def tempo_selftest(verbose=True):
     return ok
 
 
+def _tempo_levels(oe):
+    """给 `--bpm auto` 用的**三档层级**候选（÷2 / librosa 基准 / ×2）。
+
+    ⚠ 为什么要三档：**速度是"层级"的事**（`SKILL` §2-6）—— `librosa` 的基准可能钉错层
+    （实测它把 106 报成 154.3、把 90 报成 60.1）。这里**只造候选**，
+    由调用方打印三档命中率、让用户用 `--bpm <数字>` 钉死，**不在链上自动选**。
+    """
+    import librosa
+    fn = None
+    for cand in ('feature.rhythm.tempo', 'beat.tempo'):
+        obj = librosa
+        try:
+            for part in cand.split('.'):
+                obj = getattr(obj, part)
+            fn = obj
+            break
+        except AttributeError:
+            continue
+    b0 = None
+    if fn is not None:
+        try:
+            b0 = float(np.atleast_1d(fn(onset_envelope=oe, sr=SR, hop_length=256))[0])
+        except Exception:                                          # noqa: BLE001
+            b0 = None
+    if not b0 or not np.isfinite(b0) or b0 <= 0:
+        return [75.0, 150.0, 300.0]        # 兜底三档（流行/BGM 常见 60–180，覆盖 2×/0.5×）
+    return [b0 / 2.0, b0, b0 * 2.0]
+
+
 def mix_tempo(audio, stems_dir=None, bpm=None):
-    """**核对**给定的 BPM：以 `60/bpm` 为初值精修，并检查 2× / 0.5× 层级。
+    """逐来源核对速度。**`bpm=None` ⇒ 只报候选、不给结论**（给 `--bpm auto` 用）。
+
+    ⚠ `bpm=None` 时**不许**走到 `60.0 / bpm`：原实现直接除，于是 `--bpm auto`
+    这条分支**从来没跑通过**（`TypeError: unsupported operand type(s) for /: 'float' and 'NoneType'`），
+    而文档"用法"里推荐的正是 `--bpm auto`（2026-10-05 实测踩到，在 BGM35 上）。
+    现在自动档走 `_tempo_levels()`（三档层级）→ `fit_tempo` 精修 → 报命中率最高那档。
+
+    以下是有 `bpm` 时的行为 —— **核对**给定的 BPM：以 `60/bpm` 为初值精修，
+    并检查 2× / 0.5× 层级。
 
     ⚠ **本函数只做核对，不做"检测"** —— 两个版本都栽在这一点上：
       · 第一版初值取 `p0 ∈ (0.5, 1.0, 1.4)` 秒（≈120/60/43 BPM），而 87.5 BPM 的周期是
@@ -281,14 +318,33 @@ def mix_tempo(audio, stems_dir=None, bpm=None):
         oe = librosa.onset.onset_strength(y=y, sr=SR, hop_length=256)
         return librosa.frames_to_time(librosa.onset.onset_detect(
             onset_envelope=oe, sr=SR, hop_length=256, units='frames'),
-            sr=SR, hop_length=256)
+            sr=SR, hop_length=256), oe
 
     srcs = [('mix', audio)] + (
         [(f[:-4], os.path.join(stems_dir, f)) for f in sorted(os.listdir(stems_dir))
          if f.endswith('.wav')] if stems_dir and os.path.isdir(stems_dir) else [])
     out = []
     for tag, p in srcs:
-        on = onsets_of(p)
+        on, oe = onsets_of(p)
+        if not bpm:
+            # **只报候选，不替用户选**（`--bpm auto`）：
+            # ⚠ 候选取 **librosa 基准那一档**，**绝不能按命中率选**——本函数 docstring 记着
+            #   两版翻车：命中率与周期不可比，周期越短（2× 层）落在格上的音天然越多，
+            #   实测全来源一致报 175.0（87.5 的两倍）。三档读数只当参考。
+            lv = _tempo_levels(oe)
+            vals = []
+            for b in lv:
+                rr = fit_tempo(on, 60.0 / b)
+                if rr:
+                    vals.append((b, rr[0], rr[1]))
+            if not vals:
+                print('      %-8s 起音太少，拟合不出候选' % tag)
+                continue
+            pick = next((v for v in vals if v[0] == lv[1]), vals[0])
+            print('      %-8s 三档层级：%s' % (tag, ' · '.join(
+                '%.0f→%.2f BPM(%.0f%%)' % (b, v, 100 * h) for b, v, h in vals)))
+            out.append((tag, pick[1], pick[2]))
+            continue
         r0 = fit_tempo(on, 60.0 / bpm)
         if not r0:
             continue
@@ -555,14 +611,17 @@ def main():
     d = json.load(open(p, encoding='utf-8'))
     d['programs'] = {k: v for k, v in DEFAULT_PROGS.items()
                      if k in (d.get('notes_extra') or {})}
-    with open(p, 'w', encoding='utf-8', newline='\n') as f:
-        json.dump(d, f, ensure_ascii=False, indent=1)
-    # compose.py（照曲库里现成的模板）
-    tpl = os.path.join(ROOT, 'songs', 'hot_tea_time', 'compose.py')
-    if os.path.exists(tpl):
-        open(os.path.join(sd, 'compose.py'), 'w', encoding='utf-8').write(
-            open(tpl, encoding='utf-8').read().replace('hot_tea_time', a.song))
-    print('   ✓ songs/%s/song.json（生成层由引擎按"输入哪个才开哪个"自动关）' % a.song)
+    # ⚠ **必须用 `json_io` 写回**（不能 `json.dump(indent=1)`）：那会把 `transcribe_to_song`
+    #   刚写好的**紧凑规范格式**写胖 5 倍（实测 BGM35：70322 行 vs 应有的 13388 行），
+    #   自检 `song_json_canonical` 会 FAIL（2026-10-05 干净重提取时抓到）。
+    import json_io
+    json_io.save(p, d)
+    # 引擎入口：走接续链那套（**只补缺、不覆盖**）——原来是从 `songs/hot_tea_time/compose.py`
+    # 抄一份，既依赖"别人那首曲目还在"，又和 transcribe_to_song 刚写的重复。
+    import transcribe_to_song as _ts
+    _st, _cp = _ts.ensure_compose_file(sd, a.song)
+    print('   ✓ songs/%s/song.json（生成层由引擎按"输入哪个才开哪个"自动关）· 引擎入口 %s'
+          % (a.song, _st))
     if a.render:
         subprocess.run([sys.executable, os.path.join(HERE, 'make_song.py'), a.song],
                        cwd=ROOT)

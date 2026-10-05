@@ -37,9 +37,11 @@ python scripts/transcribe_to_song.py <曲名> --bpm 75 ... \
 
 量失败**不会静默**：`patterns.velocity_source` 会记下 `FAILED`，并在终端打出来。
 
-生成 `songs/<曲名>/song.json`（含 `chords` / `sections` / `melody` / `notes_extra`）。
-随后：`cp` 一份 `compose.py`（照 `songs/01_daily_morning/compose.py` 那 14 行）→
-`make_song.py <曲名>`。
+生成 `songs/<曲名>/song.json`（含 `chords` / `sections` / `melody` / `notes_extra`），
+**并顺手把引擎入口 `compose.py` 写到同目录**（2026-10-05 起；`--no-compose-file` 可关）——
+少了它，首次 `make_song` 会走"没有 render.json → composer 为空 → 跳过作曲 → 找不到 MIDI"，
+而那句提示反而怪你"第一次跑不要加 --no-compose"（实测在 BGM35 干净重提取上真踩，
+卡住整条链、只能手工 `cp` 一份模板才过）。随后直接 `make_song.py <曲名>`。
 
 ## 关键约定（都是踩出来的，别改）
 
@@ -75,6 +77,47 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+
+# 引擎入口模板（`songs/*/compose.py` 的通用形态：只负责调用引擎，编配数据在 song.json）。
+# ⚠ **必须在接续时自动写**：它缺失 + 没有 render.json ⇒ `make_song` 判 `composer` 为空
+#   → 静默"跳过作曲"→ "找不到 MIDI"，而提示却是"第一次跑不要加 --no-compose"（误导）。
+#   口径：**只补缺，不覆盖**已存在的文件（可能被手工改过）。
+COMPOSE_TPL = '''#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""%(name)s —— 编配数据在 song.json，本文件只负责调用引擎（引擎通用模板）"""
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+# 面板按"曲库路径"执行本文件时，HERE/../../scripts 会解析到曲库的上级 →
+# 面板与它起的任务都会设 BGM_STUDIO_ROOT，优先用它；没设（手工直跑）才回退相对路径。
+_ROOT = os.environ.get('BGM_STUDIO_ROOT') or os.path.join(HERE, '..', '..')
+sys.path.insert(0, os.path.join(_ROOT, 'scripts'))
+import song_engine
+
+if __name__ == '__main__':
+    song_engine.compose(os.path.join(HERE, 'song.json'))
+'''
+
+
+def ensure_compose_file(folder, name):
+    """→ `('written'|'exists'|'differ'|'failed', path)`；**只补缺，不覆盖**"""
+    p = os.path.join(folder, 'compose.py')
+    if os.path.isfile(p):
+        try:
+            cur = open(p, encoding='utf-8').read()
+        except Exception:                                          # noqa: BLE001
+            return 'exists', p
+        return ('exists' if 'song_engine.compose' in cur else 'differ'), p
+    try:
+        os.makedirs(folder, exist_ok=True)
+        with open(p, 'w', encoding='utf-8', newline='\n') as f:
+            f.write(COMPOSE_TPL % {'name': name})
+        return 'written', p
+    except Exception as _e:                                        # noqa: BLE001
+        print('  ! compose.py 写失败（%s）—— 首次 make_song 会跳过作曲' % str(_e)[:80])
+        return 'failed', p
+
 sys.path.insert(0, HERE)
 import json_io                                                # noqa: E402
 import midi_file                                              # noqa: E402
@@ -356,6 +399,8 @@ def main():
                          '默认**全量**，逐音照写')
     ap.add_argument('--full', action='store_true',                    help='（已废弃，默认即全量；保留是为了旧命令行不报错）')
     ap.add_argument('--out', default=None, help='输出 song.json 路径（默认 songs/<name>/）')
+    ap.add_argument('--no-compose-file', dest='no_compose_file', action='store_true',
+                    help='不自动写引擎入口 compose.py（默认写：缺了它首次 make_song 会跳过作曲）')
     ap.add_argument('--force', action='store_true',
                     help='目标 song.json 已存在时**直接覆盖**（默认会先备份成 '
                          '<song.json>.bak_before_transcribe 并打印提示）')
@@ -550,14 +595,28 @@ def main():
         notes = range_fit(notes, tr)
         # ⚠ **带第 5 位力度**（`[小节, 拍, 时值, 音高, 力度]`）：引擎的 `_vel_of` 就认它。
         #   丢了力度 → 引擎套默认值 → "打字机"（实测对照：带 17773/17773，不带 0/23033）。
-        ne[tr] = [[int(st / bar_sec),
-                   round((st - int(st / bar_sec) * bar_sec) / (bar_sec / 4), 2),
-                   max(0.25, round((en - st) / (bar_sec / 4), 2)), p, int(vel)]
-                  for (st, en, p, vel) in notes]
+        # ⚠⚠ **小节号必须夹在段落总长内**（2026-10-05 干净重提取 BGM35 实测）：曲尾 331.88s、
+        #   207 小节 × 1.602s = 331.6s ⇒ 最后 0.28s 的音算出 **bar=207**，而段落只有 207 小节
+        #   （合法 0..206）⇒ **引擎静默丢弃**（自检 `notes_extra_within_sections` 抓到的正是这条）。
+        #   这里夹到最后一小节、**不删内容**（用户口径：判据服从原曲，不许为过指标删真实音符），
+        #   并把夹过的条数**打出来**（不许静默）。
+        _tb = sum(s['bars'] for s in secs)
+        ne[tr], _clip = [], 0
+        for (st, en, p, vel) in notes:
+            _b = int(st / bar_sec)
+            if _b > _tb - 1:
+                _b, _clip = _tb - 1, _clip + 1
+            ne[tr].append([_b,
+                           round((st - int(st / bar_sec) * bar_sec) / (bar_sec / 4), 2),
+                           max(0.25, round((en - st) / (bar_sec / 4), 2)), p, int(vel)])
+        if _clip:
+            print('  ! %s 有 %d 个音落在越界小节（段落共 %d 小节）→ 已夹到最后一小节'
+                  '（不删内容；要真覆盖请延长段落）' % (tr, _clip, _tb))
         if tr == a.melody_from:
             mel_src = notes
         print('  %-8s %5d 音 · 覆盖 %d 小节 · 力度 %d~%d'
-              % (tr, len(notes), len({int(s / bar_sec) for s, _e, _p, _v in notes}),
+              % (tr, len(notes), len({min(_tb - 1, int(s / bar_sec))
+                                      for s, _e, _p, _v in notes}),
                  min(v for *_x, v in notes), max(v for *_x, v in notes)))
 
     # —— **配额抽样**（`--quota 轨=音数`）——
@@ -723,7 +782,13 @@ def main():
     print('写 %s（%d 段 / %d 小节 / %d 和弦种 / notes_extra %d 轨 %d 音）'
           % (out, len(secs), sum(s['bars'] for s in secs), len(chords),
              len(ne), sum(len(v) for v in ne.values())))
-    print('下一步：放一份 compose.py 到同目录 → make_song.py %s' % a.name)
+    if not a.no_compose_file:
+        st, cp = ensure_compose_file(os.path.dirname(out), a.name)
+        print({'written': '  ✓ 已写引擎入口 %s（首次 make_song 直接能作曲）',
+               'exists': '  · 引擎入口 %s 已在',
+               'differ': '  ! %s 已存在但与模板不同（可能手工改过）→ **不覆盖**',
+               'failed': '  ! 引擎入口没能写好（见上）'}[st] % os.path.basename(cp))
+    print('下一步：make_song.py %s' % a.name)
     return 0
 
 

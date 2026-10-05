@@ -293,6 +293,24 @@ def audit(song_json, stems_dir, ref=None, verbose=True, accept_missing=None):
                                     passed=len(passed), measured=len(meas))
 
 
+def jsonable(rows):
+    """把逐轨读数转成能 `json.dump` 的副本（`cov_bars` 是 numpy bool 数组）。
+
+    ⚠ 只转**副本**：内存里的 `rows` 仍保留 ndarray（下游按 `.sum()` / 索引用）。
+    实测（2026-10-05）：`--json` 直接 dump 会 `TypeError: Object of type ndarray
+    is not JSON serializable`（在 `cov_bars` 上）—— 而报告已经打印完了，
+    看日志的人只会看到"报告出来了 + 末尾一段 traceback"，容易当成渲染失败。
+    """
+    out = []
+    for r in rows:
+        r2 = dict(r)
+        for k, v in list(r2.items()):
+            if hasattr(v, 'tolist'):
+                r2[k] = [int(x) for x in v.tolist()]
+        out.append(r2)
+    return out
+
+
 def selftest():
     """尺子自检：合成件上**已知答案**必须量对（含判据自证）。
 
@@ -321,8 +339,13 @@ def selftest():
         assert _ratio(tone, sr, 0.1, 1200.0) >= HIT, '门为 0 时本该"谁都算命中"（自证夹具没生效）'
     finally:
         HIT = old
-    print('尺子自检：440Hz 在 440 带 %.3f（命中）· 在 1200 带 %.3f（空）· 静音 None · 判据自证 OK'
-          % (r_in, r_out))
+    # `--json` 必须能写出来：`cov_bars` 是 ndarray，直接 dump 会 TypeError
+    _j = jsonable([dict(track='X', cov_bars=np.array([True, False, True])), dict(track='Y')])
+    json.dumps(_j)
+    assert _j[0]['cov_bars'] == [1, 0, 1] and 'cov_bars' not in _j[1], \
+        'jsonable 没把 ndarray 转成可序列化的 list：%r' % (_j,)
+    print('尺子自检：440Hz 在 440 带 %.3f（命中）· 在 1200 带 %.3f（空）· 静音 None · '
+          '判据自证 + --json 可序列化 OK' % (r_in, r_out))
     return True
 
 
@@ -353,7 +376,7 @@ def main():
                                      accept_missing=tuple(
                                          x.strip() for x in a.accept_missing.split(',') if x.strip()))
     if a.json:
-        json.dump({'is6': is6, 'rows': rows, 'missing_layers': missing, 'gate': gate},
+        json.dump({'is6': is6, 'rows': jsonable(rows), 'missing_layers': missing, 'gate': gate},
                   open(a.json, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
         print('已写 %s' % a.json)
     bad = [r for r in rows if r['trustworthy'] and r['prec'] is not None

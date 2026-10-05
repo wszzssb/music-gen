@@ -215,6 +215,9 @@ studio\stop.cmd     # 停
 #     纯 restore_oneshot 路径其实只用到它的第①层初筛 → 可少跑（实测省 3m42s）。→ ML.md
 #   ↑ 2026-09-20 起「正路是默认」：绕开要**显式** --no-song（PITFALLS 185 / SKILL §8）
 #     接续链：切轨 → analyze_chords → transcribe_to_song --auto → songs/<名>/song.json
+#       **并自动写引擎入口 `compose.py`**（2026-10-05 起；`--no-compose-file` 可关）——
+#       少了它首次 `make_song` 会静默「跳过作曲 → 找不到 MIDI」（PITFALLS 323）。
+#       干净重提取一条链：`transcribe_ymt3 <音频> --name <名> --song-name <名> --stems-dir <6轨>` → `make_song <名> --no-tune`
 #     ↑ `transcribe_to_song.py` **默认全量**（写 `notes_extra_full: true`，逐音照写）。
 #       要旧的"按 arr.density 抽样"（每轨每小节砍上限 4/10/18 音）→ 加 `--sample`
 #       （它写 `false`；**不能靠"不写字段"表达抽样** —— 引擎默认已是全量）。守卫 `t_restore_notes_full`

@@ -428,7 +428,18 @@ def main():
         print('[1/3] 跳过作曲')
 
     if not os.path.exists(mid):
-        print('找不到 MIDI: %s\n  第一次跑不要加 --no-compose（要先生成 MIDI）' % mid)
+        # 这句提示原来写「第一次跑不要加 --no-compose（要先生成 MIDI）」—— **误导**：
+        # 走这里的人根本没加那个开关，真因是**没有引擎入口**（`render.json` 没有 +
+        # 目录里也没有 `compose.py`），所以 composer 为空、作曲被跳过后自然找不到 MIDI。
+        # 2026-10-05：接续链（`transcribe_to_song`）现在会自动写 `compose.py`，
+        # 所以真因只剩"不是走接续/生成建的目录"或 --no-compose。
+        print('找不到 MIDI: %s' % mid)
+        if not os.path.exists(os.path.join(folder, 'compose.py')) and not cfg.get('composer'):
+            print('  真因：**这个目录没有引擎入口**（既没有 render.json 的 composer，也没有 compose.py）')
+            print('        → 生成曲用 `new_song.py`；还原曲跑接续（`transcribe_ymt3 ... --song-name <名>`，'
+                  '它会自动写 compose.py）')
+        else:
+            print('  真因：`--no-compose` 跳过了作曲，但目录里还没有 MIDI（先不带该开关跑一次）')
         return 1
     # **改过 song.json 却跳过作曲** = 这个坑实测白烧过一整轮（≈2 分钟 + 一次成绩单）：
     # 引擎读的是 song.json，但渲染的是 MIDI —— MIDI 不重生成，改动就一点都不会体现。

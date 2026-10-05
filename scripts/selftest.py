@@ -9398,8 +9398,38 @@ def t_bp_primary_contracts():
     _pr, _st = BP.assign([(0.0, 0.3, 40)], [(0.0, 40, 'Acoustic Piano')], None)
     assert 'Piano' in _pr, '给了 YMT3 先验（Acoustic Piano）却没按它归属：%r' % (_pr,)
     assert any('先验' in str(k) for k in _st), '来源明细里没有"先验"这一档'
-    print('        鼓尺子 3/3 + 速度尺子 4/4 + 归属边界/低音门/先验优先 都成立（含判据自证）')
-    return 'bp_primary 契约：两把尺子自检通过 · 归属四档边界 + 低音门 + 先验优先'
+    # ④ `--bpm auto` 必须**给出候选**而不是崩（2026-10-05 实测踩到：这条分支从来没跑通过）
+    #    原实现直接 `60.0 / bpm`（bpm=None）⇒ TypeError；而文档"用法"里推荐的正是 `--bpm auto`。
+    #    这里用合成 click 走一遍自动档：只要求"返回可用的三元组 + 候选落在合理区间"，
+    #    **不要求它选对层**（命中率不能用来选层，见 bp_primary.mix_tempo 的 docstring）。
+    import numpy as _np2
+    _sr = BP.SR
+    _y = _np2.zeros(int(_sr * 40), dtype='float32')
+    _pos = 0.05
+    while _pos < 39.0:                       # 150 BPM 的 click 串
+        _i = int(_pos * _sr)
+        _y[_i:_i + 120] += (_np2.hanning(120) * 0.9).astype('float32')
+        _pos += 60.0 / 150.0
+    import soundfile as _sf
+    import tempfile as _tf
+    _d = _tf.mkdtemp(prefix='t_bp_auto_')
+    _p = os.path.join(_d, 'click.wav')
+    _sf.write(_p, _y, _sr)
+    try:
+        _rows = BP.mix_tempo(_p, None)        # bpm 缺省 = auto
+        _bad = [r for r in _rows if len(r) != 3]
+        assert _rows and not _bad, \
+            '`--bpm auto`（bpm=None）必须返回 (来源, bpm, 命中率) 三元组，拿到 %r' % (_rows,)
+        _v = [r[1] for r in _rows]
+        assert all(40.0 <= x <= 400.0 for x in _v), \
+            '自动档给出的候选 BPM 跑到合理区间外：%r（合成为 150 BPM）' % (_v,)
+        assert any(abs(x - 150.0) < 6.0 or abs(x - 75.0) < 4.0 or abs(x - 300.0) < 8.0
+                   for x in _v), '自动档候选里没有 150 BPM 附近的层：%r' % (_v,)
+    finally:
+        import shutil as _sh
+        _sh.rmtree(_d, ignore_errors=True)
+    print('        鼓尺子 3/3 + 速度尺子 4/4 + 归属边界/低音门/先验优先 + **--bpm auto 给出候选** 都成立')
+    return 'bp_primary 契约：两把尺子自检通过 · 归属四档边界 + 低音门 + 先验优先 + auto 档不崩'
 
 
 @check
@@ -9690,6 +9720,41 @@ def t_preflight_ruler():
     assert PF.selftest() is True, 'preflight 的合成自检 FAIL（坏件没响，或好件被误报）'
     return ('preflight 契约：SAME_SEC<DUP_SEC · 重复组/连击串/压平/窗重叠边界都对 · '
             '尺子 15 个已知答案用例全过（含 ② 反例与负控）')
+
+
+@check
+def t_restore_writes_compose():
+    """接续链必须**顺手把引擎入口** `compose.py` 写到位。
+
+    为什么有这条（2026-10-05，从 BGM35.ogg 干净重提取时真踩）：`transcribe_to_song` 原来只打印
+    「下一步：放一份 compose.py 到同目录」而**不写**它 ⇒ 首次 `make_song` 走
+    "没有 render.json → composer 为空 → **跳过作曲** → 找不到 MIDI"，而那句提示还怪你
+    "第一次跑不要加 --no-compose"。结果整条链卡住，只能手工 `cp` 一份模板才过。
+
+    守三件事：① 缺了就写（且模板能 `compile`）；② **已存在不覆盖**（手工改动优先）；
+    ③ CLI 的写盘路径**真的调了**它 —— 定义了不调用 = 问题照旧（本项目最常见的一类假修）。
+    """
+    import tempfile
+    import transcribe_to_song as TS
+    d = tempfile.mkdtemp(prefix='t_compose_')
+    st, p = TS.ensure_compose_file(d, 'zz_probe')
+    assert st == 'written' and os.path.isfile(p), \
+        '目录里没有 compose.py 时没写出来（st=%s）—— 首次 make_song 会静默跳过作曲' % st
+    src = open(p, encoding='utf-8').read()
+    assert 'song_engine.compose' in src and 'song.json' in src, '模板没调用引擎'
+    compile(src, p, 'exec')
+    open(p, 'w', encoding='utf-8').write('# 手工哨兵\nimport song_engine.compose\n')
+    st2, _ = TS.ensure_compose_file(d, 'zz_probe')
+    assert st2 == 'exists' and '哨兵' in open(p, encoding='utf-8').read(), \
+        '已存在的 compose.py 被当成"要写"或**被覆盖**（会吃掉手工改动）'
+    open(p, 'w', encoding='utf-8').write('# 别的脚本\n')
+    st3, _ = TS.ensure_compose_file(d, 'zz_probe')
+    assert st3 == 'differ' and '别的脚本' in open(p, encoding='utf-8').read(), \
+        '认不出的 compose.py 应报 differ 且**不覆盖**'
+    cli = open(TS.__file__, encoding='utf-8').read()
+    assert 'ensure_compose_file(os.path.dirname(out)' in cli, \
+        'CLI 写盘路径没调 ensure_compose_file（接续完还是缺 compose.py ⇒ 等于没修）'
+    return '接续链自带引擎入口：缺就写 · 已有不覆盖 · 模板可编译 · CLI 真调了'
 
 
 @check

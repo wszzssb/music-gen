@@ -2866,6 +2866,25 @@ def main():
     results.append(case('交付门 ④ 适用性前置失效（稀疏素材上恒真）', 'preflight_ruler',
                         _pf_cover_always_applies))
 
+    # 74c. **接续链不写引擎入口 `compose.py`** 必须被抓（2026-10-05 BGM35 干净重提取真踩）：
+    #      产物 song.json 一切正常，但首次 `make_song` 静默"跳过作曲 → 找不到 MIDI"，
+    #      整条链卡住、只能手工 cp 模板。注入 = 让 ensure_compose_file 变成"永远说已存在"。
+    def _restore_skips_compose():
+        import transcribe_to_song as _ts
+        return Mut(_ts, 'ensure_compose_file',
+                   lambda folder, name: ('exists', os.path.join(folder, 'compose.py')))
+    results.append(case('接续链不写引擎入口（首次渲染静默跳过作曲）', 'restore_writes_compose',
+                        _restore_skips_compose))
+
+    # 74d. **`bp_primary --bpm auto` 退回"直接除 bpm"** 必须被抓（2026-10-05 实测：这条分支
+    #      从来没跑通过 —— `60.0 / None` 直接 TypeError，而文档"用法"推荐的正是它）。
+    #      注入 = 让三档层级返回 None ⇒ 等价于原实现的"没有初值就除"。
+    def _bp_auto_regressed():
+        import bp_primary as _bp
+        return Mut(_bp, '_tempo_levels', lambda oe: [None])
+    results.append(case('BP 自动测速退回"直接除 bpm"（TypeError）', 'bp_primary_contracts',
+                        _bp_auto_regressed))
+
     # 73. **还原曲的 `render.json` 里 `composer: null` 不许把判据崩掉**（2026-10-01 实测）。
     #     `make_song` 对"只有 song.json"的曲目写的就是 `composer: null`（还原曲全是这种），
     #     而 `chord_names_match_notes` 原来的 `c.get('composer', '')` 在"键存在但值为 null"
