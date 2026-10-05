@@ -1179,6 +1179,9 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'HANDOFF-ORNAMENT.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-FAMILY-VOTE.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
+             # 2026-10-06：HISTORY 拆出的归档件（也要查"指针腐烂"）
+             os.path.join(ROOT, 'HISTORY.md'),
+             os.path.join(ROOT, 'HISTORY-ARCHIVE.md'),
              os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'),
              os.path.join(ROOT, 'studio', 'README.md'),
              os.path.join(os.path.expanduser('~'), '.dsh', 'skills',

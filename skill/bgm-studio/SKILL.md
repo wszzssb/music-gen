@@ -26,10 +26,10 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
 | **族票 / 多视图投票装配**（**已落地**：规则与开关 · 四条验收判据的实测读数 · 素材绝对路径 · **§5/§5b/§5c = 一条命令的链 + 第三族负结果 + 真实录音实测**） | `docs/HANDOFF-FAMILY-VOTE.md` | ≈3.8k |
 | **BGM35 整曲还原**（**已落地·状态卡**：Bass 整轨时间轴被压 0.801× 的定位与修法 · 重复组 137→55 为何达不到 ~13 · 整层空洞按秒补 78→9 · 力度平坦是 YMT3 通病 1→93 种 · 音色自适应族内选 · 落点/一致率全部读数 · 回滚备份 · 8 个坑；§7 仍留 3 项待办） | `docs/HANDOFF-BGM35-R2.md` | ≈5.7k |
 | **转音**（**已落地·状态卡**：提取侧 `ornament_probe.py` 的能力边界 · 生成侧 `apply_ornaments` 已落地【置换口径 · 只拆长音 · 依据读 B2 直接量】· **只剩听感判决** · 红线） | `docs/HANDOFF-ORNAMENT.md` | ≈3.0k |
-| **生成器·落点位置**（**当前主线**：用户"音的位置有点奇怪" · **已量全库 16 首 ≈ g0 中位 8.7% vs 基线 19.8%、全部同向偏低** · 基线口径已量准【用均值/画像，不是中位】· 已否掉两个猜测 · 机制与下一步；工具 `scripts\placement_survey.py`） | `docs/HANDOFF-GEN-PLACEMENT.md` | ≈3.4k |
+| **生成器·落点位置**（**下个对话第一优先级**：用户"音的位置有点奇怪" · **已量全库 16 首：g0 中位 8.7% vs 基线 19.8%、全部同向偏低** · 基线口径（用均值/画像）已量准 · 已否掉两个猜测 · **下一步 = 只读消融**（`_cap_onsets` vs 候选表各贡献多少）；工具 `scripts\placement_survey.py`） | `docs/HANDOFF-GEN-PLACEMENT.md` | ≈5.0k |
 | **交付前必跑体检**（关系型判据：轨结构/同音重复/密度/覆盖/鼓连击/包络 + `--selftest`；原工具丢失过 → PITFALLS 321） | `docs/HANDOFF-TRANSCRIBE.md` §9/§9b · 工具 `scripts\preflight.py` | ≈11.8k |
 | **写歌时开可视化面板** | `studio/README.md`；启动 `studio\start.cmd` → http://127.0.0.1:8765 | ≈3.0k |
-| **不知道该读哪一节**（HISTORY/PITFALLS/README 一次读不完） | `docs/DOC-MAP.md`：大目录=主题域 → 小目录=文档节**+行号**（生成物） | ≈5.2k |
+| **不知道该读哪一节**（HISTORY/PITFALLS/README 一次读不完） | `docs/DOC-MAP.md`：大目录=主题域 → 小目录=文档节**+行号**（生成物） | ≈8.2k |
 
 > 体量是**实测**（自检 `skill_routes_resolve` 盯着，偏差 >50% 会 FAIL）—— 按它估"读这份要花多少"。
 
