@@ -54,6 +54,12 @@ $py = ".\.venv\Scripts\python.exe"
 & $py scripts\melody_gen.py songs\23_x\song.json refs\melody\psg_BGM16b_melody.json `
       --seed 23 --avoid songs --candidates 8 --step-bias 1.0
 & $py scripts\melody_gen.py <song.json> <画像> --motif off   # 退回"逐音直方图"版（A/B 对照）
+& $py scripts\melody_gen.py <song.json> <画像> --no-ornaments   # 关掉**转音细胞**（A/B "只差这一维"用）
+#   **转音细胞**（默认开，2026-10-06）：3~5 音 · 0.3~0.8s · 同向级进 · 只取和弦音/音阶音；
+#   逐曲按预算决定插几处（实测 6 首：3 首插 1~2 处、3 首不插）；依据 = B1 画像派生量，
+#   逐处位置写进 song.json 的 `melody_gen.ornaments.at`；**置换**掉等量弱格装饰音 ⇒ 密度与碎音都不动。
+#   ⚠ 验收用 `ornament_probe` 的**更宽档（≥4 音）**（4 音细胞用默认档 ≥5 音检不出）·
+#     引子（带 `arr.intro_style`）的前 2 小节**不插**（`shape_intro` 会把它们削掉）。
 #   v2 动机层（默认开）：动机重复 + 大跳反向/回填 + 句末终止式（结构层指标见输出末尾）
 & $py scripts\probe_melody_lang.py      # 验收：孪生对（≥85%）必须 0；落点/音程维看全库平均
 ```
@@ -273,10 +279,17 @@ studio\stop.cmd     # 停
 ```powershell
 & $py scripts\ornament_probe.py <原曲音频> --at 19.0-19.6 [--midi <我们的.mid>]  # 窗体检（**推荐**）
 & $py scripts\ornament_probe.py <原曲音频> [--midi <我们的.mid>] --json 报告.json   # 全曲扫候选 + 逐处对照
-& $py scripts\ornament_probe.py --selftest      # 3 个已知答案（快速级进必响 · 长音/谐波陷阱不许响）
+& $py scripts\ornament_probe.py <原曲音频> --sweep --json 报告.json   # **滑子窗档**（生成曲/编配干净上推荐）
+& $py scripts\ornament_probe.py --selftest      # 5 个已知答案（快速级进必响 · 长音/谐波/长轨迹不许误报）
+& $py scripts\ornament_density.py               # **转音密度·模板直接量**（写 refs\ornament_density.json）
+& $py scripts\ornament_density.py --selftest    # 尺子自检（3 音级进必命中 · 大跳/慢速/重复音不许命中）
+#   ⚠ 生成侧**优先**读这份直接量；它与画像派生量 `ornament_tendency` 的 Spearman 只有 **0.12**
+#      （15 主题）—— **别再把派生量当"转音密度"用**（`HANDOFF-ORNAMENT` §3-B2 的校准结论）。
 #   ⚠ 逐帧明细里 `*` = 独立基音候选、`~` = 疑似谐波；**快速经过的音每个只占 1~2 帧**，
 #      所以别按"帧数/平均"排序（那只剩持续音）—— 直接看逐帧峰在不在移动。
-#   ⚠ 全曲候选清单**只当线索**：密集复音上参数敏感（同素材 52~155 处），报告会同时打两档读数。
+#   ⚠ 全曲候选清单**只当线索**：密集复音上参数敏感（BGM35 实测 默认 54 / 宽 193 / 滑子窗 113 处），报告会同时打**三档**读数。
+#   ⚠ **生成曲（编配干净）上默认档召回只有 1/11** —— 轨迹被贪心最近邻接成十几秒、整条栽在
+#      「时长 > 1.2s」上；这些位置加 `--sweep`（轨迹内滑子段）才是 **11/11**（2026-10-06 标定）。
 #   ⚠ 它**不是归属判据**：只说"这里有这么一串音高在响"，不说"哪条轨该弹它"（PITFALLS 325）。
 #   ⚠ 已知实例（BGM35 19.0–19.6s）：原曲逐帧峰是 E5(657) 连 5 帧 → F5(700) → C5(522) → A4(441)
 #      → 高八度 G♯6/A6；那条线 `songs\b35_clean\notes.md` 有全部读数与用户判定。

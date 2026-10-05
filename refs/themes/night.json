@@ -2,16 +2,9 @@
  "theme": "night",
  "label": "夜晚",
  "desc": "夜晚（主题模板包：16 首同主题模板聚合）",
- "styles": [
-  "newage",
-  "jazz",
-  "electronic"
- ],
+ "styles": ["newage", "jazz", "electronic"],
  "engine_style": "daily",
- "meter": [
-  4,
-  4
- ],
+ "meter": [4, 4],
  "min_templates": 8,
  "template_count": 16,
  "bpm": {
@@ -24,20 +17,7 @@
   "pc": 5,
   "mode": "major",
   "confidence": 0.25,
-  "scale_degree_weight": [
-   5228331.31,
-   207400.7,
-   1363780.25,
-   557337.92,
-   3945437.37,
-   1076971.67,
-   111697.4,
-   2830458.23,
-   360675.79,
-   1225807.44,
-   687911.68,
-   899559.03
-  ]
+  "scale_degree_weight": [5228331.31, 207400.7, 1363780.25, 557337.92, 3945437.37, 1076971.67, 111697.4, 2830458.23, 360675.79, 1225807.44, 687911.68, 899559.03]
  },
  "templates": [
   {
@@ -45,10 +25,7 @@
    "style": "electronic",
    "md5": "785233423e8027dcafc179f9e395b695",
    "bpm": 130.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 106,
    "seconds": 195.7,
    "source": "https://bitmidi.com/uploads/22756.mid",
@@ -59,10 +36,7 @@
    "style": "electronic",
    "md5": "83966acf20aea824e3161ad2dbacd661",
    "bpm": 137.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 48,
    "seconds": 84.1,
    "source": "https://bitmidi.com/uploads/4850.mid",
@@ -73,10 +47,7 @@
    "style": "electronic",
    "md5": "20e05b0de1512131b6dccb1667df2356",
    "bpm": 140.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 33,
    "seconds": 56.6,
    "source": "https://bitmidi.com/uploads/7787.mid",
@@ -87,10 +58,7 @@
    "style": "electronic",
    "md5": "5404813303e209c11fb14dfb177bfcdb",
    "bpm": 140.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 16,
    "seconds": 27.4,
    "source": "https://bitmidi.com/uploads/15851.mid",
@@ -101,10 +69,7 @@
    "style": "electronic",
    "md5": "1bc4da5f59f78660b266ad899e9ba19f",
    "bpm": 180.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 8,
    "seconds": 10.7,
    "source": "https://bitmidi.com/uploads/17088.mid",
@@ -115,10 +80,7 @@
    "style": "jazz",
    "md5": "5eec84e0621fc939d849a56208771004",
    "bpm": 58.48,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 101,
    "seconds": 413.2,
    "source": "https://bitmidi.com/uploads/25904.mid",
@@ -129,10 +91,7 @@
    "style": "jazz",
    "md5": "9a3cc9c3b1ff493e4513b6b23cb8da92",
    "bpm": 120.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 105,
    "seconds": 210.0,
    "source": "https://bitmidi.com/uploads/8049.mid",
@@ -143,10 +102,7 @@
    "style": "jazz",
    "md5": "a3fe9abebc824bb5b2f2e28f8cc7eb8a",
    "bpm": 132.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 114,
    "seconds": 205.7,
    "source": "https://bitmidi.com/uploads/3092.mid",
@@ -157,10 +113,7 @@
    "style": "jazz",
    "md5": "a31a41a04f7d0015936e7747dc150b53",
    "bpm": 138.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 102,
    "seconds": 177.1,
    "source": "https://bitmidi.com/uploads/4879.mid",
@@ -171,10 +124,7 @@
    "style": "jazz",
    "md5": "71250138dd3b9294156ecf9165496c60",
    "bpm": 156.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 28,
    "seconds": 43.0,
    "source": "https://bitmidi.com/uploads/16551.mid",
@@ -185,10 +135,7 @@
    "style": "jazz",
    "md5": "131c2d8431d6995820d66d7bbec1d98b",
    "bpm": 162.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 104,
    "seconds": 153.9,
    "source": "https://bitmidi.com/uploads/4880.mid",
@@ -199,10 +146,7 @@
    "style": "newage",
    "md5": "e404d980042bf50d49fb8af353a06558",
    "bpm": 96.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 114,
    "seconds": 285.0,
    "source": "https://bitmidi.com/uploads/22004.mid",
@@ -213,10 +157,7 @@
    "style": "newage",
    "md5": "50b194f6a6fa8b209f0c44ac07b2afdb",
    "bpm": 120.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 16,
    "seconds": 31.9,
    "source": "https://bitmidi.com/uploads/18781.mid",
@@ -227,10 +168,7 @@
    "style": "newage",
    "md5": "02f732ea211fee7927819459fe0c45f2",
    "bpm": 130.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 16,
    "seconds": 29.5,
    "source": "https://bitmidi.com/uploads/3624.mid",
@@ -241,10 +179,7 @@
    "style": "newage",
    "md5": "42f7e3b4b5c48cd6b0fd93d0171b37b2",
    "bpm": 167.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 16,
    "seconds": 23.0,
    "source": "https://bitmidi.com/uploads/48557.mid",
@@ -255,10 +190,7 @@
    "style": "newage",
    "md5": "1651901cc34e0ae0093e87480e9245e1",
    "bpm": 180.0,
-   "timesig": [
-    4,
-    4
-   ],
+   "timesig": [4, 4],
    "bars": 52,
    "seconds": 69.3,
    "source": "https://bitmidi.com/uploads/42465.mid",
@@ -269,440 +201,160 @@
   "bitmidi": 16
  },
  "harmony": {
-  "primary": [
-   "A#6",
-   "F6",
-   "A#6",
-   "F6"
-  ],
+  "primary": ["A#6", "F6", "A#6", "F6"],
   "primary_source": "window2",
   "progressions": [
    {
-    "degrees": [
-     4,
-     6,
-     5,
-     4
-    ],
-    "romans": [
-     "IIIsus4",
-     "bv7",
-     "IV6",
-     "iii7"
-    ],
+    "degrees": [4, 6, 5, 4],
+    "romans": ["IIIsus4", "bv7", "IV6", "iii7"],
     "count": 4,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
-     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
     "template_share": 0.19,
-    "symbols": [
-     "Asus4",
-     "Bm7",
-     "A#6",
-     "Am7"
-    ],
+    "symbols": ["Asus4", "Bm7", "A#6", "Am7"],
     "usable": true
    },
    {
-    "degrees": [
-     5,
-     4,
-     0,
-     5
-    ],
-    "romans": [
-     "iv6",
-     "iii7",
-     "I6",
-     "IVmaj7"
-    ],
+    "degrees": [5, 4, 0, 5],
+    "romans": ["iv6", "iii7", "I6", "IVmaj7"],
     "count": 5,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"],
     "template_share": 0.12,
-    "symbols": [
-     "A#m6",
-     "Am7",
-     "F6",
-     "A#maj7"
-    ],
+    "symbols": ["A#m6", "Am7", "F6", "A#maj7"],
     "usable": true
    },
    {
-    "degrees": [
-     0,
-     0,
-     7,
-     5
-    ],
-    "romans": [
-     "I6",
-     "I7",
-     "V7",
-     "IV7"
-    ],
+    "degrees": [0, 0, 7, 5],
+    "romans": ["I6", "I7", "V7", "IV7"],
     "count": 4,
-    "templates": [
-     "electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid"
-    ],
+    "templates": ["electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid", "newage/EarthBound - New Age Retro Hippie.mid"],
     "template_share": 0.12,
-    "symbols": [
-     "F6",
-     "F7",
-     "C7",
-     "A#7"
-    ],
+    "symbols": ["F6", "F7", "C7", "A#7"],
     "usable": true
    },
    {
-    "degrees": [
-     4,
-     4,
-     6,
-     5
-    ],
-    "romans": [
-     "iii7",
-     "IIIsus4",
-     "bv7",
-     "IV6"
-    ],
+    "degrees": [4, 4, 6, 5],
+    "romans": ["iii7", "IIIsus4", "bv7", "IV6"],
     "count": 4,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
     "template_share": 0.12,
-    "symbols": [
-     "Am7",
-     "Asus4",
-     "Bm7",
-     "A#6"
-    ],
+    "symbols": ["Am7", "Asus4", "Bm7", "A#6"],
     "usable": true
    },
    {
-    "degrees": [
-     5,
-     5,
-     4,
-     0
-    ],
-    "romans": [
-     "IVmaj7",
-     "iv6",
-     "iii7",
-     "I6"
-    ],
+    "degrees": [5, 5, 4, 0],
+    "romans": ["IVmaj7", "iv6", "iii7", "I6"],
     "count": 5,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid"],
     "template_share": 0.06,
-    "symbols": [
-     "A#maj7",
-     "A#m6",
-     "Am7",
-     "F6"
-    ],
+    "symbols": ["A#maj7", "A#m6", "Am7", "F6"],
     "usable": true
    }
   ],
   "progressions_4": [
    {
-    "degrees": [
-     4,
-     6,
-     5,
-     4
-    ],
-    "romans": [
-     "IIIsus4",
-     "bv7",
-     "IV6",
-     "iii7"
-    ],
+    "degrees": [4, 6, 5, 4],
+    "romans": ["IIIsus4", "bv7", "IV6", "iii7"],
     "count": 4,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
-     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
     "template_share": 0.19,
-    "symbols": [
-     "Asus4",
-     "Bm7",
-     "A#6",
-     "Am7"
-    ],
+    "symbols": ["Asus4", "Bm7", "A#6", "Am7"],
     "usable": true
    },
    {
-    "degrees": [
-     5,
-     4,
-     0,
-     5
-    ],
-    "romans": [
-     "iv6",
-     "iii7",
-     "I6",
-     "IVmaj7"
-    ],
+    "degrees": [5, 4, 0, 5],
+    "romans": ["iv6", "iii7", "I6", "IVmaj7"],
     "count": 5,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"],
     "template_share": 0.12,
-    "symbols": [
-     "A#m6",
-     "Am7",
-     "F6",
-     "A#maj7"
-    ],
+    "symbols": ["A#m6", "Am7", "F6", "A#maj7"],
     "usable": true
    },
    {
-    "degrees": [
-     0,
-     0,
-     7,
-     5
-    ],
-    "romans": [
-     "I6",
-     "I7",
-     "V7",
-     "IV7"
-    ],
+    "degrees": [0, 0, 7, 5],
+    "romans": ["I6", "I7", "V7", "IV7"],
     "count": 4,
-    "templates": [
-     "electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid"
-    ],
+    "templates": ["electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid", "newage/EarthBound - New Age Retro Hippie.mid"],
     "template_share": 0.12,
-    "symbols": [
-     "F6",
-     "F7",
-     "C7",
-     "A#7"
-    ],
+    "symbols": ["F6", "F7", "C7", "A#7"],
     "usable": true
    },
    {
-    "degrees": [
-     4,
-     4,
-     6,
-     5
-    ],
-    "romans": [
-     "iii7",
-     "IIIsus4",
-     "bv7",
-     "IV6"
-    ],
+    "degrees": [4, 4, 6, 5],
+    "romans": ["iii7", "IIIsus4", "bv7", "IV6"],
     "count": 4,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
     "template_share": 0.12,
-    "symbols": [
-     "Am7",
-     "Asus4",
-     "Bm7",
-     "A#6"
-    ],
+    "symbols": ["Am7", "Asus4", "Bm7", "A#6"],
     "usable": true
    },
    {
-    "degrees": [
-     5,
-     5,
-     4,
-     0
-    ],
-    "romans": [
-     "IVmaj7",
-     "iv6",
-     "iii7",
-     "I6"
-    ],
+    "degrees": [5, 5, 4, 0],
+    "romans": ["IVmaj7", "iv6", "iii7", "I6"],
     "count": 5,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid"],
     "template_share": 0.06,
-    "symbols": [
-     "A#maj7",
-     "A#m6",
-     "Am7",
-     "F6"
-    ],
+    "symbols": ["A#maj7", "A#m6", "Am7", "F6"],
     "usable": true
    }
   ],
   "progressions_2": [
    {
-    "degrees": [
-     5,
-     0
-    ],
-    "romans": [
-     "IV6",
-     "I6"
-    ],
+    "degrees": [5, 0],
+    "romans": ["IV6", "I6"],
     "count": 19,
-    "templates": [
-     "electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
-     "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
-     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
-     "jazz/Cowboy Bebop - ELM.mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid",
-     "newage/Gammer - Ambient Angels.mid"
-    ],
+    "templates": ["electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "jazz/Cowboy Bebop - ELM.mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "newage/EarthBound - New Age Retro Hippie.mid", "newage/Gammer - Ambient Angels.mid"],
     "template_share": 0.44,
-    "symbols": [
-     "A#6",
-     "F6"
-    ],
+    "symbols": ["A#6", "F6"],
     "usable": true
    },
    {
-    "degrees": [
-     0,
-     7
-    ],
-    "romans": [
-     "i6",
-     "Vsus4"
-    ],
+    "degrees": [0, 7],
+    "romans": ["i6", "Vsus4"],
     "count": 22,
-    "templates": [
-     "electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
-     "jazz/Cowboy Bebop - ELM.mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid"
-    ],
+    "templates": ["electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid", "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "jazz/Cowboy Bebop - ELM.mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "newage/EarthBound - New Age Retro Hippie.mid"],
     "template_share": 0.38,
-    "symbols": [
-     "Fm6",
-     "Csus4"
-    ],
+    "symbols": ["Fm6", "Csus4"],
     "usable": true
    },
    {
-    "degrees": [
-     7,
-     0
-    ],
-    "romans": [
-     "v6",
-     "Isus4"
-    ],
+    "degrees": [7, 0],
+    "romans": ["v6", "Isus4"],
     "count": 19,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
-     "jazz/Cowboy Bebop - ELM.mid",
-     "newage/Accadia - Blind Visions (Accadia Ambient Mix).mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-     "newage/EarthBound - New Age Retro Hippie.mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "jazz/Cowboy Bebop - ELM.mid", "newage/Accadia - Blind Visions (Accadia Ambient Mix).mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "newage/EarthBound - New Age Retro Hippie.mid"],
     "template_share": 0.38,
-    "symbols": [
-     "Cm6",
-     "Fsus4"
-    ],
+    "symbols": ["Cm6", "Fsus4"],
     "usable": true
    },
    {
-    "degrees": [
-     5,
-     4
-    ],
-    "romans": [
-     "IVmaj7",
-     "iii7"
-    ],
+    "degrees": [5, 4],
+    "romans": ["IVmaj7", "iii7"],
     "count": 24,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
-     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid",
-     "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"],
     "template_share": 0.25,
-    "symbols": [
-     "A#maj7",
-     "Am7"
-    ],
+    "symbols": ["A#maj7", "Am7"],
     "usable": true
    },
    {
-    "degrees": [
-     6,
-     5
-    ],
-    "romans": [
-     "bv7",
-     "IVmaj7"
-    ],
+    "degrees": [6, 5],
+    "romans": ["bv7", "IVmaj7"],
     "count": 20,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
-     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
     "template_share": 0.19,
-    "symbols": [
-     "Bm7",
-     "A#maj7"
-    ],
+    "symbols": ["Bm7", "A#maj7"],
     "usable": true
    },
    {
-    "degrees": [
-     4,
-     6
-    ],
-    "romans": [
-     "iii6",
-     "bV7"
-    ],
+    "degrees": [4, 6],
+    "romans": ["iii6", "bV7"],
     "count": 20,
-    "templates": [
-     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
-     "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
-     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"
-    ],
+    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
     "template_share": 0.19,
-    "symbols": [
-     "Am6",
-     "B7"
-    ],
+    "symbols": ["Am6", "B7"],
     "usable": true
    }
   ],
-  "pool_progression": [
-   "Fm7",
-   "Fm6"
-  ],
-  "pool_progression_romans": [
-   "i7",
-   "i"
-  ],
+  "pool_progression": ["Fm7", "Fm6"],
+  "pool_progression_romans": ["i7", "i"],
   "chord_pool": [
    {
     "degree": 0,
@@ -794,42 +446,8 @@
  "rhythm": {
   "low16": "★···★···★···★···",
   "high16": "★···★·★·★·★·★·★·",
-  "low_slot_share": [
-   0.81,
-   0.06,
-   0.44,
-   0.38,
-   0.56,
-   0.19,
-   0.5,
-   0.38,
-   0.69,
-   0.19,
-   0.44,
-   0.31,
-   0.69,
-   0.06,
-   0.5,
-   0.31
-  ],
-  "high_slot_share": [
-   1.0,
-   0.25,
-   0.5,
-   0.44,
-   0.69,
-   0.25,
-   0.56,
-   0.38,
-   0.75,
-   0.25,
-   0.62,
-   0.38,
-   0.88,
-   0.19,
-   0.69,
-   0.31
-  ],
+  "low_slot_share": [0.81, 0.06, 0.44, 0.38, 0.56, 0.19, 0.5, 0.38, 0.69, 0.19, 0.44, 0.31, 0.69, 0.06, 0.5, 0.31],
+  "high_slot_share": [1.0, 0.25, 0.5, 0.44, 0.69, 0.25, 0.56, 0.38, 0.75, 0.25, 0.62, 0.38, 0.88, 0.19, 0.69, 0.31],
   "low_density": 11.58,
   "high_density": 12.78,
   "bass_density": 3.01,
@@ -852,46 +470,16 @@
    "strings": 0.12
   },
   "role_range": {
-   "bass": [
-    35,
-    67
-   ],
-   "brass": [
-    64,
-    76
-   ],
-   "fx": [
-    70,
-    83
-   ],
-   "guitar": [
-    41,
-    79
-   ],
-   "lead": [
-    58,
-    74
-   ],
-   "pad": [
-    48,
-    76
-   ],
-   "piano": [
-    41,
-    84
-   ],
-   "pipe": [
-    72,
-    89
-   ],
-   "reed": [
-    60,
-    82
-   ],
-   "strings": [
-    64,
-    86
-   ]
+   "bass": [35, 67],
+   "brass": [64, 76],
+   "fx": [70, 83],
+   "guitar": [41, 79],
+   "lead": [58, 74],
+   "pad": [48, 76],
+   "piano": [41, 84],
+   "pipe": [72, 89],
+   "reed": [60, 82],
+   "strings": [64, 86]
   },
   "arr_share": {
    "bass": 0.38,
@@ -903,20 +491,9 @@
    "ep": 0.06,
    "perc": 0.0
   },
-  "arr_on": [
-   "piano"
-  ],
-  "arr_off": [
-   "glock",
-   "perc"
-  ],
-  "arr_maybe": [
-   "bass",
-   "ep",
-   "pad",
-   "strings",
-   "uku"
-  ],
+  "arr_on": ["piano"],
+  "arr_off": ["glock", "perc"],
+  "arr_maybe": ["bass", "ep", "pad", "strings", "uku"],
   "track_count": 2.9,
   "style_mix": {
    "electronic": 5,
@@ -924,33 +501,12 @@
    "newage": 5
   },
   "prog_pool": {
-   "strings": [
-    48,
-    52,
-    61
-   ],
-   "uku": [
-    26,
-    27
-   ],
-   "pad": [
-    89,
-    91
-   ],
-   "ep": [
-    81,
-    65,
-    71
-   ],
-   "bass": [
-    32,
-    38,
-    36
-   ],
-   "piano": [
-    0,
-    3
-   ]
+   "strings": [48, 52, 61],
+   "uku": [26, 27],
+   "pad": [89, 91],
+   "ep": [81, 65, 71],
+   "bass": [32, 38, 36],
+   "piano": [0, 3]
   }
  },
  "form": {
@@ -958,8 +514,8 @@
   "total_bars": 56,
   "plan": [
    {
-    "name": "Intro",
-    "bars": 4,
+    "name": "A",
+    "bars": 8,
     "prog": 0
    },
    {
@@ -997,14 +553,12 @@
     "bars": 4,
     "prog": 0
    }
-  ]
+  ],
+  "intro_note": "首段按主题派生（2026-10-05）：无 Intro 8 小节 —— 修 `scripts/theme_pack.py` 的 plan 生成以免重建时被覆盖"
  },
  "melody": {
   "notes": 2244,
-  "range": [
-   34,
-   74
-  ],
+  "range": [34, 74],
   "mean_pitch": 58.47,
   "notes_per_bar": 3.53,
   "stepwise_pct": 62.32,
@@ -1081,75 +635,11 @@
    "15": 316
   },
   "phrases": 85,
-  "phrase_bars": [
-   5.11,
-   2.71,
-   1.0,
-   1.62,
-   5.11,
-   2.71,
-   4.12,
-   2.71,
-   0.12,
-   0.25,
-   0.37,
-   0.5,
-   0.87,
-   1.0,
-   0.25,
-   0.37,
-   0.5,
-   0.87,
-   1.0,
-   1.62,
-   1.75,
-   1.62,
-   1.75,
-   1.62,
-   1.75,
-   1.62,
-   1.56,
-   31.88,
-   15.88,
-   4.87,
-   1.62,
-   9.61,
-   10.12,
-   6.49,
-   24.49,
-   7.33,
-   1.68,
-   0.46,
-   7.08,
-   1.68,
-   0.46,
-   7.06,
-   7.21,
-   1.68,
-   0.46,
-   7.08,
-   1.68,
-   0.46,
-   7.08,
-   1.68,
-   0.46,
-   7.06,
-   7.21,
-   1.68,
-   0.46,
-   0.83,
-   1.62,
-   1.62,
-   0.71,
-   63.99
-  ],
+  "phrase_bars": [5.11, 2.71, 1.0, 1.62, 5.11, 2.71, 4.12, 2.71, 0.12, 0.25, 0.37, 0.5, 0.87, 1.0, 0.25, 0.37, 0.5, 0.87, 1.0, 1.62, 1.75, 1.62, 1.75, 1.62, 1.75, 1.62, 1.56, 31.88, 15.88, 4.87, 1.62, 9.61, 10.12, 6.49, 24.49, 7.33, 1.68, 0.46, 7.08, 1.68, 0.46, 7.06, 7.21, 1.68, 0.46, 7.08, 1.68, 0.46, 7.08, 1.68, 0.46, 7.06, 7.21, 1.68, 0.46, 0.83, 1.62, 1.62, 0.71, 63.99],
   "bars": 57.7,
   "templates": 11
  },
- "notes": [
-  "共 16 首模板，来源：bitmidi×16",
-  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/night_tracks.json"
- ],
+ "notes": ["共 16 首模板，来源：bitmidi×16", "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/night_tracks.json"],
  "tool": "theme_pack.py",
  "mix_target": {
   "ref": "night_mix",
@@ -1301,41 +791,13 @@
    "mode": 0.15
   },
   "perc_style_target": 0.35,
-  "energy_curve_db": [
-   -1.0,
-   0.0,
-   1.0
-  ],
-  "structure_db": [
-   -19.0,
-   -18.0,
-   -17.0
-  ],
-  "density_curve_db": [
-   -3.53,
-   2.56,
-   0.0
-  ],
+  "energy_curve_db": [-1.0, 0.0, 1.0],
+  "structure_db": [-19.0, -18.0, -17.0],
+  "density_curve_db": [-3.53, 2.56, 0.0],
   "density_meta": {
    "n": 11,
-   "files": [
-    "Celine Dion - My Heart Will Go On (Techno Remix).mid",
-    "Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
-    "Arrow - Back In The House (U Can See It).mid",
-    "Base Attack - Techno Rocker (Rob Mayth Remix).mid",
-    "Cowboy Bebop - ELM.mid",
-    "ASZNAVOUR.Elle a le swing au corps  K.mid",
-    "A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
-    "Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid",
-    "Alexander's-Ragtime-Band.mid",
-    "Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
-    "EarthBound - New Age Retro Hippie.mid"
-   ],
-   "abs_curve": [
-    8.25,
-    16.63,
-    12.38
-   ],
+   "files": ["Celine Dion - My Heart Will Go On (Techno Remix).mid", "Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid", "Arrow - Back In The House (U Can See It).mid", "Base Attack - Techno Rocker (Rob Mayth Remix).mid", "Cowboy Bebop - ELM.mid", "ASZNAVOUR.Elle a le swing au corps  K.mid", "A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid", "Alexander's-Ragtime-Band.mid", "Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "EarthBound - New Age Retro Hippie.mid"],
+   "abs_curve": [8.25, 16.63, 12.38],
    "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
   },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
@@ -1349,17 +811,7 @@
     "centroid": 1533,
     "perc": 0.15,
     "mode": "major",
-    "structure": [
-     -16,
-     -17,
-     -17,
-     -17,
-     -17,
-     -17,
-     -17,
-     -16,
-     -16
-    ],
+    "structure": [-16, -17, -17, -17, -17, -17, -17, -16, -16],
     "parts": {
      "bpm": 0.863,
      "perc": 0.6,
@@ -1376,21 +828,7 @@
     "centroid": 2472,
     "perc": 0.075,
     "mode": "major",
-    "structure": [
-     -19,
-     -18,
-     -18,
-     -19,
-     -18,
-     -17,
-     -18,
-     -19,
-     -18,
-     -17,
-     -17,
-     -16,
-     -17
-    ],
+    "structure": [-19, -18, -18, -19, -18, -17, -18, -19, -18, -17, -17, -16, -17],
     "parts": {
      "bpm": 0.94,
      "perc": 0.45,
@@ -1407,18 +845,7 @@
     "centroid": 3284,
     "perc": 0.437,
     "mode": "major",
-    "structure": [
-     -17,
-     -14,
-     -14,
-     -14,
-     -14,
-     -14,
-     -14,
-     -14,
-     -15,
-     -14
-    ],
+    "structure": [-17, -14, -14, -14, -14, -14, -14, -14, -15, -14],
     "parts": {
      "bpm": 0.667,
      "perc": 0.826,

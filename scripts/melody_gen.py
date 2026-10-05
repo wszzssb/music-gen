@@ -61,6 +61,9 @@ import cli_utf8 as _cu; _cu.setup()   # 控制台编码兜底（GBK 下打印 �
 import json_io      # noqa: E402
 import song_engine  # noqa: E402
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+
 SCALE_MINOR = [0, 2, 3, 5, 7, 8, 10]          # 自然小调
 SCALE_MAJOR = [0, 2, 4, 5, 7, 9, 11]          # 自然大调
 SCALE_DORIAN = [0, 2, 3, 5, 7, 9, 10]         # 多利亚（B 段色彩）
@@ -155,6 +158,16 @@ def persona(prof, rng, jitter=0.15):
     # **音域：照画像取，不内收**（`SPAN_TRIM = 0`）。旧版是 `(min(lo+2,74), max(hi-1,80))` ——
     # 收窄的初衷是给拱形留余量，但拱形与移调本来就有夹取；实测 37 号因此只用了 13 个半音
     # （画像 64–81 = 17 个），用户口径是"用足 1.5 个八度（真实 BGM 21 个半音）"。
+    # ⚠ **2026-10-05 补**：画像的 `range` 是**模板之间**的 p10~p90 跨度（实测 15~50 半音、
+    # 中位 **39**），把它当"一条旋律的音域"用，旋律就会在三个八度里游走 —— 重做 100-108
+    # 后实测 lounge 旋律 **38..72（34 半音）**，直接导致"旋律落在伴奏最高音之下"
+    # 从 12% 涨到 38.5%。这里按 `mean_pitch ± MELODY_SPAN/2` 取窗口（**夹在画像
+    # p10~p90 之内**、不越出依据），跨度超过 `MELODY_SPAN` 时才收；缺 `mean_pitch`
+    # 或画像本来就窄 = 原行为不变。
+    _mp = prof.get('mean_pitch')
+    if _mp and (hi - lo) > MELODY_SPAN:
+        _c = min(max(float(_mp), lo + MELODY_SPAN / 2.0), hi - MELODY_SPAN / 2.0)
+        lo, hi = int(round(_c - MELODY_SPAN / 2.0)), int(round(_c + MELODY_SPAN / 2.0))
     P = {'range': (lo + SPAN_TRIM, hi - SPAN_TRIM if SPAN_TRIM else hi)}
 
     # ① 落点方言（16 分格，0=小节第 1 拍）
@@ -326,6 +339,31 @@ CELL_GAP_MIN = 2      # 相邻落点间隔 ≥ 0.5 拍：可循环 + 不许碎�
 CELL_N_DENSE = 2.8    # 密度目标超过这个值才用 4 个落点（否则 3 个：见 `_motif_cell`）
 CELL_DUR_FILL = 0.45  # 动机内每个音至少覆盖到"下一个落点"的多少比例（见 `_motif_cell`）
 CELL_TAIL_W = 0.02    # 打分里"末落点越靠后越好"的权重（见 `_cell_fit`）
+# **同音串**（2026-10-05 增）：门同 `probe_melody_health` 第③维（≤4）；
+# 罚分只进候选排序（`cand_score(run_pen=…)`），超门部分 1.0/音。
+SAME_RUN_MAX = 4
+SAME_RUN_W = 1.0
+# **一条旋律的音域跨度上限**（半音）。依据：真实 BGM 实测 21 个半音 ≈ 1.5 个八度
+# （见 `persona` 的注释）；画像 `range` 是模板之间的 p10~p90，跨度可达 50。
+MELODY_SPAN = 21
+# **逐段密度增益**（2026-10-05）：键 = `sections[i].arr.density`（0~4）。
+# 依据：`--dens` 是全局单值，实测所有段落的旋律密度几乎一样；真实曲副歌比主歌密。
+# ⚠ 上限守住形态门（`t_melody_form_rules` 密度 1.8~2.9）：dens 2.4 × 1.2 = 2.88。
+# ⚠⚠ **2026-10-05 第二次修**：第一版只把这个增益乘进 `dens`，而 `motif` 模式**不读 `dens`**
+#   （落点由画像变体铺，实测 80 段全是 2.50 音/小节）→ 增益等于没接。
+#   现在它经 `gen_section(dens_gain=…)` 换算成"每小节落点上限"，由 `_cap_onsets` 裁/补。
+#   **增益幅度按实测下调**（0.65→0.80、1.2→1.15）：动机铺法是 3~4 个落点/小节，
+#   0.65 那一档会把落点压到 2 个/小节（整段退化成"只有骨架音"），听感是"这一段怎么空了"。
+SEC_DENS_GAIN = {0: 0.80, 1: 0.90, 2: 1.0, 3: 1.05, 4: 1.10}
+# `dens` → 每小节落点数的**标定常数**（2026-10-05 实测两轮）：
+#   第一版 1.8 → 逐段中位 0:2.25 / 2:2.75，但**最大值顶到 3.25 音/小节**（形态门 1.8~2.9）
+#   → 收到 **1.6**（同一批数据重测：上限不再破门，见 §④ 的读数）。
+# 稀疏段的衰减比密段小（落点本来就少），所以这是"够用"的一阶标定，不是精确模型。
+_ONS_PER_BAR_AT_2 = 1.6
+# 动机层两条守卫的门（`selftest.t_melody_motif_rules` 同源）：句末收束 / 跳后反向。
+# 打分里按这两个门补罚（见 `main` 的 `mp`），避免"4 条候选全在门外而排序看不见"。
+MOTIF_CAD_MIN = 0.25
+MOTIF_REV_MIN = 0.60
 ARCH_W = 1.0          # 骨架音的**拱形代价权重**（0 = 句内拱形失效；变异用例注入 0 验判据）
 SPAN_TRIM = 0         # 画像 range 两端各收窄几个半音（0 = 用足；旧版是 lo+2 / hi-1）
 # **变体层消融开关**：False = 每小节复刻原型 figure（旧形态）。
@@ -745,9 +783,150 @@ CELLS_BY_N = {              # key = 该小节的音数；值是候选落点组�
         [1.0, 1.5, 2.0, 2.5, 3.0, 3.5], [0.5, 1.0, 1.5, 2.0, 2.75, 3.5]],
 }
 RHYTHM_EXTRA = [0.5, 1.5, 2.5, 0.75]     # 音数超过 6 时的补充落点（都在 8 分/16 分格上）
+# **装饰位与轮换**（2026-10-05 改；起因：直接作曲 100-108 的旋律 16 格里有 6~7 格
+# **恒为 0**，而它自己吃的主题画像一个恒 0 格都没有）：
+# · 旧版装饰位写死在 0.75 / 2.75（= 格 3 / 11）两处 → 格 1/5/7/9/13/15 永远不会出现。
+#   现在装饰位从 `DECOR_CELLS` 里**按画像 `onset16_hist` 的权重抽**（画像说哪格有音就
+#   往哪格放），弱格总量不变（还是"搬一个已有的装饰"而不是"多加一个"）。
+# · 旧版 `v = variants[bar % len(variants)]` 是**按小节号取模**：周期 6 小节，全曲就那
+#   6 个型循环（实测 100-108 的"每小节节奏型去重"只有 11~24%）。现在用 rng 抽 + 不许
+#   连着两小节同型（`_pick_variant`，rng 缺省时退回旧的取模行为，便于 A/B 与旧曲复现）。
+DECOR_CELLS = [1, 3, 5, 7, 9, 11, 13]    # 16 分弱格；**不含格 15**（紧贴下一小节首音会出碎音）
+# 弱格比例上限。依据：人类单声主奏实测 12.9%（旧注释），旧版细胞层口径 ≤15%；
+# 画像自己的弱格占比是 9%~32%（battle 24% / sorrow 25% / folk_tale 32%）——
+# 取 `min(画像, WEAK_CAP)`：跟画像走，但不越过人类区间。
+WEAK_CAP = 0.15
 
 
-def apply_rhythm_cells(notes, spb=None):
+def _pick_variant(variants, bar, rng, state):
+    """挑这一小节用哪个细胞。`rng is None` → 旧的 `bar % len` 取模（周期 6 小节）。
+
+    周期化轮换实测的后果：全曲只有那 6 个型在循环，"每小节节奏型去重" 11~24%，
+    听感是机器。改成 rng 抽 + **不许连着两小节同型**。
+
+    ⚠ **末落点 ≥8 格**（= 2.0 拍）的细胞优先：守卫 `t_melody_form_rules` 要求
+    "末落点 ≥8 格的小节 ≥65%"，而表里 cnt=1 有一档 `[1.5]`（格 6）本身就越界 ——
+    旧版按 `bar % 6` 轮换时它几乎不落到"只 1 个音"的小节上，改成 rng 抽之后实测
+    末落点达标率从 100% 掉到 68~96%（102 号当场逼近门）。这里显式过滤。
+    """
+    n = len(variants)
+    if n <= 1:
+        return variants[0]
+    if rng is None:
+        return variants[bar % n]
+    pool = [v for v in variants if round(max(v) * 4) >= CELL_LAST_MIN] or variants
+    i = rng.randrange(len(pool))
+    prev = state.get('prev')
+    if prev is not None and len(pool) > 1 and pool[i] is prev:
+        i = (i + 1 + rng.randrange(len(pool) - 1)) % len(pool)
+    state['prev'] = pool[i]
+    return pool[i]
+
+
+def _decorate_cell(cell, prof_onsets, rng, b, force=False):
+    """管这一小节那**一个** 16 分装饰：已有的搬到画像权重抽出来的弱格上；没有且
+    `force` 就把一个内部落点挪到弱格去（音数不变，所以音高分配不受影响）。
+
+    依据（2026-10-05，直接作曲 100-108 实测）：
+    · 旧版装饰位写死 0.75 / 2.75 两处 → 9 首里 **6~7 格恒为 0**，而主题画像
+      `onset16_hist` 的奇数格各占 2~5%（一个恒 0 格都没有）；生成的弱格总量
+      7~11%，画像的弱格是 **9%~32%**（battle 24% / sorrow 25% / folk_tale 32%）。
+    · 所以装饰位与装饰**密度**都交给画像：位置按画像权重抽，数量由调用方按
+      `min(画像弱格占比, WEAK_CAP)` 的收支跑（见 `apply_rhythm_cells`）。
+    ⚠ 两条硬约束不能破：搬/挪之后**末落点仍 ≥ `CELL_LAST_MIN` 格**（守卫
+      `t_melody_form_rules` 的"末落点≥8 格 ≥65%"），且与邻音间距 ≥0.5 拍
+      （不许出碎音）。做不到就原样返回。
+    """
+    base = list(cell)
+    if rng is None or not prof_onsets or b <= 0 or len(base) < 1:
+        return base
+    # **只对 4/4 搬**：细胞表是 4/4 基准，3/4 下 `p * k` 缩放出来的落点本来就不落在
+    # 八分/十六分格上（实测 `102_waltz_court` 的"弱格" 37% → 63%），
+    # 16 格口径在 3/4 下没有意义 —— 那里保持旧行为。
+    if abs(b - 4.0) > 1e-9:
+        return base
+    odd = [x for x in base if int(round(x / b * 16)) % 2 == 1]
+    pool = [(c, prof_onsets.get(c, 0)) for c in DECOR_CELLS if prof_onsets.get(c, 0) > 0]
+    pool = [(c, w) for c, w in pool
+            if all(abs(c / 16.0 * b - x) > 1e-9 for x in base)]
+    if not pool:
+        return base
+    if odd:
+        moving = odd[0]
+    elif force:
+        # 挪**内部**落点（不动最后一个，末落点规则靠它）：挑与邻音最挤的那个
+        movable = base[:-1] if len(base) > 1 else base
+        if not movable:
+            return base
+        moving = min(movable, key=lambda x: min(abs(x - y) for y in base if y != x)
+                     if len(base) > 1 else 0.0)
+    else:
+        return base
+    others = [x for x in base if x != moving]
+    tot = sum(w for _c, w in pool)
+    r, acc, new_c = rng.random() * tot, 0.0, pool[-1][0]
+    for c, w in pool:
+        acc += w
+        if r <= acc:
+            new_c = c
+            break
+    new = new_c / 16.0 * b
+    if new > b - 0.25 - 1e-9:
+        return base
+    if any(abs(new - x) < 0.5 - 1e-9 for x in others):
+        return base
+    out = sorted(others + [new])
+    if round(max(out) / b * 16) < CELL_LAST_MIN:      # 末落点不许被搬垮
+        return base
+    return out
+
+
+def _cap_onsets(ons, b0, b1, cap, rng):
+    """**逐小节落点上限**（2026-10-05，④ 逐段旋律密度的实现本体）。
+
+    为什么需要：`--dens` 是全局单值，而 `motif` 模式下每小节铺的是**画像的变体**
+    （`_motif_cell` 铺 3~4 个落点 + `_variants_of` 的压缩/稀疏变体），**完全没读 `dens`**
+    —— 实测 16 首 80 个段落的旋律密度中位 **2.50 音/小节**，最小 1.50、最大 2.88，
+    与"这段该疏还是该密"（`sections[i].arr.density`）**无关**；`SEC_DENS_GAIN` 乘进去的
+    `dens` 只影响一个阈值跳变（`n=(4 if dens > CELL_N_DENSE else 3)`）。
+    真实曲的副歌就是比主歌密 → 这条按小节**裁/补**落点，让"段落密度"真的落地。
+
+    · `cap <= 现有`：**裁**。先保强拍（格 0 = 第 1 拍；`SPB==4` 时格 2 = 第 3 拍），
+      其余按节拍顺序保留 —— 稀疏段于是退化成"长音骨架"，而不是把强拍裁掉。
+    · `cap > 现有`：**补**（至多 +1，且只补**反拍八分**格 2/6/…）：动机模式靠"变体"保持
+      "一支旋律一个动机"，补太密会破掉它。上限 +1 时听感是"句子里多一次推动"。
+    · 句末小节**不动**（`b1`）：收束是守卫的硬门（末落点 ≥8 格、句末长音）。
+    """
+    if cap is None or not ons or b1 <= b0:
+        return ons
+    by = {}
+    for o in ons:
+        by.setdefault(int(o // SPB), []).append(o)
+    out = []
+    for b in range(b0, b1 + 1):
+        xs = sorted(by.get(b) or [])
+        if not xs or b == b1:
+            out += xs
+            continue
+        if len(xs) > cap:
+            strong = [o for o in xs
+                      if abs(o % SPB) < 1e-6 or (SPB >= 4 and abs(abs(o % SPB) - SPB / 2) < 1e-6)]
+            rest = [o for o in xs if o not in strong]
+            xs = sorted((strong + rest)[:cap]) if cap >= len(strong) else sorted(strong[:cap])
+        elif len(xs) < cap:
+            half = SPB / 2.0
+            cand = [b * SPB + half * k for k in (1, 3)
+                    if b * SPB + half * k < (b + 1) * SPB]
+            for c in cand:
+                if len(xs) >= cap:
+                    break
+                if all(abs(c - o) >= 0.5 - 1e-9 for o in xs):
+                    xs = sorted(xs + [c])
+        out += xs
+    return sorted(out)
+
+
+def apply_rhythm_cells(notes, spb=None, prof=None, rng=None):
     """把一节旋律的**落点**换成反复出现的节奏细胞；音高按原先后顺序贴上（轮廓不变）。
 
     返回新的 `[[bar, beat, dur, pitch], ...]`。`spb` 缺省取当前拍号写进全局的 `SPB`。
@@ -767,6 +946,12 @@ def apply_rhythm_cells(notes, spb=None):
     for n in notes:
         by_bar.setdefault(int(n[0]), []).append(n)
     out = []
+    state = {}
+    prof_onsets = {int(c): w for c, w in (prof or {}).get('onset16_hist', {}).items() if w > 0}
+    p_tot = float(sum(prof_onsets.values()))
+    want_weak = (min(WEAK_CAP, sum(w for c, w in prof_onsets.items() if c % 2 == 1) / p_tot)
+                 if p_tot else 0.0)
+    made = weak_made = 0
     for bar, ns in sorted(by_bar.items()):
         ns = sorted(ns, key=lambda x: x[1])                    # 音高出现的先后 = 轮廓
         tail = ns[-1] if (bar % 4 == 3 and len(ns) > 1) else None
@@ -774,11 +959,13 @@ def apply_rhythm_cells(notes, spb=None):
         if body:
             cnt = len(body)
             variants = CELLS_BY_N.get(cnt) or CELLS_BY_N[6]
-            v = variants[bar % len(variants)]
+            v = _pick_variant(variants, bar, rng, state)
             limit = float(tail[1]) if tail is not None else b
             # ⚠ 保留末音时，**正身的落点必须全部排在末音之前**：否则 `out.sort()` 之后
             #   音高的先后被换掉 → 跳后反向率实测 0.81 → 0.44（破门 `MOTIF_MIN_REVERSE`）。
             cell = sorted({snap(p * k) for p in v if snap(p * k) < limit - 0.24})
+            force = want_weak > 0 and (want_weak * (made + cnt) - weak_made) >= 1.0
+            cell = _decorate_cell(cell, prof_onsets, rng, b, force=force)
             if len(cell) < cnt:
                 cell = [snap(limit * (i + 1) / (cnt + 1.0)) for i in range(cnt)]
             j = 0
@@ -786,6 +973,8 @@ def apply_rhythm_cells(notes, spb=None):
                 cell.append(snap(RHYTHM_EXTRA[j % len(RHYTHM_EXTRA)] * k))
                 j += 1
             onsets = sorted(cell)[:cnt]
+            made += len(onsets)
+            weak_made += sum(1 for x in onsets if int(round(x / b * 16)) % 2 == 1)
             for i, o in enumerate(onsets):
                 nxt = onsets[i + 1] if i + 1 < len(onsets) else limit
                 out.append([bar, o, round(max(0.25, nxt - o) * 0.95, 3), body[i][3]])
@@ -814,7 +1003,7 @@ def rhythm_cell_stats(notes, spb=None):
 
 
 def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None,
-                motif=None):
+                motif=None, dens_gain=1.0):
     """给一个段落生成旋律：返回 [(bar, beat, dur, pitch)]
 
     `tonic` 是**主音的音级**（0-11），由调用方按该曲的和弦推断 —— 以前这里硬编码
@@ -822,7 +1011,11 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None,
     `per` 是说话方式（`persona()` 产出）；不传则按 prof 现算。
     `dens` 是这首曲子的目标密度（音/小节，通常沿用原旋律）。**画像的 `notes_per_bar`
     不能直接当密度**：它来自混音 F0 跟踪，漏检严重（实测 BGM33 只有 1.09 音/小节，
-    而那是首 75BPM 的舞曲）—— 所以密度服从曲目本身，画像只提供**相对**的长短/落点/走向。"""
+    而那是首 75BPM 的舞曲）—— 所以密度服从曲目本身，画像只提供**相对**的长短/落点/走向。
+    `dens_gain`（2026-10-05）：**本段**的密度增益（`SEC_DENS_GAIN[arr.density]`）。
+    `dens` 全局单值在 `motif` 模式下是**没人读**的（实测 80 段全是 2.50 音/小节），
+    所以逐段密度由它换算成"每小节落点上限"（`_ONS_PER_BAR_AT_2` × `dens` × `dens_gain`），
+    在 `_cap_onsets` 里裁/补 —— 缺省 1.0 = 老行为逐字节不变（rehearsal 夹具不受影响）。"""
     P = per if per is not None else persona(prof, rng)
     lo, hi = P['range']
     pcs = [(tonic + d) % 12 for d in (mode_scale or [])]
@@ -838,6 +1031,28 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None,
     prev2 = None
     same_run = 0                       # 连续同音计数（上限 2，见下面 ⑤b）
     bar_v = {}                         # 动机模式：小节 → 该小节铺的那个**变体**
+
+    def _sub(frag, cap, bb):
+        """从本小节的变体落点里挑 `cap` 个（**按小节确定性轮换**，不是永远留最早的）。
+
+        ⚠ 为什么必须轮换：变体的落点表就是 3~4 个格（如 `[0,1,2]` / `[0,2,3]`），
+        一律 `frag[:cap]` 会让整段每小节的落点型**完全相同** —— 实测 102_waltz_court
+        的 B/B2 段"落点偏离 0.677"（门 0.65）当场破门。轮换保留 = 同一个变体在不同小节
+        用不同的"说法"，这正是动机模式想要的"同一腔调的另一种说法"。
+        """
+        if cap is None or len(frag) <= cap:
+            return frag
+        k = max(1, int(cap))
+        # ⚠ **纯确定性**（只用小节号）：这里不能碰 `rng` —— 多抽一个随机数会挪动
+        #   后面所有随机决策（音高/时值），实测那种"顺手 randrange"会让整首旋律换掉。
+        start = (bb * 3) % len(frag)
+        return sorted(frag[(start + j) % len(frag)] for j in range(k))
+
+    # **每小节落点上限**（逐段密度，见 `_cap_onsets`）：由本段目标密度换算。
+    # `_ONS_PER_BAR_AT_2` = 实测标定（dens 2.39 时落点 ~4.3 个/小节才落到 2.88 音/小节）。
+    cap_ons = (None if motif is None
+               else max(1, int(round(_ONS_PER_BAR_AT_2 * float(dens or 2.0)
+                                     * float(dens_gain or 1.0)))))
     total = sec['bars'] * SPB
 
     def chord_tones(bar):
@@ -939,6 +1154,13 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None,
                 frag = list(v['onsets'])
                 if bb == b1 and len(frag) > 1:
                     frag = frag[:1]
+                # **逐段密度**（2026-10-05）：本小节多铺一个落点就多一个音 ——
+                # 密度高的段允许铺满，低的段只留骨架（详见 `_cap_onsets`）。
+                # ⚠ **必须按小节轮换保留哪几个**：一开始写成 `frag[:cap]`（永远留最早的），
+                #   实测把同一段里不同变体全裁成同一个型 → `melody_onset_spread` 落点偏离
+                #   破门（102_waltz_court 段 B 0.677 > 0.65）。现在用 `_sub` 确定性轮换。
+                if cap_ons is not None and bb != b1:
+                    frag = _sub(frag, cap_ons, bb)
                 bar_v[bb] = v
                 for off in frag:
                     on = bb * SPB + off / 4.0
@@ -946,6 +1168,10 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None,
                         ons.append(round(on, 4))
         ons_us = sorted(set(ons))
         ons = ons_us
+        # **逐段密度：按小节裁/补**（动机模式的密度实现 —— 必须放在 `_ensure_strong_onsets`
+        # 之后，否则强拍保底会把裁掉的位置又补回来）。
+        if motif is not None and cap_ons is not None:
+            ons = _cap_onsets(ons, b0, b1, cap_ons, rng)
         ons = _ensure_strong_onsets(ons, t, end)
         # **落点间距下限**（跑两遍）：画像里几乎没有极短音（BGM09 画像 0.25 拍 0%、
         # 0.5 拍 2%），而我们生成出 12~15% 的 0.25 拍音 —— 那全是"两个落点挤在一起、
@@ -1499,8 +1725,23 @@ def dur_tvd(mel, prof):
 ONSET_TVD_MAX = 0.65
 
 
+def same_run_longest(notes):
+    """最长连续同音串（口径同 `probe_melody_health` 第③维；`notes` = [(拍, 时值, 音高)]）。
+
+    2026-10-05 新增到候选打分里：节奏细胞层把落点换掉之后，`_enforce_strong` 吸附
+    强拍音的对象跟着换，**同音串会长出来** —— 实测重做 100-108 时 `103` 4→**6**、
+    `108` 3→**7**（`probe_melody_health` 的门是 ≤4，听感是"d d d d d d d"）。
+    它只在**候选之间**排序（`cand_score(run_pen=…)`），不改生成逻辑。
+    """
+    best = cur = 0
+    for i, n in enumerate(notes):
+        cur = cur + 1 if (i and n[2] == notes[i - 1][2]) else 1
+        best = max(best, cur)
+    return best
+
+
 def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0.0,
-               form_pen=0.0, dur_dist=0.0):
+               form_pen=0.0, dur_dist=0.0, run_pen=0.0, motif_pen=0.0):
     """候选打分（**越小越好**）：以"不像库里已有旋律"为主，级进偏好为次（opt-in）。
 
     抽成独立函数有两个原因：① `mutation_check` 的注入机制是**改内存里的模块属性**，
@@ -1526,7 +1767,8 @@ def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0
     #   （**只影响候选之间的相对排序，门本身没动** —— 与 `stepwise_pct` 同一条纪律）。
     onset_pen = 6.0 * max(0.0, onset_dist - ONSET_TVD_MAX)
     return (shape_share * 2.0 + lang_share + clash * 0.5
-            - step_bias * stepwise + onset_dist + onset_pen + form_pen + dur_dist)
+            - step_bias * stepwise + onset_dist + onset_pen + form_pen + dur_dist + run_pen
+            + motif_pen)
 
 
 def small_step_pct(melody, sections, bar_beats=SPB):
@@ -1571,6 +1813,288 @@ def form_penalty(fs, ms, small=None, span=None):
     if small is not None:                                         # 小步打转（"d d d d ddd"）
         pen += max(0.0, small - 0.35) * 4.0
     return pen
+
+
+# ────────────────────────── 转音细胞（2026-10-06 · HANDOFF-ORNAMENT §4） ──────────
+# 用户口径（2026-10-05）："以后其它地方有能识别到吗，推广一下让直接写音乐也能尝试写出来
+#   **不同的**转音" —— 已知实例是 BGM35 19.0–19.6s 那处（`A♯5→A5→F5→C5→A♯4→A4→F4`，
+#   每音约 0.1s；`songs/b35_clean/notes.md` 有全部读数）。
+# 形态取自 §4-1：**3~5 音 · 总时长 0.3~0.8s · 同向级进为主（允许一步 ≤5 半音）·
+#   音高只取该小节的和弦音/音阶音**。两条"不改别处"的纪律：§4-2 **不动骨架**（只把一个
+#   长音**拆**成串：起点不变、总时值不变、下一个落点不变）· §4-3/4 **逐段决定**、跨曲不同
+#   （同族纪律：驱动种子必须**曲名派生** —— `--seed` 会被"多首显式同一个 seed"抹平，
+#   `PITFALLS` **304**）。
+# ⚠ 预算只卡**现有门**，不新造口径：
+#   · 密度 ≤ `ORN_DENS_HI`（= `selftest.FORM_DENS[1]` **2.9** 的生成时候选门；库里查 1.6~3.2）
+#   · 0.25 拍音占比 ≤ `ORN_CHOP_CAP`（`probe_melody_health.MAX_CHOP` 是 **8%**，先按一半控）
+#   —— 实测（`109_sunlit_desk` 原型）：不设预算会插 13 处、密度 2.63 → **5.22**（门 2.9，
+#     碎音同时爆）⇒ 转音在整曲里本来就稀有，"有几处"是由这两条门**算出来的**，不是拍的。
+ORN_STEP = 0.25                       # 细胞内部的音距（16 分）
+ORN_NOTES = (3, 4, 5)                 # §4-1 的音数
+ORN_DUR = (0.30, 0.80)                # §4-1 的总时长（秒）——**按秒**卡，别只看拍数
+ORN_STEP_MAX = 5                      # §4-1 允许的一步上限（半音）
+ORN_DENS_HI = 2.9                     # = selftest.FORM_DENS[1]（生成时候选门）—— 现在只当**参考门**
+ORN_CHOP_CAP = 0.04                   # = probe_melody_health.MAX_CHOP(8%) 的一半 —— 只当**参考门**
+# ⚠ 上面两个现在**不再参与决策**：真正的约束是"**置换池**"（插几个 0.25 拍的音就从同一条
+#   旋律里删几个弱格装饰音 ⇒ 净音数与碎音数都不增）。留它们是给"想把门也改掉"的人一个参照。
+ORN_TARGET_MAX = 8                    # 目标处数上限（B2 的"每小节处数 × 曲长"可能很大；池是硬约束）
+
+
+def ornament_tendency(prof):
+    """**B1 派生量**：这个主题的"转音倾向"（0~1）。
+
+    ⚠ 这是**派生量** —— 把画像里"短时值多（`dur16_hist` 的 16/8 分占比）+ 级进多
+    （`stepwise_pct`）+ 弱格多（`onset16_hist` 的奇数格占比）"三件事组合出来，
+    **不是**"模板里的真实转音密度"。后者只能靠 B2（`fetch_midi_lib` 重抓 + 逐首量
+    run 密度）拿到（`HANDOFF-ORNAMENT` §3）。所以这个数只用于"这首该多写几处"，
+    **不许当成"模板实际有多少转音"引用**。
+    """
+    d = {int(k): float(v) for k, v in (prof.get('dur16_hist') or {}).items()}
+    o = {int(k): float(v) for k, v in (prof.get('onset16_hist') or {}).items()}
+    dt, ot = (sum(d.values()) or 1.0), (sum(o.values()) or 1.0)
+    short = (d.get(1, 0.0) + d.get(2, 0.0)) / dt
+    stepw = float(prof.get('stepwise_pct') or 50.0) / 100.0
+    weak = sum(v for k, v in o.items() if k % 2 == 1) / ot
+    return {'short': short, 'stepw': stepw, 'weak': weak,
+            'tend': 0.40 * short + 0.35 * stepw + 0.25 * weak}
+
+
+def ornament_density_of(profile):
+    """**B2 模板直接量**：从 `refs/ornament_density.json` 取该主题的"真实转音密度"。
+
+    为什么要有这条路（2026-10-06 实测）：原先只看 `ornament_tendency` 那个**派生量**，
+    而交接文档写过"派生量与模板真实转音密度**差多少没人量过**"——现在量了：
+    15 个主题上两者的 **Spearman 只有 0.12**（`scripts/ornament_density.py`）
+    ⇒ 派生量**不能**当转音密度用。所以这里**优先**读模板直接量，读不到才退回 B1。
+    """
+    p = os.path.join(ROOT, 'refs', 'ornament_density.json')
+    try:
+        with open(p, encoding='utf-8') as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return None
+    return ((d.get('themes') or {}).get(profile) or {}).get('grids', {}).get('strict')
+
+
+def _orn_pts(mode_scale, tonic, lo=55, hi=88):
+    """该调式的可用音高（音阶音）。`mode_scale` 是半音级集合，`tonic` 是 pitch class。"""
+    return [p for p in range(lo, hi + 1) if (p - tonic) % 12 in mode_scale]
+
+
+def _orn_seq(pitch, n, pts, direction, chord_pcs):
+    """从 `pitch` 出发的**同向级进**序列 · 只取音阶音 · 至少含一个和弦音。
+
+    返回 None = 这个方向/t 音数构不出合规的串（宁可不插，也不插不和谐的）。
+    """
+    if pitch not in pts:
+        return None
+    i = pts.index(pitch)
+    idx = [i + direction * k for k in range(n)]
+    if idx[0] < 0 or idx[-1] >= len(pts):
+        return None
+    seq = [pts[j] for j in idx]
+    if max(abs(b - a) for a, b in zip(seq[1:], seq[:-1])) > ORN_STEP_MAX:
+        return None
+    if chord_pcs and not any(p % 12 in chord_pcs for p in seq):
+        return None                                     # 和谐优先（用户第一条口径）
+    return seq
+
+
+def _orn_expand(melody, sections):
+    """`{键: notes}` 展开成"每段各算一遍"：同名旋律被多段复用时，它在音频里响几次就算几次。"""
+    out = []
+    for sec in sections:
+        for nt in (melody.get(sec.get('melody')) or []):
+            if 0 <= nt[0] < sec['bars']:
+                out.append(nt)
+    return out
+
+
+def _orn_kill(notes, pool, i, beat, need):
+    """选出要被**置换掉**的装饰音：离插入点最近的 `need` 个（听感上像"把花搬到这一串上"）。
+
+    抽成独立函数是为了**能配变异用例**（`mutation_check`）：把它注入成"永远返回空表"
+    就等于"只插不删"，`melody_health` 的碎音占比会被顶上去 —— 那条必须被 `t_ornament_cells` 抓到。
+    """
+    cand = [j for j in pool if j != i]
+    return sorted(cand, key=lambda j: abs(notes[j][1] - beat))[:need]
+
+
+def _orn_existing(melody, sections, bpm):
+    """本曲**当前（还没插之前）**已经有几处 §4-1 形态的级进 run —— 用与 B2 **同一把尺子**量。
+
+    为什么要有它（2026-10-06 实测）：目标处数原来是"按模板密度**追加**"，于是
+    `108_carnival_party`（cheerful · 模板 0.018 处/小节）本来就自带 3 处，追加后到 **0.042**
+    —— 超了模板值 2.3 倍。改成"**补齐差额**"（要的是"这首的总密度像模板"，不是"在模板之上再加"）。
+    """
+    import ornament_density as OD
+    absn = sorted(_abs_notes({'sections': sections}, melody))
+    seq = [(a, a + du, p) for (a, du, p) in absn]
+    return len(OD.find_runs(seq, bpm or 120.0, 2, 3, 5, 0.30, 0.80))
+
+
+def apply_ornaments(melody, sections, chords, prof, tonic, mode_of, rng, bpm=None,
+                    profile=None, verbose=True):
+    """全曲级：把**最合适的长音**拆成转音细胞（原地改 `melody`），返回报告 dict。
+
+    `mode_of(sec)` → 该段的音阶集合（段落 `mode` 可覆盖）。`tonic` 是 pitch class。
+    `profile`（主题名）：给了就**优先**读 `refs/ornament_density.json` 的
+    **模板直接量（B2）** 来定目标处数；读不到才退回画像派生量（B1）。两条依据都进 `rep['basis']`。
+    """
+    rep = dict(inserted=[], tendency=round(ornament_tendency(prof)['tend'], 4),
+               added=0, target=0, basis='', dens_before=None, dens_after=None,
+               chop_before=None, chop_after=None)
+    ex = _orn_expand(melody, sections)
+    n_all = len(ex) or 1
+    bars = sum(int(s['bars']) for s in sections) or 1
+    dens0 = len(ex) / float(bars)
+    chop0 = sum(1 for nt in ex if round(nt[2] * 4) <= 1) / float(n_all)
+    rep['dens_before'], rep['chop_before'] = round(dens0, 3), round(chop0, 4)
+    # **置换池**（2026-10-06 实测后重定）：本曲的碎音预算早被 `apply_rhythm_cells` 的弱格
+    # 装饰用掉（109 的生成结果 **5.9% / 门 8%**）—— 再**净增**就破 `melody_health` 的碎音门，
+    # 而"松门"是自创口径（不许）。装饰与转音**性质相同**（都是弱格上的花）⇒ 让转音**接管**
+    # 这些位置：插 N 音就从**同一个键**里删掉 N-1 个 0.25 拍装饰音 ⇒ **净音数守恒**，
+    # 密度与碎音占比**都不变**（逐项复核见 `rep` 的 before/after）。
+    # 处数上限 = ① §4-4 的画像派生量（"这首该多花"）② 全曲装饰池够不够置换。
+    # **目标处数**：优先**模板直接量（B2）**，读不到才退回画像派生量（B1）。
+    # ⚠ 为什么改（2026-10-06 实测）：B1 与 B2 的 Spearman 只有 **0.12**（15 主题）⇒ 派生量
+    #   不能当"转音密度"用（交接口径：`HANDOFF-ORNAMENT` §3）。**daily/folk_tale/seaside/
+    #   tender/mystery/battle 六个主题的模板里**（严档）**一处都没有** ⇒ 那些主题目标 = 0
+    #   （与 109 实测"置换池不够、插不进去"完全一致 —— 两条独立证据指向同一结论）。
+    _dens2 = ornament_density_of(profile) if profile else None
+    if _dens2:
+        _rpb = float(_dens2.get('runs_per_bar') or 0.0)
+        _want = int(round(_rpb * bars))
+        _have = _orn_existing(melody, sections, bpm)
+        target = max(0, _want - _have)          # **补齐差额**（不是"在模板之上再加"）
+        rep['basis'] = ('B2 模板直接量（%s 严档 %.3f 处/小节 × %d 小节 = %d 处；'
+                        '本曲自带 %d 处 ⇒ 补 %d 处）' % (profile, _rpb, bars, _want, _have, target))
+    else:
+        target = int(round(ornament_tendency(prof)['tend'] * 4.0))
+        rep['basis'] = 'B1 画像派生量（派生量，非模板真实转音密度）'
+    target = max(0, min(ORN_TARGET_MAX, target))
+    rep['target'] = target
+    if target <= 0:
+        if verbose:
+            print('  转音：依据「%s」⇒ 本主题目标 0 处（模板里本来就没这种跑动）' % rep['basis'])
+        return rep
+    spb = 60.0 / float(bpm or 120.0)                    # 一拍多少秒（§4-1 的时长按**秒**卡）
+    # 候选：每个**键**里时值最长的非末音（末音 = 句末收束，一律不许动）；弱格优先
+    ohist = {int(k): float(v) for k, v in (prof.get('onset16_hist') or {}).items()}
+    cand, pools = [], {}
+    for key, notes in melody.items():
+        # ⚠ **别插在会被引子编配削掉的地方**（2026-10-06 读回验证抓到，不是推的）：
+        #   带 `arr.intro_style` 的段，前 2 小节会被 `song_engine.shape_intro` 改写 ——
+        #   `drums_first` 把**除鼓以外**的轨（含 Melody）第一小节整段删掉。实测
+        #   `103_sorrow_letter` 的 intro 转音就是这么"写了但一个字没响"（MIDI 里查不到、
+        #   音频里检不出）。只有**该键引用的每一段**都带 intro_style 时才回避。
+        _secs_of = [s for s in sections if s.get('melody') == key]
+        _intro_only = all((s.get('arr') or {}).get('intro_style') for s in _secs_of)
+        # 可置换的装饰音：0.25 拍、**不是它所在小节的最后一个落点**
+        # （保住"末落点 ≥8 格 ≥65%"那条守卫门）
+        per_bar = {}
+        for nt in notes:
+            per_bar.setdefault(nt[0], []).append(int(round(nt[1] * 4)) % 16)
+        pools[key] = []
+        for j, nt in enumerate(notes):
+            if round(nt[2] * 4) > 1 or j == len(notes) - 1:
+                continue                      # 只拿 0.25 拍的装饰音；末音（句末收束）不动
+            g = int(round(nt[1] * 4)) % 16
+            rest = [x for x in (per_bar.get(nt[0]) or []) if x != g]
+            # 删掉它之后该小节**仍要有 ≥8 格的落点**（`last8` 门 65%，当前 100% —— 有余量，
+            # 但不拿它去赌）；小节里只剩它一个落点时也不删。
+            if rest and max(rest) >= 8:
+                pools[key].append(j)
+        best = None
+        for i, nt in enumerate(notes):
+            if i == len(notes) - 1 or nt[2] < ORN_NOTES[0] * ORN_STEP:
+                continue
+            if _intro_only and nt[0] < 2:
+                continue                      # 引子前 2 小节可能被 `shape_intro` 削掉
+            w = ohist.get(int(round((nt[1] % 1) * 16)) % 16, 0.0)
+            sc = nt[2] - 0.02 * w                       # 长音优先；落点越弱越优先
+            if best is None or sc > best[0]:
+                best = (sc, i)
+        if best:
+            cand.append((best[0], key, best[1]))
+    cand.sort(reverse=True)
+    used_key, added = set(), 0
+    for _sc, key, i in cand:
+        if key in used_key:
+            continue                      # 一个键只插一处（同名旋律复用多次会累积）
+        bar, beat, dur, pitch = melody[key][i][:4]
+        # 音数 = 能拆得下、且**总时长落在 §4-1 的 0.3~0.8s** 的那个最大值
+        n = 0
+        for k in sorted(ORN_NOTES, reverse=True):
+            if dur < k * ORN_STEP:
+                continue
+            if ORN_DUR[0] <= k * ORN_STEP * spb <= ORN_DUR[1]:
+                n = k
+                break
+        if not n:
+            continue
+        if len(rep['inserted']) >= target:
+            break
+        # **碎音数守恒**（不只是净音数）：插入几个 0.25 拍的音就置换掉几个装饰音 ——
+        # 否则 `melody_health` 的碎音占比会被推上去（实测 109：只 2 处就把 8.1% 顶到 9.6%）
+        new_durs = [ORN_STEP] * (n - 1) + [round(dur - (n - 1) * ORN_STEP, 3)]
+        need = sum(1 for d in new_durs if round(d * 4) <= 1)
+        pool = [j for j in pools.get(key, []) if j != i]
+        if len(pool) < need:
+            continue          # 装饰池不够置换 ⇒ 这处不插（宁可不插，也不破碎音门）
+        # 删离插入点最近的 need 个装饰音（"把花搬到这一串上"，听感最自然）
+        kill = _orn_kill(melody[key], pool, i, beat, need)
+        sec = [s for s in sections if s.get('melody') == key][0]
+        cn = (sec.get('chords') or [None])[min(bar, len(sec.get('chords') or [1]) - 1)] \
+            if sec.get('chords') else None
+        cpcs = sorted({t % 12 for t in (chords.get(cn) or [[], []])[1]}) if cn else []
+        pts = _orn_pts(mode_of(sec), tonic)
+        seq = None
+        for direction in ((1, -1) if rng.random() < 0.5 else (-1, 1)):
+            seq = _orn_seq(pitch, n, pts, direction, cpcs)
+            if seq:
+                break
+        if not seq:
+            continue
+        new = [[bar, round(beat + j * ORN_STEP, 3), new_durs[j], p]
+               for j, p in enumerate(seq)]
+        # **置换落地**：先算 keep 再整体重建（边删边移会把索引搞乱）
+        kset = set(kill)
+        keep = [j for j in range(len(melody[key])) if j not in kset]
+        pos = keep.index(i)
+        rebuilt = [melody[key][j] for j in keep]
+        rebuilt[pos:pos + 1] = new
+        melody[key] = rebuilt
+        used_key.add(key)
+        added += (n - 1) - len(kill)      # 相对"被替换的那一个音"的净增（替换本身不增）
+        rep['inserted'].append(dict(key=key, bar=bar, beat=beat, n=n, dur=dur, seq=seq,
+                                    total_sec=round(n * ORN_STEP * spb, 3),
+                                    killed=len(kill),
+                                    sections=[s['name'] for s in sections
+                                              if s.get('melody') == key]))
+    rep['added'] = added
+    ex2 = _orn_expand(melody, sections)
+    rep['dens_after'] = round(len(ex2) / float(bars), 3)
+    rep['chop_after'] = round(sum(1 for nt in ex2 if round(nt[2] * 4) <= 1)
+                              / float(len(ex2) or 1), 4)
+    if verbose and rep['inserted']:
+        print('  转音细胞 %d/%d 处（置换后净增 %d 音 · 密度 %.2f→%.2f · 0.25 拍占比 '
+              '%.1f%%→%.1f%%）依据：%s'
+              % (len(rep['inserted']), rep['target'], added, rep['dens_before'],
+                 rep['dens_after'], 100 * rep['chop_before'],
+                 100 * rep['chop_after'], rep['basis']))
+        for r in rep['inserted']:
+            print('    %-8s 小节%-3d %d 音 %.2f 拍（%.2fs）%s  ← 复用段 %s · 置换掉 %d 个装饰音'
+                  % (r['key'], r['bar'], r['n'], r['dur'], r['total_sec'],
+                     ' '.join(str(p) for p in r['seq']), '/'.join(r['sections']), r['killed']))
+    elif verbose:
+        print('  转音：目标 %d 处，但装饰池/合规拆分点不够 ⇒ 本曲不插（密度与碎音一字未动）'
+              % rep['target'])
+        for key in melody:
+            _ns = len([s for s in sections if s.get('melody') == key])
+            print('      键 %-8s 可置换装饰音 %d 个（该键被 %d 段复用 · 本键 %d 音）'
+                  % (key, len(pools.get(key, [])), _ns, len(melody[key])))
+    return rep
 
 
 def main():
@@ -1678,11 +2202,16 @@ def main():
             cmotif = _motif_cell(per, rng, bars=1,
                                  n=(4 if dens > CELL_N_DENSE else 3)) \
                 if use_motif else None
-            m = gen_section(sec, chords, prof, rng, scale, tonic, per, dens, motif=cmotif)
+            # **逐段旋律密度**（2026-10-05）：`--dens` 原来是**全局单值**（2.0~2.6），
+            # 副歌不可能比主歌密。这里按该段的 `arr.density`（0~4）缩放，**上限守住
+            # 形态门 2.9 音/小节**（dens 2.4 × 1.2 = 2.88）。缺 `arr.density` = 1.0。
+            _g = SEC_DENS_GAIN.get(int((sec.get('arr') or {}).get('density', 2) or 0), 1.0)
+            m = gen_section(sec, chords, prof, rng, scale, tonic, per, dens * _g, motif=cmotif,
+                            dens_gain=_g)
             # 节奏细胞（opt-in `--rhythm-cells`；`new_song` 会给新歌默认带上）：
             # 必须在 `_enforce_strong` **之前**——换完落点，强拍上的音才由它统一核准。
             if use_cells:
-                m = apply_rhythm_cells(m)
+                m = apply_rhythm_cells(m, prof=prof, rng=rng)
             nfix += _enforce_strong(m, sec, chords, per['range'][0], per['range'][1])
             # 复用同一支旋律的其它段落：和弦若不同就无法同时满足 → 计数（不静默）
             for si in idxs[1:]:
@@ -1709,13 +2238,27 @@ def main():
         fp = form_penalty(fs, ms, small=small_step_pct(mel, d['sections']),
                           span=(fs or {}).get('span'))
         dt = dur_tvd(mel, prof) * dur_bias
+        # **最长同音串罚分**（见 `same_run_longest` 的 docstring）：超门部分按 1.0/音罚。
+        rl = same_run_longest(alln)
+        rp = SAME_RUN_W * max(0, rl - SAME_RUN_MAX)
+        # **动机层两条守卫判据也进排序**（2026-10-05）：`melody_motif_rules` 要求
+        # 句末收束 ≥0.25、跳后反向 ≥0.60；而 `form_penalty` 只按 **0.50** 罚"跳后反向"、
+        # 完全不看收束 —— 实测把旋律音域收到真实跨度后 103 的收束掉到 **3%**、
+        # 107 反向掉到 **46%**，4 条候选全在门外而**打分看不见**（形态罚全是 0.00）。
+        # 这里按**守卫同门**补两项，仍然只影响"挑哪条候选"。
+        mp = (max(0.0, MOTIF_CAD_MIN - ((ms or {}).get('cadence_rate') or 0.0)) * 3.0
+              + max(0.0, MOTIF_REV_MIN - ((ms or {}).get('leap_reverse_rate') or 0.0)) * 3.0)
         print('  候选 %d（seed=%d）：音符 %d  与库里最大形状共享 %.1f%%  语言重合 %.1f%%'
               '  级进 %.0f%%  小步 %.0f%%  落点偏离 %.3f  时值偏离 %.3f  形态罚 %.2f'
+              '  同音串 %d（罚 %.2f）  收束 %.0f%%  反向 %.0f%%  动机罚 %.2f'
               '  强拍复核修正 %d  复用段冲突 %d'
               % (ci + 1, seed + ci * 1000, len(alln), sc[0] * 100, sc[1] * 100,
-                 sw * 100, small_step_pct(mel, d['sections']) * 100, ot, dt, fp, nfix, clash))
+                 sw * 100, small_step_pct(mel, d['sections']) * 100, ot, dt, fp,
+                 rl, rp, (ms or {}).get('cadence_rate', 0) * 100,
+                 (ms or {}).get('leap_reverse_rate', 0) * 100, mp, nfix, clash))
         # 越小越好，见 `cand_score`：去重为主，级进/落点分散/时值/形态判据为次（都只对候选间排序）
-        score = cand_score(sc[0], sc[1], clash, sw, step_bias, ot, fp, dur_dist=dt)
+        score = cand_score(sc[0], sc[1], clash, sw, step_bias, ot, fp, dur_dist=dt, run_pen=rp,
+                           motif_pen=mp)
         # 旧挑法只等于 `score = sc[0]*2 + sc[1] + clash*0.5`（`step_bias=0` 时逐字一致）。
         # 用户在 2026-09-14 实测：同骨架 4 条候选"级进 17% → 52% 越来越顺，202 之后
         # 两条都比原版好"，而旧挑法完全不看听感维度 → 会随机挑到跳进多的那条
@@ -1724,6 +2267,21 @@ def main():
             best = (score, mel, per, ci, nfix, clash)
             best_sw = sw
     d['melody'] = best[1]
+    # **转音细胞**（2026-10-06，HANDOFF-ORNAMENT §4）：全曲级 · 只在密度/碎音**预算**内插 ·
+    # 逐段决定 · 种子**曲名派生**（同族纪律 `PITFALLS` **304**：`--seed` 会被"多首显式同一个
+    # seed"抹平）。`--no-ornaments` 关掉它 —— A/B 要"同 seed、只差这一个维度"就用它。
+    orn_rep = None
+    if '--no-ornaments' not in sys.argv:
+        import zlib
+        _oname = os.path.basename(os.path.dirname(os.path.abspath(song)))
+        _orn_rng = random.Random((zlib.crc32(_oname.encode('utf-8')) & 0xffffffff)
+                                 ^ (seed * 2654435761) ^ 0x5EED)
+        orn_rep = apply_ornaments(
+            d['melody'], d['sections'], chords, prof, tonic,
+            lambda s: {'minor': SCALE_MINOR, 'dorian': SCALE_DORIAN}.get(
+                s.get('mode') or 'major', base_scale),
+            _orn_rng, bpm=d.get('bpm'),
+            profile=os.path.basename(prof_path).replace('_melody.json', ''))
     if use_cells:                     # 落点体检（守卫口径：on8 ≥ 85% / 弱格 ≤ 15%）
         for _k, _m in d['melody'].items():
             _o8, _wk, _ent = rhythm_cell_stats(_m)
@@ -1749,6 +2307,19 @@ def main():
         # **级进偏好留痕**：>0 才写，方便复盘"这条旋律是挑了级进高的那条"。
         # 默认 0 时不写字段 → 旧曲的 song.json 逐字节不变。
         **({'step_bias': step_bias} if step_bias else {}),
+        # **转音细胞留痕**（2026-10-06）：插了几处 / 净增几音 / 依据是什么，全部写进 song.json
+        # —— 让"这条旋律的转音是引擎**有意**写的"变成**可查事实**（`--no-ornaments` 时不写字段，
+        # 于是关掉它生成的 song.json 与旧版逐字节一致）。
+        **({'ornaments': {'cells': len(orn_rep['inserted']), 'added': orn_rep['added'],
+                          'tendency': orn_rep['tendency'], 'target': orn_rep['target'],
+                          'dens': [orn_rep['dens_before'], orn_rep['dens_after']],
+                          # **逐处位置**（键/小节/拍/音数/音高序列/落在哪些段）：验收要按窗剪片段、
+                          # 将来若要"把转音从碎音统计里排除"也只有这里能查得到 —— 别只留一个总数。
+                          'at': [{'key': r['key'], 'bar': r['bar'], 'beat': r['beat'],
+                                  'n': r['n'], 'seq': r['seq'], 'sections': r['sections']}
+                                 for r in orn_rep['inserted']],
+                          'basis': orn_rep['basis']}}
+           if orn_rep and orn_rep['inserted'] else {}),
     }
     # **`--dry-run`**（2026-09-20 加，实测事故后）：这个脚本是**写盘**工具 ——
     # 它的 `json_io.save` 会把 `song.json` 的 `melody` **整段换掉**（手写的引子/尾声、

@@ -657,6 +657,21 @@ def seed_from_name(name):
     return 1 + h % 99991
 
 
+# **引子切入手法表**（2026-10-05）：与 `seed_from_name` 同源 —— 曲名派生、确定性、
+# 同名必同手法。顺序固定，加新手法只许往后追加（否则同名曲目的手法会漂）。
+INTRO_STYLES = ('default', 'pickup', 'solo_first', 'silence', 'drums_first')
+
+
+def intro_style_for(name, key=None):
+    """曲名 → 引子切入手法（见 `song_engine.shape_intro`）。
+
+    `key`（可选，如主题名）参与哈希：同一曲名换主题也会换手法。
+    """
+    import zlib
+    h = zlib.crc32(('%s|%s' % (name, key or '')).encode('utf-8')) & 0xFFFFFFFF
+    return INTRO_STYLES[h % len(INTRO_STYLES)]
+
+
 def _bpm_from_pack(pack, seed):
     """按主题模板包的**真实 BPM 范围**取一个值（不再固定用中位数）。→ (bpm, 来源说明)
 
@@ -846,6 +861,16 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     for _s in secs:
         if song_engine.role_of_section(_s['name']) == 'intro' and _s['bars'] >= 4:
             _s['arr']['perc_in'] = 2
+    # **引子切入手法**（2026-10-05，用户："为什么每首歌开头的切入方式都是一样的"）：
+    # 实测 16 首直接作曲的**第一个音全在 0.00 秒**、前 2 秒起音重合度中位 **15%**
+    # （真实模板 **0%**）。四处同源：主题包首段固定 Intro 4 小节 · `ARR_PACKS[0]` 固定
+    # 编配 · `perc_in=2` 固定鼓渐入 · 引擎**没有弱起/留白机制**。
+    # 这里按**曲名派生**（同 `seed_from_name` 的做法：确定性、不一刀切、也不随机）给
+    # 引子选一种切入手法；引擎侧见 `song_engine.shape_intro`（缺这个键 = 老行为逐字节不变）。
+    if secs and song_engine.role_of_section(secs[0]['name']) == 'intro':
+        _st = intro_style_for(short)
+        secs[0]['arr']['intro_style'] = _st
+        print('  引子切入手法：%s（按曲名派生）' % _st)
     # **音色平衡补偿**：音色按模板真值取用后，轨间高频平衡必须跟着调（见 `hf_balance`）。
     # 放在 `d` 组装前、`energy_mix` 之后 —— 段间曲线先写，补偿再叠加，互不覆盖。
     _hb = apply_hf_balance(secs, theme_programs(pack, seed=seed), pack.get('engine_style'))

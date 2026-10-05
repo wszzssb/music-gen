@@ -1,0 +1,516 @@
+{
+ "_meta": {
+  "basis": "模板库直接量（refs/midi2）—— **不是**派生量",
+  "grids": {
+   "mid": {
+    "dur_sec": [
+     0.0,
+     1.2
+    ],
+    "label": "中 ≤2半音·3~5音·≤1.2s",
+    "max_step": 2,
+    "notes": [
+     3,
+     5
+    ]
+   },
+   "strict": {
+    "dur_sec": [
+     0.3,
+     0.8
+    ],
+    "label": "严 ≤2半音·3~5音·0.3~0.8s",
+    "max_step": 2,
+    "notes": [
+     3,
+     5
+    ]
+   },
+   "wide": {
+    "dur_sec": [
+     0.3,
+     0.8
+    ],
+    "label": "宽 ≤5半音·3~5音·0.3~0.8s",
+    "max_step": 5,
+    "notes": [
+     3,
+     5
+    ]
+   }
+  },
+  "main_grid": "strict",
+  "melody_extract": "theme_pack._melody_notes（与主题包同一口径）",
+  "note": "生成侧（melody_gen）优先读本文件；读不到才退回画像派生量 B1",
+  "run_def": "同向 · 相邻步长 ≤max_step 半音 · 3~5 音 · 总时长在 [lo,hi] 秒 · 不重叠",
+  "script": "scripts/ornament_density.py",
+  "spearman_b1_vs_strict": 0.125
+ },
+ "themes": {
+  "battle": {
+   "b1_tend": 0.5359,
+   "grids": {
+    "mid": {
+     "dur_med": 1.114,
+     "n_med": 3,
+     "runs": 6,
+     "runs_per_bar": 0.1752,
+     "share": 0.1053,
+     "up": 0.0
+    },
+    "strict": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    },
+    "wide": {
+     "dur_med": 0.424,
+     "n_med": 3,
+     "runs": 2,
+     "runs_per_bar": 0.0274,
+     "share": 0.0211,
+     "up": 1.0
+    }
+   },
+   "templates_failed": 1,
+   "templates_ok": 15
+  },
+  "cheerful": {
+   "b1_tend": 0.4737,
+   "grids": {
+    "mid": {
+     "dur_med": 1.114,
+     "n_med": 3,
+     "runs": 6,
+     "runs_per_bar": 0.1752,
+     "share": 0.1053,
+     "up": 0.0
+    },
+    "strict": {
+     "dur_med": 0.682,
+     "n_med": 3,
+     "runs": 2,
+     "runs_per_bar": 0.018,
+     "share": 0.0214,
+     "up": 0.0
+    },
+    "wide": {
+     "dur_med": 0.577,
+     "n_med": 3,
+     "runs": 10,
+     "runs_per_bar": 0.0518,
+     "share": 0.0417,
+     "up": 0.9
+    }
+   },
+   "templates_failed": 2,
+   "templates_ok": 14
+  },
+  "classic": {
+   "b1_tend": 0.407,
+   "grids": {
+    "mid": {
+     "dur_med": 0.75,
+     "n_med": 3,
+     "runs": 3,
+     "runs_per_bar": 0.075,
+     "share": 0.0588,
+     "up": 0.67
+    },
+    "strict": {
+     "dur_med": 0.75,
+     "n_med": 3,
+     "runs": 2,
+     "runs_per_bar": 0.05,
+     "share": 0.0392,
+     "up": 0.5
+    },
+    "wide": {
+     "dur_med": 0.75,
+     "n_med": 3,
+     "runs": 2,
+     "runs_per_bar": 0.05,
+     "share": 0.0392,
+     "up": 0.5
+    }
+   },
+   "templates_failed": 7,
+   "templates_ok": 9
+  },
+  "daily": {
+   "b1_tend": 0.4809,
+   "grids": {
+    "mid": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    },
+    "strict": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    },
+    "wide": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    }
+   },
+   "templates_failed": 7,
+   "templates_ok": 9
+  },
+  "folk_tale": {
+   "b1_tend": 0.4991,
+   "grids": {
+    "mid": {
+     "dur_med": 1.011,
+     "n_med": 3,
+     "runs": 1,
+     "runs_per_bar": 0.0209,
+     "share": 0.033,
+     "up": 0.0
+    },
+    "strict": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    },
+    "wide": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    }
+   },
+   "templates_failed": 8,
+   "templates_ok": 8
+  },
+  "gorgeous": {
+   "b1_tend": 0.4945,
+   "grids": {
+    "mid": {
+     "dur_med": 0.682,
+     "n_med": 4,
+     "runs": 26,
+     "runs_per_bar": 0.1513,
+     "share": 0.2033,
+     "up": 0.62
+    },
+    "strict": {
+     "dur_med": 0.682,
+     "n_med": 4,
+     "runs": 22,
+     "runs_per_bar": 0.128,
+     "share": 0.1516,
+     "up": 0.73
+    },
+    "wide": {
+     "dur_med": 0.682,
+     "n_med": 4,
+     "runs": 24,
+     "runs_per_bar": 0.1396,
+     "share": 0.1627,
+     "up": 0.67
+    }
+   },
+   "templates_failed": 3,
+   "templates_ok": 11
+  },
+  "lounge": {
+   "b1_tend": 0.4994,
+   "grids": {
+    "mid": {
+     "dur_med": 1.018,
+     "n_med": 3,
+     "runs": 18,
+     "runs_per_bar": 0.163,
+     "share": 0.1301,
+     "up": 0.67
+    },
+    "strict": {
+     "dur_med": 0.682,
+     "n_med": 3,
+     "runs": 2,
+     "runs_per_bar": 0.018,
+     "share": 0.0214,
+     "up": 0.0
+    },
+    "wide": {
+     "dur_med": 0.705,
+     "n_med": 3,
+     "runs": 1,
+     "runs_per_bar": 0.0359,
+     "share": 0.0353,
+     "up": 0.0
+    }
+   },
+   "templates_failed": 6,
+   "templates_ok": 10
+  },
+  "mystery": {
+   "b1_tend": 0.4196,
+   "grids": {
+    "mid": {
+     "dur_med": 1.077,
+     "n_med": 3,
+     "runs": 6,
+     "runs_per_bar": 0.0822,
+     "share": 0.0741,
+     "up": 0.83
+    },
+    "strict": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    },
+    "wide": {
+     "dur_med": 0.763,
+     "n_med": 3,
+     "runs": 2,
+     "runs_per_bar": 0.0181,
+     "share": 0.0469,
+     "up": 1.0
+    }
+   },
+   "templates_failed": 7,
+   "templates_ok": 9
+  },
+  "neon": {
+   "b1_tend": 0.5779,
+   "grids": {
+    "mid": {
+     "dur_med": 0.545,
+     "n_med": 3,
+     "runs": 8,
+     "runs_per_bar": 0.0889,
+     "share": 0.125,
+     "up": 0.25
+    },
+    "strict": {
+     "dur_med": 0.545,
+     "n_med": 3,
+     "runs": 8,
+     "runs_per_bar": 0.0889,
+     "share": 0.125,
+     "up": 0.25
+    },
+    "wide": {
+     "dur_med": 0.514,
+     "n_med": 3,
+     "runs": 6,
+     "runs_per_bar": 0.1091,
+     "share": 0.2368,
+     "up": 0.67
+    }
+   },
+   "templates_failed": 1,
+   "templates_ok": 15
+  },
+  "night": {
+   "b1_tend": 0.4398,
+   "grids": {
+    "mid": {
+     "dur_med": 0.808,
+     "n_med": 4,
+     "runs": 1,
+     "runs_per_bar": 0.0112,
+     "share": 0.0488,
+     "up": 0.0
+    },
+    "strict": {
+     "dur_med": 0.722,
+     "n_med": 3,
+     "runs": 2,
+     "runs_per_bar": 0.0181,
+     "share": 0.0145,
+     "up": 0.5
+    },
+    "wide": {
+     "dur_med": 0.705,
+     "n_med": 3,
+     "runs": 1,
+     "runs_per_bar": 0.0359,
+     "share": 0.0353,
+     "up": 0.0
+    }
+   },
+   "templates_failed": 5,
+   "templates_ok": 11
+  },
+  "retro": {
+   "b1_tend": 0.57,
+   "grids": {
+    "mid": {
+     "dur_med": 1.14,
+     "n_med": 3,
+     "runs": 22,
+     "runs_per_bar": 0.3493,
+     "share": 0.2429,
+     "up": 0.82
+    },
+    "strict": {
+     "dur_med": 0.545,
+     "n_med": 3,
+     "runs": 8,
+     "runs_per_bar": 0.0889,
+     "share": 0.125,
+     "up": 0.25
+    },
+    "wide": {
+     "dur_med": 0.514,
+     "n_med": 3,
+     "runs": 6,
+     "runs_per_bar": 0.1091,
+     "share": 0.2368,
+     "up": 0.67
+    }
+   },
+   "templates_failed": 0,
+   "templates_ok": 16
+  },
+  "seaside": {
+   "b1_tend": 0.4239,
+   "grids": {
+    "mid": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    },
+    "strict": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    },
+    "wide": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    }
+   },
+   "templates_failed": 7,
+   "templates_ok": 9
+  },
+  "sorrow": {
+   "b1_tend": 0.5238,
+   "grids": {
+    "mid": {
+     "dur_med": 1.071,
+     "n_med": 4,
+     "runs": 3,
+     "runs_per_bar": 0.0239,
+     "share": 0.1818,
+     "up": 1.0
+    },
+    "strict": {
+     "dur_med": 0.643,
+     "n_med": 3,
+     "runs": 3,
+     "runs_per_bar": 0.0239,
+     "share": 0.1364,
+     "up": 1.0
+    },
+    "wide": {
+     "dur_med": 0.643,
+     "n_med": 3,
+     "runs": 3,
+     "runs_per_bar": 0.0239,
+     "share": 0.1364,
+     "up": 1.0
+    }
+   },
+   "templates_failed": 6,
+   "templates_ok": 10
+  },
+  "tender": {
+   "b1_tend": 0.5286,
+   "grids": {
+    "mid": {
+     "dur_med": 1.011,
+     "n_med": 3,
+     "runs": 1,
+     "runs_per_bar": 0.0209,
+     "share": 0.033,
+     "up": 0.0
+    },
+    "strict": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    },
+    "wide": {
+     "dur_med": 0.0,
+     "n_med": 0,
+     "runs": 0,
+     "runs_per_bar": 0.0,
+     "share": 0.0,
+     "up": 0.0
+    }
+   },
+   "templates_failed": 5,
+   "templates_ok": 11
+  },
+  "waltz": {
+   "b1_tend": 0.44,
+   "grids": {
+    "mid": {
+     "dur_med": 1.194,
+     "n_med": 3,
+     "runs": 3,
+     "runs_per_bar": 0.0755,
+     "share": 0.1364,
+     "up": 0.0
+    },
+    "strict": {
+     "dur_med": 0.521,
+     "n_med": 3,
+     "runs": 1,
+     "runs_per_bar": 0.0252,
+     "share": 0.0455,
+     "up": 0.0
+    },
+    "wide": {
+     "dur_med": 0.521,
+     "n_med": 3,
+     "runs": 1,
+     "runs_per_bar": 0.0252,
+     "share": 0.0455,
+     "up": 0.0
+    }
+   },
+   "templates_failed": 3,
+   "templates_ok": 13
+  }
+ }
+}

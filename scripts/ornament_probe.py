@@ -19,6 +19,11 @@ r"""ornament_probe.py —— **转音/跑动体检**：原曲哪里有"短促的
    整窗能量份额在转音窗里**不高于**相邻窗）——⚠ 真弹八度会被误杀，所以报告里**两种读数都印**；
 3. **轨迹判据**：同一条轨迹在连续帧里按 **≤3 半音**移动、持续 **≥4 帧（≈90ms）且 ≤1.2s**、
    总跨度 **≥2 半音**、同向步数占比 ≥0.7 ⇒ 才算"转音候选"。
+4. **长轨迹内部滑子窗**（`--sweep`，2026-10-06 生成曲标定后加的）：轨迹是贪心最近邻接出来的，
+   在编配干净的生成曲上会一路接成 **13~27 秒** ⇒ 整条判会栽在"时长 > 1.2s"上**整条丢掉**。
+   这一档**判据一个字不改**，只在轨迹内部再滑 5~8 音的子段。
+   **实测（`109_sunlit_desk` 生成曲，11 个已知转音窗）：整曲召回 1/11 → 11/11**；
+   代价是基线全曲候选 4 → 12 处（185.8s），10 个已知"无转音"窗误报 0~1 个。
 
 ## 用法
 
@@ -57,6 +62,8 @@ PEAK_DB = -12.0          # 峰至少要比该帧最强峰高这么多才参与
 HARM_KEEP = 0.25         # f/2 或 f/3 处有 > 该峰 25% 能量 ⇒ 判疑似谐波
 # 口径敏感性用的"更宽档"（见 docstring：阈值在本库不当真，所以每次跑都报两档）
 WIDE = dict(MIN_NOTES=4, MIN_SPAN=2.0, MONO=0.70, PEAK_DB=-14.0)
+# **滑子窗档**（`--sweep`）：判据同严格档，只是轨迹内部再滑 5~8 音的子段（见 docstring 第 4 条）
+SUB_MAX = 8
 
 
 def _hz_to_semi(hz):
@@ -145,53 +152,93 @@ def trace(frames):
     return done
 
 
-def find_ornaments(y, sr=SR, min_notes=MIN_NOTES, max_sec=MAX_SEC):
-    """→ [dict(t0,t1,dur,frames,n,span,dir,notes:[音名],semi:[...])]
+def _cands_from_path(path, fps, min_notes, max_sec, subwin=False, max_sub=SUB_MAX):
+    """一条轨迹 → 候选（判据**只在这一处**，严格档与滑子窗档共用）。
 
     ⚠ **单调性/跨度要按"音高序列"算，不能按帧算**：一个音会占好几帧（0.12s 的音 ≈ 2–3 帧），
     按帧算的话步长里一半是 0 ⇒ 同向占比被稀释到 ~0.25，**真实转音会被判"不单调"整条否掉**
     （2026-10-05 自检当场抓到：峰与轨迹都对，候选却是 0）。
     所以先压掉连续重复帧得到 `seq`，再算步长/单调性；`n` 报**音数**、`frames` 报帧数。
+
+    `subwin=True` ⇒ **轨迹内部再滑 5~8 音的子段**（`--sweep` 档）：`trace` 是贪心最近邻，
+    在生成曲上会把不同乐句接成 13~27s 的长轨迹，整条判会因 `dur > max_sec` 整条丢掉
+    （2026-10-06 标定：11 个已知转音窗里 10 个栽在这一条，整曲召回只有 1/11）。
     """
     import librosa
+    seq = []
+    for f, s in path:
+        if not seq or abs(s - seq[-1][1]) > 0.5:
+            seq.append((f, s))
+    if len(seq) < min_notes:
+        return []
+    out = []
+    for i in (range(len(seq)) if subwin else (0,)):
+        # ⚠ `break` 只能在**同一个起点的 j 循环**里用（j 递增 ⇒ 子段只会更长，到此为止）。
+        #   第一版把窗口拍平成一张 (i,j) 表再 break，等于**第一个子段超长就整张表都不看了**
+        #   —— `--selftest` 的长轨迹夹具当场抓到（滑子窗档一个候选都没有）。
+        j_lo = (i + min_notes) if subwin else len(seq)
+        j_hi = min(len(seq), i + max_sub) if subwin else len(seq)
+        for j in range(j_lo, j_hi + 1):
+            sub = seq[i:j]
+            if subwin:
+                dur = (sub[-1][0] - sub[0][0] + 1) * fps      # 子段自己的帧跨度
+            else:
+                # ⚠ 严格档必须用**整条轨迹**的首末帧（不是 `seq` 的）：压掉连续重复帧会把
+                #   末尾"持续响着的那几帧"从 `seq` 里去掉，用 `seq` 算出的 dur 偏小 ⇒
+                #   本该因超长丢掉的长轨迹会被放过（2026-10-06 实测：基线凭空多 1 处候选，
+                #   与旧版读数对不上 —— 这类"默认行为被悄悄改了"必须当场查，不许当噪声）。
+                dur = (path[-1][0] - path[0][0] + 1) * fps
+            if dur > max_sec:
+                break          # j 递增 ⇒ 子段只会更长，本起点到此为止
+            semi = [x[1] for x in sub]
+            span = max(semi) - min(semi)
+            if span < MIN_SPAN:
+                continue
+            steps = np.diff(semi)
+            if len(steps) == 0:
+                continue
+            # ⚠ **步长门只用来排除"八度误判"，不用来定义"级进"**：真实转音常是"音阶 + 琶音跳"
+            #   混着走 —— 原曲 19.0–19.6s 那处 `A♯5→A5→F5→C5→A♯4→A4→F4` 的步长是
+            #   `1,4,5,2,1,4`（**三步超过 3 半音**）。曾经写"相邻 ≤3 半音"与"最多一步大跳"，
+            #   两次都把这处真实转音整条否掉（自检当场抓到）。现在的门：**最大步 ≤7 半音**
+            #   （>7 基本是八度/五度错判）且 **平均步长 ≤5 半音**；"是不是转音"主要由
+            #   时长短、音数多、**同向单调**、跨度够这四条决定。
+            if float(np.abs(steps).max()) > 7.0 or float(np.abs(steps).mean()) > 5.0:
+                continue
+            up = float((steps > 0).mean())
+            dn = float((steps < 0).mean())
+            if max(up, dn) < MONO:
+                continue
+            hzs = [441.0 * 2 ** ((s - 69.0) / 12.0) for s in semi]
+            out.append(dict(t0=round(sub[0][0] * fps, 3), t1=round(sub[-1][0] * fps, 3),
+                            dur=round(dur, 3),
+                            # 严格档保持原读数（frames=整条帧数、n=压重后音数）；滑子窗档只能
+                            # 报子段自己的跨度 —— 否则读数与它实际判的那一段对不上。
+                            frames=(j - i if subwin else len(path)),
+                            n=(j - i if subwin else len(seq)),
+                            span=round(float(span), 2),
+                            dir=("下行" if dn >= up else "上行"),
+                            semi=[round(float(s), 1) for s in semi],
+                            notes=[str(librosa.hz_to_note(float(h))) for h in hzs]))
+    return out
+
+
+def find_ornaments(y, sr=SR, min_notes=None, max_sec=None, subwin=False):
+    """→ [dict(t0,t1,dur,frames,n,span,dir,notes:[音名],semi:[...])]
+
+    `min_notes` / `max_sec` 给 None ⇒ 取**全局** `MIN_NOTES` / `MAX_SEC`。
+    ⚠ 原来写成默认参数（`min_notes=MIN_NOTES`）—— 默认参数在 **def 时**求值，于是
+    `main` 里改全局的做法（`--min-notes` / `--max-sec` / WIDE 档的 `MIN_NOTES`）
+    **一直没生效**（2026-10-06 标定当场发现：严格档与 WIDE 档读数一字不差）。
+    """
+    if min_notes is None:
+        min_notes = MIN_NOTES
+    if max_sec is None:
+        max_sec = MAX_SEC
     _fr, frames, fps = peaks_by_frame(y, sr)
     out = []
     for tr in trace(frames):
-        path = tr["path"]
-        dur = (path[-1][0] - path[0][0] + 1) * fps
-        if dur > max_sec:
-            continue
-        seq = []
-        for _f, s in path:
-            if not seq or abs(s - seq[-1]) > 0.5:
-                seq.append(s)
-        if len(seq) < min_notes:
-            continue
-        span = max(seq) - min(seq)
-        if span < MIN_SPAN:
-            continue
-        steps = np.diff(seq)
-        if len(steps) == 0:
-            continue
-        # ⚠ **步长门只用来排除"八度误判"，不用来定义"级进"**：真实转音常是"音阶 + 琶音跳"
-        #   混着走 —— 原曲 19.0–19.6s 那处 `A♯5→A5→F5→C5→A♯4→A4→F4` 的步长是
-        #   `1,4,5,2,1,4`（**三步超过 3 半音**）。曾经写"相邻 ≤3 半音"与"最多一步大跳"，
-        #   两次都把这处真实转音整条否掉（自检当场抓到）。现在的门：**最大步 ≤7 半音**
-        #   （>7 基本是八度/五度错判）且 **平均步长 ≤5 半音**；"是不是转音"主要由
-        #   时长短、音数多、**同向单调**、跨度够这四条决定。
-        if float(np.abs(steps).max()) > 7.0 or float(np.abs(steps).mean()) > 5.0:
-            continue
-        up = float((steps > 0).mean())
-        dn = float((steps < 0).mean())
-        if max(up, dn) < MONO:
-            continue
-        hzs = [441.0 * 2 ** ((s - 69.0) / 12.0) for s in seq]
-        out.append(dict(t0=round(path[0][0] * fps, 3), t1=round(path[-1][0] * fps, 3),
-                        dur=round(dur, 3), frames=len(path), n=len(seq),
-                        span=round(float(span), 2),
-                        dir=("下行" if dn >= up else "上行"),
-                        semi=[round(float(s), 1) for s in seq],
-                        notes=[str(librosa.hz_to_note(float(h))) for h in hzs]))
+        out += _cands_from_path(tr["path"], fps, min_notes, max_sec, subwin)
     out.sort(key=lambda r: r["t0"])
     # 合并重叠/相邻（同一处的多次跟踪）
     merged = []
@@ -258,9 +305,9 @@ def selftest():
     """坏件必须响、好件必须不响：① 4 音快速级进下行 ② 长音 ③ 谐波陷阱（低音+它的 2/3 次谐波）"""
     ok = True
 
-    def rep(label, y, want):
+    def rep(label, y, want, subwin=False):
         nonlocal ok
-        r = find_ornaments(y)
+        r = find_ornaments(y, subwin=subwin)
         got = len(r) >= 1
         flag = "PASS" if got == want else "FAIL"
         ok = ok and got == want
@@ -268,7 +315,8 @@ def selftest():
         print("  [%s] %-26s 期望%-4s 实得%-4s 候选 %d 个 %s"
               % (flag, label, "有转音" if want else "无", "有转音" if got else "无", len(r), ex))
 
-    t = np.arange(int(SR * 1.6)) / SR
+    # 2.6s 基准：夹具 ④（持续音 + 级进）要比 1.2s 的时长门长出可见的一截
+    t = np.arange(int(SR * 2.6)) / SR
 
     def tone(f0, a, b, amp=0.4):
         i, j = int(a * SR), int(b * SR)
@@ -291,6 +339,16 @@ def selftest():
     y3 = tone(220.0, 0.2, 1.3) + tone(440.0, 0.2, 1.3, 0.25) + tone(660.0, 0.2, 1.3, 0.15)
     rep("低音+其 2/3 次谐波", y3, False)
 
+    # ④ **长轨迹陷阱**（2026-10-06 生成曲标定后加的）：持续音 + 紧接的 5 音级进 ——
+    #    贪心最近邻会把两段接成**一条 1.9s 的轨迹**，严格档按「时长 > 1.2s」整条丢掉
+    #    （生成曲实测：11 个已知转音窗里 10 个栽在这一条，整曲召回只有 1/11）。
+    #    两条断言都要：严格档**必须漏**（把机制钉住）· 滑子窗档**必须捞回**（把修法钉住）。
+    y4 = tone(523.25, 0.2, 1.5)                       # C5 持续 1.3s（= 长过 1.2s 的那截）
+    for k, midi in enumerate((74, 76, 77, 79, 81)):   # D5 E5 F5 G5 A5，每音 0.12s，紧接其后
+        y4 += tone(440.0 * 2 ** ((midi - 69) / 12.0), 1.5 + 0.12 * k, 1.5 + 0.12 * (k + 1) + 0.03)
+    rep("持续音后接 5 音级进（严格档）", y4, False)
+    rep("  ↑ 同上，滑子窗档", y4, True, subwin=True)
+
     print("  selftest %s" % ("全部通过" if ok else "有失败"))
     return ok
 
@@ -306,6 +364,11 @@ def main():
                          "不依赖全曲轨迹跟踪（那一步在密集混音里参数敏感，见下）")
     ap.add_argument("--max-sec", type=float, default=MAX_SEC)
     ap.add_argument("--min-notes", type=int, default=MIN_NOTES, help="至少几个音（默认 %d）" % MIN_NOTES)
+    ap.add_argument("--sweep", action="store_true",
+                    help="**滑子窗档**：判据不变，但在每条轨迹内部再滑 5~%d 音的子段。"
+                         "生成曲（编配干净）上整曲召回 1/11 → 11/11 —— 轨迹会被贪心最近邻"
+                         "接成十几秒的长轨迹，整条判会因「时长 > 1.2s」整条丢掉（见 docstring 第 4 条）"
+                         % SUB_MAX)
     ap.add_argument("--json", default=None)
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
@@ -373,7 +436,7 @@ def main():
             print("  → %s" % a.json)
         return 0
 
-    cands = find_ornaments(y)
+    cands = find_ornaments(y, subwin=a.sweep)
     # **口径敏感性**（每次都报）：换一档更宽的参数再数一遍 —— 本库的阈值型判据
     # 基本不当真（`SKILL` §16），同素材换参数候选数能差 3 倍（BGM35 实测 52~155 处），
     # 所以这张清单**只当线索**，唯一能当结论的是"我们写了没有"这个对照。
@@ -382,14 +445,18 @@ def main():
                                           WIDE["MONO"], WIDE["PEAK_DB"])
     n_wide = len(find_ornaments(y))
     MIN_NOTES, MIN_SPAN, MONO, PEAK_DB = _save
+    # 第三档：**滑子窗**（判据同严格档，只是轨迹内部再滑）—— 生成曲上可用的是这一档
+    n_sweep = len(find_ornaments(y, subwin=True))
     print("=" * 78)
     print("转音体检 · %s（%.1f 秒）· 音高带 %d–%dHz" %
           (os.path.basename(a.audio), len(y) / float(SR), BAND[0], BAND[1]))
-    print("候选 %d 处（判据：≥%d 音 / ≤%.1fs / 跨度 ≥%.0f 半音 / 最大步 ≤7 / 平均步 ≤5 / 同向 ≥%.0f%%）"
-          % (len(cands), MIN_NOTES, MAX_SEC, MIN_SPAN, 100 * MONO))
-    print("⚠ 口径敏感性：更宽档（%d 音 / %.0f 半音 / 同向 %.0f%%）会给 **%d 处** ⇒ "
+    print("候选 %d 处（判据：≥%d 音 / ≤%.1fs / 跨度 ≥%.0f 半音 / 最大步 ≤7 / 平均步 ≤5 / 同向 ≥%.0f%%）%s"
+          % (len(cands), MIN_NOTES, MAX_SEC, MIN_SPAN, 100 * MONO,
+             "　← **滑子窗档**" if a.sweep else ""))
+    print("⚠ 口径敏感性：更宽档（%d 音 / %.0f 半音 / 同向 %.0f%%）**%d 处** · "
+          "**滑子窗档**（判据同严格档 + 轨迹内滑 5~%d 音子段）**%d 处** ⇒ "
           "这张清单只当**线索**，不是门。" % (WIDE["MIN_NOTES"], WIDE["MIN_SPAN"],
-                                             100 * WIDE["MONO"], n_wide))
+                                             100 * WIDE["MONO"], n_wide, SUB_MAX, n_sweep))
     print("-" * 78)
     hit = miss = 0
     for c in cands:

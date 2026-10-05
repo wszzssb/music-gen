@@ -2930,6 +2930,57 @@ def main():
     results.append(case('转音体检：轨迹配对门退回 1.5（大步就断）', 'ornament_probe',
                         _ornament_trace_tight))
 
+    # c) **滑子窗失效**（2026-10-06 生成曲标定）：`trace` 是贪心最近邻，会把不同乐句接成
+    #    十几秒的长轨迹，整条判就栽在「时长 > 1.2s」上 —— 生成曲实测 11 个已知转音窗
+    #    **只报出 1 个**（召回 9%）。注入 = 让 `_cands_from_path` **无视 subwin 参数**
+    #    （等价于退回加档之前的行为）⇒ `ornament_probe --selftest` 的长轨迹夹具
+    #    （严格档必须漏 / 滑子窗档必须捞回）必须红。
+    def _ornament_subwin_off():
+        import ornament_probe as _op
+        orig = _op._cands_from_path
+
+        def no_subwin(path, fps, min_notes, max_sec, subwin=False, max_sub=None):
+            return orig(path, fps, min_notes, max_sec, False,
+                        _op.SUB_MAX if max_sub is None else max_sub)
+        assert orig is not no_subwin
+        return Mut(_op, '_cands_from_path', no_subwin)
+    results.append(case('转音体检：滑子窗失效（长轨迹整条丢）', 'ornament_probe',
+                        _ornament_subwin_off))
+
+    # d) **转音细胞退化**（2026-10-06，`melody_gen.apply_ornaments`）两组：
+    #    ① 忽略**和弦音约束** —— "和谐优先"是用户第一条口径，不和谐也插必须红；
+    #    ② **只插不删**（置换失效）—— 碎音占比会被顶上去，`melody_health` 的门当场破。
+    def _orn_cells_ignore_chord():
+        import melody_gen as _m
+        orig = _m._orn_seq
+
+        def loose(pitch, n, pts, direction, chord_pcs):
+            return orig(pitch, n, pts, direction, ())      # 传空表 = 跳过和弦门
+        assert orig is not loose
+        return Mut(_m, '_orn_seq', loose)
+    results.append(case('转音细胞：忽略和弦音约束（不和谐也插）', 'ornament_cells',
+                        _orn_cells_ignore_chord))
+
+    def _orn_cells_no_swap():
+        import melody_gen as _m
+        return Mut(_m, '_orn_kill', lambda notes, pool, i, beat, need: [])
+    results.append(case('转音细胞：只插不删（置换失效）', 'ornament_cells',
+                        _orn_cells_no_swap))
+
+    # e) **转音密度尺子**（2026-10-06，`scripts/ornament_density.py`）两个方向：
+    #    恒 0（"模板里没有"变成万金油借口）· 恒真（大跳也算转音，判据退化）。
+    def _orn_density_always_empty():
+        import ornament_density as _od
+        return Mut(_od, 'find_runs', lambda *a, **k: [])
+    results.append(case('转音密度：尺子恒 0（什么都量不到）', 'ornament_density',
+                        _orn_density_always_empty))
+
+    def _orn_density_always_hit():
+        import ornament_density as _od
+        return Mut(_od, 'find_runs', lambda *a, **k: [(3, [60, 62, 64], 0.5)])
+    results.append(case('转音密度：尺子恒真（大跳也算转音）', 'ornament_density',
+                        _orn_density_always_hit))
+
     # 73. **还原曲的 `render.json` 里 `composer: null` 不许把判据崩掉**（2026-10-01 实测）。
     #     `make_song` 对"只有 song.json"的曲目写的就是 `composer: null`（还原曲全是这种），
     #     而 `chord_names_match_notes` 原来的 `c.get('composer', '')` 在"键存在但值为 null"

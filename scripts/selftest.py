@@ -210,12 +210,28 @@ def t_vendor():
 # ---------------------------------------------------------------- 2. 数据
 @check
 def t_refs_schema():
-    """refs/*.json 字段齐全"""
+    """refs/*.json 字段齐全（**参考曲画像**的结构）"""
     need = ('name', 'bpm', 'bar', 'rms_db', 'width', 'centroid', 'bands',
             'rhythm_low', 'rhythm_high', 'quiet_chroma')
     refs = glob.glob(os.path.join(ROOT, 'refs', '*.json'))
     assert refs, '一个参考曲画像都没有'
     for p in refs:
+        # 2026-10-06：`refs/` 根下除了**单曲画像**，还有**主题级派生数据表**（现在只有
+        #   `ornament_density.json`，由 `scripts/ornament_density.py` 生成）。它们的来源
+        #   是 `refs/midi2/` 的模板库、结构完全不同（`_meta` + `themes`），按画像 schema 校验
+        #   必然 FAIL —— 实测 205/208，红的那条就是它。
+        #   ⚠ **豁免按文件名前缀**，不按路径也不按内容：
+        #     · 不按"搬进子目录" —— 生成端 `melody_gen.ornament_density_of` 与工具自己的
+        #       产物路径都指着 `refs/ornament_density.json`，搬家要动生成端（改动面大）；
+        #     · 不按内容标记（如 `_meta`）—— 那种豁免会被**内容**左右：一条真画像只要带个
+        #       `_meta` 键就整条逃过校验，等于把这条检查变成可绕过的。
+        #   新加派生表**按这个前缀命名**（`ornament_*` 这类主题级统计），自动不被画像 schema 管。
+        #   它自己的结构由**专属守卫**兜底（见 `t_ornament_density`：表自洽 + 尺子两向自检 +
+        #   生成侧取得到）。
+        #   ⚠ 变异用例（`mutation_check` 的"参考画像缺字段"注入的是 `refs/broken.json`，
+        #   不匹配本前缀）**照旧必须被抓** —— 放宽的是"哪些文件算画像"，不是"画像可以缺字段"。
+        if os.path.basename(p).startswith('ornament_'):
+            continue
         d = json.load(open(p, encoding='utf-8'))
         miss = [k for k in need if k not in d]
         assert not miss, '%s 缺字段 %s' % (os.path.basename(p), miss)
@@ -1153,7 +1169,7 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
              os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
-             os.path.join(ROOT, 'docs', 'HANDOFF-FAILS7.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF-GEN-PLACEMENT.md'),
              os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'),
              os.path.join(ROOT, 'studio', 'README.md'),
              os.path.join(os.path.expanduser('~'), '.dsh', 'skills',
@@ -1185,6 +1201,7 @@ def t_docs_paths():
               os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
               os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
               os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
+              os.path.join(ROOT, 'docs', 'HANDOFF-GEN-PLACEMENT.md'),
               os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'), files[-1]]
     dead = []
     for p in dokeys:
@@ -9776,8 +9793,12 @@ def t_ornament_probe():
     assert 0.5 <= OP.MONO < 1.0, 'MONO=%.2f 不在合理区间（=1.0 会要求严格音阶）' % OP.MONO
     assert OP.WIDE['MIN_NOTES'] < OP.MIN_NOTES and OP.WIDE['MONO'] < OP.MONO, \
         'WIDE 档必须**真的更宽**（否则"口径敏感性"那一行是装饰品）：%r' % (OP.WIDE,)
+    assert OP.SUB_MAX >= OP.MIN_NOTES, \
+        'SUB_MAX=%d 比 MIN_NOTES=%d 还小 ⇒ 滑子窗档取不出任何窗口' % (OP.SUB_MAX, OP.MIN_NOTES)
+    assert OP.find_ornaments(OP.np.zeros(OP.SR), subwin=True) == [], \
+        '滑子窗档在静音上必须给 0 个候选（防止它退化成恒真）'
     assert OP.selftest() is True, \
-        '转音体检的合成自检 FAIL（坏件没响 或 长音/谐波陷阱被误报）'
+        '转音体检的合成自检 FAIL（坏件没响 或 长音/谐波陷阱/长轨迹夹具被误报漏报）'
     # 谐波筛的行为：低音 + 它的 2/3 次谐波 ⇒ 谐波必须**被标出来**（不是"都算独立基音"）
     import numpy as np
     t = np.arange(int(OP.SR * 1.0)) / OP.SR
@@ -9787,6 +9808,146 @@ def t_ornament_probe():
     flagged = sum(1 for f in frames for p in f if p[3])
     assert flagged > 0, '谐波筛恒假：低音+2/3 次谐波的合成件里一个谐波峰都没标出来'
     return '转音体检契约：判据形状 + 宽档真的更宽 + 尺子自检（含谐波陷阱）+ 谐波筛不恒假'
+
+
+@check
+def t_ornament_cells():
+    """**转音细胞**（`melody_gen.apply_ornaments`，2026-10-06）的契约与依据。
+
+    用户口径（2026-10-05）："推广一下让直接写音乐也能尝试写出来**不同的**转音"。
+    这条守四件事：
+      ① **形态**（`HANDOFF-ORNAMENT` §4-1）：3~5 音 · 总时长 0.3~0.8s · 同向级进（一步 ≤5 半音）·
+         只取音阶音、且至少含一个和弦音（"和谐优先"是用户第一条口径）；
+      ② **依据是真的**：`ornament_tendency` 必须随"短时值 / 级进 / 弱格"三个来源**单调** ——
+         否则那个 0.481 只是装饰品（同 `stepwise_pct` 的纪律：只当相对排序，别当门槛）；
+      ③ **不动骨架**：只拆一个长音（起点、总时值、末落点都不变），句末末音一个字不动；
+      ④ **不动别的维度**：插几个 0.25 拍的音就**置换掉几个**弱格装饰音 —— 净音数不增、
+         碎音数不增（`probe_melody_health` 的碎音门 **8%** 不能被它顶上去；空池就一个字不插）。
+    """
+    import random as _random
+    import melody_gen as M
+    assert tuple(M.ORN_NOTES) == (3, 4, 5), '§4-1 的音数被改了：%r' % (M.ORN_NOTES,)
+    assert tuple(M.ORN_DUR) == (0.30, 0.80), '§4-1 的时长区间被改了：%r' % (M.ORN_DUR,)
+    assert M.ORN_STEP == 0.25 and M.ORN_STEP_MAX == 5, '§4-1 的音距/步长被改了'
+    # ② 派生量必须真的随三个来源单调
+    _lo = M.ornament_tendency({'dur16_hist': {'2': 100}, 'onset16_hist': {'0': 100},
+                               'stepwise_pct': 0})['tend']
+    _hi = M.ornament_tendency({'dur16_hist': {'1': 100}, 'onset16_hist': {'1': 100},
+                               'stepwise_pct': 100})['tend']
+    assert 0.0 <= _lo < _hi <= 1.0, '转音倾向没随来源单调：lo=%.3f hi=%.3f' % (_lo, _hi)
+    # ③ `_orn_seq`：同向级进 · 只取音阶音 · 至少一个和弦音
+    pts = M._orn_pts(M.SCALE_MAJOR, 9)
+    seq = M._orn_seq(71, 4, pts, 1, [4, 7, 11])
+    assert seq and len(seq) == 4 and all(b > a for a, b in zip(seq, seq[1:])), \
+        '上行细胞没构出来：%r' % (seq,)
+    assert all(p in pts for p in seq), '细胞里混进了非音阶音：%r' % (seq,)
+    assert max(abs(b - a) for a, b in zip(seq, seq[1:])) <= M.ORN_STEP_MAX, '一步超过 5 半音'
+    assert M._orn_seq(71, 4, pts, 1, [3]) is None, \
+        '一个和弦音都没有的串必须被拒绝（"和谐优先"；3 = D♯，不在 A 大调里）'
+
+    def _chop(m):
+        return sum(1 for k in m for nt in m[k] if round(nt[2] * 4) <= 1)
+
+    def _cnt(m):
+        return sum(len(v) for v in m.values())
+
+    def _run(mel):
+        return M.apply_ornaments(
+            mel, [dict(name='A', bars=2, chords=['Amaj7', 'Amaj7'], melody='m', mode='major')],
+            {'Amaj7': [33, [57, 61, 64, 68]]},
+            {'dur16_hist': {'1': 100}, 'onset16_hist': {'1': 100}, 'stepwise_pct': 80},
+            9, lambda s: M.SCALE_MAJOR, _random.Random(1), bpm=136, verbose=False)
+
+    # ④ 端到端：有装饰池 ⇒ 必须插，且四条不变量都守住
+    mel = {'m': [[0, 0.0, 1.5, 71], [0, 2.0, 0.25, 73], [0, 2.5, 0.25, 74], [0, 3.0, 0.25, 76],
+                 [1, 0.0, 0.25, 74], [1, 0.5, 0.25, 72], [1, 1.0, 0.25, 71], [1, 2.0, 1.5, 69]]}
+    n0, c0, last0 = _cnt(mel), _chop(mel), list(mel['m'][-1])
+    rep = _run(mel)
+    assert rep['inserted'], '有装饰池却没插任何转音（判据退化成空转）'
+    n1, c1 = _cnt(mel), _chop(mel)
+    for r in rep['inserted']:
+        assert 3 <= r['n'] <= 5, '音数越出 §4-1：%d' % r['n']
+        assert M.ORN_DUR[0] - 1e-6 <= r['total_sec'] <= M.ORN_DUR[1] + 1e-6, \
+            '总时长 %.2fs 越出 §4-1 的 0.30~0.80s' % r['total_sec']
+        assert all(p in pts for p in r['seq']), '细胞用了非音阶音：%r' % (r['seq'],)
+        assert any(p % 12 in (9, 1, 4, 8) for p in r['seq']), \
+            '细胞里一个 Amaj7 的和弦音（A/C♯/E/G♯）都没有'
+        assert r['seq'] == sorted(r['seq']) or r['seq'] == sorted(r['seq'], reverse=True), \
+            '细胞不是同向的：%r' % (r['seq'],)
+    assert c1 == c0, '碎音数被顶上去了（%d→%d）——置换没生效，`melody_health` 会被顶破' % (c0, c1)
+    assert n1 == n0, '净音数不守恒（%d→%d）——密度会被顶上去' % (n0, n1)
+    assert list(mel['m'][-1]) == last0, '句末末音被动过了（收束是守卫硬门）'
+    # ⑤ 空池 ⇒ 一个字都不许动（不许"没地方置换还硬插"）
+    mel2 = {'m': [[0, 0.0, 1.5, 71], [0, 2.0, 1.0, 73], [1, 0.0, 1.5, 69], [1, 2.0, 1.5, 71]]}
+    snap = [list(x) for x in mel2['m']]
+    rep2 = _run(mel2)
+    assert not rep2['inserted'] and [list(x) for x in mel2['m']] == snap, \
+        '没有可置换的装饰音时不许插（会破碎音门）'
+    # ⑥ 引子（带 `arr.intro_style`）的**前 2 小节**不许插 —— `song_engine.shape_intro` 会
+    #    把它们改写（`drums_first` 连 Melody 一起削），实测 103 那处"写了但一个字没响"。
+    mel3 = {'m': [[0, 0.0, 1.5, 71], [0, 2.0, 0.25, 73], [0, 2.5, 0.25, 74], [0, 3.0, 0.25, 76],
+                  [1, 0.0, 0.25, 74], [1, 0.5, 0.25, 72], [1, 1.0, 0.25, 71]]}
+    snap3 = [list(x) for x in mel3['m']]
+    rep3 = M.apply_ornaments(
+        mel3, [dict(name='Intro', bars=2, chords=['Amaj7', 'Amaj7'], melody='m', mode='major',
+                    arr={'intro_style': 'drums_first'})],
+        {'Amaj7': [33, [57, 61, 64, 68]]},
+        {'dur16_hist': {'1': 100}, 'onset16_hist': {'1': 100}, 'stepwise_pct': 80},
+        9, lambda s: M.SCALE_MAJOR, _random.Random(1), bpm=136, verbose=False)
+    assert not rep3['inserted'] and [list(x) for x in mel3['m']] == snap3, \
+        '引子（带 intro_style）的前 2 小节不许插 —— 会被 `shape_intro` 削掉'
+    return ('转音细胞契约：3~5 音 / 0.3~0.8s / 同向级进 / 和弦音 · 派生量单调 · 不动骨架 · '
+            '净音数与碎音数都不增 · 空池不插')
+
+
+@check
+def t_ornament_density():
+    """**转音密度的"直接量"**（`scripts/ornament_density.py` → `refs/ornament_density.json`）。
+
+    为什么有这条（2026-10-06）：生成侧的"写几处转音"原先只看画像**派生量**，而交接文档写着
+    "派生量与模板真实转音密度**差多少没人量过**"。量完之后：**15 个主题上 Spearman 只有 0.12**
+    ⇒ 派生量不能当密度用，生成侧改成读这份直接量。这条守三件事：
+      ① **表自洽**：15 个主题 · 三档 grid · 每主题 `templates_ok` 与主题包 `melody.templates`
+         **逐主题一致** —— 这一致性正是"口径对接"的证据（两边用同一个 `_melody_notes` 筛选）；
+      ② **尺子既不恒 0 也不恒真**：合成件上"3 音上行级进"必须命中、大跳必须不命中；
+         表里严档的 `share` 必须**既有 0 也有 >0**（恒 0 = 尺子坏，恒满 = 判据退化）；
+      ③ **生成侧那条路真的通**（`melody_gen.ornament_density_of('sorrow')` 取得到且有值）。
+    """
+    import melody_gen as M
+    import ornament_density as OD
+    # ② 尺子自检（先做，因为它不依赖表）
+    good = [(0.0, 0.5, 60), (0.5, 1.0, 62), (1.0, 1.5, 64)]
+    assert OD.find_runs(good, 120.0), '"3 音上行级进"必须命中（恒 0 = 尺子坏了，不是"模板里没有"）'
+    bad = [(0.0, 0.5, 60), (0.5, 1.0, 67), (1.0, 1.5, 74)]
+    assert not OD.find_runs(bad, 120.0), '大跳必须不命中（恒真 = 判据退化成"什么都算"）'
+    # ① 表自洽
+    p = os.path.join(M.ROOT, 'refs', 'ornament_density.json')
+    assert os.path.exists(p), '转音密度表不在：%s（跑 scripts\\ornament_density.py 生成）' % p
+    d = json.load(open(p, encoding='utf-8'))
+    th = d.get('themes') or {}
+    assert len(th) >= 15, '表里只有 %d 个主题（应为 15）' % len(th)
+    for name, row in th.items():
+        assert row.get('templates_ok', 0) > 0, '%s 一个模板都没量到（尺子空转）' % name
+        for k in ('strict', 'mid', 'wide'):
+            assert k in (row.get('grids') or {}), '%s 缺 %s 档' % (name, k)
+        pack = json.load(open(os.path.join(M.ROOT, 'refs', 'themes', name + '.json'),
+                              encoding='utf-8'))
+        want = (pack.get('melody') or {}).get('templates')
+        if want:
+            assert row['templates_ok'] == want, \
+                ('%s 量到 %d 首、主题包用了 %d 首 —— 两边筛选口径不一致，密度不可比'
+                 % (name, row['templates_ok'], want))
+    shares = [r['grids']['strict']['share'] for r in th.values()]
+    assert any(s > 0 for s in shares), '严档 share 全 0（尺子坏，或全库真的没有 —— 先查尺子）'
+    assert any(s == 0 for s in shares), '严档 share 没有 0（判据可能退化成"什么都算"）'
+    rho = (d.get('_meta') or {}).get('spearman_b1_vs_strict')
+    assert rho is not None, '表里没记 B1/B2 秩相关（"派生量该不该被替换"的依据）'
+    # ③ 生成侧这条路真的通
+    got = M.ornament_density_of('sorrow')
+    assert got and float(got.get('runs_per_bar') or 0) > 0, \
+        '生成侧取不到 sorrow 的直接量（B2 那条路断了 → 会静默退回派生量）'
+    return ('转音密度直接量：%d 主题自洽（模板数与主题包逐主题一致）· 尺子两向自检 · '
+            'B1/B2 Spearman %.2f · 生成侧可取到' % (len(th), rho))
 
 
 @check
@@ -10623,6 +10784,136 @@ def t_section_shifts():
     assert 'shift' in se.ARR_KEYS_EXTRA, \
         '`shift` 不在 ARR_KEYS_EXTRA 里 —— 校验会把它判成"无效的编配开关"'
     print('        段级移调：段起点 16/24 拍 · 按轨分开 · 没写=全局值 · 白名单已同步')
+
+
+@check
+def t_micro_timing_swing():
+    """**微时序**（`song_engine.apply_micro_timing`，2026-10-05，⑥）—— 三件必须钉住。
+
+    为什么钉（标定方向与直觉相反）：引擎把每个音**严格落在 16 分网格**上，而真实演奏不是。
+    但本项目手头能拿到的真分轨（BGM35 120BPM / BGM29，htdemucs_6s）实测 swing 只有
+    **−5 ~ +10ms**（判据 >15ms 才算 swing）⇒ **它们是直拍**。所以
+      · 这两个开关**默认必须关**（缺省 0 = 全库逐字节不变）；
+      · 开的时候"移位量"必须**精确等于**给定拍数（否则标定无从谈起）。
+
+    钉三件：① 缺省逐字节不变；② 只有**奇数 16 分格**后移、移位量 = 给定拍数；
+    ③ **`apply_micro_timing` 必须排在 `legato_trim` 之前** —— 移位改起音，
+      腿音修剪要看到移动后的时刻，否则"同轨同音高不重叠"被重新破坏（GM 音源吞音）。
+    """
+    import inspect
+    import mido
+    import song_engine as se
+    # ① 缺省 = 老行为
+    base = {'Melody': [(0.0, 1.0, 60, 90), (0.25, 1.0, 62, 90), (0.5, 1.0, 64, 90)]}
+    ev = {k: list(v) for k, v in base.items()}
+    assert se.apply_micro_timing(ev, {}) == 0 and ev == base, \
+        '没给 swing/swing_humanize 时改了事件 —— 缺省必须是老行为逐字节不变'
+    # ② 只有奇格动、且移位量精确
+    ev = {k: list(v) for k, v in base.items()}
+    n = se.apply_micro_timing(ev, {'swing': 0.05})
+    ts = [t for (t, _d, _m, _v) in ev['Melody']]
+    assert n == 1 and abs(ts[0] - 0.0) < 1e-9 and abs(ts[1] - 0.30) < 1e-9 \
+        and abs(ts[2] - 0.5) < 1e-9, \
+        '间隔/移位量不对：应只把 0.25 拍（奇格）移到 0.30 拍，实得 %s' % ts
+    # 抖动必须**确定性**（同输入同输出），且幅度不超给定值
+    def _jit(key):
+        e = {'Melody': [(0.25, 1.0, 62, 90), (0.75, 1.0, 65, 90)]}
+        se.apply_micro_timing(e, {key: 0.01})
+        return [round(t, 6) for (t, _d, _m, _v) in e['Melody']]
+    assert _jit('swing_humanize') == _jit('swing_humanize'), '抖动不是确定性的（每次跑都不一样）'
+    for t in _jit('swing_humanize'):
+        assert abs(t - 0.25) <= 0.01 + 1e-9 or abs(t - 0.75) <= 0.01 + 1e-9, \
+            '抖动幅度超出给定值：%s' % _jit('swing_humanize')
+    # ③ **行为面**（比"查源码顺序"强得多）：造一个"同音高重叠 + swing"的夹具跑 `write_midi`，
+    #    读回成品 MIDI —— 同音高**不许重叠**。若 `apply_micro_timing` 排在 `legato_trim`
+    #    之后，移位会把修剪好的边界重新顶开，这里就抓得到（实测：锚源码注释的顺序断言
+    #    对"把调用挪到 legato_trim 之后"这种坏法**抓不到**，3/4 漏 1）。
+    import mido
+    tmp = os.path.join(TMP, 'swing_legato.mid')
+    d = {'name': 'swleg', 'bpm': 120, 'meter': [4, 4], 'bar_beats': 4.0,
+         'chords': {'C': [36, [60, 64, 67]]},
+         'melody': {'m': []},
+         'sections': [{'name': 'A', 'bars': 1, 'chords': ['C'], 'melody': 'm',
+                       'arr': {'bass': False, 'piano': False, 'arp': False, 'perc': 0}}],
+         'programs': {'Melody': (0, 0)}, 'mix': {'Melody': (64, 100)},
+         'patterns': {'swing': 0.05, 'legato_trim': True}}
+    ev = {'Melody': [(0.0, 0.30, 60, 90), (0.25, 0.30, 60, 90)]}   # 前音长 0.30 > 后音起点 0.25
+    se.write_midi(d, ev, tmp)
+    # 读回成品 MIDI：同一音高**不许重叠**（note_off 必须不晚于下一个 note_on）
+    mid = mido.MidiFile(tmp)
+    for tr in mid.tracks:
+        t, on = 0, {}
+        for msg in tr:
+            t += msg.time
+            if msg.type == 'note_on' and msg.velocity > 0:
+                assert msg.note not in on, \
+                    ('成品 MIDI 里音高 %d 还没松键又按下 —— 微时序把 `legato_trim` 修剪好的'
+                     '边界重新顶开了（GM 音源会吞掉后一个音）' % msg.note)
+                on[msg.note] = t
+            elif (msg.type == 'note_off' or
+                  (msg.type == 'note_on' and msg.velocity == 0)) and msg.note in on:
+                del on[msg.note]
+    print('        微时序：缺省不变 · 只移奇格且量精确 · 抖动确定性 ·'
+          ' 写盘后同音高不重叠（读回验证）')
+
+
+@check
+def t_switch_keys_registered():
+    """**新增开关的键名必须真进白名单，且过门两条鼓路径都要接**（2026-10-05）。
+
+    为什么钉（本轮实测，两个根因都是"静默失效"，一次白跑 3 分钟 + 16 首）：
+      · `patterns.comp_vary`（伴奏逐句变化）/ `arr.drum_fill`（段内过门）**代码写了、
+        数据也标了**，键却不在 `PAT_KEYS` / `ARR_KEYS` 里 → 引擎把它们当拼错的键
+        **忽略**，成品逐字节不变（16 首真实曲目：过门 16 分音 1696 → 1696）；
+      · `arr.drum_fill` 的实现只挂在 `elif arr.get('perc') and _dg:` 那条**旧兜底分支**上，
+        而有 `drum_grid` 逐段/逐小节网格的曲子一律走上面那条 → 同样一个音都不多。
+
+    ⚠ 只查"`('drum_fill' in ARR_KEYS)`"拦不住拼错：常量值与写入处的**拼写漂移**
+    （`'drum_fill'` vs `'drumfill'`）要**读源码文本**才对得上 —— 所以这条守卫直接扫
+    `song_engine.py` 的文本。
+    """
+    import inspect
+    import re
+    import song_engine as se
+    src = inspect.getsource(se)
+    # ① 两个键必须真在名单里
+    for keys, name in ((se.ARR_KEYS, 'drum_fill'), (se.PAT_KEYS, 'comp_vary'),
+                       (se.PAT_KEYS, 'swing'), (se.PAT_KEYS, 'swing_humanize')):
+        assert name in keys, \
+            '%s 不在引擎白名单里 —— 引擎会把整条开关当"拼错的键"静默忽略（本轮实测踩过）' % name
+    # ② 常量值与写入处拼写一致（读源码文本，防 `'drumfill'` 这种拼错）
+    for const, name in (('ARR_KEYS', 'drum_fill'), ('PAT_KEYS', 'comp_vary')):
+        m = re.search(r'^%s = \((.*?)^\)' % const, src, re.S | re.M)
+        assert m, '在 song_engine.py 里找不到 %s 的定义文本' % const
+        assert "'%s'" % name in m.group(1), \
+            "%s 名单里没有 '%s' 这个**字符串字面量**（拼写漂移会让开关失效）" % (const, name)
+    # ③ 过门只写**一处**（在三条鼓路径的"分流"之外）：写在任一条分支里都会漏掉另一条
+    #    —— 旧版就是这么漏的（`arr.drum_fill` 标了 9~16 段、成品一个音都没多）。
+    #    ⚠ 但也**不许**写成 `if arr.get('perc') and not _silent:` 那种"抢首位"的形态：
+    #    它会把后面的 `elif` 全吞成子句、让没有 `drum_grid` 的曲子主鼓体整个不执行
+    #    （本轮实测：15 首曲子的鼓从 1500+ 掉到只剩过门那几十个音）。
+    n = len(re.findall(r'_append_drum_fill\(', src))
+    assert n == 2, \
+        ('`_append_drum_fill` 出现 %d 次（应恰为 2：定义 1 + 分流外调用 1）。'
+         '多一处 = 某条路径漏接；少一处 = 所有曲子都不出过门' % n)
+    assert 'if (_did_grid or _flat_grid) and not _silent:' in src, \
+        ('过门的调用条件变了 —— 必须同时要求"走过某条网格路径"与"本小节不静音"：'
+         '漏掉前者则没有 drum_grid 的曲子不出过门，漏掉后者则静音小节只剩垫层音'
+         '（`perc_layers_drum_grid` 会当场报红）')
+    # ④ 行为面：标记的开 → 4 小节块末小节真的多出 4 个鼓点；不标/别的相位 → 一个都不多
+    def _cnt(arr, i):
+        b = {'Perc': []}
+        se._append_drum_fill(b, arr, i, 0.0, 7)
+        return len(b['Perc'])
+    assert _cnt({'drum_fill': True}, 3) == 4 and _cnt({'drum_fill': True}, 7) == 4, \
+        '过门没写在"每 4 小节的末小节"上'
+    assert _cnt({'drum_fill': True}, 2) == 0 and _cnt({}, 3) == 0, \
+        '过门在非末小节/没标记时也出声（相位或 opt-in 判据错）'
+    # ⑤ 没有 Perc 轨的曲子不许炸（本轮实测：`compose` 夹具桶里没这个键 → KeyError）
+    assert se._append_drum_fill({'Bass': []}, {'drum_fill': True}, 3, 0.0, 7) is None, \
+        '没有 Perc 桶时 `_append_drum_fill` 抛错 —— 单轨夹具/不带鼓的曲子会当场崩'
+    print('        开关键登记：drum_fill/comp_vary 在名单+源码拼写一致 · 过门只在分流之外写一处'
+          '（含静音判据）· 只在块末小节出声 · 无 Perc 桶不炸')
 
 
 @check

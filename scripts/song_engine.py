@@ -198,6 +198,13 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             # 而我的网格每小节最多 28 格 → 鼓比原曲多。给了目标就按
             # "每小节 ≤ 目标×1.5"均匀抽稀（`build_events` 的鼓段）。
             'perc_target',
+            # `drum_fill`（2026-10-05）：**段内过门** —— 每 4 小节的末小节补一个十六分
+            # 过门（鼓件 38/45/47/50）。依据：`drum_grid.per_section` 段内是一套型，
+            # 逐轨"每小节节奏型去重"只有 10~42%；真实曲段内是"前 4 小节基本型 + 末小节
+            # fill"。⚠ **漏登记 = 静默失效**：本轮实测 `arr.drum_fill` 标了 9~16 段、
+            # 成品一个音都没多（过门 16 分音 1696 → 1696），根因有两条，这是第一条
+            # （第二条是代码挂在旧兜底分支上，见 `_append_drum_fill`）。
+            'drum_fill',
             # `perc_vel_max`（2026-09-16）：打击乐力度上限。参照用户提供的对照模板
             # （力度 P90 只有 72），而 `drum_grid` 的力度上限是 127 ——
             # GM 音源在 110+ 会明显"炸"。
@@ -230,7 +237,12 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
 #   **硬编码了一份 `{'vel', 'glock_all'}`**，`expand_sections.py` 又需要第三份 ——
 #   "抄三份"必然漂移（本轮就是新工具按 `ARR_KEYS` 校验、把合法的 `glock_all`
 #   判成"引擎不认的键"才发现的）。三方现在都读这一个常量。
-ARR_KEYS_EXTRA = ('vel', 'glock_all', 'prog', 'shift')
+ARR_KEYS_EXTRA = ('vel', 'glock_all', 'prog', 'shift',
+                  # `intro_style`（2026-10-05 补登记）：引子切入手法（`shape_intro` 消费，
+                  # `new_song.intro_style_for` 写入）。**它一直在用、却一直不在白名单里** ——
+                  # 于是每次渲染都白报一次"无效的编配开关: intro_style"，
+                  # 而这条警告正是本轮"①② 静默失效"最该被看见的信号（狼来了的代价）。
+                  'intro_style')
 
 # ---------------------------------------------------------------------------
 # 段落角色 → 编制（opt-in，`patterns.arr_by_role`）
@@ -291,6 +303,15 @@ PAT_KEYS = (
     # 旋律与力度
     'melody_dyn', 'mel_vel', 'mel_vel_center', 'mel_octave', 'melody_prog',
     'dyn_vel', 'staccato', 'drum_grid', 'perc_layers',
+    # `comp_vary`（2026-10-05）：**伴奏逐句变化**（见 `vary_comp`）—— 每 4 小节乐句换一种
+    # "说法"。依据：`Piano` 3 种节奏型撑 80~120 小节、`Bass` 4~6 种。
+    # ⚠ **漏登记 = 静默失效**：本轮实测 `patterns.comp_vary=true` 写了 16 首，
+    # 引擎打印"patterns 里 1 个键引擎不认识，会被静默忽略"，于是读数纹丝不动。
+    'comp_vary',
+    # `swing` / `swing_humanize`（2026-10-05，⑥ 微时序）：**奇数 16 分格后移** +
+    # 逐音确定性抖动，见 `apply_micro_timing`。⚠ 实测本项目手头的真分轨（BGM35/BGM29）
+    # **swing ≈ 0（直拍）**，所以这两个键**默认关**（缺省 0 = 老行为逐字节不变）。
+    'swing', 'swing_humanize',
     # 旋律维度的**带理由豁免**（见 `selftest._exempt_dims`）：画像本身如此、与别的守卫
     # 互斥时，写清理由放行该维（空理由 = 没写）。
     'melody_exempt',
@@ -332,6 +353,44 @@ PAT_KEYS = (
     # 只影响钢琴轨的**反拍和弦短音**，见 `piano_part` 的 docstring 与 2026-09-22 消融
     'piano_stab_dur', 'piano_stab_vel', 'hook_stab_vel',
 )
+
+
+def apply_micro_timing(ev, pat, quiet=True):
+    """**微时序**（opt-in `patterns.swing` / `patterns.swing_humanize`；缺省 0 = 老行为逐字节不变）。
+
+    为什么（2026-10-05，⑥）：引擎把每个音**严格落在 16 分网格**上，而真实演奏不是。
+    但**标定方向与直觉相反** —— 本项目手头能拿到的真分轨（BGM35 120BPM / BGM29 150BPM，
+    htdemucs_6s）量出来 swing 只有 **-5 ~ +10ms**（判据 >15ms 才算 swing）：
+    **它们是直拍**。所以这条功能**默认必须是关的**，只在需要摇摆的曲风（爵士/摇摆/蓝调）上开。
+
+    两个量（都可逐曲给，见 `docs/HANDOFF-GEN-MICRO.md`）：
+      · `swing`（拍）：**奇数 16 分格**（反拍八分/十六分）整体后移这么多拍。
+        `0.03` 拍 @120BPM ≈ 15.6ms —— 正好压在判据线上；`0.06` ≈ 31ms（明显摇摆）。
+      · `swing_humanize`（拍）：每个音再加一点**确定性抖动**（±这个值），
+        让"每个音都在格上"变成"每个音都差一点"。参考曲的抖动在 ±10ms 量级，
+        而**尺子的噪声底也在这个量级**（见 `docs/HANDOFF-GEN-MICRO.md` §尺子自检），
+        所以这个量只能当风格旋钮，别拿它当验收读数。
+
+    ⚠ 位置必须在 `range_fix` 之后、`legato_trim` 之前：腿音修剪要看到**移动后**的起音，
+    否则移位会把已经修好的"同音高不重叠"重新破坏（GM 音源会吞音）。
+    """
+    sw = float(pat.get('swing') or 0.0)
+    hu = float(pat.get('swing_humanize') or 0.0)
+    if not sw and not hu:
+        return 0
+    n = 0
+    for _lst in ev.values():
+        for _i, (_t, _dd, _m, _v) in enumerate(_lst):
+            cell = int(round(_t * 4))                 # 16 分格编号（绝对）
+            off = sw if (cell % 2 == 1) else 0.0      # 奇格 = 反拍 → 后移
+            if hu:
+                off += (_arr_hash((cell * 131 + _m) % 100003, 'swj') % 2001 - 1000) / 1000.0 * hu
+            if off and _t + off >= 0:
+                _lst[_i] = (_t + off, _dd, _m, _v)
+                n += 1
+    if n and not quiet:
+        print('  微时序（swing）：%d 个音移位（swing %.3f 拍 · 抖动 ±%.3f 拍）' % (n, sw, hu))
+    return n
 
 
 def arr_family_order(seed):
@@ -1420,6 +1479,182 @@ def harmony_below(tones, m):
     return max(below) if below else None
 
 
+# **伴奏给旋律让位**（2026-10-05 增，用户口径"编配让步"）：
+# 现场：重做 100-108 后旋律回到画像音域（如 lounge `[38,77]`），而编配里 Hook
+# （吉他分解 / 电钢切分 +12）与 Glock（和弦 +24 半音）压在它之上 —— 逐音归因
+# **Hook 62.5% / Glock 23.4% / Arp 7.6% / Piano 6.4%**，全库"旋律落在伴奏最高音
+# 之下"**12.0% → 38.5%**（门 15%；真实曲目 1%）。
+# 规则：**逐段**比中位音高 —— 伴奏层中位高于旋律中位就整层降八度（降不够再降），
+# 降到该轨音域下限以下就**本段不要这一层**。`Bass/Pad/Strings` 不动（低音与长音底）。
+# ⚠ 逐段判 + 轨内统一（不做轨内八度跳变）—— 与下面 `TR_SHIFT` 的边界保护同一纪律；
+#   也守住 PITFALLS 255/256 的"改必须分段、不许整曲一刀切"。
+YIELD_LAYERS = ('Glock', 'Arp', 'Hook', 'Piano')
+YIELD_MARGIN = 2          # 伴奏中位要比旋律中位低这么多半音才算"没盖住"
+
+
+def yield_to_melody(bucket, mel):
+    """本段伴奏给旋律让位 → {轨: 移调量 或 'drop'}（留痕，供打印与复盘）。"""
+    if not mel or not bucket:
+        return {}
+    ps = sorted(x[3] for x in mel)
+    mmed = ps[len(ps) // 2]
+    out = {}
+    for tr in YIELD_LAYERS:
+        ns = bucket.get(tr) or []
+        if len(ns) < 8:
+            continue
+        lp = sorted(n[2] for n in ns)
+        # ⚠ 判据用 **p75**（不是中位）：只按中位让位时，层里**仍有约一半的音在旋律之上**
+        #    —— 实测让步后"旋律在下"只从 38.5% 降到 19.6%（门 15%），剩下 77.5% 还是 Hook。
+        lhi = lp[int(len(lp) * 0.75)]
+        if lhi <= mmed + YIELD_MARGIN:
+            continue
+        k = 0
+        while k < 3 and lhi - 12 * (k + 1) > mmed + YIELD_MARGIN:
+            k += 1
+        k = max(1, k)
+        floor = (TR_RANGE.get(tr) or (40, 110))[0]
+        if min(lp) - 12 * k < floor:
+            bucket[tr] = []
+            out[tr] = 'drop'
+        else:
+            bucket[tr] = [(t, dd, m - 12 * k, v) for (t, dd, m, v) in ns]
+            out[tr] = -12 * k
+    return out
+
+
+def shape_intro(bucket, style, B=4.0):
+    """按 `arr.intro_style` 改写**引子**的切入方式（只动第一段的前 2 小节；opt-in）。
+
+    为什么（用户 2026-10-05："为什么每首歌开头的切入方式都是一样的"）：实测 16 首
+    直接作曲的曲子**第一个音全在 0.00 秒**、前 2 秒起音重合度中位 **15%**、前 9 秒
+    **16%**，而真实模板 MIDI 同一把尺子是 **0%** / 9%。四种手法：
+
+    · `pickup`      第 1 小节前 3 拍清空，只在第 4 拍留 1~2 个引音（弱起进句）
+    · `solo_first`  主奏 + 垫子先入，**其它轨第 3 小节才入**（伴奏让位两小节）
+    · `silence`     第 1 小节只留**一个和弦长音**（低音区），鼓第 1 小节清空
+    · `drums_first` 第 1 小节只有鼓，其它轨第 2 小节才入
+
+    ⚠ 缺这个键 = **老行为逐字节不变**（opt-in 纪律）；只对第一段生效，不动别处。
+    """
+    if not style or style == 'default':
+        return {}
+    info = {}
+
+    def _head_rest(ns, edge):
+        return ([e for e in ns if e[0] < edge], [e for e in ns if e[0] >= edge])
+
+    if style == 'silence':
+        for k in list(bucket):
+            if k == 'Perc':
+                bucket[k] = [e for e in bucket[k] if e[0] >= B]
+                info[k] = '第1小节清空'
+                continue
+            head, rest = _head_rest(bucket[k], B)
+            if not head:
+                continue
+            if k in ('Piano', 'Pad', 'Strings', 'Bass'):
+                low = min(head, key=lambda e: e[2])
+                bucket[k] = [(0.0, max(1.5, float(low[1])), low[2],
+                              max(36, int(low[3]) - 8))] + rest
+                info[k] = '留 1 个长音'
+            else:
+                bucket[k] = rest
+                info[k] = '第1小节清空'
+    elif style == 'pickup':
+        for k in list(bucket):
+            head, rest = _head_rest(bucket[k], B)
+            if not head:
+                continue
+            if k == 'Perc':
+                bucket[k] = rest
+            elif k in ('Melody', 'Bass', 'Piano'):
+                keep = [e for e in head if e[0] >= 0.75 * B]
+                bucket[k] = (keep[:2] or [head[-1]]) + rest
+            else:
+                bucket[k] = rest
+            info[k] = '弱起'
+    elif style == 'solo_first':
+        for k in list(bucket):
+            if k in ('Melody', 'Pad'):
+                continue
+            bucket[k] = [e for e in bucket[k] if e[0] >= 2.0 * B]
+            if k in ('Perc', 'Bass', 'Piano', 'Hook', 'Arp', 'Strings', 'Glock'):
+                info[k] = '第3小节才入'
+    elif style == 'drums_first':
+        for k in list(bucket):
+            if k == 'Perc':
+                continue
+            bucket[k] = [e for e in bucket[k] if e[0] >= B]
+            info[k] = '第2小节才入'
+    return info
+
+
+def _append_drum_fill(bucket, arr, i, t0, seed):
+    """**段内过门**（opt-in `arr.drum_fill`）：每 4 小节的末小节补一个十六分过门。
+
+    为什么（2026-10-05 实测）：`drum_grid.per_section` 段内是**一套型**（逐轨"每小节节奏型
+    去重"只有 10~42%），真实曲段内是"前 4 小节基本型、后 4 小节 fill"。
+    鼓件 38/45/47/50（军鼓 → 三个嗵鼓），力度 66 起逐格 +14，再叠一个按 (seed+i) 的抖动
+    —— 全同力度听起来像打字机。
+
+    ⚠ 必须由**两条鼓路径**共同调用（`drum_grid` 逐段/逐小节那条 + 旧兜底那条）：
+    第一版只写在旧兜底 `elif` 里，而有 `drum_grid` 网格的曲子一律走另一条 ⇒
+    标记了 9~16 段、成品**一个音都没多**（16 首实测 1696 → 1696）。
+    """
+    if not arr.get('drum_fill') or i % 4 != 3:
+        return
+    if 'Perc' not in bucket:      # 没有鼓轨的曲子（`programs` 里没 Perc）不该炸
+        return
+    for _k, _g in enumerate((12, 13, 14, 15)):
+        _nt = (38, 45, 47, 50)[_k]
+        bucket['Perc'].append(
+            (t0 + _g * 0.25, 0.2, _nt,
+             max(1, min(127, 66 + 14 * _k + _arr_hash(seed + i, 'fill') % 9))))
+
+
+def _song_seed(d):
+    """曲名 → 稳定 seed（同 `_pseed` 的做法；`hash()` 每进程加盐不能用）。"""
+    s = 0
+    for c in str(d.get('name') or ''):
+        s = (s * 131 + ord(c)) % 100003
+    return s
+
+
+def vary_comp(events, i, B, seed, span=4):
+    """**伴奏逐句变化**（opt-in `patterns.comp_vary`）：每 4 小节乐句换一种"说法"。
+
+    为什么（2026-10-05 实测）：`Piano` **3 种节奏型撑 80~120 小节**、`Bass` 4~6 种、
+    `Arp` 4 种、`Hook` 7~19% —— 段内几乎不变；真实曲的伴奏是**逐句在变**
+    （前 4 小节基本型、后 4 小节 fill）。四种说法按 (曲名 seed + 乐句序号) 轮换：
+
+      v0 原样 · v1 句末撤掉最后一个短音（呼吸口）· v2 句末把末音推到下一小节前的"a"位（推进）
+      v3 句首把首个反拍音提前 1/4 拍（切分）
+
+    ⚠ 只动**短音**（时值 ≤0.6 拍）与**落点**，不改音高；缺 `comp_vary` = 老行为逐字节不变。
+    """
+    out = list(events or [])
+    if not out:
+        return out
+    v = _arr_hash(seed + i // span, 'compv') % 4
+    ph = i % span
+    if v == 1 and ph == span - 1:
+        k = max(range(len(out)), key=lambda x: out[x][0])
+        if out[k][1] <= 0.6:
+            out.pop(k)
+    elif v == 2 and ph == span - 1:
+        k = max(range(len(out)), key=lambda x: out[x][0])
+        b, dd, m, vel = out[k]
+        if b > B - 1.0 and dd <= 0.6:
+            out[k] = (B - 0.25, dd, m, vel)
+    elif v == 3 and ph == 0:
+        k = min(range(len(out)), key=lambda x: out[x][0])
+        b, dd, m, vel = out[k]
+        if b >= 0.5 and dd <= 0.6:
+            out[k] = (b - 0.25, dd, m, vel)
+    return out
+
+
 def build_events(d):
     """展开成 {轨名: [(起始拍, 时值拍, 音高, 力度)]}"""
     ch_all = {k: (v[0], v[1]) for k, v in d['chords'].items()}
@@ -1438,6 +1673,10 @@ def build_events(d):
     # **`patterns.space`（opt-in）：给旋律留空间** —— 伴奏减薄（见 `piano_part` / Arp / bass）。
     # 缺省关：老曲与 rehearsal 夹具的字节完全不变；主题路径的新歌默认开（`new_song`）。
     _thin = space_on(pat)
+    # **伴奏逐句变化**（opt-in `patterns.comp_vary`，见 `vary_comp`）：曲名 seed 决定
+    # 每个 4 小节乐句用哪种"说法"，与 `_pseed`（鼓）同源。
+    _cv = bool(pat.get('comp_vary'))
+    _cseed = _song_seed(d)
     bar0 = 0
     bar_chord = {}                   # 全局小节号 → 和弦标识（伴奏避让主奏要用，见文件末尾）
     for sec_i, sec in enumerate(d['sections']):
@@ -1492,18 +1731,26 @@ def build_events(d):
                 _ev = list(bass_part(ch, nxt, i, _bpat, B))
                 if _bare:
                     _ev = _ev[:1]
+                elif _cv:
+                    _ev = vary_comp(_ev, i, B, _cseed)
                 for (b, dd, m, v) in _ev:
                     bucket['Bass'].append((t0 + b, dd, m, v))
             if arr.get('uku') and not _bare:
-                for (b, dd, m, v) in guitar_arpeggio(ch, i, pat['arpeggio'], B,
-                                                     beats=_beats,
-                                                     sec_i=sec_i, prev_chords=sec_chords,
-                                                     vary=bool(pat.get('guitar_vary'))):
+                _gv = list(guitar_arpeggio(ch, i, pat['arpeggio'], B,
+                                           beats=_beats,
+                                           sec_i=sec_i, prev_chords=sec_chords,
+                                           vary=bool(pat.get('guitar_vary'))))
+                if _cv:
+                    _gv = vary_comp(_gv, i, B, _cseed)
+                for (b, dd, m, v) in _gv:
                     bucket['Hook'].append((t0 + b, dd * sc, m, v))
             if arr.get('ep'):                      # 电钢琴反拍切分（Hook 轨）
-                for (b, dd, m, v) in ep_part(ch, i, B, thin=_thin,
-                                             dense=bool(arr.get('perc')),
-                                             stab_vel=pat.get('hook_stab_vel')):
+                _epv = list(ep_part(ch, i, B, thin=_thin,
+                                    dense=bool(arr.get('perc')),
+                                    stab_vel=pat.get('hook_stab_vel')))
+                if _cv:
+                    _epv = vary_comp(_epv, i, B, _cseed)
+                for (b, dd, m, v) in _epv:
                     # **+12**：它与吉他分解共用 Hook 轨、落点都压在 0.5 拍、音高取自
                     # 同一个和弦音池 → 实测撞出 96 处"同轨同音高同时发声"
                     # （FluidSynth 会留悬空 voice）。移高八度即解。
@@ -1522,6 +1769,8 @@ def build_events(d):
                             stab_vel=pat.get('piano_stab_vel')))
                     if _bare:
                         _pev = _pev[:1]          # 极简：一小节只留一个钢琴长音
+                    elif _cv:
+                        _pev = vary_comp(_pev, i, B, _cseed)
                     for (b, dd, m, v) in _pev:
                         bucket[tr].append((t0 + b, dd * sc, m, v))
             # **长音层的逐小节力度**（`patterns.dyn_vel`，opt-in；缺省 = 老行为逐字节不变）：
@@ -1695,13 +1944,24 @@ def build_events(d):
             _n0 = bar0 + i
             _silent = ((_secs is not None or _pbars is not None)
                        and ((_n0 < 2 and _dn < 8) or (_n0 < 16 and _dn < 3)))
+            # ⚠⚠ **本块的三种鼓路径必须互斥且不能被吞**（2026-10-05 修两处，都是静默失效）：
+            #   ① 过门原先只写在下面"平铺网格"那条 `elif` 里 —— 而有逐段/逐小节网格的曲子
+            #      **一律走"逐小节网格"那条**，于是 `arr.drum_fill` 标了 9~16 段、成品
+            #      **一个音都没多**（16 首实测过门 16 分音 **1696 → 1696**）。
+            #   ② 我第一次修成 `if arr.get('perc') and not _silent:` + 过门，这个 `if`
+            #      **把后面的 `elif` 全吞成自己的子句** → 没有 `drum_grid` 的曲子
+            #      **主鼓体整个不执行**（16 首里 15 首：Perc 只剩过门那几十个音；
+            #      "隔离基线"渲出 **0 个鼓**）。症状极隐蔽：rc=0、曲子照出、就是没鼓。
+            #   现在：三条路径各自显式置标志，**过门与垫层在链条之外只写一份**。
+            _did_grid = False        # 逐段/逐小节网格（含静音小节 = 不出鼓）
+            _flat_grid = False       # 平铺网格（老写法：`drum_grid` 只有 kick/snare/...）
+            _lvl = 1.0 if (arr.get('perc') and int(arr['perc']) >= 2) else 0.78
             if _dg is not None and (_secs is not None or _pbars is not None):
                 # 有逐段/逐小节网格时**一律走网格**（含静音小节 = 不出鼓）——
                 # ⚠ 不能让静音小节掉进 `elif` 退回 `perc_part` 的固定套路：
                 #   那样第一小节照样敲满，渐入白做（这条是实测踩出来的）。
+                _did_grid = True
                 if arr.get('perc') and not _silent:
-                    _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
-                    _klay = (pat.get('perc_layers') or {}).get('kick') or []
                     # **逐段鼓点目标**（`arr.perc_target`，opt-in）：用户"按原曲逐段对齐" ——
                     # 原曲每段鼓点数 0.1~28 格（S26 只有 0.1、S03 有 28），
                     # 而我的网格给每小节最多 28 格、段内还带 fill → 鼓反而比原曲多。
@@ -1725,44 +1985,17 @@ def build_events(d):
                                 (t0 + float(_g) * 0.25, 0.2, int(_nt),
                                  max(1, min(_vmax,
                                             int(round(float(_v) * _lvl))))))
-                            # 垫层（opt-in）：`drum_grid` 的两条路径原先**都不读
-                            # `perc_layers`** —— 实测（siren_end2 还原曲 2026-09-25）：
-                            # song.json 配了 kick `[[41,66,0.7],[43,72,0.7]]`，成品 Perc
-                            # 只有 36/38/42/46、**41/43 计数 0**，同曲 20–40Hz 比原曲低
-                            # **13.3dB**（缺口最大的是鼓主导段 S07–S09，−16~−30dB）。
-                            # 位置**逐点取自上面抽稀后的 kick**，错位就成"两个鼓打架"。
-                            # GM 底鼓采样仅 0.14~0.18s 垫不满一拍，低音嗵鼓 41/43 是
-                            # 0.67/0.60s —— 这是补 20–40Hz 的手段。
-                            if _nm == 'kick':
-                                for (_kn, _kvel, _kd) in _klay:
-                                    bucket['Perc'].append(
-                                        (t0 + float(_g) * 0.25, 0.2, int(_kn),
-                                         max(1, min(127, int(round(
-                                             float(_kvel) * float(_kd) * _lvl))))))
-            elif arr.get('perc') and _dg:
-                _lvl = 1.0 if int(arr['perc']) >= 2 else 0.78
+            if (not _did_grid) and _dg and arr.get('perc'):
+                # 兜底：有网格但**没给逐段/逐小节**（老写法 `drum_grid` 平铺一层）
+                # → 仍按"平铺一层 = 每小节同一套"展开。
+                _flat_grid = True
                 for _nm, _note in (('kick', 36), ('snare', 38),
                                    ('hat', 42), ('open', 46)):
                     for (_g, _v, _nt) in grid_entries(_band(_nm), _note):
                         bucket['Perc'].append(
                             (t0 + float(_g) * 0.25, 0.2, int(_nt),
                              max(1, min(127, int(round(float(_v) * _lvl))))))
-                # 垫层（opt-in）：**`drum_grid` 路径原先不读 `perc_layers`** ——
-                # 实测（siren_end2 还原曲，2026-09-25）：song.json 里配了 `kick`
-                # `[[41,66,0.7],[43,72,0.7]]`，成品 Perc 轨却只有 36/38/42/46，
-                # **41/43 计数为 0**；同曲 20–40Hz 比原曲低 **13.3dB**、40–80Hz 低 9.2dB
-                # （缺口最大的是鼓主导段 S07–S09，−16~−30dB）。
-                # 位置由**本段 kick 格**派生，与底鼓逐点对齐（同 `perc_part` 的纪律，
-                # 错位就变成"两个鼓打架"）。GM 底鼓采样 0.14~0.18s 垫不满一拍，
-                # 而低音嗵鼓 41/43 是 0.67/0.60s —— 这就是补低频的手段。
-                _klay = (pat.get('perc_layers') or {}).get('kick') or []
-                if _klay:
-                    for (_g, _v) in _band('kick'):
-                        for (_kn, _kvel, _kd) in _klay:
-                            bucket['Perc'].append(
-                                (t0 + float(_g) * 0.25, 0.2, int(_kn),
-                                 max(1, min(127, int(round(float(_kvel) * float(_kd) * _lvl))))))
-            elif arr.get('perc'):
+            if (not _did_grid) and (not _flat_grid) and arr.get('perc'):
                 # 曲名哈希 → `perc_part(seed=…)`：每首曲的鼓型因此不同（没有它，
                 # 所有用 light 的曲子会共用同一条型 —— 用户当初就是抱怨"怎么都是这个"）。
                 _pseed = 0
@@ -1773,6 +2006,29 @@ def build_events(d):
                                                pat.get('kick_vel'), B,
                                                int(arr.get('perc_in') or 0), _pseed):
                     bucket['Perc'].append((t0 + b, dd, m, v))
+            # **段内过门 + 底鼓垫层**（都在"分流"之后只写一份 —— 见上面那段注释：
+            #   写在任一条分支里都会漏掉另一条，而漏掉的那条恰好是库里大多数曲子走的那条）。
+            # ⚠ **必须同时排除 `_silent`（整小节静音）**：垫层/过门原先跟网格音一起被静音，
+            #   我第一次重构漏了这个条件 → 曲首那 2 个静音小节**只剩垫层的 41/43**
+            #   （网格音被压住、垫层没被压），听感是"开头莫名两下嗵鼓"（自检
+            #   `perc_layers_drum_grid` 当场抓到：41 有 5 个点而底鼓只有 2 个）。
+            if (_did_grid or _flat_grid) and not _silent:
+                _append_drum_fill(bucket, arr, i, t0, _cseed)
+                _klay = (pat.get('perc_layers') or {}).get('kick') or []
+                if _klay:
+                    # 垫层（opt-in）：**`drum_grid` 路径原先不读 `perc_layers`** ——
+                    # 实测（siren_end2 还原曲，2026-09-25）：song.json 里配了 `kick`
+                    # `[[41,66,0.7],[43,72,0.7]]`，成品 Perc 轨却只有 36/38/42/46，
+                    # **41/43 计数为 0**；同曲 20–40Hz 比原曲低 **13.3dB**、40–80Hz 低 9.2dB
+                    # （缺口最大的是鼓主导段 S07–S09，−16~−30dB）。
+                    # 位置由**本段 kick 格**派生，与底鼓逐点对齐（同 `perc_part` 的纪律，
+                    # 错位就变成"两个鼓打架"）。GM 底鼓采样 0.14~0.18s 垫不满一拍，
+                    # 而低音嗵鼓 41/43 是 0.67/0.60s —— 这就是补低频的手段。
+                    for (_g, _v) in _band('kick'):
+                        for (_kn, _kvel, _kd) in _klay:
+                            bucket['Perc'].append(
+                                (t0 + float(_g) * 0.25, 0.2, int(_kn),
+                                 max(1, min(127, int(round(float(_kvel) * float(_kd) * _lvl))))))
         for _mi in mel:
             b, beat, dur, m = _mi[0], _mi[1], _mi[2], _mi[3]
             # **逐音力度**（第 5 个元素，opt-in）：扒带还原时从音频量出来的真实强弱。
@@ -1888,6 +2144,23 @@ def build_events(d):
                         _keep.append(_e)
                     if _k in bucket:
                         bucket[_k] = _keep
+        # **伴奏给旋律让位**（逐段；见 `yield_to_melody` 的说明）
+        # ⚠ **还原/扒带曲不让位**（`melody_gen` 标记 = 旋律是引擎写的）：那边的旋律是
+        #   原曲的音符层，编配也该服从原曲 —— 为过指标改它就是"判据服从原曲"那条红线
+        #   （PITFALLS 255/256 同族）。
+        _yld = yield_to_melody(bucket, mel) if d.get('melody_gen') else {}
+        if _yld:
+            print('  [让步] 段 %-8s 旋律中位 %3d → %s'
+                  % (sec.get('name') or sec_i,
+                     sorted(x[3] for x in mel)[len(mel) // 2],
+                     ' · '.join('%s%s' % (k, v) for k, v in _yld.items())))
+        # **引子切入手法**（只对第一段；见 `shape_intro`）
+        if sec_i == 0:
+            _ish = shape_intro(bucket, arr.get('intro_style'), B)
+            if _ish:
+                print('  [引子] 手法 %-11s → %s'
+                      % (arr.get('intro_style'),
+                         ' · '.join('%s:%s' % kv for kv in sorted(_ish.items()))))
         for k in bucket:
             # `song.json` 的 `tr_shift` 可按轨覆盖本表（opt-in；不给该字段 = 行为与原来逐字节一致）。
             # 用途：还原曲要给某轨指定**独奏乐器音色**（如小提琴 GM40 / 中提琴 GM41）时，
@@ -2420,6 +2693,10 @@ def write_midi(d, ev, path):
                 ev[_k] = [_lst[_i] for _i in sorted(_seen.values())]
         if _n_dup:
             print('  音区修正：同刻同音高去重 %d 个' % _n_dup)
+    # **微时序**（opt-in `patterns.swing` / `swing_humanize`；缺省 0 = 老行为逐字节不变）。
+    # ⚠ **必须在 `legato_trim` 之前**：移位会改起音，腿音修剪要看到移动后的时刻，
+    #   否则"同轨同音高不重叠"会被重新破坏（部分 GM 音源会吞掉后一个音）。
+    apply_micro_timing(ev, d.get('patterns') or {}, quiet=False)
     # **去重叠**（opt-in `patterns.legato_trim`，默认关 = 全库逐字节不变）：
     # 同轨同音高、前音还没松键又按下 → **部分 GM 音源会吞掉后一个音**，
     # 听感就是"断断续续/点状"（`b35_midi_feel.py` 早列为"声音怪/卡"的三大来源之一）。
