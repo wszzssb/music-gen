@@ -44,6 +44,7 @@ DOCS = {
     'docs/TRANSCRIBE-AUDIT.md（提取精度审计）': os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
     'docs/HANDOFF-TRANSCRIBE.md（提取精度交接）': os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
     'docs/HANDOFF-FAMILY-VOTE.md（族票交接）': os.path.join(ROOT, 'docs', 'HANDOFF-FAMILY-VOTE.md'),
+    'docs/HANDOFF-ORNAMENT.md（转音交接）': os.path.join(ROOT, 'docs', 'HANDOFF-ORNAMENT.md'),
     'docs/HANDOFF-BGM35-R2.md（BGM35 整曲还原交接）': os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
     'studio/README.md（可视化面板）': os.path.join(ROOT, 'studio', 'README.md'),
     'tools/git-push/README.md（推送绕行）': os.path.join(ROOT, 'tools', 'git-push', 'README.md'),
@@ -781,6 +782,11 @@ LIMITS = {
     #   真实录音实测 · 往返实验）后实测 **4358**，顶过 4000 —— 按"实测 + 余量"抬到 **4800**。
     #   压缩目标：**4400**（§5b 的成本表与 §5d 的往返表各可压成 3 行）。
     'docs/HANDOFF-FAMILY-VOTE.md（族票交接）': 4800,
+    # 新增（2026-10-05）：`docs/HANDOFF-ORNAMENT.md` —— **生成侧转音**这条线交给下个对话。
+    #   内容：提取侧工具（`ornament_probe.py`）已入库与其**能力边界** · 生成侧现状（只有单音
+    #   装饰）· 依据两条岔路（画像派生 / 重抓模板直接量）· 验收判据 · 红线 · 素材绝对路径。
+    #   实测 7572 字节 ≈2.3k tok，估 +400（设计建议与红线留补充空间）→ 按纪律抬到 **3200**。
+    'docs/HANDOFF-ORNAMENT.md（转音交接）': 3200,
     # 新增（2026-10-02）：BGM35 **整曲**还原的交接 —— 现状读数（preflight 逐层空洞 483 秒）·
     #   四步待办（按推荐顺序）· 8 条红线 · 素材与命令的绝对路径。估 4000，按纪律留余量 → 4800。
     # 替换（2026-10-02 第二轮）：`HANDOFF-BGM35-RESTORE.md` → **`HANDOFF-BGM35-R2.md`**。
