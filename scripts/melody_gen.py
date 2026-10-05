@@ -2180,9 +2180,42 @@ def main():
 
     # 同名旋律只生成一次：段落按名复用旋律是设计意图（A' 复用 A），
     # 若每个 section 都重新生成，最后一个会覆盖前面的、且拿别的段落和弦去对，必然打架。
+    # ⚠ **用这个键里"最长的那一段"当模板**（2026-10-06 修，实测踩到）：原来取**第一次出现**，
+    #   而首段常常是**最短**的那一段（如 `A` 首段 2 小节，其余 A/A2… 各 8 小节）——
+    #   2 小节只生成出 3 个落点，这 3 个音被后面 8 个段**整段复用** ⇒ 全曲密度被首段钉死
+    #   （实测 `114_soft_letter` 密度 **0.76**，把 `--dens` 从 1.3 提到 4.5 也只到 1.49 ——
+    #   瓶颈不在 dens，在"用哪一段当模板"）。
+    #   ⚠ 但**最长段的旋律会越出较短段**（`104_lounge_night` 的 `A` 首段 6 小节、模板按 8 小节
+    #   生成 ⇒ 有音落在小节 6/7，引擎当场拒收："旋律的小节号必须是**段内**的"）。
+    #   ⇒ 两半都要：**按最长段生成**（音多）＋ **复用到某个段落时丢弃越界小节**（下面 `_fit`）。
     refs = {}
     for si, sec in enumerate(d['sections']):
         refs.setdefault(sec['melody'], []).append(si)
+    refs = {k: sorted(v, key=lambda i: (-int(d['sections'][i].get('bars') or 0), i))
+            for k, v in refs.items()}
+
+    def _fit(notes, bars):
+        """把旋律放进"该段落的小节数"内（**循环折回**，不是丢弃）。
+
+        为什么两半都要（2026-10-06 实测）：
+          · **模板取最长段** —— 取第一次出现时，首段常是最短的（`114_soft_letter` 的 `A`
+            首段只有 2 小节），2 小节只生成 3 个落点、再被 8 个段整段复用 ⇒ 全曲密度被钉死在
+            **0.76**（`--dens` 从 1.3 提到 4.5 也只到 1.49）。
+          · **复用段折回** —— 按最长段生成的音会落到较短段的小节号之外（`104_lounge_night`
+            的 `A` 首段 6 小节），引擎当场拒收（"旋律的小节号必须是**段内**的"）。
+            折回（`bar % bars`）保住音数、且不越界；同刻撞音才丢弃。
+        """
+        if not bars:
+            return []
+        out, seen = [], set()
+        for n in notes:
+            b = int(n[0]) % bars
+            key = (b, round(float(n[1]), 4))
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append([b] + list(n[1:]))
+        return sorted(out, key=lambda x: (x[0], x[1]))
 
     best = None
     for ci in range(max(1, ncand)):
@@ -2214,8 +2247,20 @@ def main():
                 m = apply_rhythm_cells(m, prof=prof, rng=rng)
             nfix += _enforce_strong(m, sec, chords, per['range'][0], per['range'][1])
             # 复用同一支旋律的其它段落：和弦若不同就无法同时满足 → 计数（不静默）
+            # ⚠ 这里落盘的是**按该键最长段生成的那一支**，并且已经 `_fit` 到**该段自己的小节数**
+            #   （`sec` 就是 `idxs[0]`，即排序后的第一个 = 最长段）⇒ 不会越界。
+            #   较短的同名段由 `song_engine.build_events` 逐段折回（见那边的 `_wrap_mel`）。
             for si in idxs[1:]:
                 clash += _count_strong_bad(m, d['sections'][si], chords)
+            m = _fit(m, int(sec.get('bars') or 0))
+            # ⚠ **再按本键里"最短的那一段"收一遍**：`song_engine.load()` 在 `build_events`
+            #   之前就逐段校验"旋律小节号 < 该段小节数"，所以只按最长段裁**过不了关**
+            #   （实测 104 的 `A` 首段 6 小节，仍有 2 个音落在小节 6/7）。这里取
+            #   `min(各段小节数)`，越界的音**丢弃**（不是折回 —— 折回留给 `build_events` 处理
+            #   那些"刚落进短段"的音；落盘的数据本身必须落在最小段的界内）。
+            _bars_min = min(int(d['sections'][i].get('bars') or 0) for i in idxs) or 0
+            if _bars_min and _bars_min < int(sec.get('bars') or 0):
+                m = [n for n in m if 0 <= int(n[0]) < _bars_min]
             mel[key] = m
         for sec in d['sections']:
             sec.pop('melody_extra', None)

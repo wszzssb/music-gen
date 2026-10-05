@@ -657,19 +657,31 @@ def seed_from_name(name):
     return 1 + h % 99991
 
 
-# **引子切入手法表**（2026-10-05）：与 `seed_from_name` 同源 —— 曲名派生、确定性、
-# 同名必同手法。顺序固定，加新手法只许往后追加（否则同名曲目的手法会漂）。
-INTRO_STYLES = ('default', 'pickup', 'solo_first', 'silence', 'drums_first')
+# **引子切入手法表**（2026-10-05 立、2026-10-06 换成**加音型**）：
+# 与 `seed_from_name` 同源 —— 曲名派生、确定性、同名必同手法。顺序固定，
+# 加新手法只许往后追加（否则同名曲目的手法会漂）。
+# ⚠ 旧那套（`pickup` / `solo_first` / `silence` / `drums_first`）是**删音型**：
+#   用户 2026-10-06 反馈"开头总是先停一下再继续，每一个都是这样" —— 实测全库 17 首里
+#   **12 首首个可闻块 ≥0.75 秒**，`drums_first` 在鼓轨为空时甚至把第 1 小节删到 0 个音。
+#   所以**新曲不再发这四种**（老曲里已写下的仍按旧行为渲染，逐字节不变）。
+#   候选集 = `song_engine.ADD_ONLY_STYLES`（**只加不减**，见那边的完整说明）。
+# ⚠ 候选集**在 `intro_style_for()` 里现取**（不在这里建模块级常量）：本文件对
+#   `song_engine` 一贯用**函数内 import**（它自己也有 `import song_engine` 的同名文件），
+#   模块级引用会在 `import new_song` 时 `NameError` —— 实测踩到，别写回来。
 
 
 def intro_style_for(name, key=None):
-    """曲名 → 引子切入手法（见 `song_engine.shape_intro`）。
+    """曲名 → 引子切入手法（见 `song_engine.shape_intro_add` 的说明）。
 
     `key`（可选，如主题名）参与哈希：同一曲名换主题也会换手法。
+    ⚠ 只发**加音型**手法（`song_engine.ADD_ONLY_STYLES`）—— 删音型那四种已停发，
+    原因见上面那段。候选集**每次现取**（别做成模块级常量，见上面那条 ⚠）。
     """
     import zlib
+    import song_engine as _se                    # 函数内 import：见文件头那条说明
+    cands = ('default',) + tuple(_se.ADD_ONLY_STYLES)
     h = zlib.crc32(('%s|%s' % (name, key or '')).encode('utf-8')) & 0xFFFFFFFF
-    return INTRO_STYLES[h % len(INTRO_STYLES)]
+    return cands[h % len(cands)]
 
 
 def _bpm_from_pack(pack, seed):
@@ -730,6 +742,12 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     # 它同时决定**编配层次**（见下）—— 所以先算曲线、再造段落。
     emix, eused = energy_mix(pack, plan, pack.get('engine_style'), gain=energy_gain)
     chords, melody, secs = {}, {}, []
+    # **先算"每个角色最长的那一段有几小节"**（下面命名要用；见 `mname` 那段的说明）
+    _role_bars = {}
+    for _it in plan:
+        _n = _it.get('name') or ''
+        _r = role_melody_name(_n, 0) if _n else ''
+        _role_bars[_r] = max(_role_bars.get(_r, 0), int(_it.get('bars') or 8))
     for i, item in enumerate(plan):
         name = item.get('name') or 'S%d' % (i + 1)
         bars = int(item.get('bars') or 8)
@@ -753,6 +771,20 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
         #   · 编配与力度那头**太少** —— 那才是"听着都一样"的来源（见 `arr_level`）。
         # 取段落名去掉结尾数字做角色名：A2/A3/A4/A5 → A；B2 → B；C → C。
         mname = role_melody_name(name, i)
+        # ⚠ **同一角色、但段落长度不同 ⇒ 各给一支旋律**（2026-10-06 实测踩到）：
+        #   主题计划里常有一个**很短的"开场 A"**（`114_soft_letter` 的 `A` 只有 2 小节、
+        #   `104_lounge_night` 的 6 小节）与后面 8 小节的 A/A2… 同名。若共用一个旋律键，
+        #   `melody_gen` **只能生成一支**、且必须落在那段的小节范围内 ⇒ 短的赢，
+        #   全曲密度被它钉死（114 实测 **0.76 音/小节**，门 1.8~2.9；`--dens` 1.3→4.5 无效）。
+        #   这与 `t_theme_melody_reuse` 自己的口径一致（它写着"同一角色的两半段落若本来就
+        #   该是两支旋律 … 只能各写一支"，并给了 `melody_reuse_exempt` 机制）。
+        #   实现：**较短的那一支**在角色名后加长度后缀（`A` → `A_len2`）。
+        #   ⚠ 后缀**必须落进 `role_melody_name` 的同一角色**（它只剥**尾部的数字**）：
+        #   加 `_2` 会被剥成 `A_`，于是新键与 `A` 被并回同一角色，反而把"两支"变成违规。
+        #   用非数字后缀 `_open`：`role_melody_name('A_open')` → `A` ✓，且键与 `A` 不同。
+        #   只在"同角色不同长度"时触发 ⇒ 等长段（绝大多数曲目）**一个字节都不变**。
+        if int(bars) < int(_role_bars.get(mname, int(bars))):
+            mname = '%s_open' % mname
         # 占位旋律：song.json 的旋律是**4 元** `[小节, 拍, 时值, 音高]`（melody_gen 会覆盖它）
         melody[mname] = [[0, 0, 4.0, min(83, 60 + tonic_pc)]]
         secs.append({'name': name, 'bars': bars, 'chords': clist, 'melody': mname,

@@ -1523,8 +1523,258 @@ def yield_to_melody(bucket, mel):
     return out
 
 
+# ===================== 引子切入手法·**加音型**（2026-10-06 新增）=====================
+# 为什么要换掉旧那套（旧那套 = `shape_intro` 的 pickup/solo_first/silence/drums_first，
+# 它还在、给老曲复现用，别删）：
+#   · 用户 2026-10-06："为什么开头总是先停一下再继续，每一个都是这样"。
+#   · 实测（全库 17 首）：**12 首"首个可闻块 ≥0.75 秒"**；`drums_first` 在**鼓轨为空**时
+#     把第 1 小节删到 **0 个音**（102_waltz_court 首声 2.25s / 谷 −182dB、
+#     103_sorrow_letter 2.00s / −179dB）。旧四式在完整编配上的净删除：pickup −33、
+#     silence −32、solo_first −56、drums_first −32（单位=音）。
+#   · 更要命的是**同文件里早就把这条路否过**（见 `ending_fade` 那段的 `_RAMP` 注释）：
+#     "只做段末退场，**不做段首进场** —— 每段开头近 2 秒只剩 3 条轨，全曲 7 个段就是
+#     空一下、满一下反复 7 次"。`shape_intro` 正是被否掉的"段首减配"。
+# 依据（外部）：buildup introduction 是被命名过的主流开场结构（MTO: Form as Process:
+#   The Buildup Introduction in Popular Music, doi 10.1093/mts/mtv020）；多段式引子拆解见
+#   Hit Songs Deconstructed 的 Technique Spotlight: Heat Waves' Multipart Intro；
+#   前奏写法与功能另见《歌曲创作前奏、间奏、尾声的写法及其艺术表现》。
+# 纪律：**只加不减**（一个音都不删）· 加分只落**和弦音** · 受音符预算与轨音域约束 ·
+#   同刻已有音就不再加（不去重就成"撞音"，见坑 219 ②）。
+ADD_ONLY_STYLES = ('downbeat_hit', 'layer_stack', 'beat_mid', 'pedal_root',
+                   'pickup_anacrusis', 'entry_ramp')
+
+# 进入次序（`entry_ramp` / `layer_stack` 用）：三层，越靠前越先入（buildup 的骨架顺序）
+INTRO_LAYERS = (('Bass', 'Perc'), ('Piano', 'Hook', 'Pad', 'Strings'),
+                ('Arp', 'Glock'))
+# 三层各自的"加分"力度（起句最重、后进来的轻，避免一进来就抢）
+INTRO_LAYER_VEL = (112, 78, 58)
+
+
+def _intro_base(d, sec, B, bar0=0):
+    """引子加音要用的公共量：段落起点（全局拍）· 小节数 · 和弦音池。
+
+    ⚠ `bar0` 必须由调用方传（`bucket` 里是**全局拍**，见 `loop` 里的 `t0 = (bar0+i)*B`）——
+    段对象里**没有** `_bar0` 这个键，第一版按它取会让所有段的起点都算成 0 拍。
+    """
+    t0 = float(bar0) * B
+    nbars = int(sec.get('bars') or 0)
+    chmap = {}
+    for bt in range(nbars):
+        names = sec.get('chords') or []
+        cname = names[bt] if bt < len(names) else (names[-1] if names else None)
+        entry = (d.get('chords') or {}).get(cname) if cname else None
+        chmap[bt] = sorted({int(x) % 12 for x in (entry[1] if entry else [])})
+    return t0, nbars, chmap
+
+
+# 低音轨的"常规音区"下界 = C1（32.7Hz）。依据：真值见 `selftest.t_bass_register`
+# （模板低音线最低 C1、一首都没到 28Hz 以下）——`SUB_FLOOR` 是同一条依据的另一处体现。
+# ⚠ 与 `selftest.BASS_FLOOR` 是**两份独立常量**（那边是守卫的判据、这边是生成侧的约束），
+#   改一处要同时看另一处；生成侧引用它 = 引子加音不会写出次声波。
+BASS_FLOOR = 24
+
+
+def _intro_reg(k):
+    """引子加音可用的音区下限/上限：**`TR_RANGE` ∩ 声部常规音区**。
+
+    ⚠ 为什么不能直接用 `TR_RANGE`（2026-10-06 实测踩到）：`TR_RANGE['Bass'] = (16, 71)` 是
+    "物理可行域"，而 `bass_register` 守卫要求 **≥24（C1=32.7Hz）**；`_intro_pitch` 原先按
+    `TR_RANGE` 的**下界**取"最低的和弦音"，于是 109 的 D6 和弦给出 **18（23.1Hz）** 的引子
+    加音 —— 自检 `bass_register` 当场抓到。这里给最低音轨补一条**常规音区**下界。
+    """
+    lo, hi = TR_RANGE.get(k) or (0, 127)
+    if k == 'Bass':
+        lo = max(lo, BASS_FLOOR)
+    return lo, hi
+
+
+def _intro_pitch(k, tones, ref=None):
+    """在**声部常规音区**内、取和弦音里离 `ref` 最近的音高（没有 ref 就取最低的那个）。"""
+    if not tones:
+        return None
+    lo, hi = _intro_reg(k)
+    cand = [m for m in range(lo, hi + 1) if m % 12 in tones]
+    if not cand:
+        return None
+    if ref is None:
+        return cand[0]
+    return min(cand, key=lambda m: (abs(m - ref), m))
+
+
+def _intro_add(bucket, k, t, dur, m, v):
+    """加一个音（**同刻同音高已存在就不加**；越出**常规音区**就不加）。"""
+    lo, hi = _intro_reg(k)
+    if not (lo <= m <= hi):
+        return False
+    if k not in bucket:
+        bucket[k] = []
+    for e in bucket[k]:
+        if abs(e[0] - t) < 1e-6 and e[2] == m:
+            return False
+    bucket[k].append((round(t, 4), round(float(dur), 3), int(m),
+                      max(1, min(127, int(round(v))))))
+    return True
+
+
+def shape_intro_add(bucket, style, B=4.0, d=None, sec=None, budget=None, bar0=0):
+    """**加音型**引子切入：只给开头"加"东西，一个音都不删（opt-in，见上面那段说明）。
+
+    六种手法（都保证**第 1 拍就有声**；都不动任何原有音）：
+
+    | 手法 | 做了什么 | 加几个音 |
+    |---|---|---|
+    | `downbeat_hit` | 第 1 拍**加重音**（同刻已有音抬力度；本来没有就补和弦根音） | 0~2 |
+    | `layer_stack` | 按 `INTRO_LAYERS` 三层**逐层进**：第 1 拍骨架、第 2 拍中坚、第 4 拍亮色 | ≤4 |
+    | `beat_mid` | 第 2/3 拍各加一个**和弦音重音**（把重心从第 1 拍铺开） | ≤3 |
+    | `pedal_root` | 低音**持续根音**（第 1、3 拍）+ 长音层五度 —— 开场先把调性钉住 | ≤4 |
+    | `pickup_anacrusis` | **弱起引音**：第 1 拍前 0.5 拍加 2 个上行和弦音；段首没有前置空间就退化成 `downbeat_hit` | ≤2 |
+    | `entry_ramp` | 三层**错峰入场**（第 0.5 / 2 / 4 拍），曲名派生决定各轨落在哪一层 | ≤5 |
+
+    返回 `{轨: '加 n 音'}` / `{轨: '加重音'}`；返回空 dict = **这个手法无事可做**。
+    """
+    if style not in ADD_ONLY_STYLES or d is None or sec is None:
+        return {}
+    t0, nbars, chmap = _intro_base(d, sec, B, bar0)
+    if nbars <= 0:
+        return {}
+    if budget is None:
+        budget = max(4, min(14, int(round(nbars * 1.5))))
+    # 各轨"进入拍"（相对段首）：第 0 层 = 0 拍，第 1 层 = 2 拍，第 2 层 = 4 拍
+    ent = {}
+    for li, ks in enumerate(INTRO_LAYERS):
+        at = 0.0 if li == 0 else (2.0 if li == 1 else 4.0)
+        if style == 'entry_ramp':
+            # 曲名派生错峰：同一层的轨拆到相邻两拍，避免"三层一刀切"
+            seed = 0
+            for _c in str(d.get('name') or ''):
+                seed = (seed * 131 + ord(_c)) % 100003
+            for j, k in enumerate(ks):
+                ent[k] = at + (0.5 if (seed + j) % 2 else 0.0)
+        else:
+            for k in ks:
+                ent[k] = at
+    info = {}
+    used = [0]
+    cnt = {}
+
+    def _bump(k):
+        cnt[k] = cnt.get(k, 0) + 1
+
+    def tones_of(bar):
+        return chmap.get(bar) or chmap.get(0) or []
+
+    # ① 第 1 拍：**保证有声**（已有的抬力度；没有的补一个和弦音）
+    #   ⚠ `pickup_anacrusis` 跳过这一步的补音：它的"弱起"要落在**第 1 拍之前**，
+    #     若先在这里把第 1 拍填满，弱起就没有前置空间了（实测会静默退化成 downbeat_hit）。
+    for k in ('Bass', 'Piano', 'Hook', 'Pad', 'Strings'):
+        if k not in bucket:
+            continue
+        tones = tones_of(0)
+        same = [e for e in bucket[k] if abs(e[0] - t0) < 1e-6]
+        if same:
+            for i, e in enumerate(bucket[k]):
+                if abs(e[0] - t0) < 1e-6:
+                    bucket[k][i] = (e[0], e[1], e[2], max(e[3], 104))
+            if style == 'downbeat_hit':
+                info.setdefault(k, '加重音')
+        elif style in ('downbeat_hit', 'layer_stack', 'entry_ramp', 'pedal_root'):
+            m = _intro_pitch(k, tones)
+            if m is not None and used[0] < budget:
+                if _intro_add(bucket, k, t0, min(2.0, B * 0.5), m,
+                              112 if k == 'Bass' else 96):
+                    used[0] += 1
+                    _bump(k)
+    # ② 逐层进场（`layer_stack` / `entry_ramp`）
+    if style in ('layer_stack', 'entry_ramp'):
+        for li, ks in enumerate(INTRO_LAYERS):
+            for k in ks:
+                if k not in bucket or k == 'Perc':
+                    continue
+                at = ent.get(k, 0.0)
+                if at <= 0:
+                    continue
+                tones = tones_of(int(at // B))
+                m = _intro_pitch(k, tones)
+                if m is None or used[0] >= budget:
+                    continue
+                if _intro_add(bucket, k, t0 + at, min(1.5, B * 0.5), m,
+                              INTRO_LAYER_VEL[min(li, len(INTRO_LAYER_VEL) - 1)]):
+                    used[0] += 1
+                    _bump(k)
+                    info[k] = '第 %.0f 拍入场' % (at + 1)
+    # ③ `beat_mid`：第 2、3 拍各一个和弦音重音
+    if style == 'beat_mid':
+        for at in (1.0, 2.0):
+            for k in ('Piano', 'Hook'):
+                if k not in bucket or used[0] >= budget:
+                    continue
+                m = _intro_pitch(k, tones_of(0))
+                if m is not None and _intro_add(bucket, k, t0 + at, 0.75, m, 84):
+                    used[0] += 1
+                    _bump(k)
+    # ④ `pedal_root`：低音持续根音（第 1、3 拍）+ 长音层五度
+    if style == 'pedal_root':
+        tones = tones_of(0)
+        if tones and 'Bass' in bucket and used[0] < budget:
+            root = min(tones)
+            for at in (2.0,):
+                m = _intro_pitch('Bass', [root])
+                if m is not None and _intro_add(bucket, 'Bass', t0 + at, min(2.0, B * 0.5), m, 88):
+                    used[0] += 1
+                    _bump('Bass')
+                    info['Bass'] = '持续根音'
+        for k in ('Pad', 'Strings'):
+            if k in bucket and used[0] < budget and len(tones) >= 3:
+                m = _intro_pitch(k, [tones[2]])
+                if m is not None and _intro_add(bucket, k, t0, min(2.0, B * 0.5), m, 66):
+                    used[0] += 1
+                    _bump(k)
+                    info[k] = '加五度'
+    # ⑤ `pickup_anacrusis`：**弱起**
+    #   · 段首之前**已有位置**（整曲第 1 段 t0=0 时没有）⇒ 在第 1 拍前 0.5/0.25 拍加两个上行和弦音；
+    #   · 整曲**从 0 拍开始**（最常见）⇒ 前置空间不存在，退化成"**第 1 拍起句跑动**"：
+    #     第 1 拍和第 1.5 拍各加一个和弦音 —— 比 downbeat_hit 多一个推动，且**不删不加满**。
+    #   （第一版写成"递归调 downbeat_hit"，而加音发生在本函数 ① 之前 ⇒ 那次递归只是空跑，
+    #     返回的落痕与实际加的音对不上，已改掉。）
+    if style == 'pickup_anacrusis':
+        tones = tones_of(0)
+        pre = [e for v in bucket.values() for e in v if e[0] < t0 - 1e-6]
+        base_m = _intro_pitch('Hook', tones)
+        if tones and base_m is not None and (pre or t0 > 0.0):
+            for j, at in enumerate((0.5, 0.25)):            # 从远到近、上行
+                k = 'Hook' if j == 0 else 'Piano'
+                if k not in bucket or used[0] >= budget:
+                    continue
+                m = _intro_pitch(k, tones, ref=base_m - 2 * (j + 1))
+                if m is not None and _intro_add(bucket, k, t0 - at, at * 0.9, m, 72 + 8 * j):
+                    used[0] += 1
+                    _bump(k)
+                    info[k] = '弱起'
+        elif tones and base_m is not None:
+            for j, at in enumerate((0.0, 0.5)):             # 起句跑动（0 拍起）
+                k = 'Hook' if j == 0 else 'Piano'
+                if k not in bucket or used[0] >= budget:
+                    continue
+                m = _intro_pitch(k, tones, ref=base_m + 2 * j)
+                if m is not None and _intro_add(bucket, k, t0 + at, 0.5, m, 88 - 6 * j):
+                    used[0] += 1
+                    _bump(k)
+                    info[k] = '起句跑动'
+    # 统一落痕：**每个被加过音的轨**都要出现在返回里（旧版只有部分分支写 info，
+    # 于是"加过音但没落痕"的轨在日志里看不见 —— 复盘时以为没动）
+    for k, n in cnt.items():
+        info.setdefault(k, '加 %d 音' % n)
+    return info
+    return info
+
+
 def shape_intro(bucket, style, B=4.0):
     """按 `arr.intro_style` 改写**引子**的切入方式（只动第一段的前 2 小节；opt-in）。
+
+    ⚠ **这是旧那套（删音型）**：`pickup` / `solo_first` / `silence` / `drums_first`
+    都会**删掉开头的内容**，实测导致"开头先停一下"（见 `ADD_ONLY_STYLES` 上面那段）。
+    它保留**只为老曲复现**（`0859ecf` 前后生成的曲目重渲染要逐字节一致）；
+    **新曲请走 `shape_intro_add`**（`new_song.intro_style_for` 现在只发加音型手法）。
 
     为什么（用户 2026-10-05："为什么每首歌开头的切入方式都是一样的"）：实测 16 首
     直接作曲的曲子**第一个音全在 0.00 秒**、前 2 秒起音重合度中位 **15%**、前 9 秒
@@ -1685,6 +1935,23 @@ def build_events(d):
         vs = arr.get('vel', 1.0)
         mel = list(mel_all.get(sec.get('melody', ''), []))
         mel += sec.get('melody_extra', [])
+        # **同名旋律跨不等长段落复用**（2026-10-06）：旋律是**按该键最长段**生成的，
+        # 而较短的段（如 `114_soft_letter` 的首段 A 只有 2 小节、`104_lounge_night` 的 A 首段
+        # 6 小节）直接复用会**越出段界** —— `load()` 会当场拒收（"旋律的小节号必须是段内的"）。
+        # 这里把它们**按本段小节数折回**（保住音数，不丢内容）；同刻撞音只留一个。
+        # ⚠ 只在"确有越界音"时才动手 ⇒ 等长段（绝大多数曲子）**逐字节不变**。
+        if mel and nbars:
+            _mx = max(int(it[0]) for it in mel)
+            if _mx >= nbars:
+                _seen, _w = set(), []
+                for it in mel:
+                    _b = int(it[0]) % nbars
+                    _k = (_b, round(float(it[1]), 4))
+                    if _k in _seen:
+                        continue
+                    _seen.add(_k)
+                    _w.append([_b] + list(it[1:]))
+                mel = sorted(_w, key=lambda x: (x[0], x[1]))
         bucket = {k: [] for k in d['programs']}
         sec_chords = []              # 本段已出现过的和弦根音（吉他换把位档位，见 guitar_arpeggio）
         for i in range(nbars):
@@ -2154,13 +2421,24 @@ def build_events(d):
                   % (sec.get('name') or sec_i,
                      sorted(x[3] for x in mel)[len(mel) // 2],
                      ' · '.join('%s%s' % (k, v) for k, v in _yld.items())))
-        # **引子切入手法**（只对第一段；见 `shape_intro`）
+        # **引子切入手法**（只对第一段；见 `shape_intro_add` 与旧的 `shape_intro`）
+        # ⚠ 两套并存：新曲用**加音型**（`ADD_ONLY_STYLES`，一个音都不删）；
+        #   老曲里写着的 `pickup/solo_first/silence/drums_first` 仍走旧那套（删音型），
+        #   这样 `0859ecf` 前后生成的曲目**重渲染逐字节不变**（替换手法要用户明说）。
         if sec_i == 0:
-            _ish = shape_intro(bucket, arr.get('intro_style'), B)
+            _st = arr.get('intro_style')
+            if _st in ADD_ONLY_STYLES:
+                _ish = shape_intro_add(bucket, _st, B, d, sec, bar0=bar0)
+                _kind = '加音型'
+            else:
+                _ish = shape_intro(bucket, _st, B)
+                _kind = '删音型(旧)'
             if _ish:
-                print('  [引子] 手法 %-11s → %s'
-                      % (arr.get('intro_style'),
-                         ' · '.join('%s:%s' % kv for kv in sorted(_ish.items()))))
+                print('  [引子] %s 手法 %-16s → %s'
+                      % (_kind, _st, ' · '.join('%s:%s' % kv for kv in sorted(_ish.items()))))
+            elif _st:
+                print('  [引子] %s 手法 %-16s → 无事可做（该手法在此段没有可加的位置）'
+                      % (_kind, _st))
         for k in bucket:
             # `song.json` 的 `tr_shift` 可按轨覆盖本表（opt-in；不给该字段 = 行为与原来逐字节一致）。
             # 用途：还原曲要给某轨指定**独奏乐器音色**（如小提琴 GM40 / 中提琴 GM41）时，

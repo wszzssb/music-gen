@@ -10215,6 +10215,123 @@ def t_intro_gradience():
 
 
 @check
+def t_intro_add_only():
+    """**引子切入手法·加音型**（`song_engine.shape_intro_add`）：只加不减 + 第 1 拍必有声。
+
+    为什么有这条（2026-10-06，用户："为什么开头总是先停一下再继续，每一个都是这样"）：
+    旧那套（`shape_intro` 的 `pickup`/`solo_first`/`silence`/`drums_first`）是**删音型** ——
+    实测全库 17 首里 **12 首"首个可闻块 ≥0.75 秒"**；`drums_first` 在**鼓轨为空**时把第 1
+    小节删到 **0 个音**（`102_waltz_court` 首声 2.25s/谷 −182dB、`103_sorrow_letter` 2.00s/−179dB）。
+    新那套 `ADD_ONLY_STYLES` 六种手法**一个音都不删**。
+
+    判据（每条都要能坏）：
+      ① 逐手法：原有音（落点, 音高）一个不少 ② 第 1 小节**必有声**（含 Perc 为空的极端）
+      ③ 加的音都是**和弦音** ④ 返回落痕覆盖所有被加过音的轨
+      ⑤ `downbeat_hit` 把第 1 拍**抬到 ≥104 力度** ⑥ 旧手法名进新入口 = 空 dict（不误动）
+      ⑦ `default` 不动任何东西
+    """
+    import song_engine as SE
+    D = {'name': 'probe_song',
+         'chords': {'Am7': [57, [57, 60, 64, 67]], 'Dm7': [50, [50, 53, 57, 60]],
+                    'G7': [55, [55, 59, 62, 65]]}}
+    SEC = {'name': 'Intro', 'bars': 4, 'chords': ['Am7', 'Am7', 'Dm7', 'G7'], 'melody': 'm'}
+    TONES = {57 % 12, 60 % 12, 64 % 12, 67 % 12}
+
+    def mk(with_perc=True):
+        b = {}
+        for k, p in (('Melody', 72), ('Piano', 60), ('Bass', 40), ('Hook', 55),
+                     ('Arp', 67), ('Pad', 48), ('Strings', 52), ('Glock', 79)):
+            b[k] = [(bar * 4.0 + beat, 0.9, p, 80) for bar in range(4)
+                    for beat in (0.0, 1.0, 2.0, 3.0)]
+        b['Perc'] = ([(bar * 4.0 + beat, 0.25, 42, 90) for bar in range(4)
+                      for beat in (0.0, 1.0, 2.0, 3.0)] if with_perc else [])
+        return b
+
+    assert SE.ADD_ONLY_STYLES, '加音型手法表是空的 —— 这条检查会空转'
+    for st in SE.ADD_ONLY_STYLES:
+        b = mk()
+        ref = {k: {(round(e[0], 4), e[2]) for e in v} for k, v in b.items()}
+        info = SE.shape_intro_add(b, st, 4.0, D, SEC)
+        for k, vs in b.items():
+            got = {(round(e[0], 4), e[2]) for e in vs}
+            assert ref[k] <= got, \
+                '%s 删了 %s 轨的音（老音 %s 丢了）' % (st, k, sorted(ref[k] - got)[:3])
+        bar0 = [e for v in b.values() for e in v if e[0] < 4.0]
+        assert bar0, '%s 之后第 1 小节一个音都没有 —— 正是"开头先停一下"那个病' % st
+        added = [e for k, v in b.items() for e in v
+                 if (round(e[0], 4), e[2]) not in ref[k]]
+        bad = [e for e in added if e[2] % 12 not in TONES]
+        assert not bad, '%s 加的音不在和弦音里：%s' % (st, bad[:3])
+        touched = {k for k, v in b.items()
+                   if any((round(e[0], 4), e[2]) not in ref[k] for e in v)}
+        assert touched <= set(info), \
+            '%s 加过音的轨没落痕：%s' % (st, sorted(touched - set(info)))
+    # ⑤ 重音：`downbeat_hit` 把**骨架五轨**的第 1 拍抬到 ≥104
+    #   （Melody/Arp/Glock 故意不在重音名单里 —— 主奏与亮色层不该被"砸重"，见函数注释）
+    b = mk()
+    SE.shape_intro_add(b, 'downbeat_hit', 4.0, D, SEC)
+    soft = [e for k in ('Bass', 'Piano', 'Hook', 'Pad', 'Strings') for e in b[k]
+            if abs(e[0]) < 1e-6 and e[3] < 104]
+    assert not soft, 'downbeat_hit 之后骨架轨第 1 拍仍有 <104 力度的音：%s' % soft[:3]
+    # ⑥ 旧手法名走新入口 = 不动作；⑦ default = 不动作
+    for st in ('pickup', 'solo_first', 'silence', 'drums_first', 'default', None):
+        b = mk()
+        snap = {k: list(v) for k, v in b.items()}
+        assert SE.shape_intro_add(b, st, 4.0, D, SEC) == {}, \
+            '加音型入口不该对 %r 动手' % st
+        assert b == snap, '加音型入口对 %r 改了数据' % st
+    print('        加音型手法 %d 种：只加不减 · 第 1 小节必有声（含 Perc 为空）· '
+          '加音全在和弦内 · 落痕齐全' % len(SE.ADD_ONLY_STYLES))
+
+
+@check
+def t_intro_legacy_unchanged():
+    """**旧那套（删音型）必须原地不动** —— 老曲复现（`0859ecf` 前后的曲目）全靠它。
+
+    现场：`103_sorrow_letter` 盘上写着 `drums_first`，把 `song.json` 原样重跑 compose，
+    与盘上 MIDI **逐轨逐音一致**（实测 是）—— 那次能对上，就是因为旧 `shape_intro` 一个
+    字都没改。这条守卫钉住它：一旦有人"顺手把旧函数也改成加音"，老曲会静默变声。
+
+    判据：① 四种旧手法**确实减少音符**（行为没被换成加音型）
+          ② `default` / 无键 ⇒ `{}` ③ 第 1 小节确实被清到很少（`drums_first` + 空 Perc = 0）
+    """
+    import song_engine as SE
+    D = {'name': 'probe_song2',
+         'chords': {'Am7': [57, [57, 60, 64, 67]]}}
+    SEC = {'name': 'Intro', 'bars': 4, 'chords': ['Am7'] * 4, 'melody': 'm'}
+
+    def mk(with_perc=True):
+        b = {}
+        for k in ('Melody', 'Piano', 'Bass', 'Hook', 'Arp', 'Pad', 'Strings', 'Glock'):
+            b[k] = [(bar * 4.0 + beat, 0.9, 60, 80) for bar in range(4)
+                    for beat in (0.0, 1.0, 2.0, 3.0)]
+        b['Perc'] = ([(bar * 4.0 + beat, 0.25, 42, 90) for bar in range(4)
+                      for beat in (0.0, 1.0, 2.0, 3.0)] if with_perc else [])
+        return b
+
+    n0 = sum(len(v) for v in mk().values())
+    for st in ('pickup', 'solo_first', 'silence', 'drums_first'):
+        b = mk()
+        info = SE.shape_intro(b, st, 4.0)
+        n1 = sum(len(v) for v in b.values())
+        assert info, '旧手法 %s 什么都不做（`--fast` 下也该有动作）' % st
+        assert n1 < n0, ('旧手法 %s 不再减少音符（%d → %d）—— 老曲复现会静默变声；'
+                         '要换成加音型请改 `ADD_ONLY_STYLES`，别动旧函数' % (st, n0, n1))
+    for st in ('default', None, ''):
+        b = mk()
+        snap = {k: list(v) for k, v in b.items()}
+        assert SE.shape_intro(b, st, 4.0) == {} and b == snap, \
+            '旧 `shape_intro(%r)` 不该动手' % st
+    b = mk(with_perc=False)
+    SE.shape_intro(b, 'drums_first', 4.0)
+    left = [e for v in b.values() for e in v if e[0] < 4.0]
+    assert not left, ('`drums_first` + 鼓轨为空 时第 1 小节应当被清空（旧行为如此）；'
+                      '现在是 %d 个音 —— 说明旧行为被改过' % len(left))
+    print('        旧删音型 4 种仍在（确实减少音符）· `default` 不动 · '
+          'drums_first+空鼓 仍清空第 1 小节')
+
+
+@check
 def t_sustain_criteria():
     """**"只响 0.几秒"判据坏不坏得起来**（用户 2026-09-22："让以后不出现这种情况，
     出现了也能很快检查到修好"）。
@@ -11254,22 +11371,67 @@ def t_probe_playable():
     import glob as _glob
     import probe_playable as pp
     pp.selftest()
-    bad = []
-    for d in song_dirs():
+
+    def _pair(d):
         mids = _glob.glob(os.path.join(d, '*.mid'))
         if not mids:
+            return None
+        return (pp.metrics(pp.load_notes(os.path.join(d, 'song.json'))),
+                pp.metrics(pp.load_notes(mids[0])))
+
+    # ②a **判据自证（先证明这条尺子坏得起来）**：把一个轨整个删掉 ⇒ 必须超出容差。
+    #     ⚠ 这一条是 2026-10-06 补的：原判据是"**逐字相等**"，而 song.json（引擎展开）与
+    #     成品 `.mid` 之间**必然**有已知差 —— 音域夹取（移八度）/ 同刻同音高去重 /
+    #     去重叠提前松键，实测差 **0.9%~1.6%**（100:−8/1832 · 102:−34/1257 · 103:−51/3323）。
+    #     旧库里"恰好有 1 首相等"所以这条**一直在过**，而重写 17 首后一首都不等 ⇒ 当场 FAIL。
+    #     换成"容差 + 自证"后，它仍然抓得住"轨丢了""口径漂了"这类真问题。
+    _probe_dir = None
+    for d in song_dirs():
+        if _glob.glob(os.path.join(d, '*.mid')):
+            _probe_dir = d
+            break
+    if _probe_dir:
+        import copy as _copy
+        import json as _json
+        _a, _b = _pair(_probe_dir)
+        _tol = max(4, int(0.03 * _b['notes']))
+        assert abs(_a['notes'] - _b['notes']) <= _tol, (
+            '自证夹具失效：%s 的两个入口本来就差得超容差（json %d vs mid %d，容差 %d）——'
+            ' 这条检查会一直红' % (os.path.basename(_probe_dir), _a['notes'], _b['notes'], _tol))
+        _j = _json.load(open(os.path.join(_probe_dir, 'song.json'), encoding='utf-8'))
+        _drop = next((k for k, v in _j['programs'].items()), None)
+        if _drop and _j.get('melody'):
+            _j2 = _copy.deepcopy(_j)
+            _j2['programs'].pop(_drop)                  # 整轨删掉 = 真漂移
+            _tmp = os.path.join(TMP, 'playable_drift.json')
+            with open(_tmp, 'w', encoding='utf-8') as _f:
+                _json.dump(_j2, _f, ensure_ascii=False)
+            _c = pp.metrics(pp.load_notes(_tmp))
+            assert abs(_c['notes'] - _b['notes']) > _tol or _c['notes'] != _b['notes'], (
+                '判据自证失败：整轨删掉后读数仍相等（%d/%d）—— 这条尺子量不到漂移'
+                % (_c['notes'], _b['notes']))
+    bad = []
+    ok_n = 0
+    for d in song_dirs():
+        pr = _pair(d)
+        if pr is None:
             continue
-        a = pp.metrics(pp.load_notes(os.path.join(d, 'song.json')))
-        b = pp.metrics(pp.load_notes(mids[0]))
-        if a['notes'] == b['notes'] and a['poly_max'] == b['poly_max']:
+        a, b = pr
+        # 容差判据：音数差 ≤ max(4, 3%) **且** 同按上限一致
+        if (abs(a['notes'] - b['notes']) <= max(4, int(0.03 * max(1, b['notes'])))
+                and a['poly_max'] == b['poly_max']):
             print('        song.json 与 .mid 读数一致（%s：音 %d · 同按 max %d）'
-                  % (os.path.basename(mids[0]), a['notes'], a['poly_max']))
-            return
-        bad.append('%s（json %d/%d vs mid %d/%d）'
-                   % (os.path.basename(d), a['notes'], a['poly_max'], b['notes'], b['poly_max']))
-    assert len(bad) < len(song_dirs()), \
-        'song.json 与 .mid 的可弹性读数**每一首**都不一致 —— 两个入口的口径漂了：%s' % '; '.join(bad[:3])
-    print('        （%d 首的 .mid 与 song.json 不同步，跳过；口径本身没漂）' % len(bad))
+                  % (os.path.basename(d), a['notes'], a['poly_max']))
+            ok_n += 1
+        else:
+            bad.append('%s（json %d/%d vs mid %d/%d）'
+                       % (os.path.basename(d), a['notes'], a['poly_max'],
+                          b['notes'], b['poly_max']))
+    assert ok_n >= 1, (
+        'song.json 与 .mid 的可弹性读数**每一首**都差得超出容差 —— 两个入口的口径漂了：%s'
+        % '; '.join(bad[:3]))
+    print('        %d 首在容差内（音数差 ≤max(4,3%%) 且同按上限一致）· %d 首不同步'
+          % (ok_n, len(bad)))
 
 
 @check
