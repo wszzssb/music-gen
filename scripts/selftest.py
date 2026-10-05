@@ -55,6 +55,7 @@ import song_engine        # noqa: E402
 import scorecard          # noqa: E402
 import render_midi        # noqa: E402
 import to_ogg             # noqa: E402
+import pitfall_dup        # noqa: E402  # 坑台账索引完整性（t_pitfall_index）
 
 CHECKS = []
 FAILS = []
@@ -11337,6 +11338,24 @@ def main():
         for n, m in FAILS:
             print('  - %s: %s' % (n, m))
     return 1 if FAILS else 0
+
+
+@check
+def t_pitfall_index():
+    """**坑台账的索引不许漂**（`PITFALLS.md` 第 1 行区间 / 主题索引 / 正文三者一致）。
+
+    为什么有这条（`PITFALLS` **328**）：这三处全是**手写**的 ⇒ 实测漂到"标题写 161–315、
+    正文已到 326、索引里 316–326 一条都没进"。而编号是索引的唯一用途（先按主题拿编号、
+    再 grep 定位）—— 漂了就等于"这类坑不存在"。判据与工具在 `pitfall_dup.check_index`
+    （顺带修掉它自己的三个解析坑：全文件扫表会把正文数据表当索引、等下一个标题永不触发、
+    遇非表格行就收尾会被标题与表格之间的引用块打断）。
+    """
+    errs = pitfall_dup.check_index()
+    assert not errs, '（跑 `python scripts\\pitfall_dup.py --index-miss` 看待归类的条目）\n      ' \
+                     + '\n      '.join(errs)
+    items, declared = pitfall_dup.parse_doc(open(pitfall_dup.MAIN, encoding='utf-8').read())
+    return '坑台账索引一致：%d 条 · 区间 %d–%d · 全部条目都被主题索引收' \
+           % (len(items), declared[0], declared[1])
 
 
 import cli_utf8 as _cu; _cu.setup()   # 控制台编码兜底（GBK 下打印 ✓ 会崩）

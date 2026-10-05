@@ -30,6 +30,7 @@ import metrics
 import breath
 import token_audit             # noqa: E402
 import json_io                 # noqa: E402
+import pitfall_dup as pd       # noqa: E402  # 坑台账索引（t_pitfall_index）
 
 TMP = tempfile.mkdtemp(prefix='mutation_')
 
@@ -463,6 +464,27 @@ def main():
                                else _glob.glob(pat, **k)))
     results.append(case('参考画像缺字段', 'refs_schema',
                         lambda: Mut(st, 'glob', shim)))
+
+    # 8b. 坑台账索引漂移（2026-10-06 加）：两种坏法都必须被抓。
+    #     ① 索引里写了一个本文件与归档都没有的编号（旧版正是这么留下 386/676/920 这类
+    #        "数据表数值"当坑号的）；
+    #     ② 正文新增了一条、却忘了进索引（旧版沉淀成 316–326 共 11 条没进 —— 就是 328 那笔账）。
+    #     注入方式：把 `pitfall_dup.MAIN` 指向一份构造出来的假台账
+    #     （守卫 `t_pitfall_index` 走的就是 `pd.check_index()`，与真实跑法同一条路径）。
+    idxdir = tempfile.mkdtemp(dir=TMP)
+    idx_head = ('# 坑台账（当前：171–172）\n\n## 主题索引 —— 查这里\n\n'
+                '| 主题 | 坑号 |\n|---|---|\n'
+                '| **静默失效** | 31 62 171 |\n\n'
+                '171. **a**\n172. **b**\n')
+    fake_idx = os.path.join(idxdir, 'PITFALLS.md')
+    open(fake_idx, 'w', encoding='utf-8', newline='\n').write(
+        idx_head.replace('| 31 62 171 |', '| 31 62 171 920 |'))
+    results.append(case('坑台账索引写了不存在的编号', 'pitfall_index',
+                        lambda: Mut(pd, 'MAIN', fake_idx)))
+    fake_idx2 = os.path.join(idxdir, 'PITFALLS2.md')
+    open(fake_idx2, 'w', encoding='utf-8', newline='\n').write(idx_head)   # 172 没进索引
+    results.append(case('坑台账新增条目漏进索引', 'pitfall_index',
+                        lambda: Mut(pd, 'MAIN', fake_idx2)))
 
     # 9. voicing_shift 失效
     real_build = song_engine.build_events
