@@ -9758,6 +9758,38 @@ def t_restore_writes_compose():
 
 
 @check
+def t_ornament_probe():
+    """`ornament_probe.py`（**转音/跑动体检**）的契约与尺子。
+
+    为什么有这条（2026-10-05，用户："以后其它地方有能识别到吗，推广一下让直接写音乐
+    也能尝试写出来不同的转音"）：BGM35 19.0–19.6s 那处转音是第一个有据可查的例子，
+    而做它的过程中**三把尺子废了两把**（`pyin` 置信度 0.01 · 整窗能量份额分辨力不足），
+    只有"逐帧谱峰 + 谐波筛"留下了可复核的读数。这条守三件事：
+      ① **判据形状**（音数/跨度/单调性在合理区间；宽档必须真的比默认档宽）；
+      ② **尺子自检**：合成件上"4 音以上快速级进"必须响、"长音"与"低音+其 2/3 次谐波"
+         必须**不响**（谐波陷阱是这一步最容易出的假阳性）；
+      ③ **谐波筛不许退化成恒真/恒假**（它一旦失效，整片高音会被剔掉或整片谐波被当基音）。
+    """
+    import ornament_probe as OP
+    assert OP.MIN_NOTES >= 4, 'MIN_NOTES=%d 太小（3 个音就算转音会把装饰音全收进来）' % OP.MIN_NOTES
+    assert OP.MIN_SPAN >= 2.0, 'MIN_SPAN=%.1f 太小（跨度不足的经过音不是转音）' % OP.MIN_SPAN
+    assert 0.5 <= OP.MONO < 1.0, 'MONO=%.2f 不在合理区间（=1.0 会要求严格音阶）' % OP.MONO
+    assert OP.WIDE['MIN_NOTES'] < OP.MIN_NOTES and OP.WIDE['MONO'] < OP.MONO, \
+        'WIDE 档必须**真的更宽**（否则"口径敏感性"那一行是装饰品）：%r' % (OP.WIDE,)
+    assert OP.selftest() is True, \
+        '转音体检的合成自检 FAIL（坏件没响 或 长音/谐波陷阱被误报）'
+    # 谐波筛的行为：低音 + 它的 2/3 次谐波 ⇒ 谐波必须**被标出来**（不是"都算独立基音"）
+    import numpy as np
+    t = np.arange(int(OP.SR * 1.0)) / OP.SR
+    y = (0.4 * np.sin(2 * np.pi * 220.0 * t) + 0.25 * np.sin(2 * np.pi * 440.0 * t)
+         + 0.15 * np.sin(2 * np.pi * 660.0 * t)).astype('float32')
+    _fr, frames, _fps = OP.peaks_by_frame(y)
+    flagged = sum(1 for f in frames for p in f if p[3])
+    assert flagged > 0, '谐波筛恒假：低音+2/3 次谐波的合成件里一个谐波峰都没标出来'
+    return '转音体检契约：判据形状 + 宽档真的更宽 + 尺子自检（含谐波陷阱）+ 谐波筛不恒假'
+
+
+@check
 def t_sections_not_whole_song():
     """**逐段读数不许退化成"整曲一段"**（用户 2026-09-25："以后要全曲读的先看看要不要分段"）。
 

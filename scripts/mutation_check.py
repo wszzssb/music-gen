@@ -2885,6 +2885,51 @@ def main():
     results.append(case('BP 自动测速退回"直接除 bpm"（TypeError）', 'bp_primary_contracts',
                         _bp_auto_regressed))
 
+    # 74e. **转音体检**（2026-10-05 新工具）的两条退化面：
+    #      a) 谐波筛失效（把"f/2 有峰"的判断关掉）⇒ 低音+谐波的合成件会被当成"独立基音串"，
+    #         谐波陷阱夹具必须红；
+    #      b) 轨迹配对门退回 1.5 半音 ⇒ 遇 4~5 半音的步就断，真实的 7 音下行夹具出不了候选
+    #         （这正是本轮真实踩到的形态：峰都对、候选 0 个）。
+    def _ornament_harm_sieve_off():
+        import ornament_probe as _op
+        return Mut(_op, 'HARM_KEEP', 9.9e9)          # 阈值高到天上 ⇒ 永远标不出谐波
+    results.append(case('转音体检：谐波筛失效（谐波被当独立基音）', 'ornament_probe',
+                        _ornament_harm_sieve_off))
+
+    # 直接换掉配对门不可行（写在函数体内），改用**等价注入**：把轨迹函数换成"只接 ≤1.5 半音"
+    def _ornament_trace_tight():
+        import numpy as _np
+        import ornament_probe as _op
+        orig = _op.trace
+
+        def tight(frames):
+            live, done = [], []
+            for fi, pk in enumerate(frames):
+                cand = sorted(pk, key=lambda p: (p[3], -p[2]))
+                used = set()
+                for tr in live:
+                    last = tr["path"][-1][1]
+                    best, bd = None, None
+                    for p in cand:
+                        d = abs(p[0] - last)
+                        if d <= 1.5 and (bd is None or d < bd) and id(p) not in used:  # ← 退回旧门
+                            best, bd = p, d
+                    if best is not None and fi - tr["i"] <= 2:
+                        tr["path"].append((fi, best[0]))
+                        tr["i"] = fi
+                        used.add(id(best))
+                    else:
+                        done.append(tr)
+                live = [t for t in live if t["i"] == fi]
+                for p in cand:
+                    if id(p) not in used:
+                        live.append({"i": fi, "path": [(fi, p[0])]})
+            return done + live
+        assert orig is not tight
+        return Mut(_op, 'trace', tight)
+    results.append(case('转音体检：轨迹配对门退回 1.5（大步就断）', 'ornament_probe',
+                        _ornament_trace_tight))
+
     # 73. **还原曲的 `render.json` 里 `composer: null` 不许把判据崩掉**（2026-10-01 实测）。
     #     `make_song` 对"只有 song.json"的曲目写的就是 `composer: null`（还原曲全是这种），
     #     而 `chord_names_match_notes` 原来的 `c.get('composer', '')` 在"键存在但值为 null"
