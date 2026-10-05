@@ -247,6 +247,24 @@ studio\stop.cmd     # 停
 #   ⚠ 网格三条静默契约（件名/第三列/静音门）→ PITFALLS 317
 ```
 
+### 交付前体检：关系型判据（**交付前必跑**）
+
+抓"逐音级读数全对、交付却是错的"那一类（编配被压平 / 同音高写 2–5 份 / 长音被切 / 鼓凭空连击）。
+
+```powershell
+& $py scripts\preflight.py <成品.mid> --ref <原曲44k.wav> --stems "<分轨目录>" `
+      --skeleton <源转录.mid> [--base <补音前.mid>] [--mine-wav <我们渲染.wav>] [--json 报告.json]
+& $py scripts\preflight.py --selftest     # 15 个已知答案用例（坏件必须响 / 好件必须不响）
+# 退出码：0 无 FAIL（可交付）· 1 有 FAIL（不许生成成品）· 2 缺关键输入
+#   ⚠ **只有 ①② 是门**，③④⑤⑥ 是 WARN —— 它们的"越界"在好件上也出现（是这条线的基线），必须配人耳 A/B
+#   ⚠ ①b「疑似丢轨」默认只报线索：引擎编配版按角色自行分配音色，骨架的 (channel, program)
+#      本来就留不住（真实 douzo 报 ch1 prog8 / ch2 prog16，那两层其实在）；要当门加 `--strict-tracks`
+#   ⚠ ④b 只看 other 会在"other 本来没内容"的曲子上**恒真**（实测仅 4% 的窗有能量）⇒ 报「未量」，
+#      判据改成"我方放音而**全部分轨**都极静"才算凭空音 —— PITFALLS 322
+#   ⚠ ⑤ 不用 onset 检测器：它的 normalize 会把静音区噪声放大成"有冲击"（坏件假 PASS）
+#      ⇒ 直接量每一下的 3–8kHz 抬升 —— PITFALLS 321
+```
+
 ### 单乐器独奏化（"提取 MIDI 之后完全用钢琴 / 只用一件乐器演奏"）
 
 ```powershell

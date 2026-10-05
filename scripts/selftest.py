@@ -9647,6 +9647,52 @@ def t_audit_stems_contracts():
 
 
 @check
+def t_preflight_ruler():
+    """`preflight.py`（**关系型交付门**）的契约与尺子。
+
+    为什么有这条（2026-10-05）：这份工具是实现过一次、**从未进 git**、随中间产物清理一起丢掉的
+    （第十/十一轮那四条"逐音级读数全对、交付却是错的"全靠它抓出来）—— 重建之后必须由自检守着，
+    否则同一种丢失会再来一次。守三件事：
+      ① **判据的形状**：`SAME_SEC < DUP_SEC` —— ② 的"新增"窗口必须比"重复"窗口紧，
+         否则"贴着基准音的重复份"被判成基准音（原实现就栽在这上面，假 PASS）；
+      ② **纯函数行为**（已知答案）：重复组 / 连击串 / 压平判定 / 窗重叠边界；
+      ③ **尺子自检**：`selftest()` 的 15 个用例（坏件必须响、好件必须不响）全过。
+    """
+    import preflight as PF
+    # ① 门的形状（变异用例注的就是这两条）
+    assert 0 < PF.SAME_SEC < PF.DUP_SEC, \
+        'SAME_SEC(%.3f) 必须 > 0 且 < DUP_SEC(%.3f)：相等 ⇒ "贴着基准音的重复份"会变成假 PASS' \
+        % (PF.SAME_SEC, PF.DUP_SEC)
+    assert 0 < PF.DUP_RATIO_MAX <= 0.05, \
+        'DUP_RATIO_MAX=%.3f 太松（② 就抓不住重复了；标定值是 2%%）' % PF.DUP_RATIO_MAX
+    assert PF.BURST_RISE_DB > 0 and 0 < PF.BURST_SUPPORT_MIN < 1, \
+        '⑤ 的门不成形：BURST_RISE_DB=%.1f · BURST_SUPPORT_MIN=%.2f' % (PF.BURST_RISE_DB,
+                                                                      PF.BURST_SUPPORT_MIN)
+    assert 0 < PF.COVER_APPLY_MIN < 1, \
+        'COVER_APPLY_MIN=%.2f —— ④ 的"适用性前置"失效会让它在稀疏素材上恒真（真实 douzo：other 仅 4%%）' \
+        % PF.COVER_APPLY_MIN
+    # ② 纯函数（已知答案）
+    n = PF.dup_flags([(0.0, 0.5, 60, 90), (0.03, 0.5, 60, 90), (2.0, 0.5, 60, 90)])
+    assert len(n) == 1, 'dup_flags：30ms 内的同音高两个音该报 1 个重复份，实得 %d' % len(n)
+    assert len(PF.dup_flags([(0.0, 0.5, 60, 90), (1.0, 0.5, 60, 90)])) == 0, \
+        'dup_flags：相隔 1 秒的同音高音被误判成重复组'
+    b = PF.pack_bursts([(0.1 * i, 0.1, 38, 90, 'Drums', True) for i in range(8)])
+    assert len(b) == 1 and len(b[0][1]) == 8, \
+        'pack_bursts：8 下 0.1s 连击该成 1 串 8 下，实得 %s' % (b,)
+    assert len(PF.pack_bursts([(1.0 * i, 0.1, 38, 90, 'Drums', True) for i in range(8)])) == 0, \
+        'pack_bursts：间隔 1 秒的鼓点被误判成连击串'
+    assert PF.is_flattened({1: 1, 2: 1}, {1: 1}) is True, '压平（2 轨→1 轨）没被判出来'
+    assert PF.is_flattened({1: 1, 2: 1}, {1: 1, 2: 1}) is False, '正常件被误判成压平'
+    assert PF._overlap([(1.0, 1.4)], 0.5) is False, \
+        '_overlap：起音正好落在窗末（0.5+0.5）的音被算进了前一个窗 —— 好件会报"凭空音"（本轮已踩）'
+    assert PF._overlap([(1.0, 1.4)], 1.0) is True, '_overlap：真正重叠的窗没判出来'
+    # ③ 尺子自检（15 个已知答案用例：好件全绿 · 压平/丢轨/重复/鼓连击必须响 · ② 的反例与负控）
+    assert PF.selftest() is True, 'preflight 的合成自检 FAIL（坏件没响，或好件被误报）'
+    return ('preflight 契约：SAME_SEC<DUP_SEC · 重复组/连击串/压平/窗重叠边界都对 · '
+            '尺子 15 个已知答案用例全过（含 ② 反例与负控）')
+
+
+@check
 def t_sections_not_whole_song():
     """**逐段读数不许退化成"整曲一段"**（用户 2026-09-25："以后要全曲读的先看看要不要分段"）。
 

@@ -2843,6 +2843,29 @@ def main():
     results.append(case('多视图链的装配退回 --k（视图票）', 'vote_views_plan',
                         _views_vote_by_k))
 
+    # 74b. **交付门 `preflight.py`**（2026-10-05 重建；原实现丢失过一次）的三条退化面。
+    #      这份工具的价值全在"坏件必须响"上，而它有三处会**静默退回假 PASS**：
+    #        a) ② 的"新增"窗口松到与"重复"窗口相等 ⇒ 贴着基准音的重复份被判成基准音
+    #           （**原实现就栽在这**，是本轮 `--selftest` 当场抓到的）；
+    #        b) 压平判定失效 ⇒ "12 轨被压成 1 轨"（第十轮那个只有耳朵听得出的错）静默通过；
+    #        c) ④ 的"适用性前置"失效 ⇒ 判据在稀疏素材上恒真（真实 douzo 实测 `other` 仅 4% 有能量）。
+    def _pf_same_window():
+        import preflight as _pf
+        return Mut(_pf, 'SAME_SEC', _pf.DUP_SEC)
+    results.append(case('交付门 ② 的新增窗口松到重复窗口（贴着基准音的重复份假 PASS）',
+                        'preflight_ruler', _pf_same_window))
+
+    def _pf_no_flatten():
+        import preflight as _pf
+        return Mut(_pf, 'is_flattened', lambda ks, km: False)
+    results.append(case('交付门压平不报（12 轨→1 轨静默通过）', 'preflight_ruler', _pf_no_flatten))
+
+    def _pf_cover_always_applies():
+        import preflight as _pf
+        return Mut(_pf, 'COVER_APPLY_MIN', 0.0)
+    results.append(case('交付门 ④ 适用性前置失效（稀疏素材上恒真）', 'preflight_ruler',
+                        _pf_cover_always_applies))
+
     # 73. **还原曲的 `render.json` 里 `composer: null` 不许把判据崩掉**（2026-10-01 实测）。
     #     `make_song` 对"只有 song.json"的曲目写的就是 `composer: null`（还原曲全是这种），
     #     而 `chord_names_match_notes` 原来的 `c.get('composer', '')` 在"键存在但值为 null"
