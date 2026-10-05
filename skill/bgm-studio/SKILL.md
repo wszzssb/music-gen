@@ -15,7 +15,7 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
 | **照着某首参考曲写（模仿）**：七步工序 · 段名纪律 · 与"直接作曲 / 还原"的分界 | `docs/IMITATE-PATH.md` | ≈2.2k |
 | 写/改 `song.json`（结构、风格预设、段落曲线） | `docs/SONG-FORMAT.md` | ≈2.1k |
 | 完整命令与开关（含分段拟合流程） | `CHEATSHEET.md` | ≈7.7k |
-| 全貌：目录、工具清单、验证状态、产物 | `README.md` | ≈15.7k |
+| 全貌：目录、工具清单、验证状态、产物 | `README.md` | ≈23.7k |
 | 出症状（杂音/错音/调参不收敛/占用率对不上） | `PITFALLS.md` 按编号查 | 别整读 |
 | **要新增内容**（往哪写、动哪些守卫） | `docs/CONVENTION.md` | ≈2.0k |
 | **音频大模型当"嘴替"**（Qwen2-Audio 逐段线索 + **Music Flamingo "像不像"描述器**：用法 · 硬约束 · **能力标定** · 下一步交接） | `docs/AUDIO-CRITIC.md` | ≈8.2k |

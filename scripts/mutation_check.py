@@ -486,6 +486,15 @@ def main():
     results.append(case('坑台账新增条目漏进索引', 'pitfall_index',
                         lambda: Mut(pd, 'MAIN', fake_idx2)))
 
+    # 8c. 新工具没进 README 工具清单（2026-10-06 收紧 `t_docs_paths` ④ 后加的用例）
+    #     坏法①：工具清单小节"读不到"（改名/被搬走/判据失效）⇒ 判据失效要当场说清楚；
+    #     坏法②（更贴近真实）：小节还在、但里面**没有**任何脚本名 ⇒ 全部脚本都成了未登记。
+    #     用"替换 `_tool_section()` 的返回值"注入，两条都验。
+    results.append(case('README 工具清单小节丢了', 'docs_paths',
+                        lambda: Mut(st, '_tool_section', lambda: '')))
+    results.append(case('工具清单里少了脚本', 'docs_paths',
+                        lambda: Mut(st, '_tool_section', lambda: '## 2. 工具清单\n\n| 脚本 | 作用 |\n|---|---|\n')))
+
     # 9. voicing_shift 失效
     real_build = song_engine.build_events
 

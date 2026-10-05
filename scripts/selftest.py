@@ -1239,36 +1239,42 @@ def t_docs_paths():
                 dead.append('%s → %s' % (os.path.basename(p), m))
     assert not dead, '文档指针腐烂（搬走了正文却没改指针）: ' + '; '.join(dead)
 
-    # ④ **反向也要查**：`scripts/*.py` 里不许有"**从没被任何文档提到**"的。
+    # ④ **反向也要查**：`scripts/*.py` 里不许有"**没进 README 工具清单**"的。
     #    实景（2026-09-21 横向扫描）：`octave_audit.py`（还原第 0 步量八度错误率）、
     #    `probe_variety.py`、`block_eq.py`、`section_eq.py`、`pitfalls_archive.py`
     #    五个工具**能被调用、也有实质案例，却不在任何文档里** —— 对使用者等于不存在。
     #    `CONVENTION.md` §4-A 写的是"新工具 → README 清单加一行"，但此前**没有守卫**强制，
     #    于是漏登记就是静默的（跟"新文档漏进 GROUPS"是同一类）。
-    #    判据：脚本名出现在**任意一份 md**（含 `songs/*/notes.md`、宿主 SKILL）里就算已登记。
+    #
+    #    ⚠ **2026-10-06 收紧**：原判据是"脚本名出现在**任意一份 md**（含 `HISTORY` /
+    #    `PITFALLS` / `notes.md` / 宿主 SKILL）里就算已登记"。实测它太松 —— 有 **20 个**
+    #    脚本**完全不在工具清单里**（`json_io.py` / `midi_*.py` / `harmony_check.py` /
+    #    `master_*.py` / `pick_reference.py` / `transcribe_audit.py` …），却因为"在
+    #    `PITFALLS` 或 `HISTORY` 里被提过一句"而**全部通过**。而那些提法是**叙事**，
+    #    不是索引 —— 想知道"有没有这个工具"的人不会去翻台账。
+    #    ⇒ 判据改成：**必须出现在 `README.md` 的「## 2. 工具清单」小节里**（那才是工具索引；
+    #    内部件也登记，标明"被 import"）。确实不必登记的，加进 `ok_unlisted`。
     ok_unlisted = frozenset()          # 确实不需要登记的内部脚本（目前没有）
-    md_text = []
-    for _base, _dirs, _files in os.walk(ROOT):
-        _dirs[:] = [d for d in _dirs if d not in ('.venv', '.venv-ml', '.git', 'refs',
-                                                  '__pycache__', 'node_modules', 'vendor')]
-        for _f in _files:
-            if _f.lower().endswith('.md'):
-                try:
-                    md_text.append(open(os.path.join(_base, _f), encoding='utf-8',
-                                        errors='replace').read())
-                except OSError:
-                    pass
-    _host_skill = os.path.join(os.path.expanduser('~'), '.dsh', 'skills', 'bgm-studio',
-                               'SKILL.md')
-    if os.path.exists(_host_skill):
-        md_text.append(open(_host_skill, encoding='utf-8', errors='replace').read())
-    _blob = '\n'.join(md_text)
+    sec = _tool_section()
+    assert sec, 'README.md 里找不到「## 2. 工具清单」小节 —— 判据失效（先修判据，别让检查空转）'
     unlisted = [f for f in sorted(os.listdir(HERE))
-                if f.endswith('.py') and f not in ok_unlisted and f not in _blob]
+                if f.endswith('.py') and not f.startswith('_')
+                and f not in ok_unlisted and f not in sec]
     assert not unlisted, (
-        '这些工具**从没被任何文档提到**（用户/agent 不知道它存在 = 等于没有）: %s —— '
-        '在 `README.md` 的工具清单里加一行（按 `CONVENTION.md` §4-A）；确实不需要登记的，'
+        '这些工具**没进 `README.md` 的工具清单**（想知道有没有这个工具的人不会去翻台账）: %s —— '
+        '在 §2 清单里加一行（内部件也登记，标明"被 import"）；确实不需要登记的，'
         '加进本检查的 `ok_unlisted` 白名单' % unlisted)
+
+
+def _tool_section():
+    """`README.md` 的「## 2. 工具清单」小节原文（到下一个 `## ` 或 `### ` 标题为止）。"""
+    txt = open(os.path.join(ROOT, 'README.md'), encoding='utf-8').read()
+    beg = txt.find('## 2. 工具清单')
+    if beg < 0:
+        return ''
+    rest = txt[beg:]
+    ends = [i for i in (rest.find('\n## ', 1), rest.find('\n### ', 1)) if i > 0]
+    return rest[:min(ends)] if ends else rest
 
 
 @check
