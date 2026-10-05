@@ -4,6 +4,12 @@
 > 上一份是 `docs/HANDOFF-INTRO-BOOST.md`（已落地 6 项 + 未完成的 ①②④）。
 > 这一份讲的是：**接手后先验收，结果发现 ①② 从来没生效** —— 根因三条，已修；
 > 剩下 ①（伴奏逐句变化）与 ④（逐段旋律密度）**机制性无效**，原因已定位到具体代码行。
+>
+> ⚠ **2026-10-06 加注（现状）**：本文的**收尾动作都已做完**（② 修好、④ 重做并重渲 16 首、
+> 三条静默失效已修且配了守卫）⇒ 它现在是**状态卡 + 坑清单**，不是"待办交接"。
+> **唯一还开着的口子是 §4 表里的 ①（重设计 `vary_comp`：改整小节落点型，不是改单个音）**，
+> 以及 §2 那条"同名旋律按密度各生成一支"的**设计取舍**（要动就得放弃"A' 复用 A"，需用户点头）。
+> §7 的 11 条坑是**唯一留痕**（`PITFALLS` 未收录），改这条线之前先读它。
 
 ---
 
@@ -141,7 +147,7 @@
   · `pre-boost\<曲>\`（最早成品 + `_sha256_before.json` 台账）
 - 读数：`accept2.txt` · `drum_counts.txt` · `gates.txt` · `dens4.txt`（④ 专属）·
   `vary_probe.txt` · `seed_scan2.txt` · `seed_pick_102_waltz_court.txt` · `calib_scan.txt` ·
-  `SUMMARY.md` · 日志 `boost_run.log` / `rerender_final.log` / `dens_regen.log`
+  ⚠ 目录已清理；当时的 SUMMARY.md · 日志 `boost_run.log` / `rerender_final.log` / `dens_regen.log`
 - 本轮还换了 3 首的旋律 seed（只为过既有门，不动别的东西）：
   `109_sunlit_desk` / `103_sorrow_letter` → seed=1（`melody_health` 小步 38%→31%、
   落点偏离 0.664→达标）· `102_waltz_court` → seed=7（落点偏离逐段最坏 0.677→0.638）
@@ -157,7 +163,7 @@
     **稀疏段听起来会不会"空"必须人耳判断** —— 这是本轮最该先听的一条。
 - ① 的"重设计"**没做**（只定位了机制根因）；④b（同名旋律按密度各生成一支）也没做。
 - 音频级频谱体检没做（`--fast` 跳过渲染类检查）。
-- `theme_pack.py` 的 plan 生成器仍未改（重建主题包会把首段覆盖回旧行为）。
+- `theme_pack.py` 的 plan 生成器仍未改（重建主题包会把首段覆盖回旧行为）→ **已记进 `PITFALLS` 327**。
 
 ---
 

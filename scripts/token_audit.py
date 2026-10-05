@@ -37,7 +37,6 @@ DOCS = {
     'docs/AUDIO-CRITIC.md（音频大模型嘴替·交接）': os.path.join(ROOT, 'docs', 'AUDIO-CRITIC.md'),
     'CHEATSHEET.md（命令速查，按需查）': os.path.join(ROOT, 'CHEATSHEET.md'),
     'PITFALLS.md（出症状才按编号查）': os.path.join(ROOT, 'PITFALLS.md'),
-    'docs/HANDOFF-FAILS7.md（交接：修 7 条 FAIL）': os.path.join(ROOT, 'docs', 'HANDOFF-FAILS7.md'),
     'HISTORY.md（开发记录，写代码才看）': os.path.join(ROOT, 'HISTORY.md'),
     'docs/IMITATE-PATH.md（模仿写歌路径）': os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'),
     'docs/RESTORE-METHOD.md（还原/扒带方法论）': os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
@@ -45,7 +44,20 @@ DOCS = {
     'docs/HANDOFF-TRANSCRIBE.md（提取精度交接）': os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
     'docs/HANDOFF-FAMILY-VOTE.md（族票交接）': os.path.join(ROOT, 'docs', 'HANDOFF-FAMILY-VOTE.md'),
     'docs/HANDOFF-ORNAMENT.md（转音交接）': os.path.join(ROOT, 'docs', 'HANDOFF-ORNAMENT.md'),
+    'docs/HANDOFF-GEN-PLACEMENT.md（生成器落点交接）':
+        os.path.join(ROOT, 'docs', 'HANDOFF-GEN-PLACEMENT.md'),
     'docs/HANDOFF-BGM35-R2.md（BGM35 整曲还原交接）': os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
+    # 2026-10-06 补登记：这 4 份一直在 `docs/` 里、也一直出现在 SKILL 路由表上，
+    #   **却从来没进过 DOCS/LIMITS 也没进 `t_docs_paths`** ⇒ 无预算、无指针检查。
+    #   实测后果：`HANDOFF-INTRO-BOOST.md` 长到 169 行 / ≈5.5k tok 也没人报（`HANDOFF-GEN-BOOST2`
+    #   §7 是它的唯一留痕）。登记时**按实测值 + 余量**给上限（别再犯"抬窄"那一族错）。
+    'docs/HANDOFF-GEN-BOOST2.md（生成能力强化②·已闭环）':
+        os.path.join(ROOT, 'docs', 'HANDOFF-GEN-BOOST2.md'),
+    'docs/HANDOFF-INTRO-BOOST.md（生成能力强化①·历史）':
+        os.path.join(ROOT, 'docs', 'HANDOFF-INTRO-BOOST.md'),
+    'docs/HANDOFF-GEN-MICRO.md（微时序⑥·已闭环）':
+        os.path.join(ROOT, 'docs', 'HANDOFF-GEN-MICRO.md'),
+    'docs/HANDOFF.md（生成曲听感修复·历史）': os.path.join(ROOT, 'docs', 'HANDOFF.md'),
     'studio/README.md（可视化面板）': os.path.join(ROOT, 'studio', 'README.md'),
     'tools/git-push/README.md（推送绕行）': os.path.join(ROOT, 'tools', 'git-push', 'README.md'),
 }
@@ -110,7 +122,9 @@ LIMITS = {
     #   §0 重复的表述，而不是删任何"每轮都在用"的行为约束（判据见本文件上方那段注释）。
     # **2026-10-05 收支平衡 ＋ 压缩落地**：上限收到 **2500**。理由：宿主那份实测到
     #   **3190**（6015 字 / 144 行）后`docs_budget_and_skill_intact` 长期挂红，而
-    #   修法是压缩不是抬上限（交接文档 `HANDOFF-FAILS7.md` ⑤ 给的顺序）。
+    #   修法是压缩不是抬上限（**压缩顺序**：先抬/对齐上限、再落内容、最后补压缩 ——
+    #   这条顺序原记在交接文档 `HANDOFF-FAILS7.md` ⑤，该文档 2026-10-06 已按"做完即删"
+    #   处理 ⇒ 结论搬到这里，别再去追那份文件）。
     #   实测压缩路径（**触发词一个没删**，只删"为什么/历史证据/重复的操作规程"）：
     #     ① 四条技能段**共用一个前言**（原来每段都复述一遍"没有自动匹配…"）；
     #     ② 每条指针只留「技能体路径 + 一行铁律」，四条/六条铁律的**逐条列举**下沉到
@@ -259,7 +273,6 @@ LIMITS = {
     # +300（2026-09-27，同日）：路由表再加一行"**接手提取精度这条线** → `docs/HANDOFF-TRANSCRIBE.md`"
     #   （用户要"写交接文档让另一个对话试试"—— 一条路由比在正文里写十句更有用）。
     #   估 +90 → **10200**。压缩目标：**9400**（与上一行合并成"提取精度：方法 / 交接"）。
-    'docs/HANDOFF-FAILS7.md（交接：修 7 条 FAIL）': 8000,   # 新增（2026-10-04 夜）：交接文档，任务做完后**删掉并同步删 LIMITS 这一项**
     'SKILL.md（音乐任务加载）': 13400,   # +400（2026-10-04 夜·续）：逐轨精度审计那条加"两个闸门"
     #   （整层缺失档 + 准入判据）+ 读数好≠能交付。**压缩目标：12700**。
     # +500（2026-10-04）：§8 第 0 步前补一条"**扒谱开工先查两处'静默丢/添内容'**"——
@@ -786,7 +799,18 @@ LIMITS = {
     #   内容：提取侧工具（`ornament_probe.py`）已入库与其**能力边界** · 生成侧现状（只有单音
     #   装饰）· 依据两条岔路（画像派生 / 重抓模板直接量）· 验收判据 · 红线 · 素材绝对路径。
     #   实测 7572 字节 ≈2.3k tok，估 +400（设计建议与红线留补充空间）→ 按纪律抬到 **3200**。
-    'docs/HANDOFF-ORNAMENT.md（转音交接）': 3200,
+    #   2026-10-06：生成侧转音**落地**（读数、A/B、坑、诚实清单都写进这份交接）后实测 **3599**，
+    #     顶过 3200 —— 它是"当前交接文档"，下一轮还要往里写验收结果 ⇒ 抬到 **4000**（留 ~400）。
+    #     压缩目标：**3400**（等生成侧这条线收尾后，把"已做完的过程"搬去 `HISTORY.md`）。
+    #   2026-10-06 晚：B2（模板直接量）落地 + 校准结论（Spearman 0.12）也写进来了，实测约 **4.1k**
+    #     ⇒ 抬到 **4400**（当前 + 增量 + 余量）。压缩目标：**3400**
+    #     （生成侧这条线收尾后，把"已做完的过程"搬去 `HISTORY.md`，只留"下一步 + 坑"）。
+    'docs/HANDOFF-ORNAMENT.md（转音交接）': 4400,
+    # 新增（2026-10-06）：`docs/HANDOFF-GEN-PLACEMENT.md` —— **生成器·落点位置**（用户
+    #   "音的位置有点奇怪"+"以前也是这样"）交给下个对话，且**排在转音那条线之前**。
+    #   实测 4699 字 ≈ **2.4k tok**，给 **3000**（下一轮会往里加读数；别贴着实测值设）。
+    #   压缩目标：**2400**（落点问题收尾后，把"已做完的读数"搬 `HISTORY.md`）。
+    'docs/HANDOFF-GEN-PLACEMENT.md（生成器落点交接）': 3000,
     # 新增（2026-10-02）：BGM35 **整曲**还原的交接 —— 现状读数（preflight 逐层空洞 483 秒）·
     #   四步待办（按推荐顺序）· 8 条红线 · 素材与命令的绝对路径。估 4000，按纪律留余量 → 4800。
     # 替换（2026-10-02 第二轮）：`HANDOFF-BGM35-RESTORE.md` → **`HANDOFF-BGM35-R2.md`**。
@@ -800,6 +824,16 @@ LIMITS = {
     #   ⚠ 第一版按 +600 估、抬到 6000，实测**直接冲到 5758**（只余 242）—— 又一次"抬窄了"。
     #   再抬到 **6600**。**压缩目标：5300**（欠账：§11.2 的表可与 §7 合并、§11.4 可压成三行）。
     'docs/HANDOFF-BGM35-R2.md（BGM35 整曲还原交接）': 6600,
+    # 新增（2026-10-06，**补登记**）：这 4 份一直没进预算表（见 DOCS 里那段注释）。
+    #   给法一律"实测 + 余量"，别贴着实测值设（本文件里"抬窄"翻过好几次车）。
+    #   ⚠ 它们是**状态卡/历史**，不是活交接 ⇒ 上限只用来防膨胀，不用来留写作空间。
+    'docs/HANDOFF-GEN-BOOST2.md（生成能力强化②·已闭环）': 6000,   # 实测 ≈4.4k；§7 的 11 条坑是唯一留痕
+    'docs/HANDOFF-INTRO-BOOST.md（生成能力强化①·历史）': 6000,    # 实测 ≈5.5k；基线与 10 条坑是唯一留痕
+    'docs/HANDOFF-GEN-MICRO.md（微时序⑥·已闭环）': 4000,          # 实测 ≈2.6k
+    # `docs/HANDOFF.md`：最老的一份（2026-09-18 起、§10 回填到 10-02），553 行。
+    #   ⚠ 它被 README/SKILL/PITFALLS 多处指针引用（"§7/§7.10/§9"），**不能删**；
+    #   但它是"越写越长"的活样本 ⇒ 上限按实测给，压缩靠把"已修完"的节搬 HISTORY。
+    'docs/HANDOFF.md（生成曲听感修复·历史）': 14000,               # 实测 ≈12.4k
     # +200（2026-09-19）：A′（面板 = 唯一入口）要在文首"面板不重写任何音频逻辑"那行后面
     #   补一段"CLI 默认委托面板 API + 两个开关"。估 +60，按纪律 2 倍 + 余量抬 → **2400**。
     #   压缩目标：**2250**。
@@ -828,13 +862,26 @@ LIMITS = {
     #   它是**生成物**（`scripts/doc_map.py`），长度随文档数增长 → 给的是膨胀警报：
     #   实测 4985（212 行），抬到 **7000**。压缩目标：**4500**。
     #   ⚠ 手改会被自检 `doc_map_fresh` 当场抓住（`--check` 重算逐字比对）。
-    'docs/DOC-MAP.md（文档地图·节级索引）': 7000,
+    #   2026-10-05（本轮）：新增一份交接文档（`HANDOFF-GEN-BOOST2.md`）后实测 **7028**，
+    #     超出原上限 7000 → 按本文件纪律（上限别贴着实测值设）抬到 **7300**。
+    #     这次先把**新增与历史两行**压过一轮（7059 → 7037 → 7028）再抬，不是只抬不管。
+    #     压缩目标：**7000**（下次要加文档时先压旧条目，别把它当免费空间）。
+    #   2026-10-06：转音标定把 `HANDOFF-ORNAMENT.md` 加长（§5-1 加了读数表）后实测 **7303**，
+    #     顶过 7300 —— 只超 3 tok，但"把上限贴着实测值设"就是这么翻车的 → 抬到 **7600**。
+    #     压缩目标：**7000**（同上：下次加文档前先压旧条目，别把它当免费空间）。
+    'docs/DOC-MAP.md（文档地图·节级索引）': 7600,
     # ⚠ **长期缺预算，2026-09-21 查疏漏时补上**：`HISTORY.md` 是全库**最大的文档**
     #   （38.4k tok），而 `LIMITS` 里一直没有它 —— 自检对"没有预算的项"是**直接跳过**
     #   （`if lim and tok > lim`），等于它每轮都在长、却没有任何东西会报警。
     #   这是**膨胀警报**：实测 38378，给 **42000**（余 ~3.6k）。
     #   超过就该按批次拆到 `HISTORY-ARCHIVE.md`（同 `PITFALLS` 的归档做法）。
-    'HISTORY.md（开发记录，写代码才看）': 42000,
+    #   2026-10-06：生成侧转音那一轮（`apply_ornaments` + 置换 + 一条读回验证抓到的引子规则）
+    #     记进 HISTORY 后实测约 42.1k，顶过 42000 ⇒ 抬到 **43500**。压缩目标：**42000**
+    #     （真要压就把 2026-09 那几轮的"已证伪清单"搬去 `HISTORY-ARCHIVE.md`）。
+    #   2026-10-06 深夜：转音这条线又记了两轮（B2 校准 + 目标处数改"补齐差额"），实测 43.6k
+    #     ⇒ 抬到 **44000**（**同时压了这一段**，不是只抬不管）。压缩目标：**42000**
+    #     （真要压就把 2026-09 那几轮的"已证伪清单"搬去 `HISTORY-ARCHIVE.md`）。
+    'HISTORY.md（开发记录，写代码才看）': 44000,
 }
 # 宿主级文档：由用户目录（技能/全局约定）提供，**不属于本仓库**。
 # 项目内自检不能硬依赖它们 —— 换台机器/换个用户时这些文件本来就不在（实测踩过：

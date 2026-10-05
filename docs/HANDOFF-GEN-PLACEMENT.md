@@ -21,6 +21,10 @@
 
 ## 2. 已量到的读数（**只读诊断**，脚本在 `_tmp`，未入库）
 
+> ⚠ **诊断脚本没入库**（在 `D:\test\_tmp\ornament-B2\why_placement.py` / `scan_all.py`）——
+> `_tmp` 是临时目录、可能被清理。**口径与判据都写在本文档 §2/§3 里**，
+> 脚本丢了就按这个口径重写一遍（两把尺子是仓库现成的，见 §7）。
+
 口径全部复用仓库自己的：`melody_gen.onset_tvd`（落点格分布与画像的总变差距离，0 = 一致）+
 `theme_pack._melody_notes`（与主题包同一套旋律提取）。
 
@@ -81,7 +85,7 @@
 | 只读诊断（落点 vs 画像 + 长音拍外） | `D:\test\_tmp\ornament-B2\why_placement.py` |
 | 只读诊断（全库扫描：谁写得出转音） | `D:\test\_tmp\ornament-B2\scan_all.py` |
 | A/B 与诊断音频（103） | `D:\test\_tmp\ornament-gen\ab_103_sorrow_letter\`（`A_orn` / `B_noorn` / `Aprime`） |
-| 用户听的那组片段 | `D:\test\_tmp\ornament-gen\AB_103A有转音.wav` / `AB_103B无转音.wav` |
+| 用户听的那组片段 | `D:\test\_tmp\ornament-gen\AB_103A有转音.wav` / `AB_103B无转音.wav`（⚠ 文件名中间**没有**下划线） |
 | 生成侧代码 | `scripts\melody_gen.py`（`CELLS_BY_N` · `_make_cell` · `_cap_onsets` · `_decorate_cell` · `form_stats` · `onset_tvd`） |
 | 守卫 | `scripts\selftest.py` 的 `t_melody_form_rules`（`FORM_DENS = (1.8, 2.9)`） |
 | 画像（落点方言） | `refs\themes\*_melody.json` 的 `onset16_hist` |
@@ -99,13 +103,14 @@
 
 ## 9. 顺带：转音那条线的状态（**别重复劳动**）
 
-- 生成侧已落地：`melody_gen.apply_ornaments`（默认开 · `--no-ornaments` 关）· 逐处位置留痕在
-  `melody_gen.ornaments.at`；依据走完 **B1 → B2**（两者 Spearman 只有 0.12 ⇒ 改读
-  `refs/ornament_density.json`，并按**"补齐差额"**定目标）；`selftest` 三个检查项
-  （`ornament_probe`/`ornament_cells`/`ornament_density`）+ `mutation_check` **7 条注入全部抓到**。
+**完整状态卡在 `docs\HANDOFF-ORNAMENT.md`**（已落地 · 只剩听感判决）—— 这里只留三条会影响
+本轮动作的结论：
+
+- 生成侧已落地 `melody_gen.apply_ornaments`（默认开 · `--no-ornaments` 关），依据读
+  `refs/ornament_density.json`（B2 直接量）；`selftest` 有 `t_ornament_cells` / `t_ornament_density`
+  两条守卫、`mutation_check` 4 条注入。
 - **全库 16 首当前只有 2 首写得出转音**（103 = 4 音可检出 · 106 = 3 音，**低于任何档的下限**）；
   其余是"模板本来没有 / 自带已达模板密度 / 置换池不够"。
-- **卡在用户听感判决**（已连续多轮等待）：A/B 在
-  `D:\test\_tmp\ornament-gen\AB_103A有转音.wav` / `AB_103B无转音.wav`。
-- ⚠ `AB_108A有转音.wav` / `AB_108B无转音.wav` 是**"追加"口径**的产物，按现在的"补齐差额"口径
-  **108 不该插** ⇒ 只能当"5 音细胞能写出来、默认档能检出"的**技术证据**，不代表密度对齐。
+- **A/B 在等用户听**：`D:\test\_tmp\ornament-gen\AB_103A有转音.wav` / `AB_103B无转音.wav`。
+  ⚠ `AB_108A/108B` 是**"追加"口径**的产物，按现在的"补齐差额"口径 **108 不该插**
+  ⇒ 只当"5 音细胞能写出来、默认档能检出"的技术证据，**不代表密度对齐**。

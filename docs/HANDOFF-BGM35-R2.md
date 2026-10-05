@@ -3,6 +3,10 @@
 > 它记的"重复组 137 / 逐层空洞 483 秒 / 一致率 84.9%" 与现状都对不上了；
 > 尤其 **84.9% 那个数是同源自证的假数**，见本文 §6）。
 > 自足：只读这一份就能接手。上一轮我按它做了四件事，结论与全部实测数字都在下面。
+>
+> ⚠ **2026-10-06 加注**：下文引用的 `D:\test\_tmp\...`（`lead-chain` / `reextract` / `lib-rescan`）
+> 是**当时的临时工作目录，现已不存在**（实测本文 11 处路径全部失效）。**读数与判据照旧有效**
+> —— 它们是定格的实测值；要复现就按 §4 的命令**重新建目录**（命令本身都在，不依赖那些中间件）。
 
 ## 0. 用户口径（别改）
 
@@ -180,7 +184,7 @@ $V2 = D:\test\_tmp\lead-chain\vel_stems                       # 同上
 | 参考曲 | `D:\test\galgame\ピュアソングガーデン！解包\Bgm\BGM35.ogg`（331.9 秒 · 4/4 · 实测 ≈149.8 BPM） |
 | demucs 六轨 / 各层转录 / 优化 Bass | `D:\test\_tmp\reextract\`（`stems\` · `ymt3_allstems\` · `bass_fix_thr0.45_oct.mid`） |
 | 量过力度的转录（本轮产物） | `D:\test\_tmp\lead-chain\vel_stems\*.mid` |
-| 本轮所有临时脚本与日志 | `D:\test\_tmp\lead-chain\`（含 `FINDING-bass-timeline.md`、各 `*.log`、`scan_*.json`） |
+| 本轮所有临时脚本与日志 | `D:\test\_tmp\lead-chain\`（⚠ 目录已清理；内含 FINDING-bass-timeline.md、各 `*.log`、`scan_*.json`） |
 | 旧版（用户认可过的那一支） | `D:\software\skill\music-gen\songs_direct\bgm35_extract\` |
 | 交付目录（旧版交付物） | `D:\software\skill\music-gen\deliveries\bgm35_extract\` |
 | 上一轮交接（读数已过期） | `docs\HANDOFF-BGM35-RESTORE.md` |

@@ -1170,6 +1170,14 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-GEN-PLACEMENT.md'),
+             # 2026-10-06 补：这 4 份一直没进本清单（也就没被查过"指针腐烂"）。
+             os.path.join(ROOT, 'docs', 'HANDOFF-GEN-BOOST2.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF-INTRO-BOOST.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF-GEN-MICRO.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF-ORNAMENT.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF-FAMILY-VOTE.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
              os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'),
              os.path.join(ROOT, 'studio', 'README.md'),
              os.path.join(os.path.expanduser('~'), '.dsh', 'skills',
@@ -1202,6 +1210,14 @@ def t_docs_paths():
               os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
               os.path.join(ROOT, 'docs', 'HANDOFF-TRANSCRIBE.md'),
               os.path.join(ROOT, 'docs', 'HANDOFF-GEN-PLACEMENT.md'),
+              # 2026-10-06 同上：这些交接文档也一直是"没人查指针"的。
+              os.path.join(ROOT, 'docs', 'HANDOFF-GEN-BOOST2.md'),
+              os.path.join(ROOT, 'docs', 'HANDOFF-INTRO-BOOST.md'),
+              os.path.join(ROOT, 'docs', 'HANDOFF-GEN-MICRO.md'),
+              os.path.join(ROOT, 'docs', 'HANDOFF.md'),
+              os.path.join(ROOT, 'docs', 'HANDOFF-ORNAMENT.md'),
+              os.path.join(ROOT, 'docs', 'HANDOFF-FAMILY-VOTE.md'),
+              os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
               os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'), files[-1]]
     dead = []
     for p in dokeys:
