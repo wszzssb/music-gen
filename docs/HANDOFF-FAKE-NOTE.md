@@ -251,6 +251,8 @@ easy_bgm12_v2
 `D:\test\ab_fake_note_2026-10-06\ab_hard_bgm35_v2_oncut6\ab_hard_bgm35_v2_oncut6_sf.ogg`
 （B 门 6dB：Drums 3835→2117 音、精度 23.6→28.1%、`preflight` ⑤ 72→8 串）。
 逐份 `audit_stems` / `preflight` 的 JSON 与日志在 `D:\test\_tmp\fake-note\logs\`。
+⚠ **收尾时按用户要求清理了**：`D:\test\_tmp\fake-note\` 与 `D:\test\ab_fake_note_2026-10-06\`
+（含上面两份 ogg 与全部日志）**已删** —— 要复现按本节命令重跑即可（素材路径见 §5，那些还在）。
 ⚠ 两份的 `render.json` 里 `ref` 都是 **`bgm01c`（不是本曲）** —— `PITFALLS 2758` 那条。
 
 **纪律与欠账**：
@@ -290,7 +292,7 @@ easy_bgm12_v2
 | 件 | 作用 |
 |---|---|
 | `scripts\ymt3_moe_transcribe.py` | **换任意权重转录**（`--exp-dir` + `--extra` 参数化），输出原始 13 通道产物 |
-| `moe_loadcheck`（在 `D:\test\_tmp\fake-note\`，未入库） | 换权重前的**加载自检**：权重键命中率 <0.95 一律不许下结论 |
+| `scripts\moe_loadcheck.py` | 换权重前的**加载自检**：权重键命中率 <0.95 一律不许下结论（实测现用 386/386 · MoE 655/655） |
 | `scripts\ymt3_engine_map.py` | 原始 GM 家族名 → 引擎 9 轨映射 + **逐轨写出**（`--per-track-dir`）|
 
 ⚠ **`transcribe_to_song` 的每轨内容只认 `--mid <轨>=<文件>`**：喂"单文件多轨"会被拍平、
