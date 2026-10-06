@@ -1,0 +1,15 @@
+# 默认路径方法指纹（还原一首曲子必经的环节）
+# 用途：任何一轮改动后 PASS：BGM35 家族产物**逐字节未变**（核对了 12 项产物；代码漂移 0 项，仅提示） 会逐项列出哪一环漂了。
+# ⚠ 漂移 ≠ 变差：要配合 selftest 的 determinism_and_bytes（整库 26 首逐字节）一起读。
+#   代码漂 + determinism 仍 PASS ⇒ 对产物无影响；代码漂 + determinism FAIL ⇒ 当场拦下。
+2f821a73619a2c8c799cb15fee4524879d31dc54b0952c5e3799eeba3e994e23 *scripts/transcribe_ymt3.py
+172a9242a23074fc13027dacf7412f474b869b2291e41eacf30a45b03516ee5c *scripts/transcribe_to_song.py
+038e19c2df8fb588e997e61bfe48f78eb540213a74fe78e88ee51e3115a6875e *scripts/analyze_chords.py
+2d24c9a4d7ba51acba7786efb354baf7066ae52f8b3edfa1b53395e8911bab05 *scripts/analyze_sections.py
+68bfbbe0eed913ccd5e6ea7b343eaf406820d263e3f4215c430278d41d7b7983 *scripts/measure_velocity.py
+0f045bda66cf722a112c7e398c3b60e7f1a492678766c31cda023457804c2f89 *scripts/song_engine.py
+8d0eff6ddd3dba38b44a01d4da75be12a9307a40dae7eebc753242a070dd174d *scripts/render_midi.py
+b95d0d7362e9e2da706501ddf30a91ddcbe2096040c68d70508c52ecdd1354f8 *scripts/make_song.py
+563d3e4f127439a8bfb407e87e5d0508e993763067c489fc786dfcbbe894cdc1 *scripts/json_io.py
+f374447b4a90a414633709f41e71b24893ddfbd5f5825cea27205b390f8932d5 *scripts/audit_stems.py
+39533a3f38ab7c36b8807063a203d1850da6356889dd921610c097a8531d8f89 *scripts/preflight.py

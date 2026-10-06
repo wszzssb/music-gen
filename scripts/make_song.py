@@ -385,6 +385,56 @@ def main():
     # 原先只在更下面（原 341 行）赋值 → 走到那条分支就 UnboundLocalError 崩掉。
     song_json = os.path.join(folder, 'song.json')
 
+    # ── 混音对标的两个"极易被静默忽略"的事实 → 落成**可查字段** + 大声报警 ──────────
+    # 2026-10-06 血账：还原 BGM23 的整轮 A/B **全用 `--no-tune`**（＝根本没做混音调参），
+    #   且 `ref` 默认 `bgm01c`（**另一首曲子**，PITFALLS 2759）⇒ 所有"像不像"的对照都建在
+    #   未校准的渲染上，而这两件事**只写在日志里**、事后无法从产物反查，白烧一整轮。
+    #   ⇒ 写进 `render.json`：`tuned`(是否跑了调参) · `ref_bpm_mismatch`(对标是否别的曲子)。
+    #   ⚠ `ref` 的真源是 **`render.json`**（本函数第 367 行load），写进 `song.json` **无效**。
+    _tuned = '--no-tune' not in sys.argv
+    _sj_bpm = _ref_bpm = None
+    _desc = ''
+    try:
+        _sj = json.load(open(song_json, encoding='utf-8'))
+        _sj_bpm = float(_sj.get('bpm') or 0) or None
+        _desc = str(_sj.get('desc') or '')
+    except Exception:
+        pass
+    try:
+        import scorecard as _sc
+        _ref_bpm = float((_sc.load_ref(ref_name) or {}).get('bpm') or 0) or None
+    except Exception:
+        pass
+    # ⚠ 判"是否同一首"要容忍**倍/半速**：项目自带画像 `refs/BGM22.json` 的 bpm=71.0，
+    #   而本曲 141.6（＝它的 2 倍）—— 那是**同一首**（profiler 把速度检成半速），
+    #   直接比数值会把正常对齐误报成"对标别的曲子"（假阳性会让守卫失去信誉）。
+    def _same_tune(a, b):
+        if not a or not b:
+            return None                      # 缺值 → 不判（宁可不报）
+        for n in (0.5, 1.0, 2.0):
+            if abs(b - a * n) / (a * n) <= 0.02:
+                return True
+        return False
+    _mismatch = (_same_tune(_ref_bpm, _sj_bpm) is False)
+    _is_restore = 'transcribe_to_song' in _desc          # 还原曲的唯一机器判据
+    cfg['tuned'] = _tuned
+    cfg['ref_bpm_mismatch'] = _mismatch
+    cfg['ref_bpm'], cfg['song_bpm'] = _ref_bpm, _sj_bpm
+    if not _tuned:
+        print('=' * 78)
+        print('!! 本次 **没做混音调参**（--no-tune）：平衡/响度/宽度**都没被校准**。')
+        print('   ⇒ 产物**不能用于 A/B 结论**，也不该当交付物（口径见 PITFALLS 348）。')
+        print('=' * 78)
+    if _mismatch and _is_restore:
+        print('=' * 78)
+        print('!! **还原曲的混音对标不是本曲**：ref=%s(bpm %s) ≠ 本曲(bpm %s)'
+              % (ref_name, _ref_bpm, _sj_bpm))
+        print('   正确做法（两步，改的是 render.json 不是 song.json）：')
+        print('     1) python scripts/profile_ref.py "<原曲音频>" <名字> --bpm %s' % _sj_bpm)
+        print('     2) 把 songs/%s/render.json 的 "ref" 改成 <名字>' % song)
+        print('   否则自动调参会把混音收敛到**别的曲子**（PITFALLS 2759 / 348）。')
+        print('=' * 78)
+
     # [0/3] 数据把关（--check）：**约 1 秒**查完"渲染前必须先过的那批"，把那 30~120 秒的
     # 渲染留给**对的数据**。
     # ⚠ 2026-09-24 修：这里原来原样调 `check_song.py <曲>`（= **全量 151 项，实测 84.9 秒**），
@@ -478,6 +528,7 @@ def main():
         cfg.setdefault('out', os.path.basename(out))
         cfg.setdefault('ref', ref_name)
         cfg.setdefault('song', song)
+        cfg['tuned'] = True                      # 调参分支：本份参数是收敛出来的
         with open(cfg_path, 'w', encoding='utf-8', newline='\n') as f:
             json.dump(cfg, f, ensure_ascii=False, indent=1)
         print('  已把调好的参数写回 render.json')
@@ -505,6 +556,9 @@ def main():
         cfg.setdefault('out', os.path.basename(out))
         cfg.setdefault('ref', ref_name)
         cfg.setdefault('song', song)
+        cfg['tuned'] = False                     # --no-tune：没跑调参 ⇒ 事后可查
+        with open(cfg_path, 'w', encoding='utf-8', newline='\n') as f:
+            json.dump(cfg, f, ensure_ascii=False, indent=1)
         render_midi.render(mid, out, rms_db=cfg['rms'], width=cfg['width'],
                            shelf_db=cfg['shelf'], hp_hz=cfg['hp'],
                            low_db=cfg['low'], drive=cfg['drive'],

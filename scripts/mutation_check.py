@@ -994,6 +994,19 @@ def main():
     results.append(case('render.json 的 mid 是数字', 'render_json_schema',
                         lambda: Mut(st, 'song_dirs', lambda **k: [bad_render()])))
 
+    # 39b. 还原曲**做了混音调参、却对标别的曲子**（PITFALLS 348 的防线；2026-10-06 血账）
+    def bad_restore_ref():
+        d = temp_song_dir()
+        json.dump({'name': os.path.basename(d), 'bpm': 141.6,
+                   'desc': '由 transcribe_to_song.py 从转录生成（141.6 BPM）'},
+                  open(os.path.join(d, 'song.json'), 'w', encoding='utf-8'), ensure_ascii=False)
+        json.dump({'composer': 'compose.py', 'mid': 'x.mid', 'out': 'x_sf', 'ref': 'bgm01c',
+                   'tuned': True, 'ref_bpm_mismatch': True, 'ref_bpm': 128.0, 'song_bpm': 141.6},
+                  open(os.path.join(d, 'render.json'), 'w', encoding='utf-8'))
+        return d
+    results.append(case('还原曲调参却对标别的曲子', 'restore_ref_is_own_song',
+                        lambda: Mut(st, 'song_dirs', lambda **k: [bad_restore_ref()])))
+
     # 40. 频域 DSP 改写后最容易漏的一处：高通忘了按 order 次乘（3 阶变 1 阶）
     def hp_ignores_order(x, sr, fc=38.0, order=3):
         nflt = render_midi._pad_len(len(x))

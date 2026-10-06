@@ -223,7 +223,9 @@ studio\stop.cmd     # 停
 #     接续链：切轨 → analyze_chords → transcribe_to_song --auto → songs/<名>/song.json
 #       **并自动写引擎入口 `compose.py`**（2026-10-05 起；`--no-compose-file` 可关）——
 #       少了它首次 `make_song` 会静默「跳过作曲 → 找不到 MIDI」（PITFALLS 323）。
-#       干净重提取一条链：`transcribe_ymt3 <音频> --name <名> --song-name <名> --stems-dir <6轨>` → `make_song <名> --no-tune`
+#       干净重提取一条链：`transcribe_ymt3 <音频> --name <名> --song-name <名> --stems-dir <6轨>` → `make_song <名>`
+#     ⚠ **别在还原/交付时加 `--no-tune`**（2026-10-06 血账，PITFALLS 348）：它＝整个混音调参循环
+#       不跑，产物"平衡/响度/宽度"全没校准，不能当 A/B 依据也不能交付。A/B 快看时才用，且要记住它没调参。
 #     ↑ `transcribe_to_song.py` **默认全量**（写 `notes_extra_full: true`，逐音照写）。
 #       要旧的"按 arr.density 抽样"（每轨每小节砍上限 4/10/18 音）→ 加 `--sample`
 #       （它写 `false`；**不能靠"不写字段"表达抽样** —— 引擎默认已是全量）。守卫 `t_restore_notes_full`
@@ -231,6 +233,17 @@ studio\stop.cmd     # 停
 
 参数：`--dur-floor`（时值下限，只动旋律层，默认 0.55 拍）· `--absorb-into`（YMT3 的合成器通道并进哪条轨，默认 Strings —— 并进 Piano 会用钢琴音色弹它）· `--thr-extra`（Guitar/Strings 是单来源层，套 `--merge-thr` 会把整层砍掉）；改过参数要 `--from bass --force bass` 重跑。
 判据 → `docs/RESTORE-METHOD.md` §4b · PITFALLS 206/207。
+
+**还原必须让混音对标"这首原曲自己"**（2026-10-06 血账，PITFALLS 348）—— 两步，改的是 `render.json`：
+
+```powershell
+& $py scripts\profile_ref.py "<原曲音频>" <名字> --bpm <本曲bpm>   # → refs\<名字>.json
+# 再把 songs\<曲>\render.json 里的 "ref" 改成 <名字>，然后 make_song <曲>（不加 --no-tune）
+```
+`ref` 的**真源是 `render.json`**（`make_song` 只读它）—— **写进 `song.json` 无效**（我实测白跑一轮）。
+默认 `ref=bgm01c` = **另一首曲子**的画像 ⇒ 不换它，autotune 会把混音收敛到别的曲子。
+`make_song` 现在把 `tuned` / `ref_bpm_mismatch` 写进 `render.json` 并对还原曲大声报警；
+守卫 `t_restore_ref_is_own_song` 对"调参了却对标别的曲子"**直接 FAIL** —— 动手改"像不像"前先看这两个字段。
 
 **第一道工序：逐轨精度审计**（**每个提取/还原任务都跑**，用户 2026-10-04 定）
 

@@ -274,6 +274,43 @@ def t_render_json_schema():
 
 
 @check
+def t_restore_ref_is_own_song():
+    """还原曲的混音对标必须是本曲（PITFALLS 348）：做了调参却对标别的曲子 ⇒ FAIL。
+
+    背景（2026-10-06 血账）：还原 BGM23 的整轮 A/B 全用 `--no-tune`（＝没做混音调参），
+    且 `ref` 默认 `bgm01c`（另一首曲子）⇒ 所有"像不像"的对照都建在未校准的渲染上。
+    `make_song` 现在把 `tuned` / `ref_bpm_mismatch` 写进 `render.json`，这里据此**硬判**。
+    判据（机器可判）：`song.json.desc` 含 `transcribe_to_song` ⇒ 还原曲（生成曲不受限，
+    它们的 `ref` 本来就是主题画像）。
+    """
+    uncalibrated = []
+    for d in songs_or_fail(with_json=False):
+        name = os.path.basename(d)
+        sj, rj = os.path.join(d, 'song.json'), os.path.join(d, 'render.json')
+        if not (os.path.exists(sj) and os.path.exists(rj)):
+            continue
+        s = json.load(open(sj, encoding='utf-8'))
+        if 'transcribe_to_song' not in str(s.get('desc') or ''):
+            continue
+        c = json.load(open(rj, encoding='utf-8'))
+        for k in ('tuned', 'ref_bpm_mismatch'):
+            if k in c:
+                assert isinstance(c[k], bool), \
+                    '%s: render.json 的 %s 必须是布尔（写坏了守卫就读不到）' % (name, k)
+        if c.get('tuned') is True and c.get('ref_bpm_mismatch') is True:
+            raise AssertionError(
+                '%s：**还原曲做了混音调参、却对标别的曲子**（ref=%s bpm %s vs 本曲 %s）'
+                '⇒ 先 profile_ref.py 给原曲建画像，再把 render.json 的 ref 指向它'
+                '（**不是 song.json**）—— 口径见 PITFALLS 348'
+                % (name, c.get('ref'), c.get('ref_bpm'), c.get('song_bpm')))
+        if c.get('tuned') is False:
+            uncalibrated.append(name)
+    if uncalibrated:
+        print('   ⚠ 下列还原曲的产物**没做混音调参**（--no-tune），不可用于 A/B 结论：%s'
+              % ', '.join(uncalibrated))
+
+
+@check
 def t_song_json_buildable():
     """每首歌的 song.json 都能编配出合法事件（音符/力度/时值范围）"""
     for d in songs_or_fail():
