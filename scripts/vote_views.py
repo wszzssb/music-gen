@@ -177,13 +177,6 @@ def plan_steps(audio, work, profile, stems, base_mid, out_mid):
     #   指到模型那一层会永远等不到 wav（实测把驱动卡死在等产物上，白等 1 小时超时）。
     stem_dir = os.path.join(work, 'stems', STEM_SETS[stems],
                             os.path.splitext(os.path.basename(audio))[0])
-    # ⚠ 2026-10-06：Basic Pitch 退役 ⇒ 多族投票的前提（≥2 族、票才独立）不再成立。
-    #   这里**明确早退**，不静默退化成单族过滤（那会「产品照出、收益没了」）。
-    if not os.path.isfile(os.path.join(HERE, 'bp_transcribe.py')):
-        raise SystemExit(
-            'Basic Pitch 已于 2026-10-06 退役（bp_transcribe.py 已删、bp-venv 已归档）。'
-            '本工具的族票要求**至少两个模型族**，现在只剩 YMT3 一族 ⇒ 停用；'
-            '要单族对照请直接用 transcribe_ymt3.py。')
     steps = [('demucs', 'Demucs %s 分轨' % STEM_SETS[stems],
               [ML_PY, '-m', 'demucs', '-n', STEM_SETS[stems], '-o', os.path.join(work, 'stems'),
                audio], stem_dir),
@@ -303,7 +296,21 @@ def main(argv=None):
         print('  装配规则：%s' % ' '.join(vote_argv(base, out_mid, views_dir,
                                                    [n for (_f, n, _s, _o) in
                                                     PROFILES[a.profile]], ymt3_mid)[3:9]))
+        # ⚠ 退役提示放在 `--dry-run` **之后**：计划本身（含"两族齐"这条判据）必须仍能**只读地**
+        #   看得到 —— 原先写在 `plan_steps` 里，于是 `--dry-run` 也直接早退，
+        #   `selftest.t_vote_views_plan` 拿不到计划、`raise SystemExit(字符串)` 还会**终止整轮自检**
+        #   （实测：全量自检跑到一半停住、汇总行永不打印、退出码变成那句话）。
+        if not os.path.isfile(os.path.join(HERE, 'bp_transcribe.py')):
+            print('  ⚠ Basic Pitch 已于 2026-10-06 退役（`bp_transcribe.py` 已删、`bp-venv` 已归档）'
+                  '⇒ **这个计划现在跑不了**：族票要求 ≥2 族，只剩 YMT3 一族。'
+                  '要单族对照请直接用 `transcribe_ymt3.py`。')
         return 0
+    # 真跑之前再拦一次：不静默退化成"单族过滤"（那会「产品照出、收益没了」）。
+    if not os.path.isfile(os.path.join(HERE, 'bp_transcribe.py')):
+        raise SystemExit(
+            'Basic Pitch 已于 2026-10-06 退役（bp_transcribe.py 已删、bp-venv 已归档）。'
+            '本工具的族票要求**至少两个模型族**，现在只剩 YMT3 一族 ⇒ 停用；'
+            '要单族对照请直接用 transcribe_ymt3.py。')
     os.makedirs(views_dir, exist_ok=True)
     log_dir = os.path.join(work, 'log')
     cost = {}

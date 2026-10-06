@@ -19,6 +19,7 @@ BGM 制作与分析的完整管线。**任何新对话（或新的人）从这�
 > | 出现症状（有杂音/错音/调参不收敛/工具崩） | **`PITFALLS.md`**，按编号查（本文件只留最常踩的 11 条） |
 > | 想知道修过哪些 bug · 要完整命令与开关 | **`HISTORY.md`** · **`CHEATSHEET.md`** |
 > | **要新增文档/工具/坑**（往哪写、动哪些守卫） | **`docs/CONVENTION.md`** |
+> | **扒谱/还原/转录**（含"连打/转音"、假音治理与**换模型权重**） | **`docs/HANDOFF-TRANSCRIBE.md`** → **`docs/HANDOFF-FAKE-NOTE.md`**（**下一件事 = §11 证据驱动的针对性校正**） |
 > | **不知道该读哪一份 / 哪一节**（HISTORY 38k、PITFALLS 30k 一次读不完） | **`docs/DOC-MAP.md`**：大目录=主题域 → 小目录=**文档节 + 行号**（生成物，自动跟着文档走） |
 > | 要改引擎/加工具 · 想知道可信到什么程度 | §2 工具清单 + §6 渲染参数 + `selftest.py` · 「验证状态与残余风险」 |
 >
@@ -217,6 +218,12 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `vel_from_ref.py` | **原曲响度 → 力度写回谱面**（可复现版的 `revel.py`；那个改 MIDI、产物与谱面脱钩）。映射与 revel v3 逐字一致（−20dB→75 · 0dB→110 · 夹 60–118）。**实测这是 12 轮里唯一把指标推上去的杠杆**：力度中位 74→105 · 亮度比 0.41→0.67 · \|RMS差\| 2.56→**2.07** |
 | `arrange_sections.py` | **段级编配**（把"全曲一套"改成"按段证据"）：`arr.mix` 段级 CC7（判据＝逐段 RMS 差，死区 1.5dB/±3dB）+ `arr.vel` 段级力度（2–6k 比值 >1.5 才降）+ `arr.prog`/`arr.shift` 段级音色/移调（默认关）。⚠ 三坑：**CC7 是线性增益不是 dB**（+3 单位≈+0.35dB，要 `base×10^(dB/20)`）· 原始 `song.json` **没有 `mix` 键**、必须用 `song_engine.load()` · 母带链整曲归一化 → 逐段 CC7 **零和** |
 | `filter_song_by_stem.py` | **按分轨能量筛"这条轨在该段根本没在响"的音**（改 `song.json`；`filter_by_stem.py` 是改 MIDI 的那版）。门限由分布**双峰**标定、空档 <12dB 拒筛。⚠ **默认只报不删**：实测删掉 S01/S02 那 42 个凭空贝斯后 S01 的 RMS 差 **−5.9 → −14.4dB**（原曲那两段 20–80Hz 来自垫子，删之前得先补低频） |
+| `stem_note_evidence.py` | **逐音量"这个音在音高带有音频支撑吗"**（2026-10-06 新增，假音治理 **A** 的取证端）：`sup` = 6 条分轨里 `0.75~1.5×f0` 带能量占比的**最大值**（取最大因为轨归属表本身可能错，`PITFALLS` 325）；单列"窗总能量 < −70dBFS"的**留白音**。整轨一次 STFT + 查表 ⇒ 5 分钟曲 **16 秒**。**逐音对照 `audit_stems` 的命中判定**打印分歧率（本工具 100ms 窗、它 60ms 窗）。⚠ **实测结论是负的**：分布**不是双峰**、剔掉"无支撑"精度只涨 1~3pt ⇒ **别单独拿它当删音依据** → `PITFALLS` **340** · `--selftest` 8/8 |
+| `stem_onset_evidence.py` | **逐音量"这一下有起音/冲击支撑吗"**（2026-10-06 新增，判据 **B**）：逐音量 3–8kHz 抬升（口径照 `preflight` ⑤：起音后 46ms 均值 ÷ 起音前 70ms **最小值**，>6dB 算有冲击）与 `onset_strength` 局部峰（⚠ 必须再加"**相对本曲中位凸起**"，只判局部极大**在底噪上处处为真**，自检当场证伪）。**只看全混音**（Demucs 鼓分轨给真鼓花支撑率 0.00）。实测门 6dB 下 Drums 无支撑 **44.8%**，剔音后精度只 23.6→28.1% ⇒ **被剔的音里真音占多数** → `PITFALLS` **340** · `--selftest` 3/3 |
+| `filter_song_by_evidence.py` | **按逐音证据剔"没有音频支撑"的音**（2026-10-06 新增；`--mode energy` 走 A、`--mode onset` 走 B，读它们的 `--json`）。红线：**默认只报不删** · 写盘打**改前/改后 SHA256** + `.pre_evcut.bak` · **逐轨列明** · **保护轨默认 `Melody`**（那条线不是能量主导的，`PITFALLS` 325/334）+ `--tracks` 限定。证据条数与 `song.json` 对不上**直接报错** · `--selftest` 7/7 |
+| `ymt3_moe_transcribe.py` | **换 YMT3 权重转录**（2026-10-06 新增）：`--exp-dir` + `--extra`，出**原始 13 通道 GM 布局**。⚠ 换权重三步：**先过 `moe_loadcheck.py`** → 用 `ymt3_engine_map.py` 转映射 → 逐轨喂 `transcribe_to_song`。⚠ **MoE 那条路已实测否决**（`PITFALLS` **343**）—— 留给以后换别的权重用 |
+| `ymt3_engine_map.py` | **YMT3 原始轨名 → 引擎 9 轨 + 逐轨写出**（2026-10-06 新增）：映射表**现场从 `transcribe_ymt3._ENGINE_MAP` 导入**（不抄第二份，`PITFALLS` 331）；`--per-track-dir` 写 `<目录>/<轨名>.mid`。⚠ `transcribe_to_song` 每轨内容**只认 `--mid <轨>=<文件>`**：喂"单文件多轨"会被拍平、**写 0 轨 0 音且零报错**（踩两次） |
+| `moe_loadcheck.py` | **换权重前的加载自检**（2026-10-06 新增）：逐键比对权重与模型，报命中率/形状不符/多余键，**≥0.95 才算参数对**（实测现用 386/386 · MoE 655/655）。理由：`strict=False` **参数猜错不报错、只静默丢权重**（子模块退回随机）⇒"rc=0、MIDI 照出"而模型是半随机的 |
 | `transcribe_ymt3.py` | **YMT3+ 转录**（Basic Pitch 已于 2026-10-06 退役）：YourMT3+（混音直接出多轨 MIDI，`--bsz auto`；⚠ 必须用本脚本，官方 `bsz=8` 慢 2.3×）与 Basic Pitch（Spotify ONNX，跑在**独立 venv** `D:\test\bp-venv`，不碰 `.venv-ml` 的 torch）。⚠ 二者错误**互不相关**才是价值所在 |
 | `octave_judge.py` | **八度筛查器**（2026-10-06 新增，**未通过标定**）：逐音比"我们弹的八度 vs 低一个八度"在**原曲**里的**基频**强度（复用 `band_amp`，只比基频、避开谐波互相污染），三把独立尺子（全混音 + `htdemucs_6s` + `htdemucs` 的分轨）多数票 → `降八度`/`保持`/`测不到`。跑 `.venv-ml`（要 `pretty_midi`）。⚠ 实测**假阳率 95–97%**（拿认可版 `b35_clean` 当参照、阈值 1.30→3.00 都不改善）⇒ **不许当门、不许直接改数据**，只当筛查线索；机理与负结果见文件 docstring。`--selftest` 6/6 |
 | `transplant_window.py` | **分段移植**（2026-10-06 新增）：把**参照版**（通常是用户认可版）在 `--at` 窗内的指定轨内容**逐音搬到目标曲**，窗外一字不动。产物写新曲目 `<目标>_tx`（**参照版只读、目标版不改**），留 `song.json.before_tx.bak` + 改前 SHA256，并自动出 A/B 四段（原曲 / 参照版 / 移植前 / 移植后）。⚠ 三条硬约束：**bpm 必须一致**（`notes_extra` 坐标是"小节,拍"，**不做隐式拉伸**）· **参照版该窗为空 ⇒ 跳过，绝不清空目标版**（第一版就栽在这里）· 窗内无可搬内容直接报错。实测复现 BGM35 19.0–19.6s：搬入 7 条 / 替换 7 条 / 窗外 695 条逐音不动。`--selftest` 8/8（含两条判据自证） |
@@ -326,7 +333,7 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
    若支持度更高就直接报，210BPM 素材实测报 209.4），报不出来时至少候选在层级阶梯里（坑 104）。
 5. **平台**：只在 Windows 验证（`play_midi` 走 winmm、fluidsynth 是 win64 二进制）。
 6. **老曲目 01/02**（脚本式作曲期的测试曲，无 `song.json`）只经过"和弦名 vs 音集"校验，
-   没有音乐性校验；已标 `legacy: true`（坑 32）**不参与对标**。03/04 等已归档到 `songs\_archive\`。
+   没有音乐性校验；已标 `legacy: true`（坑 32）**不参与对标**。
 7. **自检逻辑自身可能有盲点**：第四轮的变异测试就发现 2 条检查项因脚本 bug 而**从未被真正验证**。
    本轮又踩到一次同类：新加的"速度网格"不变量一开始用**音频测速**当判据，结果在连奏编配上
    误报（见坑 56）——**判据本身不可靠时，检查会比没有检查更糟**（会掩盖真问题、制造假问题）。
@@ -348,9 +355,8 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
     `chords`/`melody`/`sections`，编排/织体/CC7/音色由 `song_engine.py` 展开、FluidSynth 出音频
     —— **不直接产出音频或 MIDI**，也**没接** Suno/Udio/MusicGen（模板须可溯源，见 §1）。
     没做过的对照：LLM 直写 MIDI 跳过引擎差多少（会丢 9 轨编排与 `check_song` 全部校验）。
-13. **自检的"曲子类"FAIL 现在= 0**（2026-09-30 实测 **175/175 全过**，完整跑含渲染）。
-    2026-09-19 那轮唯一未过的 `density_dynamic_range`（`40_imitate_b35` 逐小节 4.6 倍 < 8 倍）
-    本轮已 **PASS**。历史口径与修法（**别拿旧数字当现状**）：
+13. **自检的"曲子类"FAIL 现在 = 0**（当前项数以 `selftest.py` 输出为准，**别抄旧数字**）。
+    历史口径与修法（**别拿旧数字当现状**）：
     2026-09-26 起该门支持**带理由豁免**（`patterns.density_exempt`，还原曲的密度服从原曲：
     `princess_charm` 原曲自己只有 3.3×，引擎逐小节与原曲 r=0.944）；同族的 `bass_exempt`
     （Bass 掉下 C1 的还原曲，实测 `siren_end2` 保 29.1Hz 比升八度在 20–40Hz 好 9.0dB）、
@@ -364,8 +370,8 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 ```
 songs\103_sorrow_letter\  song.json + compose.py + sorrow_letter.mid + _sf.ogg / _sf.wav + render.json + notes.md
                           （主题模板包路径：直接作曲，`new_song.py --theme sorrow`）
-songs\dear_good_friends\  同上（模仿写歌路径：段落层走 `imitate_plan.py`）
-songs\b35_clean\          同上（还原/扒带路径：`song.json` 带 `notes_extra`，无 `melody_gen`）
+songs\hard_bgm35_orn\     同上（**还原/扒带 + 分段移植**路径：`song.json` 带 `notes_extra`，无 `melody_gen`）
+songs\b35_clean\          同上（**纯还原**路径）
 ```
 
 **每曲固定这几样**：`song.json` + `compose.py` + `.mid` + `_sf.ogg`/`_sf.wav` + `render.json` + `notes.md`

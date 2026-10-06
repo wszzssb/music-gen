@@ -50,6 +50,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 SONGS = os.path.join(ROOT, "songs")
 PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
+import cli_utf8 as _cu; _cu.setup()          # noqa: E402  GBK 控制台下打印 ✓ 会崩
 
 
 # ── 纯逻辑（可自检，不碰文件系统）────────────────────────────────────

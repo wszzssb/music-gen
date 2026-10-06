@@ -51,6 +51,7 @@ import soundfile as sf
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
+import cli_utf8 as _cu; _cu.setup()          # noqa: E402  GBK 控制台下打印 ✓ 会崩
 
 from bass_layer_enhance import band_amp            # noqa: E402  只比基频
 try:
