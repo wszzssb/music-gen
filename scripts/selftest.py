@@ -509,6 +509,47 @@ def t_transcribe_to_song_contracts():
             assert len(it) >= 5, 'notes_extra[%s] 缺力度（契约④）' % tr
     song_engine.load(out)                                # ⑤
 
+    # ⑥ **`--stems-dir` 的三种布局都要认**（2026-10-06 修；实测踩过：只认裸名时，传摊平目录
+    #    `h6_piano.wav` 会**一条轨都配不上 ⇒ 力度恒 100**，而当时只打了一行普通日志）。
+    #    判据是**它自己打印的"配到 N/M 条轨"**：三种布局都必须 N=M；空目录必须 N=0 **且**打 `!!`。
+    import soundfile as sf
+    _sr = 22050
+    _t = np.arange(int(_sr * 2)) / float(_sr)
+    _y = (0.4 * np.sin(2 * np.pi * 440.0 * _t)).astype('float32')
+
+    def _run_stems(tag, names):
+        sd = os.path.join(tmp, 'stems_' + tag)
+        os.makedirs(sd, exist_ok=True)
+        for nm in names:
+            sf.write(os.path.join(sd, nm), _y, _sr)
+        out2 = os.path.join(tmp, 'song_%s.json' % tag)
+        rr = subprocess.run([sys.executable, os.path.join(HERE, 'transcribe_to_song.py'),
+                             'tts_stems_%s' % tag, '--bpm', '120',
+                             '--chords-log', clog,
+                             '--boundaries', '0,12.8,25.6,38.4',
+                             '--sec-names', 'A,B,Ending',
+                             '--mid', 'Piano=%s' % mid, '--full',
+                             '--stems-dir', sd, '--out', out2],
+                            capture_output=True, text=True, encoding='utf-8',
+                            errors='replace')
+        assert rr.returncode == 0, '--stems-dir=%s 跑失败：%s' % (sd, (rr.stderr or '')[-300:])
+        return rr.stdout, out2
+
+    _base = ['piano.wav', 'bass.wav', 'drums.wav', 'guitar.wav', 'other.wav']
+    for _tag, _names in (('h6flat', ['h6_' + b for b in _base]),
+                         ('plain', list(_base)),
+                         ('h4flat', ['h4_' + b for b in _base])):
+        _so, _out2 = _run_stems(_tag, _names)
+        assert '配到 0/' not in _so, \
+            '--stems-dir 的 `%s` 布局没被认出来（力度会恒 100）：%s' % (_tag, _so.strip()[-200:])
+        _d2 = json.load(open(_out2, encoding='utf-8'))
+        assert (_d2.get('patterns') or {}).get('velocity_source') or \
+            '配到 8/8' in _so, \
+            '`%s` 布局配上了却没走量力度那条路：%s' % (_tag, _so.strip()[-200:])
+    _so, _ = _run_stems('empty', [])
+    assert '配到 0/8' in _so and '!! [力度]' in _so, \
+        '空分轨目录必须配到 0/8 **并打 `!!` 警告**（静默就是这次的坑）：%s' % _so.strip()[-200:]
+
 
 @check
 def t_analyze_structure_not_degenerate():
@@ -1179,6 +1220,7 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'HANDOFF-ORNAMENT.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-FAMILY-VOTE.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF-FAKE-NOTE.md'),
              # 2026-10-06：HISTORY 拆出的归档件（也要查"指针腐烂"）
              os.path.join(ROOT, 'HISTORY.md'),
              os.path.join(ROOT, 'HISTORY-ARCHIVE.md'),
@@ -1222,6 +1264,7 @@ def t_docs_paths():
               os.path.join(ROOT, 'docs', 'HANDOFF-ORNAMENT.md'),
               os.path.join(ROOT, 'docs', 'HANDOFF-FAMILY-VOTE.md'),
               os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
+              os.path.join(ROOT, 'docs', 'HANDOFF-FAKE-NOTE.md'),
               os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'), files[-1]]
     dead = []
     for p in dokeys:
@@ -3150,7 +3193,7 @@ def t_panel_guard_wired():
     for nm in ('new_song.py', 'make_song.py', 'melody_gen.py',
                'imitate_ref.py', 'identify_ref.py', 'imitate_plan.py',
                'transcribe_ymt3.py', 'transcribe_to_song.py', 'stem_split.py',
-               'bp_transcribe.py', 'ensemble_transcribe.py', 'bass_ensemble.py',
+               'ensemble_transcribe.py', 'bass_ensemble.py',
                'profile_ref.py', 'analyze_chords.py', 'audit.py',
                'merge_tracks.py'):
         s = open(os.path.join(HERE, nm), encoding='utf-8').read()
@@ -5962,8 +6005,8 @@ def t_bass_layer_enhance_contracts():
       ② 八度核对**只比基频**：第一版比"基频 + 前两次谐波之和"，在 110Hz 正弦上给音高 45 与 33
          **几乎相同的读数**（549.3 vs 549.6）—— 低八度候选的 2 次谐波正好落在高八度候选的基频上。
          修正后同一份产物从"80.6% 被支持"变成 **73.1%**（过修 19.4% → 26.9%）。
-      ③ 解释器解析要认**绝对路径**：bp-venv 在仓库**外**（`D:\\test\\bp-venv`），
-         只按"相对仓库根"拼会 `FileNotFoundError: [WinError 2]`（工具第一次跑就踩了）。
+      ③ 解释器解析要认**绝对路径**（原例是仓库外的 bp-venv；Basic Pitch 于 2026-10-06
+         退役后改用仓库内 `.venv-ml` 的绝对路径 —— 判据本身不变）。
     """
     import os
     import numpy as np
@@ -5980,9 +6023,9 @@ def t_bass_layer_enhance_contracts():
         '八度判据被"低八度的 2 次谐波 = 高八度基频"污染了：%.1f vs %.1f' % (e_hi, e_lo)
     assert B.selftest(verbose=False), '工具自带自检没过'
     assert B._py('.venv-ml').replace('\\', '/').endswith('python.exe'), B._py('.venv-ml')
-    bp = B._py(os.environ.get('BP_PY') or r'D:\test\bp-venv')
-    assert os.path.isfile(bp), 'bp-venv 解释器解析失败：%s（仓库外绝对路径必须认）' % bp
-    print('        thr ≤0.45 · 八度判据只比基频（%.1f vs %.1f）· 仓库外 venv 绝对路径可解析'
+    _abs = B._py(os.path.join(B.ROOT, '.venv-ml'))
+    assert os.path.isfile(_abs), '绝对路径的 venv 解释器解析失败：%s' % _abs
+    print('        thr ≤0.45 · 八度判据只比基频（%.1f vs %.1f）· 绝对路径 venv 可解析'
           % (e_hi, e_lo))
 
 
@@ -9371,108 +9414,43 @@ def t_restore_no_autogen():
 
 
 @check
-def t_bp_primary_contracts():
-    """`bp_primary.py`（BP 为主的还原转录）的**契约与尺子**。
+def t_transplant_window_contracts():
+    """`transplant_window.py`（**分段移植**：把参照版某一窗搬到目标曲）的契约。
 
-    为什么有这条（2026-10-04）：这个工具的价值全在**两把尺子**和**归属规则**上，
-    而三者都容易静默退化成"永远返回真"：
-      · `drum_selftest` —— 分频判据的自检。**本项目已三次栽在"自检不过还量真音频"**，
-        所以它是硬门（不过就 `return 1`）；它自己退化就等于门没了。
-      · `tempo_selftest` —— 速度尺子。同一天里它**连错两版**：① 初值集合不覆盖 0.6857s
-        ⇒ 锁到 131.2 BPM 假峰；② 改成"取命中率最高"⇒ 报 175 BPM（= 87.5×2）。
-        **命中率与周期不可比（网格越密命中越多）**，所以本工具只做"核对给定 BPM"。
-      · `assign` —— 归属。音区兜底 + **bass 分轨能量门**（低音区的音要先证明 bass 真在响，
-        否则会把底鼓当贝斯）。
-
-    ⚠ **听感判据不在本检查里**：实测"净覆盖"指标说 BP 更好（71.4% vs 62.0%），
-    而**用户听感说原路 V1 最好** —— 指标赢不了耳朵（`SKILL` §9c），
-    工具 `__doc__` 里已如实记下这条与三处差距。本检查只管**契约不烂**。
+    为什么有这条：它的危险形态是"**静默删音**" —— 第一版在"参照版该窗为空"时，会把目标版
+    那一段照搬成空（自带自检当场抓到，见工具 docstring）。五条契约：
+      ① 只动 `--tracks` 指定的轨；② 只动 `--at` 窗内、窗外逐音不动；
+      ③ bpm 不一致必须报错（坐标是"小节,拍"，不做隐式拉伸）；
+      ④ 窗内无可搬内容必须报错；⑤ 参照版该轨在该窗为空 ⇒ **跳过，绝不清空目标版**。
     """
-    import bp_primary as BP
-    assert BP.__doc__ and all(k in BP.__doc__ for k in ('何时用', '三步', '用法', '边界')), \
-        'bp_primary.__doc__ 缺"何时用/三步/用法/边界"里的章节（约定 A：文档写清用法）'
-    assert '听感' in BP.__doc__ and 'V1' in BP.__doc__, \
-        'bp_primary.__doc__ 必须记下"实测听感不如原路 V1"（否则下一个人会拿它替掉正路）'
-    # ⚠ **鼓默认取 YMT3**（用户 2026-10-04 定："如果你找不到怎么把 BP 的鼓做好，以后还是用 YMT3"）。
-    #   三条都要钉：默认值 · 帮助文本写明 · 源码里真的按先验 MIDI 取鼓轨（不是只声明）。
-    import inspect
-    _sig = inspect.getsource(BP.main)
-    assert "'--drum-source'" in _sig and "default='ymt3'" in _sig, \
-        'bp_primary 的 `--drum-source` 默认值不是 ymt3 —— 用户口径是"BP 的鼓搞不好就还是用 YMT3"'
-    assert 'YMT3 鼓通道' in _sig and "'drum' in str(x[3]).lower()" in _sig, \
-        'bp_primary 的鼓没有真的从先验（YMT3）MIDI 的鼓轨取 —— 声明了默认值却没接上＝静默失效'
-    assert '--drum-source bp' in _sig, \
-        'bp_primary 的提示里没有"要 BP 分频鼓得显式加 --drum-source bp"（人不知道就只会用默认）'
-    # ① 两把尺子必须真的过（行为）
-    assert BP.drum_selftest(verbose=False) is True, \
-        '鼓尺子自检不过 —— 按纪律它必须挡住真音频（合成件 3/3 才对）'
-    assert BP.tempo_selftest(verbose=False) is True, \
-        '速度尺子自检不过（合成 click，偏差须 <0.15 BPM）'
-    # 判据自证（**两把尺子都要**：只给鼓尺子加自证时，速度尺子那条变异用例当场"漏了"）——
-    # 把拟合换成"恒报 999 BPM"，速度尺子自检必须红。
-    _ofit = BP.fit_tempo
-    BP.fit_tempo = lambda *a, **k: (999.0, 0.9, 100)
+    import transplant_window as TW
+
+    assert TW.selftest(), '工具自带自检没过'
+
+    def _result():
+        """`TW.selftest()` 会用 `SystemExit` **表达拒绝**（工具的红有两种形态：返回 False /
+        抛 SystemExit）—— 自证里两者都算"红"，否则守卫自己会被异常带崩（实测踩过）。"""
+        try:
+            return TW.selftest()
+        except SystemExit:
+            return False
+
+    _win = TW.in_window                      # 判据自证①：窗判定恒真 = 整曲替换
+    TW.in_window = lambda *a, **k: True
     try:
-        assert BP.tempo_selftest(verbose=False) is False, \
-            '判据自证失败：fit_tempo 恒报 999 BPM，速度尺子自检居然还过'
+        assert _result() is False, \
+            '判据自证失败：in_window 恒真（等于整曲替换）时自检居然还过'
     finally:
-        BP.fit_tempo = _ofit
-    # 判据自证：把分类器换成"恒判底鼓"，自检必须红
-    _orig = BP.classify_drums
-    BP.classify_drums = lambda *a, **k: [(0.0, BP.KICK)] * 4
+        TW.in_window = _win
+
+    _no = TW.notes_of                        # 判据自证②：取音恒空 = 把目标清空
+    TW.notes_of = lambda d, t: []
     try:
-        assert BP.drum_selftest(verbose=False) is False, \
-            '判据自证失败：分类器恒判底鼓，鼓尺子自检居然还过'
+        assert _result() is False, \
+            '判据自证失败：notes_of 恒空（等于清空目标版）时自检居然还过'
     finally:
-        BP.classify_drums = _orig
-    # ② 归属的边界与低音门（行为）
-    assert (BP.fallback_track(40), BP.fallback_track(60), BP.fallback_track(70),
-            BP.fallback_track(80)) == ('Bass', 'Hook', 'Piano', 'Glock'), \
-        '音区兜底的四档边界变了：%r' % [BP.fallback_track(p) for p in (40, 60, 70, 80)]
-    _bp = [(0.0, 0.3, 40)]                       # 低音区一个音
-    _no_gate, _ = BP.assign(_bp, None, None)
-    assert 'Bass' in _no_gate, '没有低音门时，低音区的音该归 Bass（拿到 %r）' % (_no_gate,)
-    import numpy as _np
-    _silent = (_np.arange(10) * 0.1, _np.full(10, -90.0), -30.0)   # bass 分轨全静 → 门不过
-    _gated, _ = BP.assign(_bp, None, _silent)
-    assert 'Bass' not in _gated, \
-        'bass 分轨全静时**不许**把低音区的音归 Bass（会把底鼓当贝斯）：%r' % (_gated,)
-    # ③ 先验优先：给了 YMT3 通道就必须听它的
-    _pr, _st = BP.assign([(0.0, 0.3, 40)], [(0.0, 40, 'Acoustic Piano')], None)
-    assert 'Piano' in _pr, '给了 YMT3 先验（Acoustic Piano）却没按它归属：%r' % (_pr,)
-    assert any('先验' in str(k) for k in _st), '来源明细里没有"先验"这一档'
-    # ④ `--bpm auto` 必须**给出候选**而不是崩（2026-10-05 实测踩到：这条分支从来没跑通过）
-    #    原实现直接 `60.0 / bpm`（bpm=None）⇒ TypeError；而文档"用法"里推荐的正是 `--bpm auto`。
-    #    这里用合成 click 走一遍自动档：只要求"返回可用的三元组 + 候选落在合理区间"，
-    #    **不要求它选对层**（命中率不能用来选层，见 bp_primary.mix_tempo 的 docstring）。
-    import numpy as _np2
-    _sr = BP.SR
-    _y = _np2.zeros(int(_sr * 40), dtype='float32')
-    _pos = 0.05
-    while _pos < 39.0:                       # 150 BPM 的 click 串
-        _i = int(_pos * _sr)
-        _y[_i:_i + 120] += (_np2.hanning(120) * 0.9).astype('float32')
-        _pos += 60.0 / 150.0
-    import soundfile as _sf
-    import tempfile as _tf
-    _d = _tf.mkdtemp(prefix='t_bp_auto_')
-    _p = os.path.join(_d, 'click.wav')
-    _sf.write(_p, _y, _sr)
-    try:
-        _rows = BP.mix_tempo(_p, None)        # bpm 缺省 = auto
-        _bad = [r for r in _rows if len(r) != 3]
-        assert _rows and not _bad, \
-            '`--bpm auto`（bpm=None）必须返回 (来源, bpm, 命中率) 三元组，拿到 %r' % (_rows,)
-        _v = [r[1] for r in _rows]
-        assert all(40.0 <= x <= 400.0 for x in _v), \
-            '自动档给出的候选 BPM 跑到合理区间外：%r（合成为 150 BPM）' % (_v,)
-        assert any(abs(x - 150.0) < 6.0 or abs(x - 75.0) < 4.0 or abs(x - 300.0) < 8.0
-                   for x in _v), '自动档候选里没有 150 BPM 附近的层：%r' % (_v,)
-    finally:
-        import shutil as _sh
-        _sh.rmtree(_d, ignore_errors=True)
-    print('        鼓尺子 3/3 + 速度尺子 4/4 + 归属边界/低音门/先验优先 + **--bpm auto 给出候选** 都成立')
-    return 'bp_primary 契约：两把尺子自检通过 · 归属四档边界 + 低音门 + 先验优先 + auto 档不崩'
+        TW.notes_of = _no
+    return 'transplant_window 契约：分段移植 · 五条边界 + 两条判据自证'
 
 
 @check

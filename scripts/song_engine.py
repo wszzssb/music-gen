@@ -349,6 +349,11 @@ PAT_KEYS = (
     #   ⇒ 还原曲必须**显式声明哪条轨是主奏**（判据来自原曲，见 `lead_evidence`），
     #   守卫 `t_track_balance` 才判得了它。
     'lead_track', 'lead_evidence',
+    # **移植留痕**（2026-10-06 加，只读留痕，引擎不读）：`transplant_window` 记"哪一窗的哪条轨
+    #   从哪个参照版搬来"（工具 `transplant_window.py`）；`ornament_transplant` 是同一件事的
+    #   早期手工版（`hard_bgm35_orn` 用的）；`runs_restore` 是"连打恢复"实验的留痕。
+    #   ⚠ 不进这张表，每次渲染都会刷"引擎不认识这个键"（`PITFALLS` 同族）。
+    'transplant_window', 'ornament_transplant', 'runs_restore',
     # 钢琴反拍短音的力度/时值（opt-in，缺省 = 老行为逐字节不变）——
     # 只影响钢琴轨的**反拍和弦短音**，见 `piano_part` 的 docstring 与 2026-09-22 消融
     'piano_stab_dur', 'piano_stab_vel', 'hook_stab_vel',

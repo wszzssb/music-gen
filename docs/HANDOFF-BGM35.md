@@ -50,7 +50,7 @@ BGM35（331.9s 真实游戏 BGM，无真值）已交付到 **r21 / r23 / r24 三
 | 台账（**必读**，§7.6–§7.10 是这段的全部实测） | `D:\test\BGM35_提取\notes.md` |
 | 工作区（源/分轨/各来源转录） | `D:\test\_tmp\b35\`：`BGM35.flac`（44.1k）· `ymt3\BGM35.mid`（骨架）· `src\BGM35_ymt3_{other,guitar,piano,drums}.mid`（**分轨单独转写**）· `bp\` · `views\` · `stems\htdemucs_6s\BGM35\`（6 轨） |
 | 工具（本轮新建，都在 `D:\test\pop_transcribe_audit_交付\tools\`） | `preflight.py`（交付前体检 6 条）· `layer_band_probe.py`（**逐层频带份额诊断：报"哪层×哪频带×哪几秒"塌了**）· `stem_onset_fill.py`（按分轨起音补整层）· `lead_swap.py`（只换主奏轨）· `level_match.py`（动态包络闭环）· `diverge_scan.py`（逐秒背离扫描）· `rhythm_compare.py`（**IOI 节奏对照**）· `coincide.py`（**补充内容与旋律音头的重合检查**）· `deflutter.py` · `pitch_gate.py`（已证伪，留档别用） |
-| 环境 | `D:\software\skill\music-gen\.venv-ml\Scripts\python.exe`（demucs · librosa · matchering · **piano_transcription_inference 0.0.6**）· `D:\test\bp-venv`（basic-pitch）· GPU 可用 |
+| 环境 | `D:\software\skill\music-gen\.venv-ml\Scripts\python.exe`（demucs · librosa · matchering · **piano_transcription_inference 0.0.6**）· ~~`D:\test\bp-venv`（basic-pitch）~~（2026-10-06 退役，已归档）· GPU 可用 |
 | 现成但**没量成**的钢琴模型（可当第三来源） | `D:\test\models\piano\`：`piano_crnn.pth`（172MB，单来源 F1 最高 0.666）· `piano_conformer.pth`（628MB，缺模型定义）· `music_piano-v2.onnx`（84MB，`ConvTranspose` 负 pads 载入失败） |
 | "嘴替"路线（本地音频大模型） | `docs\AUDIO-CRITIC.md`（Qwen2-Audio；**只能报"差异描述"，不能做价值判断**） |
 

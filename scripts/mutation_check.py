@@ -2907,15 +2907,6 @@ def main():
     results.append(case('接续链不写引擎入口（首次渲染静默跳过作曲）', 'restore_writes_compose',
                         _restore_skips_compose))
 
-    # 74d. **`bp_primary --bpm auto` 退回"直接除 bpm"** 必须被抓（2026-10-05 实测：这条分支
-    #      从来没跑通过 —— `60.0 / None` 直接 TypeError，而文档"用法"推荐的正是它）。
-    #      注入 = 让三档层级返回 None ⇒ 等价于原实现的"没有初值就除"。
-    def _bp_auto_regressed():
-        import bp_primary as _bp
-        return Mut(_bp, '_tempo_levels', lambda oe: [None])
-    results.append(case('BP 自动测速退回"直接除 bpm"（TypeError）', 'bp_primary_contracts',
-                        _bp_auto_regressed))
-
     # 74e. **转音体检**（2026-10-05 新工具）的两条退化面：
     #      a) 谐波筛失效（把"f/2 有峰"的判断关掉）⇒ 低音+谐波的合成件会被当成"独立基音串"，
     #         谐波陷阱夹具必须红；
@@ -3109,39 +3100,6 @@ def main():
             self.m.apply_restore_no_gen = self.old
     results.append(case('perc 那一行改回"恒开"', 'restore_no_autogen', _PercAlwaysOn))
 
-    # 80. **BP 为主的转录工具**（`bp_primary.py`）：它的价值全在**两把尺子 + 归属规则**上，
-    #     三者都会静默退化成"永远返回真"。注入四个坏法（2026-10-04）：
-    #     ① 鼓尺子自检恒真（那它就挡不住任何东西 —— 本项目已三次栽在"自检不过还量真音频"）；
-    #     ② 速度尺子自检恒真（同一天它连错两版：131.2 / 175.0 BPM 的假峰）；
-    #     ③ 音区兜底四档压平成一条轨（= 实测 BP 路径"归属塌成两条轨"那类病）；
-    #     ④ bass 能量门失效（会把底鼓当贝斯）。
-    def _drum_gate_always_true():
-        import bp_primary as _bp1
-        return Mut(_bp1, 'drum_selftest', lambda *a, **k: True)
-    results.append(case('BP 工具：鼓尺子自检恒真', 'bp_primary_contracts',
-                        _drum_gate_always_true))
-
-    def _tempo_ruler_always_true():
-        import bp_primary as _bp2
-        return Mut(_bp2, 'tempo_selftest', lambda *a, **k: True)
-    results.append(case('BP 工具：速度尺子自检恒真', 'bp_primary_contracts',
-                        _tempo_ruler_always_true))
-
-    def _fallback_flat():
-        import bp_primary as _bp3
-        return Mut(_bp3, 'fallback_track', lambda p: 'Hook')
-    results.append(case('BP 工具：音区兜底压平成一条轨', 'bp_primary_contracts', _fallback_flat))
-
-    def _bass_gate_off():
-        import bp_primary as _bp4
-        _orig = _bp4.assign
-
-        def patched(bp_notes, prior=None, gate=None):
-            return _orig(bp_notes, prior, None)      # 把能量门丢掉
-        return Mut(_bp4, 'assign', patched)
-    results.append(case('BP 工具：bass 能量门失效（底鼓当贝斯）', 'bp_primary_contracts',
-                        _bass_gate_off))
-
     def _vel_stem_pairing_wrong():
         import transcribe_to_song as _tts
         bad = dict(_tts.STEM_FILE)
@@ -3285,29 +3243,19 @@ def main():
     results.append(case('解码撞上限不再拦（阈值放到天上）',
                         'audit_stems_contracts', _decode_cap_ignored))
 
-    def _drum_source_bp_default():
-        """**鼓的来源退回"BP 优先"**（用户 2026-10-04："BP 的鼓搞不好就还是用 YMT3"）。
+    # 81. **分段移植工具**（`transplant_window.py`）：危险形态是"跨 bpm 硬搬"与"静默删音"。
+    #     注入 = 把 bpm 校验抹掉（强行把目标 bpm 对齐成参照的）⇒ `transplant_window_contracts` 必须红。
+    def _tx_bpm_guard_off():
+        import transplant_window as _tw
+        _orig = _tw.transplant_dicts
 
-        现场：BP 路径的鼓由"分轨起音分频"造，判据自检 3/3 通过，却在《どうぞめしあがれ》
-        上塞了 638/795 个军鼓（每小节 14/17 点），而原曲 `drums` 分轨 RMS −34.2dB、
-        几乎没有 <120Hz ⇒ **原曲没有鼓组**（`PITFALLS` 316）。⇒ 默认必须是 YMT3 的鼓。
-        注入方式：守卫读的是 `inspect.getsource(main)`（源码文本），所以**真的改文本**再喂给它
-        —— 比"把函数换掉"更贴实地模拟"有人把默认值改回 bp 并提交"。"""
-        import inspect as _ins
-        _orig = _ins.getsource
-        _cache = {}
-
-        def fake(obj, *a, **k):
-            src = _cache.get(id(obj))
-            if src is None:
-                src = _orig(obj, *a, **k)
-                if getattr(obj, '__name__', '') == 'main':
-                    src = src.replace("default='ymt3'", "default='bp'")
-                _cache[id(obj)] = src
-            return src
-        return Mut(_ins, 'getsource', fake)
-    results.append(case('BP 鼓来源退回 BP 优先（默认该是 YMT3）',
-                        'bp_primary_contracts', _drum_source_bp_default))
+        def patched(ref, dst, tracks, t0, t1, verbose=True):
+            dst2 = dict(dst)
+            dst2['bpm'] = ref.get('bpm')          # 强行对齐 ⇒ "bpm 不一致必须报错"失效
+            return _orig(ref, dst2, tracks, t0, t1, verbose)
+        return Mut(_tw, 'transplant_dicts', patched)
+    results.append(case('移植工具：bpm 校验被抹掉（跨 bpm 硬搬）',
+                        'transplant_window_contracts', _tx_bpm_guard_off))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):

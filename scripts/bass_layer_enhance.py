@@ -23,7 +23,9 @@ r"""bass_layer_enhance.py —— **低音层增强工序**：分轨 → 两来�
 
 ```text
 ① transcribe_ymt3.py <bass分轨.wav> --no-song      → 来源 A（GPU / .venv-ml）
-② bp_transcribe.py   <bass分轨.wav>                → 来源 B（另一模型族 ⇒ 票才独立；CPU / bp-venv）
+② ~~bp_transcribe.py~~                             → 来源 B **已退役**（Basic Pitch 2026-10-06）
+   ⇒ 本工具因此**停用**（它的前提是「两来源、票才独立」）；只保留 `band_amp` / `octave_check`
+     两个原语给 `octave_judge.py` 复用。
 ③ bass_ensemble.py --source A --source B --octave-ref <bass分轨.wav> --thr 0.45
 ```
 
@@ -182,6 +184,14 @@ def main():
     a = ap.parse_args()
     if a.selftest:
         return 0 if selftest() else 1
+    # ⚠ 2026-10-06：Basic Pitch 退役 → 本工具的「两来源」前提不成立。
+    #   **明确早退**，不静默退化成单来源（单来源时「支持率」判据毫无意义）。
+    if not os.path.isfile(os.path.join(HERE, 'bp_transcribe.py')):
+        raise SystemExit(
+            'Basic Pitch 已于 2026-10-06 退役（bp_transcribe.py 已删除、bp-venv 已归档到 '
+            'D:\\test\\_deprecated_restore\\bp-venv）。本工具的核心是「两来源交叉验证」，'
+            '单来源时「支持率」判据失效 ⇒ 停用。要用两来源请改用 bass_ensemble.py 自行传两个 --source；'
+            '`band_amp` / `octave_check` 仍可被 octave_judge.py 复用。')
     if not (a.base and a.bass_wav and a.out):
         ap.print_help()
         return 1

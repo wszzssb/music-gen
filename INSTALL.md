@@ -103,7 +103,11 @@ pip 命令**，缺权重会提示加 `--download`。
 **版权**：转录结果是参考曲的**逐音复制**。本地分析/对照/学习随便用，
 **不能上传到网络**（公开发布即侵权）—— 见 `ML.md` 的「版权与边界」。
 
-### 想加**第二个**转录模型（Basic Pitch）—— 装法有个坑（2026-09-27 实测）
+### ~~想加**第二个**转录模型（Basic Pitch）~~ —— **已于 2026-10-06 退役**
+
+> `bp_transcribe.py` / `bp_primary.py` 已删除，`D:\test\bp-venv` 已归档到
+> `D:\test\_deprecated_restore\bp-venv`。**下面的装法仅作历史参考**，不再需要执行。
+
 
 第二个来源的价值：**错误互不相关**才能交叉验证（`ensemble_transcribe.py`）。但 `pip install
 basic-pitch` 在**本机会直接失败**，而且失败信息看着像 numpy 的锅：

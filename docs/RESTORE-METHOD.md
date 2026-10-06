@@ -60,7 +60,7 @@
 | 步 | 做什么 | 关键数字 / 坑 |
 |---|---|---|
 | ① 分轨 | `demucs -n htdemucs`（4 轨）**与** `htdemucs_6s`（6 轨）**都跑** | 它们是**两个不同的分离模型**，同一首曲子的分轨**互为独立证据** |
-| ② 转录 | 每条分轨各跑一遍 Basic Pitch；再跑 YourMT3+（**直接吃全混音**、视角独立） | 来源从 4 条扩到 **8 条**是 F1 提升的主因 |
+| ② 转录 | ~~每条分轨各跑一遍 Basic Pitch~~（**2026-10-06 退役**）；再跑 YourMT3+（**直接吃全混音**、视角独立） | 来源从 4 条扩到 **8 条**是 F1 提升的主因 |
 | ③ 交叉验证合并 | 同 0.1s 格同音高合并 → **按来源精度软评分加权**（阈值 0.50） | **`other` 轨是假音主源**：被砍的 3528 音里 **2390 个只有它支撑** |
 | ④ 物理修复 | 见 §3 的 9 项（每一项都要**硬证据**） | 音高越界 / 重叠 / 空洞格 / 力度突变 |
 | ⑤ 编配 | 按**来源轨**分配声部（piano/guitar→Piano · bass→Bass · 长音→Strings），鼓沿用已对齐的那条 | 写成 `notes_extra`，**让引擎编配**，不要手工拼 MIDI |
@@ -270,6 +270,7 @@ python scripts/band_match.py <out>.wav <参考曲> <out>_bm.wav   # 逐带对齐
 $py = "<工具链>\.venv\Scripts\python.exe"          # 主 venv（纯标准库 + numpy）
 $ml = "<工具链>\.venv-ml\Scripts\python.exe"        # ML（torch/demucs/librosa）
 # Basic Pitch 放**独立环境**（ONNX 后端），不碰 .venv-ml 的 torch
+#   ⚠ Basic Pitch 已于 2026-10-06 退役（bp-venv 已归档）⇒ 此步不再需要
 & $py <工具链>\scripts\song_engine.py "$s\song.json" --brief   # → MIDI
 & $py <工具链>\scripts\render_midi.py <mid> <out> --width 1.4 --rms -16.0 ...
 & $ml b35_pipe.py <out>.wav <out>_fin                          # 后处理 → ogg

@@ -110,6 +110,7 @@ GROUPS = [
         ('docs/HANDOFF-BGM35.md', '接手 BGM35 3:31–3:41：**用专用识别模型回答 Q1/Q2/Q3**（结论已回填到 HANDOFF-TRANSCRIBE §11 + 交付目录 notes.md §8）'),
         ('docs/HANDOFF-BGM35-R2.md', 'BGM35 **整曲**还原（**已落地·状态卡**，§7 仍留 3 项待办）：Bass 时间轴被压 0.801× 的定位与修法 · 重复组 137→55 为何达不到 ~13 · 整层空洞按秒补 78→9 · 力度平坦是 YMT3 通病 · 音色自适应族内选 · 8 个坑'),
         ('docs/HANDOFF-BGM35-RESTORE.md', '**【历史·读数已过期】**BGM35 整曲还原的上一轮交接（含一条同源自证的假数 84.9%）—— 现行版本见 `HANDOFF-BGM35-R2.md`'),
+        ('docs/HANDOFF-FAKE-NOTE.md', '接手"**假音 / 漏层治理**（A+B）"：现状评分（准入 **0/5** · 5 首逐轨精度/召回表 · 交付门）· 为什么问题是"没有音频支撑的音"（AMT 2025 的 **instrument leakage** + onset 假阳性）· **两条做法与验收判据** · 素材与命令绝对路径 · 红线与已证伪清单'),
         ('ML.md', '扒谱·分轨·多乐器转录·母带匹配（.venv-ml 的重工具）'),
         ('docs/MAKE-IT-SOUND-ALIKE.md', '把"乱"当可测量问题：三个量 · 三处失控根因 · 四条听感修法'),
         ('docs/AUDIT-CHECKLIST.md', '开工前必查清单（四层 + 必须人耳的第 5 层）'),

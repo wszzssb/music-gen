@@ -169,8 +169,8 @@
 |---|---|
 | 尺子 | `D:\software\skill\music-gen\scripts\truth_eval.py`（`--selftest` / `--warp` / `--json`） |
 | 方法文档 | `D:\software\skill\music-gen\docs\TRANSCRIBE-AUDIT.md` |
-| 两个转录模型 | `scripts\transcribe_ymt3.py`（GPU）· `scripts\bp_transcribe.py`（CPU/ONNX，40× 实时） |
-| Basic Pitch 环境 | `D:\test\bp-venv`（装法真因见 `INSTALL.md`） |
+| 转录模型 | `scripts\transcribe_ymt3.py`（GPU）—— Basic Pitch 已于 2026-10-06 退役（CPU/ONNX，40× 实时） |
+| ~~Basic Pitch 环境~~ | 2026-10-06 退役；`bp-venv` 已归档到 `D:\test\_deprecated_restore\bp-venv`（装法真因见 `INSTALL.md`） |
 | 分轨 | `.venv-ml` 的 Demucs —— ⚠ `-o` 目录下还会再套一层模型名 |
 | 钢琴转录模型（候选 B） | `D:\test\models\piano\` —— `.venv-ml` 里**已装** `piano_transcription_inference 0.0.6` |
 | 素材对（6 首真值 MIDI+MP3） | `D:\test\pop_transcribe_audit_交付\pairs\`（+ `_list.txt`） |

@@ -96,7 +96,7 @@ python scripts\selftest.py --fast && python scripts\mutation_check.py
 ⇒ **负结果**（§3 第 3 条的判据是"ΔF1 提升且精度跌幅 ≤0.05"）：规则被它变**更严**，
 留下的音更准（0.394 → 0.498）但只剩 **28%** ⇒ 与 §12.7 同一条结论（收益只由"收进来的音
 自己准不准"决定）。**它的正确定位是精度旋钮**（高精度/低召回那一档），不是第三个投票人。
-本机模型族共 5 个（YMT3 ×2 ckpt · Basic Pitch · piano_crnn · Demucs）——**这条不用再下模型**；
+本机模型族共 5 个（YMT3 ×2 ckpt · ~~Basic Pitch~~（2026-10-06 退役）· piano_crnn · Demucs）——**这条不用再下模型**；
 另两个本地权重 `piano_conformer.pth`（缺作者的模型类，PyPI 0.0.6 没有）与
 `music_piano-v2.onnx`（负 `ConvTranspose` pads 载入失败）要跑起来**要写代码、不是下载**。
 

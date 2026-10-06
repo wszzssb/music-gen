@@ -27,7 +27,7 @@
 环境（三个 venv，脚本会自己找；缺哪个就跳过对应阶段并**明确报出来**，不静默）：
     <root>/.venv        渲染 / band_match / band_grade
     <root>/.venv-ml     分轨 / YourMT3 / 低音集成      （torch + demucs + librosa）
-    BP_PY 或 D:\\test\\bp-venv       Basic Pitch
+    ~~BP_PY / D:\\test\\bp-venv~~     Basic Pitch（**2026-10-06 退役**，该阶段恒跳过）
 """
 import argparse
 import os
@@ -40,6 +40,9 @@ ROOT = os.path.dirname(HERE)
 PY_MAIN = os.path.join(ROOT, '.venv', 'Scripts', 'python.exe')
 PY_ML = os.path.join(ROOT, '.venv-ml', 'Scripts', 'python.exe')
 PY_BP = os.environ.get('BP_PY', r'D:\test\bp-venv\Scripts\python.exe')
+# ⚠ 2026-10-06：Basic Pitch 退役（bp_transcribe.py 已删、bp-venv 已归档）⇒
+#   `[4/9] BP` 阶段恒跳过；STAGES 里保留 'bp' 只为**不打乱既有阶段索引**。
+BP_RETIRED = not os.path.isfile(os.path.join(HERE, 'bp_transcribe.py'))
 
 # 各分轨的合理音域（音高号）—— 与 BGM35/BGM29 用过的一致
 RANGES = {'piano': (24, 96), 'guitar': (40, 96), 'other': (40, 96), 'bass': (24, 60)}
@@ -235,7 +238,7 @@ def main():
                 ('other4', os.path.join(s4, 'other.wav'), 'other'),
                 ('bass4', os.path.join(s4, 'bass.wav'), 'bass')]
         todo = [(t, w, k) for (t, w, k) in jobs
-                if stage(3, 'bp') and os.path.isfile(w)
+                if (not BP_RETIRED) and stage(3, 'bp') and os.path.isfile(w)
                 and stale(os.path.join(bpdir, 'bp_%s.mid' % t), 'bp', [w])]
         if todo:
             print('\n[4/9] Basic Pitch（%d 条分轨）' % len(todo))
@@ -246,7 +249,8 @@ def main():
                     os.path.join(bpdir, 'bp_%s.mid' % tag),
                     '--fmin', f(lo), '--fmax', f(hi)], 'bp-%s' % tag)
         else:
-            print('\n[4/9] Basic Pitch —— 已存在，跳过')
+            print('\n[4/9] Basic Pitch —— %s'
+                  % ('已退役，跳过（Basic Pitch 2026-10-06）' if BP_RETIRED else '已存在，跳过'))
 
     # ── 5 低音专项集成（+ sub 层）───────────────────────────────────────────
     hp_hz, sub_on, rel2040 = low_strategy(ref)

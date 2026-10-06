@@ -504,7 +504,11 @@ def _run_song_pipeline(audio_path, mid_path, out_dir, name, song_name=None,
         cmd += ["--drums-mid", files["Drums"][0]]
     r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
                        errors="replace", cwd=root)
-    for line in (r.stdout or "").strip().splitlines()[-6:]:
+    _lines = (r.stdout or "").strip().splitlines()
+    # ⚠ 只打最后 6 行会**吞掉 `[力度]` 那条关键配置行**（2026-10-06 实测：正是它让
+    #   "--stems-dir 一条轨都没配上 ⇒ 力度恒 100" 没被当场发现）。所以 `[力度]`/`!!` 行**必打**。
+    _key = [ln for ln in _lines if ('[力度]' in ln) or ln.strip().startswith('!!')]
+    for line in _key + _lines[-6:]:
         print("  [正路] " + line, flush=True)
     if r.returncode != 0:
         print("  ! transcribe_to_song 失败（退出码 %d）：%s"

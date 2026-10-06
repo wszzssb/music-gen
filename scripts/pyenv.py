@@ -8,7 +8,7 @@
 | 工具 | 现象 | 真因 |
 |---|---|---|
 | `transcribe_audit.py` | `python scripts/transcribe_audit.py …`（主 venv）→ traceback 停在 `librosa/__init__` → `scipy._lib._ccallback` → `_ccallback_c` | 它把 `.venv-ml/Lib/site-packages` **插进 sys.path** 再 import librosa；主 venv 是 **Python 3.14**、而 scipy 是 **cp313 轮子** → 编译扩展 ABI 对不上 |
-| `bp_transcribe.py` | 主 venv 跑 → `ModuleNotFoundError: No module named 'basic_pitch'` | `__doc__` 写着"独立 bp-venv（`BP_PY` 可覆盖）"，但代码用的是 `sys.executable`，**BP_PY 从未被用于切换解释器** |
+| ~~`bp_transcribe.py`~~（**2026-10-06 退役**） | 主 venv 跑 → `ModuleNotFoundError: No module named 'basic_pitch'` | `__doc__` 写着"独立 bp-venv（`BP_PY` 可覆盖）"，但代码用的是 `sys.executable`，**BP_PY 从未被用于切换解释器** |
 
 用法（**必须放在 import 目标库之前**）：
 

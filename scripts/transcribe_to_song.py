@@ -544,14 +544,24 @@ def main():
     #   顺序反了补进来的音还是恒 100 —— 这就是 BGM35 那轮"先量力度、再补音"的由来。
     _stem_map = {}
     if a.stems_dir and not a.no_measure_velocity:
+        # ⚠ **三种布局都认**（2026-10-06 修）：`h6_`（htdemucs_6s 摊平，**优先** —— 6 轨模型把
+        #   piano/guitar 从 other 里拆出来了，见 SKILL「分轨一律用 6 轨」）· 裸名（demucs 原始
+        #   输出目录 `<模型>/<曲名>/*.wav`）· `h4_`（htdemucs 4 轨摊平）。
+        #   实测踩过：只认裸名时，传摊平目录（`h6_piano.wav` …）会**一条轨都配不上 ⇒ 力度恒 100**
+        #   而当时只打了一行普通日志（"打字机"就是这么来的，2026-10-06 BGM35 新流程）。
         for _tr, _f in STEM_FILE.items():
-            _p = os.path.join(a.stems_dir, _f)
-            if os.path.exists(_p):
-                _stem_map[_tr] = _p
-        print('  [力度] --stems-dir %s → 配到 %d 条轨：%s'
-              % (a.stems_dir, len(_stem_map),
+            for _cand in ('h6_%s' % _f, _f, 'h4_%s' % _f):
+                _p = os.path.join(a.stems_dir, _cand)
+                if os.path.exists(_p):
+                    _stem_map[_tr] = _p
+                    break
+        print('  [力度] --stems-dir %s → 配到 %d/%d 条轨：%s'
+              % (a.stems_dir, len(_stem_map), len(STEM_FILE),
                  '、'.join('%s←%s' % (k, os.path.basename(v))
                            for k, v in sorted(_stem_map.items()))))
+        if not _stem_map:
+            print('  !! [力度] **一个分轨都没配上**（找过 `h6_<名>` / `<名>` / `h4_<名>`）'
+                  '⇒ notes_extra 的力度会恒 100（"打字机"）。查 --stems-dir 指到的目录。')
     for _spec in a.stem_audio:
         if '=' not in _spec:
             raise SystemExit('--stem-audio 要写成 轨=分轨.wav，收到 %r' % _spec)
