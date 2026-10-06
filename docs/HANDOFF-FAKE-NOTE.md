@@ -14,10 +14,12 @@
 
 ## 0. 接手状态（**先读这节**）
 
-- ⚠ **本轮改动尚未提交 git**（`git status` 能看到）：新增 `scripts/octave_judge.py`、
-  `scripts/transplant_window.py`；改了 `selftest.py` / `mutation_check.py` / `token_audit.py` /
-  `doc_map.py` / `transcribe_to_song.py` / `transcribe_ymt3.py` / `song_engine.py` / `README.md` /
-  `PITFALLS.md` / `docs/*`。**接手第一件事建议先提交**（回滚点：`HEAD=7da25ac`）。
+- ✅ **本轮已提交**：`c4de57a`（26 files changed, +1021 / −955）—— 回滚点 = 它的父提交 `7da25ac`。
+  提交内容：**新增** `scripts/octave_judge.py` · `scripts/transplant_window.py` · 本文档；
+  **改** `selftest.py` / `mutation_check.py` / `token_audit.py` / `doc_map.py` /
+  `transcribe_to_song.py` / `transcribe_ymt3.py` / `song_engine.py` / `README.md` /
+  `PITFALLS.md` / `docs/*` / `SKILL.md`；**删** `bp_transcribe.py` / `bp_primary.py`。
+  工作区干净（`git status` 无输出）⇒ **接手直接从本文 §4 的 A+B 开工即可。**
 - **一句话现状**：当前流程（`transcribe_ymt3 --bsz 24` 默认接续 + `make_song --no-tune`，含
   逐音力度）在 5 首难例上 —— **准入判据 `unusable` 0/5**（逐轨过线中位 **2/8**）；
   **交付门 4/5 无 FAIL**（`hard_bgm23_v2` 有 1 个）。
