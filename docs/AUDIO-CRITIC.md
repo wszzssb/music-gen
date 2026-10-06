@@ -360,3 +360,44 @@ BGM35 一例（原曲 vs 我们的还原版，12 段同问）：MF 说原曲 11/
 - **"差多少算不像"**：现在只有描述差异，没有量级门槛（要配 `report_sections.py` / 频谱那些硬数字一起看）。
 - MOSS-Music-8B 没试（要 `trust_remote_code` + 旧版 transformers，风险高）。
 
+---
+
+## 12. 【2026-10-06】Qwen2-Audio **实测已盲评** —— 用 `--probe` 先验它
+
+用户要"用本地模型找出问题、和原曲的区别"这一轮顺手验出来的：**它没在听音频，照样给"具体问题"。**
+
+| 输入（同一问法） | 它的回答 | 耗时 |
+|---|---|---|
+| psg23 段 1（真音乐，0–22s） | "没问题" | 1.4s |
+| **8 秒纯白噪声** | "有问题，以下是六个具体问题：① 音符被不自然地延长 - 第 7 秒至第 8 秒；② 和弦过渡生硬 …" | 4.2s |
+| **8 秒纯静音（全零）** | "有问题，以下是六个具体问题：① 音符被不自然地延长，在第 2.75 秒到第 3.46 秒；② 和弦过渡生硬 …" | 6.3s |
+
+**纯静音里不可能有"音符被不自然地延长"** ⇒ 输出与音频内容无关（在念语言先验）。
+同轮 stderr：
+
+```
+accelerate … UserWarning: The following device_map keys do not match any submodules
+  in the model: ['audio_tower', 'multi_modal_projector']
+Some parameters are on the meta device because they were offloaded to the cpu.
+```
+
+—— 与 §11.5 那两条（Music Flamingo）同一形态：**设备映射的键名对不上 ⇒ 音频塔没加载**。
+
+### 用法：下任何结论之前先跑探针
+
+```powershell
+& $ml scripts\ask_audio_critic.py --probe --load-4bit
+#   退出码 0 = 正常（静音下没编出音乐内容）· 3 = **疑似盲评**（静音也报音乐内容）
+```
+
+判据落在 `ask_audio_critic.alive_verdict()`：先看有没有静音类措辞（silence / 静音 / 没有内容），
+否则只要报出音乐内容词（音符 / 和弦 / 旋律 / 钢琴 / 鼓 / instrument …）就判盲评。
+自检 `t_audio_critic_contracts` 的 ⑤b 四条断言守着；`mutation_check` 有"探针恒判正常"的注入用例。
+
+### 边界（别过度解读）
+
+- 这是**可疑信号**，不是"模型一定坏"的证明；但"静音下报出音乐内容"这一条足以**作废那一轮结论**。
+- 反过来：它对真音乐答"**没问题**"也**不等于**"这段没问题"（§5 第 6 条：引导性问法它一律顺从）。
+- **Music Flamingo（`ask_music_critic.py`）不受影响**：同轮它在本机跑得好好的 —— 12 段差异
+  具体、greedy 可复现，且与**分轨能量 / 逐段编制表**三方一致。要问"像不像 / 哪里不像"就用它。
+

@@ -736,17 +736,22 @@ def main():
         # 而同一台机、同一条链在稀疏曲上是 `[122, 57, 194, …]`（中位 73）⇒ 精度 75~87%。
         # ⇒ **中位步数 ≥ DECODE_CAP_WARN 或 ≥半数 batch 撞上限** = 上游失败，**别往下接续**。
         #    （`--no-song` 只出 MIDI 时也照样报，因为坏的是转录本身。）
+        # ⚠ `dst` 必须**在这里先定义**（2026-10-06 实测连踩两个）：下面这条"撞上限"分支要往
+        #   report 写 `"midi": dst`，而它原来在更靠下的"后处理"那步才赋值 ⇒ 撞上限时直接
+        #   `UnboundLocalError`，把**最该被看见的那条拒绝信息**变成一段崩溃堆栈
+        #   （同一次还修了它上面格式串里 `%~` 未转义的 TypeError）。
+        dst = os.path.join(out_dir, name + ".mid")
         if _cap and (_med >= DECODE_CAP_WARN or _hit * 2 >= max(1, len(_steps))):
             print("\n✗ **解码撞上限 ⇒ 本次转录不许当素材**（中位 %d / 上限 %d，撞上限 %d/%d 个 batch）\n"
-                  "   实测这条判据的价值：撞上限的那首逐音精度只有 **4.8%~57%%**（Piano 4.8%% / "
+                  "   实测这条判据的价值：撞上限的那首逐音精度只有 **4.8%%~57%%**（Piano 4.8%% / "
                   "Hook 21.6%%），\n"
-                  "   而不撞上限的稀疏曲是 **75~87%%**。先解决输入再谈别的：\n"
+                  "   而不撞上限的稀疏曲是 **75%%~87%%**。先解决输入再谈别的：\n"
                   "   · 换 `--bsz` 重跑 · 或**按分轨分别转录**（单条分轨本来就是分布外，注意它也会撞）·\n"
                   "   · 或把音频**切片**（60s 一段）逐段转录再拼 · 或换一个更合适的模型\n"
                   "   ⚠ 下游的「去鼓/补层」这类修工序**修不动这个错**（错在音符本身，不在编配）。"
                   % (_med, _cap, _hit, len(_steps)), flush=True)
             report.append({"name": name, "midi": dst, "seconds": round(dur, 1),
-                           "segments": n_seg, "notes": len(notes),
+                           "segments": n_seg, "notes": None,   # 撞上限时 MIDI 未产出
                            "decode_steps": _steps, "decode_cap": _cap,
                            "decode_cap_hits": _hit, "rejected": True,
                            "reason": "decode_hit_cap"})

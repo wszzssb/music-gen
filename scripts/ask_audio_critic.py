@@ -366,6 +366,34 @@ def verdict(ans):
     return '没问题' if NO_PROBLEM.search(ans or '') else '其它'
 
 
+# ── 盲评探针（2026-10-06 实测后加）────────────────────────────────────────────
+# 为什么要它：`transformers 5.17` 下 `device_map={'audio_tower':...}` 与权重的子模块名**对不上**
+# （accelerate 警告 `keys do not match any submodules` + `meta device`），音频塔等于没加载，
+# 而模型照样一本正经地评价。**铁证**：8 秒**纯静音**（全零）被答成
+# "有问题，以下是六个具体问题：① 音符被不自然地延长，在第 2.75 秒到第 3.46 秒 …"。
+# 判据 = 静音输入下**报出音乐内容** ⇒ 它没在听。这是**可疑信号**，不是"模型一定坏"的证明；
+# 反过来它对真音乐答"没问题"也**不能**当"这段没问题"的证据（见文档 §5 第 6 条）。
+MUSIC_WORDS = re.compile(
+    r'音符|和弦|旋律|节奏|鼓|贝斯|低音|钢琴|弦乐|吉他|人声|乐器|音色|演唱|'
+    r'\bnotes?\b|\bchords?\b|\bmelod|\brhythm|\bdrums?\b|\bbass\b|\bpiano\b|'
+    r'\bstrings?\b|\bguitar\b|\bvocals?\b|\binstrument|\btimbre', re.I)
+SILENCE_WORDS = re.compile(
+    r'静音|无声|空白|没有内容|没有声音|没有任何|silence|silent|no musical|no audio|empty|inaudible',
+    re.I)
+
+
+def alive_verdict(ans):
+    """静音探针的回答 → `'blind'`（疑似盲评）或 `'ok'`（静音下没编出音乐内容）。
+
+    ① 先看有没有**静音类**措辞（"silence / 静音 / 没有内容"）→ 有就是正常反应；
+    ② 否则只要报出**音乐内容词**，就判盲评。
+    """
+    a = ans or ''
+    if SILENCE_WORDS.search(a):
+        return 'ok'
+    return 'blind' if MUSIC_WORDS.search(a) else 'ok'
+
+
 def segment_bounds(total, n, max_sec=None):
     """把 `total` 秒均分成 `n` 段，**每段不超过 `max_sec`**（超出会被静默截断）。
 
@@ -605,12 +633,36 @@ def main():
     ap.add_argument('--online', action='store_true',
                     help='**一次性联网**（默认离线，见 `_default_offline`）；'
                          '本机通常连不上 huggingface.co，加了会一路 ConnectTimeout')
+    ap.add_argument('--probe', action='store_true',
+                    help='**盲评探针**：拿 8 秒纯静音问一遍 —— 若它仍报出音符/和弦等音乐内容，'
+                         '判定"没在听音频"（2026-10-06 实测：device_map 不匹配时正是这样）。'
+                         '退出码 3 = 疑似盲评。⚠ 用这个模型下任何结论之前先跑它')
     a = ap.parse_args()
 
     if a.online:                       # 必须在构造 Critic（= import transformers）之前解开
         os.environ.pop('HF_HUB_OFFLINE', None)
         os.environ.pop('TRANSFORMERS_OFFLINE', None)
         print('[i] --online：已解开离线限制（本机连不上 huggingface.co 时会卡在重试）')
+
+    if a.probe:                        # 探针不需要外部音频 → 放在 files 校验之前
+        import tempfile
+
+        import numpy as np
+        import soundfile as sf
+        d = tempfile.mkdtemp(prefix='ac_probe_')
+        sil = os.path.join(d, 'silence.wav')
+        sf.write(sil, np.zeros((16000 * 8, 2), dtype='float32'), 16000)
+        c = Critic(dtype_name=a.dtype, load_4bit=a.load_4bit)
+        q = (a.ask or Q_TMPL).format(a=0.0, b=8.0)
+        ans = c.ask(sil, q, max_new_tokens=a.max_new_tokens)['answer']
+        v = alive_verdict(ans)
+        print('=' * 84)
+        print('盲评探针：8 秒**纯静音**（全零）→ 模型回答：%s' % ' '.join(str(ans).split())[:300])
+        print('判定：%s' % ('**疑似盲评**（静音也报出音乐内容 ⇒ 音频塔可能没加载；'
+                          '本次任何结论都别当证据）' if v == 'blind'
+                          else '正常（静音下没编出音乐内容）'))
+        print('=' * 84)
+        return 3 if v == 'blind' else 0
 
     files = a.compare or ([a.audio] if a.audio else [])
     if not files:

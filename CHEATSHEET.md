@@ -254,6 +254,8 @@ studio\stop.cmd     # 停
 & $py scripts\audit_stems.py <曲目> --stems "<分轨输出目录>\htdemucs_6s\<曲名>" --ref <原曲44k.wav> [--json 读数.json]
 & $py scripts\audit_stems.py --selftest        # 尺子自检（440Hz 合成件 + 判据自证）
 & $py scripts\audit_stems.py <曲目> --stems <分轨> --ref <混音> --gate   # 准入：unusable 则非零退出
+& $py scripts\add_sub_layer.py <曲目> --ref "<原曲44k.wav>"   # 低频补层：判据 rel≥−10 才补（RESTORE-METHOD §2c）
+& $py scripts\add_sub_layer.py --selftest                    # 判据 6 例 / sub 基频 / 整形收敛 / 顶格
 #   ⚠ **两个闸门别跳**：① 报告里的「整层缺失」= 分轨有内容但我方**没有对应轨**
 #      （实测某曲 13 个解码通道只出 1 个，漏掉的 5 层在逐轨表里根本不出现）；
 #      有意移除的层用 `--accept-missing drums,vocals` 声明，否则会一直判 unusable。

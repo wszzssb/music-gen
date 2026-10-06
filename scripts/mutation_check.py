@@ -1625,6 +1625,19 @@ def main():
     results.append(case('"报了问题"的判据被改回字符串包含', 'audio_critic_contracts',
                         lambda: Mut(_ac, 'verdict',
                                     lambda a: '没问题' if '没问题' in (a or '') else '其它')))
+    # ④b **盲评探针的判据恒判"正常"**（2026-10-06 实测：`device_map` 不匹配 ⇒ 音频塔没加载，
+    #    **8 秒纯静音**被答成"音符被不自然地延长"）。判据坏掉 = 探针永远说"它在听" = 又拿盲评当证据。
+    results.append(case('盲评探针恒判"正常"（静音盲评再也抓不到）',
+                        'audio_critic_contracts',
+                        lambda: Mut(_ac, 'alive_verdict', lambda a: 'ok')))
+    # ④c **低频补层判据恒判"该补"**（2026-10-06，用户："以后有低于 50Hz 的都编排一下"）。
+    #    判据坏掉 ⇒ 原曲本来没有低频的曲子（psg33 rel−20.1 / psg35 −17.0）也被硬塞一层 sub，
+    #    听感是"浑"，而工具不报错。
+    import add_sub_layer as _asl
+    results.append(case('低频补层判据恒判"该补"（本来没低频的也被补）',
+                        'add_sub_layer_contracts',
+                        lambda: Mut(_asl, 'should_add_sub',
+                                    lambda b, thr=-10.0: (True, 0.0))))
     # ③ **时间口径**（2026-09-21 校正）：文档原假设是"模型报段内相对秒、要加回段起点"，
     #    实测**推翻**（40 段里 96/96 条落在整曲域）。若哪天退回旧假设 → 整曲秒会被**再加一次**
     #    段起点（70 秒 → 125.8 秒），清单上的位置全错，而工具不会报错 —— 必须抓。

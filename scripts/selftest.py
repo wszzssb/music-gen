@@ -5695,6 +5695,41 @@ def t_restore_gap_fill_contract():
 
 
 @check
+def t_add_sub_layer_contracts():
+    """**低频补层工序的契约**（`add_sub_layer.py`，用户 2026-10-06："以后有低于 50Hz 的都编排一下"）。
+
+    为什么要有它：这条工序的**判据错了会静默做错事** —— 判据写成"恒该补"，
+    原曲本来没有低频的曲子（psg33 rel −20.1 / psg35 −17.0）也会被硬塞一层 sub，
+    听感是"浑"，而工具**不会报错**。所以判据必须拿**已知正负例**钉住（阈值锚点见 `imitate_ref.py`）。
+    """
+    import contextlib
+    import io
+    import subprocess
+    import add_sub_layer as A
+
+    # ① 阈值与锚点：rel ≥ −10 ⇒ 该补（BGM29 −7.9 补 / BGM35 −18.2 不补）
+    assert A.REL_THR == -10.0, '判据阈值被改成 %s（锚点是 BGM29 −7.9 / BGM35 −18.2）' % A.REL_THR
+    for bands, want in (({'20-40': -11.3, '80-160': -2.0}, True),      # psg23 −9.3
+                        ({'20-40': -9.1, '80-160': 0.0}, True),        # psg29 −9.1
+                        ({'20-40': -20.1, '80-160': 0.0}, False),      # psg33
+                        ({'20-40': -17.0, '80-160': 0.0}, False),      # psg35
+                        ({'20-40': -18.2, '80-160': 0.0}, False),      # BGM35 锚点
+                        ({'20-40': -7.9, '80-160': 0.0}, True)):       # BGM29 锚点
+        ok, rel = A.should_add_sub(bands)
+        assert ok is want, 'rel %.1f 该判 %s，实得 %s' % (rel, want, ok)
+    assert A.should_add_sub({'20-40': -5.0})[0] is None, '缺键时该返回 None（不判），别默认补'
+    # ② 工序本体：判据/基频/可听下限/整形收敛/顶格（纯合成信号，不读曲目）
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        A.selftest()
+    # ③ CLI 至少能渲染 help（argparse 里裸 % 会在这里炸）
+    r = subprocess.run([sys.executable, os.path.join(HERE, 'add_sub_layer.py'), '--help'],
+                       capture_output=True, text=True, encoding='utf-8', errors='replace',
+                       timeout=120)
+    assert r.returncode == 0, '--help 打不出来：%s' % ((r.stderr or r.stdout or '')[:200])
+
+
+@check
 def t_audio_critic_contracts():
     """**"让音频大模型听曲子"的硬约束必须有守卫**（`ask_audio_critic.py`）。
 
@@ -5731,6 +5766,16 @@ def t_audio_critic_contracts():
     assert A.verdict('有问题，以下是详细信息：① 和弦过渡生硬；② 某声部被盖住。没问题。') != '没问题', \
         '报了问题的段被判成"没问题" —— 用 \'没问题\' not in answer 判就是这个坑'
     assert '生硬' in A.verdict('和弦过渡生硬'), '类别抽取没抓到"生硬"'
+    # ⑤b **盲评探针的判据**（2026-10-06 实测：`device_map` 不匹配 ⇒ 音频塔没加载，
+    #     **8 秒纯静音被答成"音符被不自然地延长"**）。判据坏掉 = 探针白跑 = 又拿盲评当证据。
+    assert A.alive_verdict('有问题，以下是六个具体问题：① 音符被不自然地延长，在第 2.75 秒到第 3.46 秒') \
+        == 'blind', '静音输入下报出"音符被延长"却没被判盲评'
+    assert A.alive_verdict('The excerpt is silent; no musical content.') == 'ok', \
+        '静音的正常回答（silent / no musical content）被判成盲评'
+    assert A.alive_verdict('该段只有静音，没有任何乐器') == 'ok', \
+        '中文否定式（静音 / 没有乐器）被判成盲评'
+    assert A.alive_verdict('This sounds like a piano melody with drums') == 'blind', \
+        '英文音乐内容词没被探针识别'
     # ⑥ CLI 至少能渲染 help（argparse 里裸 % 会在这里炸）
     # ⚠ 必须显式 `encoding='utf-8'`：默认按控制台 GBK 解码，help 里有中文时会
     #   在 subprocess 的读取线程里抛 UnicodeDecodeError（实测噪音，且会吞掉输出）。
