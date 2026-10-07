@@ -9215,6 +9215,26 @@ def t_theme_ref_consistency():
     assert not bad, '留痕漂移：%s' % '；'.join(bad[:4])
 
 
+def _melody_keys_legit(role, keys, open_bars, other_bars):
+    """`<角色>` 下出现多支旋律键时，是否**合法**。
+
+    唯一合法情形（2026-10-07 定）：`{A, A_open}` 两支，且 `A_open` 段**确实更短**。
+    为什么允许：`new_song` L929-940 —— 同角色里更短的那段（`104_lounge_night` 6 小节 /
+    `114_soft_letter` 2 小节，其余都是 8 小节）必须**单独一支**旋律，否则 `melody_gen`
+    只能生成一支、且要落在短段的小节范围内 ⇒ 短的赢、把全曲密度钉死
+    （114 实测 **0.76 音/小节**，门 1.8~2.9）。
+    ⚠ 不许无条件放行：`A_open` **不比其它段短**就是真违规（这条由本函数挡住）。
+
+    提成模块级函数是为了让 `t_theme_melody_reuse` 的**判据自证**能直接喂合成输入
+    （只比 `role_melody_name` 的话，这条新规则坏掉了也测不出来）。
+    """
+    if len(keys) <= 1:
+        return True
+    return (set(keys) == {role, role + '_open'}
+            and bool(open_bars) and bool(other_bars)
+            and max(open_bars) < max(other_bars))
+
+
 @check
 def t_theme_melody_reuse():
     """主题路径曲目：**同名段落（A / A2 / A3 …）必须共用一支旋律** —— 曲式的记忆点。
@@ -9256,14 +9276,25 @@ def t_theme_melody_reuse():
             continue
         checked += 1
         nm = os.path.basename(d)
+        # **角色 → (旋律键集合, 该角色各段小节数)**。`<角色>_open` 是引擎**主动**造出来的
+        # **短段变体**（`new_song` L929-940：同角色里**更短**的那一段单独一支旋律，否则
+        # 短的赢、把全曲密度钉死 —— 114 实测 0.76 音/小节 vs 门 1.8~2.9）。所以它**不是**
+        # "同名段落没复用"，而是"同名段落的**短开场**另起一支"。判据要认这件事，
+        # 但不能无条件放行：**必须该段确实比同角色其它段短**才合法（否则就是真违规）。
+        # ⚠ 与 `melody_reuse_exempt` 的区别：那个是**逐曲手写理由**的豁免口；这里是引擎的
+        #   **确定性**行为，用"是否真的更短"当客观判据比手写豁免更硬。
         by_role = {}
         for s in secs:
             role = ns.role_melody_name(s['name'], 0)
-            by_role.setdefault(role, set()).add(s['melody'])
-        for role, keys in by_role.items():
-            if len(keys) > 1:
+            e = by_role.setdefault(role, {'keys': set(), 'open_bars': [], 'other_bars': []})
+            key = s['melody']
+            e['keys'].add(key)
+            (e['open_bars'] if key == role + '_open' else e['other_bars']).append(
+                int(s.get('bars') or 0))
+        for role, e in by_role.items():
+            if not _melody_keys_legit(role, e['keys'], e['open_bars'], e['other_bars']):
                 bad.append('%s: 同名段落 %s 用了 %d 支不同旋律 %s'
-                           % (nm, role, len(keys), sorted(keys)))
+                           % (nm, role, len(e['keys']), sorted(e['keys'])))
         if len(set(s['melody'] for s in secs)) < 2:
             bad.append('%s: 全曲只用一支旋律（%s）—— AABA 至少要 A 与 B 两支，否则整首一个样'
                        % (nm, sorted(set(s['melody'] for s in secs))))
@@ -9287,6 +9318,18 @@ def t_theme_melody_reuse():
     assert per_seg == len(j['sections']), \
         ('判据自证失败：换成"每段一个新名字"后仍只有 %d 个旋律名（%d 段）—— 这条判据量不到复用'
          % (per_seg, len(j['sections'])))
+    # **判据自证（新增一条规则）**：`_open` 短段变体的"合法性"必须**两面都判得出**
+    # —— 合成四种输入直接喂 `_melody_keys_legit`。只比 `role_melody_name` 的话，
+    # 这条规则坏掉了（无条件放行 / 无条件拦）都测不出来。
+    _cases = [
+        (('A', {'A'}, [], []), True, '同角色只有一支 —— 合法'),
+        (('A', {'A', 'A_open'}, [6], [8, 8]), True, 'open 确实更短 —— 合法'),
+        (('A', {'A', 'A_open'}, [8], [8, 8]), False, 'open 不比其它短 —— **必须拦**'),
+        (('A', {'A', 'B'}, [], [8, 8]), False, '换成别的旋律名 —— **必须拦**'),
+    ]
+    for (role, keys, ob, otb), want, why in _cases:
+        got = _melody_keys_legit(role, keys, ob, otb)
+        assert got == want, '判据自证失败：%s（期望 %s，实得 %s）' % (why, want, got)
     print('        %d 首主题路径曲目：同名段落共用旋律，每首用 %s 支%s'
           % (checked, '/'.join(str(x) for x in sorted(set(spans))),
              ('；%d 首显式豁免：%s' % (len(exempt), ' / '.join(exempt))) if exempt else ''))

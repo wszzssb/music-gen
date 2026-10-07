@@ -2372,6 +2372,16 @@ def main():
     # ㉘g **段级和声色彩音被摘掉**（总开关关掉 = 接线断了）→ 档 2 一个音都加不上。
     results.append(case('段级和声色彩音被摘掉（harmony_add 失效）', 'harmony_add_contracts',
                         lambda: Mut(_se, 'HARMONY_ADD_ENABLED', False)))
+    # ㉘l **`_open` 短段变体的"合法性"退化成无条件放行** → 守卫必须抓到
+    #   （2026-10-07：`104_lounge_night` / `114_soft_letter` 的同名 A 段各用 `A`+`A_open`
+    #     是引擎**主动**造的短段变体，判据改成"仅当 open 段确实更短才合法"）。
+    results.append(case('旋律复用：_open 变体无条件放行', 'theme_melody_reuse',
+                        lambda: Mut(_st, '_melody_keys_legit',
+                                    lambda role, keys, ob, otb: True)))
+    # ㉘m **反向**：无条件拦（连合法的短段变体也拦）→ 守卫必须抓到。
+    results.append(case('旋律复用：_open 变体被无条件拦下', 'theme_melody_reuse',
+                        lambda: Mut(_st, '_melody_keys_legit',
+                                    lambda role, keys, ob, otb: len(keys) <= 1)))
     # ㉘h **符号层微时序尺子的单位错 1000 倍**（漏 ×1000）→ swing 恒 0、已知答案自证必抓。
     import micro_timing_ruler as _mr
     _orig_gd = _mr._grid_dev
