@@ -2348,6 +2348,15 @@ def main():
     #     的编配布局又完全一样（实测 100-107 里 6 首 seed=7 就是这么被抹平的）。
     results.append(case('编配布局置换失效（家族顺序恒老序）', 'arr_role_variety',
                         lambda: Mut(_se, 'arr_family_order', lambda seed: (2, 3, 4))))
+    # ㉘d **低音节奏型退回"按密度二分"**（2026-10-07 换掉的老规则）→ `eighth`/`offbeat`
+    #     永远选不到，15 个主题取值从 4 种塌回 3 种（模板层最常见的 `#.#.#.#.#.#.#.#.`
+    #     34 首被无视）。注入成"按均值密度二分"，由 `bass_style_from_occ` 的三条自证抓。
+    import theme_pack as _tp
+    def _density_rule(occ, _tp=_tp):
+        m = sum(occ) / float(len(occ)) if occ else 0.0
+        return 'sixteenth' if m >= 3.0 else 'simple'
+    results.append(case('低音节奏型退回"按密度二分"（eighth 永远选不到）', 'bass_style_from_occ',
+                        lambda: Mut(_tp, 'bass_style_from_occ', _density_rule)))
 
     # ㉙ **"流畅度"与"突兀声"两个量法坏不坏得起来**（用户 2026-09-22 要求沉淀成守卫）。
     #     ① 突兀声的对齐窗口改窄到 0 → 正常音头（起音延迟 42~78ms）全被判成"没有起音的杂音"

@@ -6729,6 +6729,69 @@ def t_theme_timbre_pool():
 
 
 @check
+def t_bass_style_from_occ():
+    """**低音节奏型必须按"形状"判、不能按"密度"判**（2026-10-07；判据自证 + 端到端）。
+
+    背景：`theme_pack` 原来是二分规则 `'sixteenth' if bass_dens >= 3.0 else 'simple'`，
+    实测让引擎 6 种 `bass_style` 里的 `eighth`/`offbeat`/`pump16` **一次都没被用过**；
+    而模板层**最常见的低音形状是"每 8 分一个" `#.#.#.#.#.#.#.#.`（34 首）** —— 永远选不到它。
+    换成 `bass_style_from_occ`（与 6 个引擎型做形状匹配）后，15 个主题取值 3 种 → 4 种。
+
+    钉四件（前三条是**判据自证**，各对应一次真踩）：
+      ① 六种典型形状各自判对（`#...#...#...#...`→simple · `#.#.#.#.#.#.#.#.`→eighth
+         · 全格满→sixteenth · 奇数格→offbeat · 12 格→waltz）
+      ② **密度不得参与判定**：把同一形状整体放大 10 倍（密度变了、形状没变）必须给同一个答案
+         —— 第一版按 `dens>=3.6→sixteenth` 就把 `#...#...#...#...`（密度 3.06）误判成 sixteenth
+      ③ **无信号返回 None**（不许硬分）：全零、或只有 1 个显著格
+         —— 长音持续会让每格都有一点占用，用"相对均值"当门会把 16 格全判成活动格（实测踩到）
+      ④ 端到端：`refs/themes/*.json` 里**没改过的主题**其 `rhythm.bass_style` 必须在
+         `bass_style_from_occ` 的候选集合内（合法值），且 3/4 主题必须是 waltz
+    """
+    import theme_pack as TP
+    onb = [0, 4, 8, 12]
+    e8 = [0, 2, 4, 6, 8, 10, 12, 14]
+    off = [1, 3, 5, 7, 9, 11, 13, 15]
+    alls = list(range(16))
+    mk = lambda idx, n=16: [1.0 if i in idx else 0.0 for i in range(n)]
+    # ① 六种形状
+    for occ, want in ((mk(onb), 'simple'), (mk(e8), 'eighth'), (mk(alls), 'sixteenth'),
+                      (mk(off), 'offbeat'), (mk([0, 4, 8], 12), 'waltz')):
+        got = TP.bass_style_from_occ(occ)
+        assert got == want, '形状 %s 应判 %s，实得 %s' % (
+            ''.join('#' if x else '.' for x in occ), want, got)
+    # ② 密度放大 10 倍不许改结论（形状没变）
+    for idx, want in ((onb, 'simple'), (e8, 'eighth')):
+        occ = mk(idx)
+        big = [x * 10 for x in occ]
+        assert TP.bass_style_from_occ(occ) == TP.bass_style_from_occ(big) == want, \
+            '密度参与判定了（%s 放大 10 倍后变了）：%r vs %r' % (
+                want, TP.bass_style_from_occ(occ), TP.bass_style_from_occ(big))
+    # ③ 无信号 → None
+    assert TP.bass_style_from_occ([0.0] * 16) is None, '全零必须返回 None（无信号不硬分）'
+    one = [0.0] * 16
+    one[0] = 1.0
+    assert TP.bass_style_from_occ(one) is None, '只有 1 个显著格必须返回 None'
+    assert TP.bass_style_from_occ([]) is None, '空表必须返回 None'
+    # ④ 端到端：主题包里的实际值合法
+    LEGAL = {'simple', 'eighth', 'sixteenth', 'offbeat', 'pump16', 'waltz'}
+    packs = [p for p in sorted(glob.glob(os.path.join(ROOT, 'refs', 'themes', '*.json')))
+             if not os.path.basename(p).endswith('_melody.json')]
+    assert packs, '没有主题包，这条检查会空转'
+    n_waltz = 0
+    for p in packs:
+        d = json.load(open(p, encoding='utf-8'))
+        th = d.get('theme') or os.path.basename(p)[:-5]
+        bs = (d.get('rhythm') or {}).get('bass_style')
+        assert bs in LEGAL, '%s 的 rhythm.bass_style=%r 不是合法取值' % (th, bs)
+        if (TP.THEMES.get(th) or {}).get('meter') == [3, 4]:
+            assert bs == 'waltz', '%s 是 3/4，bass_style 必须是 waltz，实得 %s' % (th, bs)
+            n_waltz += 1
+    assert n_waltz >= 1, '3/4 主题一个都没有，waltz 那条断言空转'
+    print('        形状匹配 6 型全对 · 密度不参与 · 无信号返回 None · %d 个主题包取值合法（%d 个 3/4）'
+          % (len(packs), n_waltz))
+
+
+@check
 def t_theme_basis_whitelist():
     """**新歌声明的"模板依据"必须是主题模板包**（不许拿自己做的曲子当模板）。
 
