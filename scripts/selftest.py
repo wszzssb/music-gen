@@ -11572,6 +11572,82 @@ def main():
 
 
 @check
+def t_ask_parse_contracts():
+    """创作台「提要求」的解析器契约（2026-10-07）：中文口语 → 参数的**键名 / 取值 / 不瞎猜**。
+
+    为什么守它：`ask_parse` 的产物直接喂给 `new_song --theme/--energy-gain` —— 键名写错一个
+    （比如 `energy_gain` 拼成别的）在界面上只表现为"那一项没生效"（静默降级），而 `theme`
+    读错会直接生成**另一首曲子**，用户要到产物里才看得出来。
+    """
+    import ask_parse as AP
+    KEYS = ('theme', 'theme_label', 'seed', 'energy_gain', 'instrument',
+            'seconds', 'bars_hint', 'matched', 'notes', 'unknown')
+    for text in ('来一首欢快的钢琴曲，90秒，不要太吵', '随便来点什么'):
+        d = AP.parse(text)
+        miss = [k for k in KEYS if k not in d]
+        assert not miss, '`ask_parse.parse` 少了契约键 %s（输入 %r）' % (miss, text)
+    d = AP.parse('来一首欢快的钢琴曲，90秒')
+    assert d['theme'] == 'cheerful' and d['instrument'] == 'piano' and d['seconds'] == 90, \
+        '「欢快的钢琴曲，90 秒」读错了：%r' \
+        % ({k: d[k] for k in ('theme', 'instrument', 'seconds')},)
+    d2 = AP.parse('做一首悲伤的慢歌，用弦乐，两分钟')
+    assert d2['theme'] == 'sorrow' and d2['seconds'] == 120, \
+        '「悲伤的慢歌…两分钟」读错了：%r' % ({k: d2[k] for k in ('theme', 'seconds')},)
+    # 无关文本**宁可留空**也不许瞎猜一个主题（猜错就直接生成另一首曲子）
+    assert AP.parse('今天天气不错')['theme'] is None, '无关文本也猜出了一个主题'
+    # 反向对照：15 个主题的中文名都要能触发自己 —— 空表/坏表会让上面几条变成装饰品
+    cn = {'battle': '战斗', 'cheerful': '欢快', 'classic': '古典庄重', 'daily': '日常',
+          'folk_tale': '民谣叙事', 'gorgeous': '华丽', 'lounge': '酒馆爵士', 'mystery': '神秘',
+          'neon': '霓虹电子', 'night': '夜晚', 'retro': '复古游戏', 'seaside': '海边',
+          'sorrow': '悲伤', 'tender': '温柔抒情', 'waltz': '三拍圆舞'}
+    bad = ['%s(%s)→%r' % (k, v, AP.parse('来一首%s的曲子' % v)['theme'])
+           for k, v in cn.items() if AP.parse('来一首%s的曲子' % v)['theme'] != k]
+    assert not bad, '这些主题的中文名触发不了自己：%s' % '、'.join(bad)
+    print('        提要求解析：10 个契约键 + 15 个主题触发词都对')
+
+
+@check
+def t_extract_notes_contracts():
+    """提取曲目的 `notes.md`（`extract_notes.py`）必须**真的带交接信息**。
+
+    为什么守它：它是提取链的**最后一步**，而转录链自己不写 `notes.md` —— 少了它，
+    提取出来的每一首都会让全库守卫 `notes_present` 变红（2026-10-07 创作台实测踩到）。
+    同时守"**数字是读出来的、不是编的**"：夹具里故意不给 `patterns.velocity_source`，
+    产物理应**不再出现**"力度来源"那一行。
+    """
+    import json as _json
+    import shutil as _shutil
+    import tempfile as _tempfile
+    import extract_notes as EN
+    assert EN.selftest(verbose=False), 'extract_notes 的合成夹具自检 FAIL'
+    tmp = _tempfile.mkdtemp(prefix='extract_notes_chk_')
+    old = EN.ROOT
+    base = {'bpm': 100.0, 'sections': [{'bars': 4}],
+            'notes_extra': {'Piano': [[0, 0, 60, 1, 100]]}}
+    try:
+        d = os.path.join(tmp, 'songs', 'fx')
+        os.makedirs(d)
+        _json.dump(base, open(os.path.join(d, 'song.json'), 'w', encoding='utf-8'),
+                   ensure_ascii=False)
+        _json.dump({'out': 'fx_sf', 'ref': 'r'},
+                   open(os.path.join(d, 'render.json'), 'w', encoding='utf-8'))
+        EN.ROOT = tmp
+        t1 = EN.build('fx', 'a.ogg', 'fast')
+        with_vs = dict(base, patterns={'velocity_source': 'Piano<-piano.wav'})
+        _json.dump(with_vs, open(os.path.join(d, 'song.json'), 'w', encoding='utf-8'),
+                   ensure_ascii=False)
+        t2 = EN.build('fx', 'a.ogg', 'fast')
+    finally:
+        EN.ROOT = old
+        _shutil.rmtree(tmp, ignore_errors=True)
+    assert '力度来源' not in t1, '没有 velocity_source 也写出了"力度来源"行 —— 那行是编的'
+    assert '力度来源' in t2, '有 velocity_source 却没写进 notes.md'
+    assert '没验证什么' in t2, \
+        'notes.md 里没有「没验证什么」那一段 —— 交付时"没验证什么"必须逐条说明（不许拿分数冒充）'
+    print('        提取记录：9 条关键行 + 力度来源"有则写、无则不写"✓')
+
+
+@check
 def t_pitfall_index():
     """**坑台账的索引不许漂**（`PITFALLS.md` 第 1 行区间 / 主题索引 / 正文三者一致）。
 

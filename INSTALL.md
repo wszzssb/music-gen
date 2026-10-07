@@ -10,6 +10,8 @@
 ```powershell
 python -m venv .venv                                                          # ① 环境（Python 3.10+）
 .\.venv\Scripts\python.exe -m pip install numpy soundfile imageio-ffmpeg      # ② 依赖
+.\.venv\Scripts\python.exe -m pip install pywebview                           # ②b 桌面窗口壳（创作台双击入口用；不要它就用 studio\创作台-浏览器窗口版.cmd）
+winget install --id Microsoft.EdgeWebView2Runtime                              # ②c 原生窗口的渲染内核（**要管理员**；缺了会白屏，见 studio\README.md）
 .\.venv\Scripts\python.exe scripts\setup_soundfont.py                         # ③ 音源
 ```
 

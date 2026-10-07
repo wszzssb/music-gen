@@ -6,7 +6,8 @@
 > AGENTS.md 里只留"铁律 + 指针"，**证据与原因**在这里。
 > **只在怀疑"这毛病是不是环境的锅"时才读。**
 >
-> ⚠ 本文件每一条都**当场实测过**（2026-09-17，Windows PowerShell 5.1.26100.8655 / Desktop）。
+> ⚠ 本文件每一条都**当场实测过**（初始那批 2026-09-17，Windows PowerShell 5.1.26100.8655 / Desktop；
+> 后续新增的条目各自在正文里标了日期）。
 > 其中一条是**修正**：早先记录里"`Set-Content -Encoding UTF8` 会把中文变成乱码"**与实测不符**
 > （实测是带 BOM 的正确 UTF-8，内容没坏）—— 见下表第 2 行。
 > **教训：写进文档的"实测"必须当场跑一遍，转述会失真。**
@@ -79,3 +80,34 @@ bash 5.3.15，已实测：中文输出正常、引号原样传递、重定向写
 失败的命令 >/dev/null 2>&1    # 才是 7
 ```
 管道会把上游的退出码与 stderr 一起吞掉 —— 排查时**先看退出码，再决定要不要过滤**。
+
+## 附：`.ps1` 里写中文常量 → 被 PS 5.1 当 GBK 读（2026-10-07 实测）
+
+**和上面"改用 Git Bash"那一节配套**：多步操作落成 `.ps1`、再用
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File '<x.ps1>'` 执行，是常用形状；
+**但 `write` / `edit` 工具写出的 `.ps1` 是无 BOM 的 UTF-8，`-File` 会按本地 ANSI(GBK) 解析。**
+
+实测症状（清 C/D 盘那次）：
+
+| 脚本里写的 | PS 5.1 实际拿到的 |
+|---|---|
+| `D:\software\A绘世启动器\...` | `D:\software\A缁樹笘鍚姩鍣╘\...` |
+| `D:\game\Rance10 日不落0.484B` | `D:\game\Rance10 鏃ヤ笉钀?.484B` |
+
+**危险的地方不是报错，是"静默跳过"**：`Test-Path` 对烂路径返回 `false`，
+`Get-Item` 返回空 → 脚本走进 `SKIP (missing)` 分支、**退出码仍是 0**，
+只有输出里那一行 `<absent>` 露馅。当脚本里有"删/改"动作时，这种失真会让**守卫判断**变成假的。
+
+**三种解法**（前两种是 win-forensics 已经固化的，别自己再造）：
+
+1. **走它的 `run.sh`**（会自动给 `.ps1` 补 BOM，并按扩展名选解释器）：
+   `& 'D:\software\Git\bin\bash.exe' 'D:\software\win-forensics\scripts\run.sh' '<脚本.ps1>' [参数…]`
+2. **写完补跑一次**：`python D:\software\win-forensics\scripts\fix_ps1_encoding.py`
+3. **脚本里不写中文常量**，从文件系统发现路径。本次采用的是第 3 种（因为那些 `.ps1` 只做删除、且要进提权流程）。
+   附带一条：**中间段通配在 PS 5.1 下没匹配到** ——
+   `Get-ChildItem 'D:\software\*\sd-webui-aki-v4.11.1-cu128\.cache' -Directory -Force` 返回空，
+   改成 `foreach ($d in (Get-ChildItem 'D:\software' -Directory)) { Test-Path (Join-Path $d.FullName '...') }`
+   才找到（同一个目录，5.3 GB）。**所以通配符也别全信，要有一处独立回读。**
+
+**配套自查**：脚本里每个"跳过/没找到"分支都必须**显式写进日志**（本次就是靠输出里的
+`<absent>` 才发现两个目标根本没被处理），否则"跑完了、退出码 0"会被误读成"做完了"。

@@ -106,6 +106,7 @@ node studio\tools\smoke_ed.js   # 编辑器：导入真实 .mid（走真实 HTTP
 node studio\tools\smoke_i18n.js # 中英切换：切 en → 断言按钮/标题 + 数残留汉字（需服务 8791）
 node studio\tools\smoke_mode.js # 播放模式：没在播时切模式**不许出声**、播放中切模式**位置不归零**
 node studio\tools\browser_check.js  # 真浏览器：音轨卡/残影/播放头定位
+node studio\tools\browser_check_create.js  # 真浏览器：创作台（加载 → 点「读一下我的要求」→ chips/表单/无 console 报错，截图 tools\_create_check.png）
 ```
 
 ## MIDI 编辑器（`/editor`）
@@ -136,4 +137,78 @@ node studio\tools\browser_check.js  # 真浏览器：音轨卡/残影/播放头�
 
 **边界**：导入的 `.mid` 不进曲库（会话在 `%TEMP%`）；同音高重叠无法唯一还原配对；和弦识别是
 模板匹配（和弦音被省略时会差一个音）；**还没有** 键盘录制、CC 曲线编辑、弯音轮导出。
+
+## 创作台（`/create`）—— 给"自己点着用"的入口
+
+**双击 `studio\创作台.cmd`**。它是**桌面窗口版**：`pythonw` 跑 `studio\desktop_app.py`，
+由 `pywebview` + 系统 **WebView2** 开一个**原生窗口** —— 没有地址栏/标签页，任务栏上是它自己的
+标题，**不经过 Edge**。关窗即退出，且**只停"自己起的那个服务"**（复用别人已开的实例时不动它）。
+
+| 件 | 作用 |
+|---|---|
+| `studio\desktop_app.py` | 窗口壳：socket 探活 → 没服务就起一个（`CREATE_NO_WINDOW`，不弹黑窗）→ 开窗 → 关窗停服务。`--selftest` 只体检环境不开窗；⚠ 异常写 **`%TEMP%\bgm-studio-desktop.log`**（`pythonw` 下报错是看不见的，所以必须留档） |
+| `studio\创作台-浏览器窗口版.cmd` | 兜底：老的 Edge `--app` 模式（WebView2 或 pywebview 不可用时用） |
+
+依赖：`pywebview`（已装进主 `.venv`，连带 `pythonnet`/`clr_loader`/`bottle`/`proxy_tools`）
++ 系统 **WebView2 Runtime**（`python desktop_app.py --selftest` 会报在不在、报的哪个版本）。
+
+⚠ **"窗口开了但整片白"的排错**（2026-10-07 实际踩到，截图确认）：那是 WebView2 Runtime
+**残缺** —— 本机当时注册表写着 `142.0.3595.80`，而那个版本目录里**根本没有 `msedgewebview2.exe`**
+（只有 `SetupMetrics` 之类的残留）。pywebview 这时**不抛异常、只打一句日志**，
+所以"窗口出来了"**不能**当成成功（我第一次就是这么误判的）。
+
+```powershell
+python studio\desktop_app.py --selftest                  # 看 WebView2 Runtime 那行报的版本
+winget install --id Microsoft.EdgeWebView2Runtime        # ⚠ 要**管理员**：--scope user 实测装不上（报成功却没落地）
+```
+装完：注册表 `pv` 变新版本、版本目录里出现 `msedgewebview2.exe`、`--selftest` 报新版本，
+窗口即正常渲染。`desktop_app.py` 另有两道保险：**开窗前先查注册表**（查不到就弹窗说明 + 降级到
+浏览器窗口版），以及**看门狗**（20 秒内发现 pywebview 报初始化失败 → 关掉白窗、换 Edge 应用模式）。
+
+⚠ 后端**仍是本地 HTTP 服务**（`server.py`）：面板的前端、引擎调用、后台任务、音频流都围绕它的
+二十多个路由。换成原生窗口只是**换外壳**，不是把后端搬进进程内 —— VS Code / Slack / 微信桌面版
+也都是"外壳 + 内嵌浏览器内核"这个形状，区别只在外壳是不是浏览器进程、有没有浏览器 UI。
+
+⚠ **双击没反应时**先看 `%TEMP%\bgm-studio-launcher.log`：启动器全程写日志（开始 / 端口是否
+已在监听 / 起服务 / 等了多少秒 / 找到哪个 Edge / 退回默认浏览器），一句话就能分清是"没等到端口"
+还是"没找到 Edge"。⚠ 改启动器时**别用 `for %%P in (...)` 收集候选路径**：`%ProgramFiles(x86)%`
+展开后带 `)`，会把集合提前闭合，cmd 报语法错误后**整个批处理静默中止**（退出码仍 0、无输出、
+不起服务也不开窗，2026-10-07 实测白查一轮）—— 用 `if exist` 链。
+
+| 区块 | 干什么 | 背后 |
+|---|---|---|
+| ① 提要求 | 中文口语 → 生成参数（主题 / 能量 / 乐器 / 时长 / 种子），**逐项摊开可改**；解析只给建议、不直接出声 | `scripts/ask_parse.py`（纯本地规则、离线） |
+| ↳ 速度 / 风格 / 时长 | 主题画像里的**实测值**直接摆在界面上：`bpm`（中位，可改）· `engine_style` · 拍号 · 总小节数 · **预计时长**（总拍数 ÷ BPM，随 BPM 实时变）。改 BPM 是**真生效**的 —— 生成时写回 `song.json` 的 `bpm`，引擎就是拿它做拍→秒换算（实测：138→180 BPM 让成品 212 秒变 165.7 秒）；说「要 90 秒」会反算出建议 BPM 并填进去，超出 50~220 就只提示、不硬填（段落结构本版不动）。⚠ **风格（引擎预设）是"跟随主题"的、不单独改**：主题路径会把音色/织体显式写进 `song.json`，单改 `style` 字段会被盖住 —— 要换风格就换主题 | `GET /api/create/themes` 带画像参数 · 写回走 `POST /api/song` |
+| ↳ 导出 | 产物卡上的「📦 合并导出」→ MIDI + OGG + WAV + notes + song.json 拷到 `<曲库>/export/<曲目>/` | `POST /api/job?kind=export` |
+| ② 扒谱提取 | 拖入音频 → 选两档之一 → 起任务 | 见下表 |
+| ③ 任务 | 阶段 pills（按日志里的 `=== [i/N]` 点亮）+ 实时日志 + ⏹ 停止（1 秒轮询 `/api/job`） | `server._new_job` |
+| ④ 产物 | 试听 + 下载 MIDI/OGG + 跳 MIDI 编辑器 / 引擎面板 | `/api/files` · `/api/dl` |
+
+**两档提取**（都走引擎正路，不手工拼 MIDI —— 手工链会丢编配/音色/段落控制，见 SKILL §8）：
+
+| 档 | 命令序列（`server.extract_plan`） | 产物 | 耗时（本机） |
+|---|---|---|---|
+| ⚡ 快速版 | `stem_split -m htdemucs_6s` → `transcribe_ymt3`（转录 → 切轨 → `transcribe_to_song --auto` → `song.json`）→ `make_song --no-tune`（作曲 + 渲染，**不调参**）→ `extract_notes.py` | `song.json` · `compose.py` · `notes.md` · `render.json` · `<名>.mid` · `<名>_sf.ogg` | **实测 60 秒**（98.8s 音频：分轨 3.9s · 转录 11.6s · 其余是切轨/和弦/编配/作曲/渲染） |
+| 💎 完整还原 | 同上 + **摊平成 `h6_*.wav`** → `restore_oneshot` 六阶段（probe/repair/vel/arrange/render/audit，`--render`）→ `extract_notes.py` | 同上 4 件套 + 精修成品与三把尺子的体检读数（中间产物在 `<曲目>/_oneshot/`，每步留 `.pre_*.bak`） | **实测 100 秒**（同一首 98.8s 音频；六阶段里 `vel` 把逐段力度写回谱面、`audit` 出逐段 RMS/chroma/嘶声表） |
+
+⚠ 完整还原那档为什么多一步"摊平"（2026-10-07 实测）：`probe_instruments.load_stems` 按 `h4_`/`h6_`
+**前缀**过滤，而 demucs 标准输出是**无前缀**的 `piano.wav` —— 直接给标准目录，编制表会**只剩"
+①②③a"层**、分轨能量证据整列丢失（probe 输出里那些 `-`），后面的 `arrange` 随之退化成"没有证据
+就不改"。`extract_plan` 因此先用**硬链接**摊平一份 `stems_h6/`（失败退回复制）再交给它；
+摊平后同一首曲子 probe 不再出现"只出①②③a"、`-` 列归零。
+
+⚠ 两档都**先分轨**：`transcribe_ymt3 --stems-dir` 是**逐音力度唯一的来源**，不分轨则每个音力度恒 100
+（"打字机"）。⚠ 两档最后都**必须** `extract_notes.py`：转录那条链自己不写 `notes.md`，而曲目目录要齐
+4 件（`notes_present` 就是这么判的）—— 少了它，**提取出来的每一首**都会让全量自检变红（实测踩到）。
+⚠ 工作目录在**曲库外**（`<工具链>/_extract/<曲名>/`，已进 `.gitignore`）—— 曲库根混进散装音频会让
+`probe_lib` 把整库判成"一首曲"（§2.5）。
+
+⚠ **快速版是"未精修"的半成品**：它不写 `patterns.velocity_exempt` / `perc_exempt`，所以全量自检里
+`velocity_measured`（某轨力度仍是恒 100）与 `perc_declared_for_restore`（打击乐占比偏高）**可能点名
+这首曲子** —— 那是**精修没做**（完整还原那档才做），不是提取失败；`notes.md` 里也逐条写了"没验证什么"。
+新增路由：`GET /create` · `GET /api/create/themes` · `POST /api/ask|/api/upload|/api/extract`；
+新增任务类型：`extract:fast` · `extract:full` · `render-tune-solo`（生成 → 单乐器独奏化，只跑一次渲染）。
+
+⚠ **语言**：创作台目前**只有中文** —— 中英切换的字典由 `i18n_check.py` 守，而它只覆盖 `index.html`
+与 `ed.html`（新增页面要接 i18n 得先把那两处判据扩开）。
 

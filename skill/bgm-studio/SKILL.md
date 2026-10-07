@@ -29,7 +29,8 @@ description: 音乐 / 歌 / 曲子 / song / music 相关的活都走这里——
 | **转音**（**已落地·状态卡**：提取侧 `ornament_probe.py` 的能力边界 · 生成侧 `apply_ornaments` 已落地【置换口径 · 只拆长音 · 依据读 B2 直接量】· **只剩听感判决** · 红线） | `docs/HANDOFF-ORNAMENT.md` | ≈3.0k |
 | **生成器·落点位置**（**下个对话第一优先级**：用户"音的位置有点奇怪" · **已量全库 16 首：g0 中位 8.7% vs 基线 19.8%、全部同向偏低** · 基线口径（用均值/画像）已量准 · 已否掉两个猜测 · **下一步 = 只读消融**（`_cap_onsets` vs 候选表各贡献多少）；工具 `scripts\placement_survey.py`） | `docs/HANDOFF-GEN-PLACEMENT.md` | ≈5.0k |
 | **交付前必跑体检**（关系型判据：轨结构/同音重复/密度/覆盖/鼓连击/包络 + `--selftest`；原工具丢失过 → PITFALLS 321） | `docs/HANDOFF-TRANSCRIBE.md` §9/§9b · 工具 `scripts\preflight.py` | ≈11.8k |
-| **写歌时开可视化面板** | `studio/README.md`；启动 `studio\start.cmd` → http://127.0.0.1:8765 | ≈3.0k |
+| **写歌时开可视化面板** | `studio/README.md`；启动 `studio\start.cmd` → http://127.0.0.1:8765 | ≈4.4k |
+| **要让用户自己点着用**（中文提要求生成 / 两档扒谱提取 / 导出） | `studio/README.md` 的「创作台」节；双击 `studio\创作台.cmd`（Edge 应用模式独立窗口）→ `http://127.0.0.1:8765/create` | ≈4.4k |
 | **不知道该读哪一节**（HISTORY/PITFALLS/README 一次读不完） | `docs/DOC-MAP.md`：大目录=主题域 → 小目录=文档节**+行号**（生成物） | ≈8.2k |
 
 > 体量是**实测**（自检 `skill_routes_resolve` 盯着，偏差 >50% 会 FAIL）—— 按它估"读这份要花多少"。

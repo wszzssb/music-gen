@@ -189,6 +189,58 @@ def run_py(args, timeout=900, cwd=None):
 
 AUDIO_EXT = ('.ogg', '.wav', '.mp3', '.flac', '.m4a')
 
+# ------------------------------------------------------------------ 提取（扒谱）
+# 「创作台」的提取链要**两个解释器**：分轨/转录在 `.venv-ml`（torch + demucs + YourMT3），
+# 作曲/渲染在主 `.venv` —— 所以任务命令的第一项允许直接写解释器绝对路径（见 `_argv_of`）。
+EXTRACT_WORK = os.path.join(TOOLCHAIN, '_extract')
+PY_ML = os.path.join(TOOLCHAIN, '.venv-ml', 'Scripts', 'python.exe')
+# 上传的参考音频后缀（比 `AUDIO_EXT` 宽一点：扒谱的素材常见 flac/aiff）
+UPLOAD_EXT = AUDIO_EXT + ('.aiff', '.aif', '.opus', '.wma')
+
+# 主题模板包的中文名（**面板展示用**，唯一真源就在这里；词面匹配的那份词表在
+# `scripts/ask_parse.py` 里，两者职责不同：这里只负责"给人看叫什么"）。
+THEME_CN = {
+    'battle': '战斗', 'cheerful': '欢快', 'classic': '古典庄重', 'daily': '日常',
+    'folk_tale': '民谣叙事', 'gorgeous': '华丽', 'lounge': '酒馆爵士', 'mystery': '神秘',
+    'neon': '霓虹电子', 'night': '夜晚', 'retro': '复古游戏', 'seaside': '海边',
+    'sorrow': '悲伤', 'tender': '温柔抒情', 'waltz': '三拍圆舞',
+}
+
+
+def theme_list():
+    """可用主题模板包（扫 `refs/themes/*.json`，排除 `_melody` 画像）—— 只报**真的有画像**的，
+    没画像的主题让用户选了会在 `new_song` 里失败，不如不出现在选项里。
+
+    ⚠ 2026-10-07 起**连实测参数一起报**（速度中位/四分位 · 引擎预设 · 拍号 · 总小节数）：
+    创作台要让「BPM / 风格 / 时长」这几个维度**可见可改**，而它们的默认值必须有依据 ——
+    依据就是画像里量出来的值，不是猜的。总小节数还用来把"想要多少秒"换算成建议 BPM。
+    """
+    d = os.path.join(TOOLCHAIN, 'refs', 'themes')
+    try:
+        names = sorted(os.listdir(d))
+    except OSError:
+        names = []
+    out = []
+    for fn in names:
+        if not fn.endswith('.json') or fn.endswith('_melody.json') or fn.startswith('_'):
+            continue
+        k = fn[:-5]
+        prof = {}
+        try:
+            with open(os.path.join(d, fn), encoding='utf-8') as f:
+                prof = json.load(f)
+        except (OSError, ValueError):
+            prof = {}
+        bpm = prof.get('bpm') or {}
+        form = prof.get('form') or {}
+        out.append({'key': k, 'cn': THEME_CN.get(k, k),
+                    'bpm': bpm.get('median'), 'bpm_p25': bpm.get('p25'),
+                    'bpm_p75': bpm.get('p75'),
+                    'engine_style': prof.get('engine_style'),
+                    'meter': prof.get('meter') or [4, 4],
+                    'total_bars': form.get('total_bars')})
+    return out
+
 
 def has_audio(d):
     """目录里有音频文件吗？
@@ -630,9 +682,157 @@ def _editor_summary(model):
             'timesig': model.get('timesig'), 'stats': st, 'tracks': tr}
 
 
+def _argv_of(c):
+    """把任务命令补成完整 argv。
+
+    约定：第一项是**相对路径的脚本**时前面补主 `.venv` 解释器（历史写法，面板原有的任务
+    都这么写）；第一项是**绝对路径且以 .exe 结尾**时原样用 —— 扒谱链的分轨/转录必须跑
+    `.venv-ml`（torch/demucs/YourMT3 只装在那里面），拿主 venv 跑会 ModuleNotFoundError。
+    """
+    first = str(c[0])
+    if os.path.isabs(first) and first.lower().endswith('.exe'):
+        return [str(x) for x in c]
+    return [py_exe(), '-X', 'utf8'] + [str(x) for x in c]
+
+
+def _new_job(sid, kind, cmds, outs):
+    """注册并启动一个后台任务（日志尾巴 / 进程句柄 / 状态都挂在 JOB 上，前端 1 秒轮询）。
+
+    ⚠ `BGM_STUDIO_INNER=1` **不能少**：面板起任务时脚本会反过来委托回面板 API，
+    没有这个标记就是无限套娃（`selftest.t_panel_is_only_entry` 会数这个字符串的出现次数）。
+    """
+    with LOCK:
+        JOB_SEQ[0] += 1
+        jid = '%s-%d' % (sid, JOB_SEQ[0])
+        JOB = {'id': jid, 'song': sid, 'kind': kind, 'state': 'running', 'log': [],
+               'rc': None, 'out': outs, 'started': time.time(), 'ended': None}
+        JOBS[jid] = JOB
+
+    def worker():
+        env = dict(os.environ, PYTHONIOENCODING='utf-8', BGM_STUDIO_ROOT=ROOT,
+                   BGM_STUDIO_INNER='1')
+        try:
+            rc = 0
+            for i, c in enumerate(cmds):
+                argv = _argv_of(c)
+                if len(cmds) > 1:
+                    with LOCK:
+                        JOB['log'].append('=== [%d/%d] %s ==='
+                                          % (i + 1, len(cmds), ' '.join(argv[-2:])))
+                p = subprocess.Popen(argv, cwd=ROOT, env=env,
+                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                     text=True, encoding='utf-8', errors='replace', bufsize=1)
+                with LOCK:
+                    JOB['proc'] = p
+                for line in p.stdout:
+                    with LOCK:
+                        JOB['log'].append(line.rstrip('\n'))
+                        if len(JOB['log']) > 500:
+                            del JOB['log'][:200]
+                p.wait()
+                rc = p.returncode
+                if rc != 0:
+                    break
+            JOB['rc'] = rc
+            if JOB.get('state') != 'stopped':
+                JOB['state'] = 'done' if rc == 0 else 'failed'
+        except Exception as e:                                  # noqa: BLE001
+            JOB['state'] = 'failed'
+            JOB['log'].append('启动失败: %s' % e)
+            JOB['rc'] = -1
+        JOB['ended'] = time.time()
+
+    threading.Thread(target=worker, daemon=True).start()
+    return jid
+
+
+# 把 demucs 的标准分轨目录（`piano.wav` 这种**无前缀**名）摊平成 `h6_*.wav`。
+# 为什么必须做：`probe_instruments.load_stems` 按 `h4_`/`h6_` **前缀**过滤（`--stems-dir` 给了
+# 标准目录时它一层都不认），于是编制表只剩"①②③a"层、第③b/③c 的**分轨能量证据全丢**，
+# 后面的 `arrange` 会退化成"没有证据就不改"（2026-10-07 实测：probe 输出整列 `-`）。
+# 用**硬链接**（同盘零成本），失败再退回复制。
+_FLAT_STEMS_CODE = (
+    "import os,shutil,sys\n"
+    "src,dst=sys.argv[1],sys.argv[2]\n"
+    "os.makedirs(dst,exist_ok=True)\n"
+    "n=0\n"
+    "for f in sorted(os.listdir(src)):\n"
+    "    if not f.lower().endswith('.wav'):\n"
+    "        continue\n"
+    "    d=os.path.join(dst,'h6_'+f)\n"
+    "    if os.path.exists(d):\n"
+    "        continue\n"
+    "    try:\n"
+    "        os.link(os.path.join(src,f),d)\n"
+    "    except OSError:\n"
+    "        shutil.copy2(os.path.join(src,f),d)\n"
+    "    n+=1\n"
+    "print('[平铺] h6_*.wav %d 个 -> %s'%(n,dst))\n"
+)
+
+
+def extract_plan(name, src, mode, seconds=None):
+    """两档提取的命令序列（**不重写任何音频逻辑**，只串仓库现有的两个入口）。
+
+    | 档 | 链路 | 产物 | 本机实测耗时 |
+    |---|---|---|---|
+    | `fast` | `stem_split`（六轨，为逐音力度）→ `transcribe_ymt3`（转录→切轨→`song.json`）→ `compose.py`（作曲） | `songs/<名>/song.json` + `.mid` | 分钟级 |
+    | `full` | 同上 + `restore_oneshot` 六阶段（probe/repair/vel/arrange/render/audit） | 再加 `<名>.ogg` 成品 + 体检 | 十分钟级 |
+
+    ⚠ 两档都**先分轨**：`transcribe_ymt3 --stems-dir` 是逐音力度的唯一来源，
+    不分轨的话 YMT3 输出的每个音力度恒 100（"打字机"，PITFALLS 有实测）。
+    ⚠ 工作目录在**曲库外**（`<工具链>/_extract/<名>/`）：曲库根混进散装音频会让
+    `probe_lib` 把整库判成"一首曲"（`docs/STUDIO-WORKFLOW.md` §2.5）。
+    """
+    W = os.path.join(EXTRACT_WORK, name)
+    stems = os.path.join(W, 'stems')
+    ymt = os.path.join(W, 'ymt3')
+    src_name = os.path.splitext(os.path.basename(src))[0]
+    h6 = os.path.join(stems, 'htdemucs_6s', src_name)
+    cmds = [
+        # ⚠ `-m` 只认 `htdemucs` / `htdemucs_6s` / `both`（不是 `6s`；写错会 exit=2，
+        #   任务日志里只留一句 argparse 的 usage —— 2026-10-07 实测踩到）
+        [PY_ML, os.path.join(_SCRIPTS, 'stem_split.py'), src, '-o', stems, '-m', 'htdemucs_6s'],
+        [PY_ML, os.path.join(_SCRIPTS, 'transcribe_ymt3.py'), src, '-o', ymt,
+         '--name', name, '--song-name', name, '--stems-dir', h6],
+    ]
+    if mode == 'full':
+        # 先摊平成 `h6_*.wav`（`probe_instruments` 只认这个前缀），再交给 restore_oneshot
+        h6flat = os.path.join(W, 'stems_h6')
+        cmds.append([py_exe(), '-c', _FLAT_STEMS_CODE, h6, h6flat])
+        cmds.append([py_exe(), os.path.join(_SCRIPTS, 'restore_oneshot.py'), name,
+                     '--audio', src, '--stems-dir', h6flat, '--ymt3-dir', ymt, '--render'])
+    else:
+        # 快速版：作曲 + **渲染（不调参）**。
+        # ⚠ 为什么不是"只跑 `compose.py` 出个 `.mid` 就完"（第一版就是那样，2026-10-07 改）：
+        #   曲目目录**必须齐 4 件**（`song.json`/`compose.py`/`notes.md`/`render.json`）——
+        #   `notes_present` 与 `restore_no_autogen` 都按这个判；而 `compose.py` 只写 MIDI，
+        #   **不写 `notes.md`** ⇒ 提取完的曲目会让全量自检当场变红（实测踩到）。
+        #   `make_song --no-tune` 多花约 15 秒，把 `notes.md` 和可试听的 `.ogg` 一起补上，
+        #   `.mid` 照旧在目录里 —— 用户要的"一份 MIDI"没有少，只是旁边多了两件。
+        #   精修（力度写回 / 段级编配 / band_match / 体检）仍然只在完整还原那档跑。
+        cmds.append(['scripts/make_song.py', name, '--no-tune'])
+    # **无论哪一档，最后都要写 `notes.md`**：转录那条链自己不写它，而曲目目录必须齐 4 件
+    # （`song.json`/`compose.py`/`notes.md`/`render.json`，守卫 `notes_present` 就是这么判的）
+    # —— 少了这一步，提取出来的**每一首**都会让全量自检变红（2026-10-07 实测踩到）。
+    notes = [py_exe(), os.path.join(_SCRIPTS, 'extract_notes.py'), name,
+             '--audio', src, '--mode', mode, '--stems-dir', h6]
+    if seconds:
+        notes += ['--seconds', '%.1f' % float(seconds)]
+    cmds.append(notes)
+    return cmds
+
+
 def start_job(sid, kind, opts=None):
     """起后台任务；返回 jobId。kind: compose / render / render-tune / solo:<轨> / export[:stems]"""
     opts = opts or {}
+    if kind.startswith('extract:'):
+        # **提取任务在曲目还不存在时就要能起**（`song_dir` 对不存在的曲目会抛）
+        mode = kind.split(':', 1)[1]
+        src = os.path.abspath(str(opts.get('audio') or ''))
+        if not os.path.isfile(src):
+            raise ValueError('参考音频不存在：%s' % src)
+        return _new_job(sid, kind, extract_plan(sid, src, mode, opts.get('seconds')), '')
     song = os.path.join(song_dir(sid), 'song.json')
     jobs_dir = TMP_AUDIO
     os.makedirs(jobs_dir, exist_ok=True)
@@ -669,6 +869,17 @@ def start_job(sid, kind, opts=None):
         outs = ''
     elif kind == 'render-tune':
         cmds, outs = [['scripts/make_song.py', sid]], ''
+    elif kind == 'render-tune-solo':
+        # 「全用钢琴/弦乐」：**只做独奏化**，不先跑一次原曲渲染。
+        # ⚠ 为什么不能串 `make_song.py <曲>` 在前面（第一版就是这么写的，2026-10-07 改）：
+        #   ① 它会 autotune 原曲并把 EQ/CC7 决策**写回 song.json**，而独奏版编制已经变了
+        #      （鼓变成音型、层被并轨），拿原曲的频谱目标去调是"往错的目标推"；
+        #   ② `solo_instrument` 自己出新曲目目录并调 `make_song --no-tune` 渲染（技能 §21 的口径），
+        #      串两次渲染等于白多 2~3 分钟，用户却只看得到最后一份产物。
+        inst = str(opts.get('instrument') or 'piano')
+        cmds, outs = [[os.path.join(_SCRIPTS, 'solo_instrument.py'), sid,
+                       '--instrument', inst,
+                       '--out', str(opts.get('out') or (sid + '_solo'))]], ''
     elif kind.startswith('solo:'):
         tr = kind.split(':', 1)[1]
         out = os.path.join(jobs_dir, 'solo_%s_%d.ogg' % (re.sub(r'\W+', '', tr), int(time.time())))
@@ -683,48 +894,7 @@ def start_job(sid, kind, opts=None):
         cmds, outs = [cmd], out
     else:
         raise ValueError('未知任务类型: %s' % kind)
-    with LOCK:
-        JOB_SEQ[0] += 1
-        jid = '%s-%d' % (sid, JOB_SEQ[0])
-        JOB = {'id': jid, 'song': sid, 'kind': kind, 'state': 'running', 'log': [],
-               'rc': None, 'out': outs, 'started': time.time(), 'ended': None}
-        JOBS[jid] = JOB
-
-    def worker():
-        # 同上：面板起的任务也要带 INNER 标记，否则任务里的脚本会反过来再委托一次
-        env = dict(os.environ, PYTHONIOENCODING='utf-8', BGM_STUDIO_ROOT=ROOT,
-                   BGM_STUDIO_INNER='1')
-        try:
-            rc = 0
-            for i, c in enumerate(cmds):
-                if len(cmds) > 1:
-                    with LOCK:
-                        JOB['log'].append('=== [%d/%d] %s ===' % (i + 1, len(cmds), ' '.join(c[-2:])))
-                p = subprocess.Popen([py_exe(), '-X', 'utf8'] + c, cwd=ROOT, env=env,
-                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                     text=True, encoding='utf-8', errors='replace', bufsize=1)
-                with LOCK:
-                    JOB['proc'] = p
-                for line in p.stdout:
-                    with LOCK:
-                        JOB['log'].append(line.rstrip('\n'))
-                        if len(JOB['log']) > 500:
-                            del JOB['log'][:200]
-                p.wait()
-                rc = p.returncode
-                if rc != 0:
-                    break
-            JOB['rc'] = rc
-            if JOB.get('state') != 'stopped':
-                JOB['state'] = 'done' if rc == 0 else 'failed'
-        except Exception as e:                                  # noqa: BLE001
-            JOB['state'] = 'failed'
-            JOB['log'].append('启动失败: %s' % e)
-            JOB['rc'] = -1
-        JOB['ended'] = time.time()
-
-    threading.Thread(target=worker, daemon=True).start()
-    return jid
+    return _new_job(sid, kind, cmds, outs)
 
 
 # ------------------------------------------------------------------ HTTP
@@ -849,6 +1019,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._file(os.path.join(WEB, 'index.html'))
             if u.path == '/editor' or u.path == '/ed.html':
                 return self._file(os.path.join(WEB, 'ed.html'))
+            if u.path == '/create' or u.path == '/create.html':
+                return self._file(os.path.join(WEB, 'create.html'))
+            if u.path == '/api/create/themes':
+                return self._json({'ok': True, 'themes': theme_list()})
             if re.match(r'^/[A-Za-z0-9_.\-]+\.(js|css|png|svg|ico|woff2?)$', u.path):
                 p = os.path.abspath(os.path.join(WEB, u.path.lstrip('/')))
                 if not p.startswith(os.path.abspath(WEB)):
@@ -1088,6 +1262,15 @@ class Handler(BaseHTTPRequestHandler):
                         args += ['--seed', str(int(seed))]
                     except (TypeError, ValueError):
                         return self._err('seed 要是整数（例：7 / 21）')
+                # 能量：创作台的「提要求」会给一个 0.8~1.3 的建议值（`ask_parse` 推的）
+                try:
+                    eg = float(body.get('energy_gain') or 0)
+                except (TypeError, ValueError):
+                    eg = 0
+                if eg:
+                    if not 0.5 <= eg <= 2.0:
+                        return self._err('energy_gain 要在 0.5~2.0 之间（给的是 %s）' % eg)
+                    args += ['--energy-gain', '%.3f' % eg]
                 if force:
                     args.append('--force')
                 args += ['--ref', ref]
@@ -1112,6 +1295,79 @@ class Handler(BaseHTTPRequestHandler):
                                    'id': nid, 'theme': theme, 'from': src, 'ref': ref,
                                    'force': force, 'seed': seed,
                                    'render_rc': rrc, 'render_log': (rout or '')[-1500:]})
+            if u.path == '/api/ask':
+                # 「提要求」：中文口语 → 生成参数（**纯本地规则**，见 scripts/ask_parse.py）。
+                # 解析器只给**建议**，前端会把每一项摊开让人改 —— 读错一个词不会毁掉整首歌。
+                body = self._body()
+                text = str(body.get('text') or '').strip()
+                if not text:
+                    return self._err('先写一句要求（例：来一首欢快的钢琴曲，90 秒）')
+                rc, out = run_py([os.path.join(_SCRIPTS, 'ask_parse.py'), '--text', text],
+                                 timeout=60)
+                parsed = None
+                for ln in reversed((out or '').strip().splitlines()):
+                    s = ln.strip()
+                    if s.startswith('{'):
+                        try:
+                            parsed = json.loads(s)
+                            break
+                        except ValueError:
+                            continue
+                if parsed is None:
+                    return self._json({'ok': False, 'error': '要求解析失败',
+                                       'log': (out or '')[-1500:]})
+                return self._json({'ok': True, 'parsed': parsed, 'log': (out or '')[-1500:]})
+            if u.path == '/api/upload':
+                # 参考音频上传：桌面壳里前端拿不到本机绝对路径，只能把文件读成 base64 发过来
+                import base64
+                body = self._body()
+                nid = re.sub(r'[^0-9A-Za-z_-]+', '_', str(body.get('id') or '')).strip('_')[:40]
+                if not nid:
+                    return self._err('先给这首曲子起个名（字母/数字/下划线）')
+                ext = os.path.splitext(str(body.get('name') or ''))[1].lower()
+                if ext not in UPLOAD_EXT:
+                    return self._err('不认这种音频后缀：%s（支持 %s）'
+                                     % (ext or '（没有后缀）', ' '.join(UPLOAD_EXT)))
+                try:
+                    blob = base64.b64decode(body.get('data_b64') or '')
+                except Exception as e:                              # noqa: BLE001
+                    return self._err('音频解码失败：%s' % e)
+                if not blob:
+                    return self._err('音频内容为空')
+                d = os.path.join(EXTRACT_WORK, nid)
+                os.makedirs(d, exist_ok=True)
+                p = os.path.join(d, 'source' + ext)
+                with open(p, 'wb') as f:
+                    f.write(blob)
+                return self._json({'ok': True, 'path': p, 'bytes': len(blob), 'id': nid,
+                                   'name': os.path.basename(str(body.get('name') or ''))})
+            if u.path == '/api/extract':
+                body = self._body()
+                nid = (body.get('id') or '').strip()
+                if not re.match(r'^[0-9A-Za-z_][0-9A-Za-z_-]{0,40}$', nid):
+                    return self._err('曲目名只能用字母/数字/下划线（例：my_song_01）')
+                mode = (body.get('mode') or 'fast').strip()
+                if mode not in ('fast', 'full'):
+                    return self._err('mode 只能选 fast（只出 MIDI）或 full（完整还原）')
+                src = os.path.abspath(str(body.get('audio') or ''))
+                if not os.path.isfile(src):
+                    return self._err('参考音频不存在：%s' % src)
+                if any(s.get('id') == nid for s in songs_list()) and not body.get('force'):
+                    return self._err('曲库里已经有 %s 了 —— 换个名字，或勾上"同名重建"' % nid)
+                # 音频时长（写进 notes.md 的来源信息）——读不出来就不写，不让它拦住任务
+                secs = None
+                try:
+                    import soundfile as _sf
+                    _i = _sf.info(src)
+                    secs = _i.frames / float(_i.samplerate or 1)
+                except Exception:                               # noqa: BLE001
+                    secs = None
+                try:
+                    jid = start_job(nid, 'extract:%s' % mode, {'audio': src, 'seconds': secs})
+                except ValueError as e:
+                    return self._err(str(e))
+                return self._json({'ok': True, 'job': jid, 'id': nid, 'mode': mode,
+                                   'audio': src, 'seconds': secs})
             if u.path == '/api/stop':
                 return self._stop_job((q.get('id') or [''])[0])
             if u.path == '/api/check':

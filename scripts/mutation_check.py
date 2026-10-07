@@ -3283,6 +3283,60 @@ def main():
     results.append(case('移植工具：bpm 校验被抹掉（跨 bpm 硬搬）',
                         'transplant_window_contracts', _tx_bpm_guard_off))
 
+    # 84. **创作台「提要求」解析器**（`ask_parse.py`，2026-10-07）。三种坏法都静默：
+    #     ① 契约键名改了（`energy_gain` → 别的）⇒ 界面上只表现为"那一项没生效"；
+    #     ② 某个主题的触发词失效 ⇒ 说了"古典庄重"也被当成没听懂、退回默认主题；
+    #     ③ 无关文本也硬猜一个主题 ⇒ 直接生成**另一首曲子**，用户要到产物才发现。
+    import ask_parse as _ap
+
+    def _ask_missing_key():
+        _real = _ap.parse
+
+        def fake(text):
+            d = _real(text)
+            d.pop('energy_gain', None)
+            return d
+        return Mut(_ap, 'parse', fake)
+    results.append(case('提要求：契约键缺失（该项静默不生效）',
+                        'ask_parse_contracts', _ask_missing_key))
+
+    def _ask_theme_dead():
+        _real = _ap.parse
+
+        def fake(text):
+            d = _real(text)
+            if '古典庄重' in text:
+                d['theme'] = None                 # 一个主题的中文名触发不了自己
+            return d
+        return Mut(_ap, 'parse', fake)
+    results.append(case('提要求：主题触发词失效（说了也当没听懂）',
+                        'ask_parse_contracts', _ask_theme_dead))
+
+    def _ask_guess_theme():
+        _real = _ap.parse
+
+        def fake(text):
+            d = _real(text)
+            if d.get('theme') is None:
+                d['theme'] = 'daily'              # 无关文本也瞎猜一个主题
+            return d
+        return Mut(_ap, 'parse', fake)
+    results.append(case('提要求：无关文本瞎猜主题（会生成另一首曲子）',
+                        'ask_parse_contracts', _ask_guess_theme))
+
+    # 85. **提取曲目的 notes.md**（`extract_notes.py`，2026-10-07）。它是提取链的最后一步，
+    #     坏了不会报错、只是**交付的那页纸没了交接信息** —— 所以钉"抹掉没验证什么"这一种坏法
+    #     （"没验证什么"是仓库口径里最容易被挤掉的一段，而它正是"不许拿分数冒充"的落点）。
+    def _notes_lose_caveats():
+        import extract_notes as _EN
+        _orig = _EN.build
+
+        def patched(*a, **k):
+            return _orig(*a, **k).replace('没验证什么', '（本节略）')
+        return Mut(_EN, 'build', patched)
+    results.append(case('提取记录：抹掉「没验证什么」',
+                        'extract_notes_contracts', _notes_lose_caveats))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

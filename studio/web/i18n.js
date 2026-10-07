@@ -71,6 +71,7 @@
     '（只渲染 8 小节切片 + 多路并行 → 秒级/轮；用指标当适应度）':
       '(renders only 8-bar slices, multi-process → seconds per round; metrics as fitness)',
     /* 顶栏按钮与标签（覆盖率检查查出来的漏项） */
+    '✨ 创作台': '✨ Create',
     '🎹 MIDI 编辑器': '🎹 MIDI editor',
     '📂 打开': '📂 Open',
     '💾 保存': '💾 Save',
@@ -85,6 +86,8 @@
     '时间窗': 'Time window',
 
     /* ── 引擎面板：title / placeholder ── */
+    '创作台：提要求生成 / 扒谱提取 / 导出':
+      'Create: prompt-based generation / two-tier transcription / export',
     'MIDI 编辑器：导入任意 .mid → 钢琴卷帘/量化/移调/力度 → 导出':
       'MIDI editor: import any .mid → piano roll / quantize / transpose / velocity → export',
     'check_song.py：和弦音集/强拍/通道等数据契约': 'check_song.py: chord-set / downbeat / channel data contract',

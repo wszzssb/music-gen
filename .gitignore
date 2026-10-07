@@ -28,6 +28,9 @@ export/
 # 扒谱/转录中间产物（转录 MIDI + 分轨 + **原曲 wav**）：版权敏感，公开仓库绝不收
 # （2026-09-20 加：当时 `_transcribe/` 未排除，`git add -A` 会把原曲 wav 一起推上去）
 _transcribe/
+# 创作台的提取工作目录（上传的原曲 + demucs 分轨 + YMT3 中间产物）—— 同样版权敏感 + 体积大。
+# 放在**曲库外**（曲库根混进散装音频会让 probe_lib 把整库判成"一首曲"）。
+_extract/
 
 # MIDI 参考素材：游戏/动漫 MIDI 多为粉丝转录（版权灰色），只作内部学习，不进仓库。
 # 分析结果 refs/midi/_index.json 是统计事实（速度/和声/曲式），可以进。
@@ -48,6 +51,7 @@ songs/_*/
 
 # 验收产物（每次跑 studio\tools\browser_check.js 都会覆盖，不进仓库）
 studio/tools/_browser_check.png
+studio/tools/_create_check.png
 
 # 面板里改过的**曲库根**（每台机器的目录不同，只是本机偏好，不入库）
 studio/.libpath

@@ -29,7 +29,7 @@ if exist ".venv\Scripts\python.exe" (
 
 echo [2/5] “¿¿µ numpy / soundfile / imageio-ffmpeg
 ".venv\Scripts\python.exe" -m pip install -q --upgrade pip
-".venv\Scripts\python.exe" -m pip install -q numpy soundfile imageio-ffmpeg
+".venv\Scripts\python.exe" -m pip install -q numpy soundfile imageio-ffmpeg pywebview
 if errorlevel 1 goto fail
 
 echo [3/5] “Ù‘¥ GeneralUser GS + fluidsynth£®‘º 32MB£©
