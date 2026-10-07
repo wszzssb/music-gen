@@ -10,6 +10,10 @@
 
 ## 0. 接手状态（**先读这一节**）
 
+> 🔴 **2026-10-07 第六轮结束时是"半成品 + 两条新红"** —— **先读 §17**，那里是给下一个对话的
+> 交接（做了什么、**哪两条守卫红了**、为什么、下一步动哪一处）。**别从 §9 往下顺序读**，
+> §9–§16 是已完成并验收过的历史。
+
 > ⚠ **2026-10-07 第二轮已动过手**：§9/§10 是这一轮的依据与实测，**§5 的"下一步"已被取代**
 > （引子那件事做完了；`cap` 与主奏分配都已验证到顶）。**新的第一优先级 = §10.4 的"骨架可变"**。
 
@@ -476,3 +480,81 @@ representation of chords》**（[arXiv 1707.00972](https://ar5iv.labs.arxiv.org/
 **变异**：新增 2 条（无条件放行 / 无条件拦），**都抓到**。
 
 ⇒ `selftest` 从长期 220 里的 **1 条红** 变成 **220/220 全绿**（变异 318/320）。
+
+## 17. 🔴 交接给下一个对话（2026-10-07 第六轮，**结束时是半成品**）
+
+### 17.1 这一轮做了什么
+
+**病**（量出来的）：`111_velvet_hall`（seed 10163）与 `115_three_faces`（seed 74894）
+**同为 gorgeous 主题，全部 16 段和弦逐段完全相同**。全库横向量：**66/136 对骨架完全相同**。
+
+**根因**：`new_song.build_from_theme` 里 `base = progs[plan[i]['prog']]` —— 进行号取自
+`form.plan` 里**写死的 `prog`**，与 seed 无关；而 `theme_progressions` 的 seed 轮换
+**只改次级候选的顺序** ⇒ plan 只用第 0/1/2 条时，两种 seed 落到同一批进行上。
+
+**改法**（已提交 `be5f881`）：新增模块级 `new_song.prog_index_for_section(pack, seed, name, pi, n_progs)`
+—— **A 段锁 `prog=0`**（主进行=主题身份，不动）；**非 A 段在"非 0 候选内容池"里按
+`(主题, seed, 段名)` 哈希选内容**；不传 seed 时逐字节不变。
+实测跨 20 个 seed：各主题能产出 **9~15 种**不同的非 A 段进行序列（修之前是 1 种）。
+
+**两版踩坑（都留了证据，别退回）**：
+① 只押 `crc32(seed)` → gorgeous 的两个 seed **撞同一偏移**，逐段仍同和弦；
+② 改成"把下标**旋转** k 位" → 旋转是**平移**，任何 k 都给同一个循环平移，
+同一首曲子里不同段名落到**同一条进行**（实测 night 的 B 与 C 都成了 `Fm7|Fm6`）。
+
+### 17.2 🔴 结束时盘上的状态：**两条 selftest 红了**
+
+`selftest --fast` = **219/221**（改这个之前是 **220/220 全绿**）· `mutation_check` = **317/320**
+（此前的常规水位是 **318/320**）。两条红**都还没查**：
+
+| 红灯 | 读数 | 我的初步判断（**未验证，别当结论**） |
+|---|---|---|
+| `harmony_add_contracts` | `档 2 没有给任何非旋律轨加出新音高 —— 接线断了` | 该守卫拿**第一首**带 `theme.name` 的曲目当夹具。和弦进行了 ⇒ 该曲的和弦池（`_pool_pcs`）变了 ⇒ **可能**是扩展音被"避开全曲和弦池音级"那条规则全拒了。**也可能是真回归** |
+| `melody_onset_spread` | `107_mystery_door 段Outro 落点偏离 0.656（门 0.65）` | 只差 **0.006** 越线，`mystery` 的非 A 段**换了进行**（修法的直接后果）⇒ 主歌/尾奏的落点分布跟着变。**可能是"刚好压线"，也可能是进行选得不合适** |
+
+⚠ **两条都必须先查清是"守卫/夹具口径"还是"引擎真回归"** —— 不许直接调门限或改夹具放行。
+排查入口：
+```
+D:\software\skill\music-gen\.venv\Scripts\python.exe D:\software\skill\music-gen\scripts\selftest.py --only harmony_add_contracts
+D:\software\skill\music-gen\.venv\Scripts\python.exe D:\software\skill\music-gen\scripts\selftest.py --only melody_onset_spread
+```
+（先看 `harmony_add_contracts` 里那句 `cand = (p, d0)` 挑的是哪首 —— 它挑**第一首**合格的，
+所以"换一首当夹具"就能区分"夹具问题"与"引擎问题"：**引擎问题会对所有曲目都失败**。）
+
+### 17.3 还没做（按优先级）
+
+1. **查清上面两条红**（第一优先级）。
+2. **17 首已重生成 + 已重渲染**（`song.json`/`.mid`/`.ogg` 三者同步，2026-10-07 第六轮做完）
+   —— 但因为 ② 的两条红，**这一版还没被验收**。
+3. **`theme_progression_seed_varies` 这条守卫<ins>没有有效的变异用例</ins>** ——
+   试了三版注入都构造不出"开关式"差异（① 返回原下标：只是量级差异，跨 seed 仍有 3 种序列；
+   ② 恒选同一条：`theme_progressions` 自身仍随 seed 换内容，仍有 3 种序列；
+   ③ 冻结候选表：用 `Mut` 替换后闭包里再调 `theme_progressions` **就是它自己** → `RecursionError`）。
+   **下一步做法**：③ 要先存原函数引用（`_orig = _ns.theme_progressions`）再替换；
+   或把判据改成"非 A 段序列种数 ≥ N"（但 N 取多少要有依据）。**细节在 `mutation_check.py` ㉘n 的注释里。**
+4. **听感判决**（用户）—— `_tmp/music-ab/` 那 6 个文件是**改动前**的 A/B 素材；
+   **本轮改完之后应当重做一版 A/B**（同一 theme+seed 的旧/新对照，做法见 §16.6，
+   注意 `git worktree` 里要**复制 `vendor/`+`tools/`**否则渲染报找不到 fluidsynth）。
+5. **§10.4 的"骨架可变"**（原始第一优先级，仍未做）：`perc`/`pad` 应跟随主题自己的
+   `arr_share`（6 主题 perc=0.00、8 主题 pad=0.00），而不是硬编码 `arr['perc']=1` + 风格预设。
+   **`bass` 的硬编码必须留**（40–80Hz 的唯一来源）。
+
+### 17.4 本轮的命令与素材（绝对路径）
+
+- 横向差异量尺（本轮的**判据来源**）：`D:\test\_tmp\music-diff\measure_diff.py`
+  （5 层：引子音色 / 编配骨架 / 音色族 / harmony 档 / swing；输出最像的曲对）
+- 疾病定位：`D:\test\_tmp\music-diff\cmp_111_115.py`（111 vs 115 逐层比）
+- 修法验证：`D:\test\_tmp\music-diff\verify_prog_seed.py` · `seed_spread.py`（跨 20 seed 种数）
+- 注入探针（判"注入是否改变行为"的**离线小脚本**，见 §17.5）：`D:\test\_tmp\music-diff\mut_probe.py`
+- 验收脚本：`D:\test\_tmp\music-combo\final_check.sh`（selftest → mutation → token_audit，**串行**）
+- 重生成 / 渲染：`D:\test\_tmp\music-combo\run_regen.sh` · `render.sh <编号...>`
+
+### 17.5 ⚠ 一条纪律教训（本轮花了最多时间的一段）
+
+**补变异用例时，先用"离线小脚本"判"注入是否真的改变了行为"，再跑全量 `mutation_check`。**
+本轮我在一条变异用例上试了三版，**每版都跑一遍约 3 分钟的 `mutation_check`** —— 拿全量当试验台，
+既慢又容易把"量级差异"误当"开关差异"。正确的顺序：写 10 行离线脚本跑注入前后的可观测量
+（`mut_probe.py` 就是最后才写的那个），**确认是开关式差异后**再去注册用例。
+
+另外：**用户明确说过"太久了"**。这个仓库的验收虽然必须跑，但**"为了一条测试用例反复全量验证"
+不属于必须** —— 该先离线判定，判不出来就如实记成"暂无有效注入"，别硬啃。
