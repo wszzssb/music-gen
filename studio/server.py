@@ -823,6 +823,43 @@ def extract_plan(name, src, mode, seconds=None):
     return cmds
 
 
+def _sync_notes_speed(d):
+    """把曲目 `notes.md` 的「| 速度 |」行同步成 `song.json` 的 `bpm`（其余内容一个不动）。
+
+    为什么需要（2026-10-07 用户实测踩到）：创作台允许**事后改 BPM**（写回 `song.json`），
+    而 `notes.md` 是 `new_song.py` 生成时写的、**不会跟着变** —— 于是出现"song.json 180 BPM、
+    notes.md 写 124 BPM"。这是**交付文档写错**：照 notes.md 复现会得到另一首曲子，
+    而且全库守卫 `notes_speed_matches` 正是查这一条（`selftest.t_notes_speed_matches`）。
+
+    放在 `/api/song` 保存之后调用：这样**不管从哪条路改的 bpm**（创作台、面板的保存按钮、
+    手工 POST）都会同步，不用每个入口各写一遍。
+    """
+    sj = os.path.join(d, 'song.json')
+    nt = os.path.join(d, 'notes.md')
+    if not (os.path.isfile(sj) and os.path.isfile(nt)):
+        return False
+    try:
+        with open(sj, encoding='utf-8') as f:
+            bpm = float(json.load(f).get('bpm') or 0)
+        with open(nt, encoding='utf-8') as f:
+            txt = f.read()
+    except (OSError, ValueError):
+        return False
+    if not bpm:
+        return False
+    # 只替换「**<数字> BPM**」里的数字，保留后面跟着的「· 4/4 · 84 小节」这些
+    new = re.sub(r'(\| 速度 \|[^\n]*?\*\*)([0-9]+(?:\.[0-9]+)?)(\s*BPM\*\*)',
+                 lambda m: m.group(1) + ('%g' % bpm) + m.group(3), txt, count=1)
+    if new == txt:
+        return False
+    try:
+        with open(nt, 'w', encoding='utf-8', newline='\n') as f:
+            f.write(new)
+    except OSError:
+        return False
+    return True
+
+
 def start_job(sid, kind, opts=None):
     """起后台任务；返回 jobId。kind: compose / render / render-tune / solo:<轨> / export[:stems]"""
     opts = opts or {}
@@ -1227,8 +1264,10 @@ class Handler(BaseHTTPRequestHandler):
                     os.remove(tmp)
                     return self._json({'ok': False, 'error': '规范写回失败: ' + out[-400:]})
                 os.replace(tmp, os.path.join(d, 'song.json'))
+                # 保存后顺手把 notes.md 的「速度」行对齐（改了 bpm 不改它 = 交付文档写错速度）
+                _fixed = _sync_notes_speed(d)
                 return self._json({'ok': True, 'saved': os.path.join(d, 'song.json'),
-                                   'log': out[-400:]})
+                                   'notes_speed_synced': _fixed, 'log': out[-400:]})
             if u.path == '/api/new':
                 body = self._body()
                 nid = (body.get('id') or '').strip()

@@ -186,13 +186,20 @@
             Math.round(need) + ' BPM，超出常用区间；本版不改段落结构，只能接近</span>');
         }
       }
+      // ⚠ **不自动勾「独奏化」**：说"钢琴曲"是想要那种风格，不等于要"整首只用钢琴"。
+      //   第一版直接把它填进下拉 → 用户一句"欢快的钢琴曲"就悄悄变成了**独奏改造版**，
+      //   而且成品落在另一个曲目里、界面上还看不到（2026-10-07 实测）。
+      if (p.instrument) {
+        var _cn = { piano: '钢琴', strings: '弦乐', ep: '电钢' }[p.instrument] || p.instrument;
+        chips.push('<span class="chip warn">听到「' + esc(_cn) + '」—— 想<b>整首只用它</b>' +
+          '就在「独奏化」里选；不选就按主题自己编配</span>');
+      }
       $('askChips').innerHTML = chips.join('') ||
         '<span class="chip warn">一句话里没认出任何音乐词，试试「欢快的钢琴曲」这种说法</span>';
       $('askChips').classList.remove('hidden');
       // 填表单（主题已在上面定好）
       if (p.seed != null) { $('genSeed').value = p.seed; }
       if (p.energy_gain) { $('genGain').value = p.energy_gain; }
-      if (p.instrument) { $('genInst').value = p.instrument; }
       $('gainVal').textContent = Number($('genGain').value).toFixed(2);
       $('genForm').classList.remove('hidden');
       renderThemeMeta();     // 最终 BPM（可能被"要 N 秒"改过）与元信息对齐
@@ -235,12 +242,16 @@
         }
       }
       resetJob();
-      $('jobKind').textContent = '· ' + id;
+      // ⚠ 独奏化的产物落在**新曲目** `<曲名>_solo/`（`solo_instrument.py --out`）——
+      //   产物区必须去读那一个。第一版这里传的是原曲名，于是"选了全用钢琴 → 生成完
+      //   界面上什么都没有"（没有试听、没有下载，只有一个空的"操作"卡；2026-10-07 实测）。
+      var soloOut = id + '_solo';
+      $('jobKind').textContent = '· ' + (inst ? soloOut : id);
       showSteps(inst ? 'render-tune-solo' : 'render-tune');
       var r = await post('/api/job?kind=' + (inst ? 'render-tune-solo' : 'render-tune') +
                          '&id=' + encodeURIComponent(id),
-                         inst ? { opts: { instrument: inst, out: id + '_solo' } } : {});
-      watchJob(r.job, id);
+                         inst ? { opts: { instrument: inst, out: soloOut } } : {});
+      watchJob(r.job, inst ? soloOut : id);
     } catch (e) {
       toast(e.message, true);
     } finally {
