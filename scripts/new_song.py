@@ -223,6 +223,31 @@ def theme_progressions(pack, seed=None):
     return out
 
 
+def prog_index_for_section(pack, seed, name, pi, n_progs):
+    """**非 A 段的进行下标**：按 `(主题, seed, 段名)` 的哈希在"非 0 候选内容池"里**选内容**。
+
+    ⚠ 特意提成**模块级函数**（2026-10-07）：`selftest.t_theme_progression_seed_varies`
+      要用**同一口径**判这件事（`CONVENTION.md` §1：同一口径只写一处），
+      而且变异测试要能注入到它 —— 守卫自己重抄一份的话，注入永远抓不到。
+
+    三条踩过的坑（都别退回）：
+      ① 只押 `crc32(seed)` → `gorgeous` 的两个 seed（10163/74894）**撞同一偏移**，
+         该主题逐段和弦仍完全相同；
+      ② 改成"把下标**旋转** k 位" → 旋转是**平移**，任何 k 都给出同一个循环平移，
+         于是同一首曲子里不同段名落到**同一条进行**（实测 night 的 B 与 C 都成了 `Fm7|Fm6`）；
+      ③ **正解**：直接**选内容** —— 从候选表非 0 的那些条里按哈希挑一条。
+
+    `pi == 0`（A 段 / 主题主进行）或候选不足 → **原样返回**（A 段锁 0 = 主题身份）。
+    """
+    if seed is None or not pi or n_progs <= 1:
+        return pi
+    import zlib
+    nz = list(range(1, n_progs))
+    mix = 'progidx|%s|%d|%s' % (pack.get('theme') or '?',
+                                int(seed) & 0xFFFFFFFF, name)
+    return nz[zlib.crc32(mix.encode('utf-8')) % len(nz)]
+
+
 def theme_arr(pack, style, level=0):
     """段落编制 = 引擎风格预设打底 + **主题包覆盖**（`arr_on` / `arr_off`）
 
@@ -906,7 +931,14 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     for i, item in enumerate(plan):
         name = item.get('name') or 'S%d' % (i + 1)
         bars = int(item.get('bars') or 8)
-        base = progs[min(int(item.get('prog') or 0), len(progs) - 1)]
+        _pi = min(int(item.get('prog') or 0), len(progs) - 1)
+        # **按 seed 轮换"非 A 段"的进行**（2026-10-07，治"同主题两首逐段同和弦"）：
+        # 实测 `gorgeous` 的两首不同 seed 曲目（`111_velvet_hall` / `115_three_faces`）
+        # **全部 16 段和弦逐段相同** —— 根因是 `form.plan` 里写死的 `prog` 号与 seed 无关，
+        # 而 `theme_progressions` 的轮换只改了**次级候选的顺序**。口径与三版踩坑
+        # 全写在 `prog_index_for_section` 的 docstring 里（提成模块级函数是为了守卫共用）。
+        _pi = prog_index_for_section(pack, seed, name, _pi, len(progs))
+        base = progs[min(_pi, len(progs) - 1)]
         if not name.startswith('A'):
             base = base[1:] + base[:1]          # 非 A 段：同一和声家族换起点（有变化不跑题）
         clist = [base[j % len(base)] for j in range(bars)]

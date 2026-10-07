@@ -7040,6 +7040,92 @@ def t_micro_timing_ruler_known_answers():
 
 
 @check
+def t_theme_progression_seed_varies():
+    """同主题**不同 seed** 必须给出**不同的和弦进行**（2026-10-07，治"逐段同和弦"）。
+
+    为什么加：实测 `111_velvet_hall`（seed 10163）与 `115_three_faces`（seed 74894）
+    **同为 gorgeous 主题，全部 16 段和弦逐段完全相同**。根因是 `form.plan` 里写死的 `prog` 号
+    与 seed 无关，而 `theme_progressions` 的轮换只改了**次级候选的顺序** ⇒ 只要 plan 只用
+    第 0/1/2 条，两种 seed 就落到同一批进行上（`gorgeous` 的候选 3/4 从未被用过）。
+    这是**静默失效**：不报错、曲子照样出，只是"换个种子还是同一首"。
+
+    判据：
+      ① **A 段仍锁 `prog=0`**（主进行 = 主题身份，必须不动）
+      ② 对"plan 里非 A 段用到 ≥2 个不同非 0 prog 号"的主题：
+         **两个不同 seed 必须产出不同的非 A 段和弦序列**
+      ③ 同一 seed 跑两次必须**逐段一致**（确定性）
+      ④ 覆盖数 ≥3（否则这条判据会空转）
+
+    ⚠ 判据自证见 mutation：把轮换去掉（`_pi` 不再按 seed 变）→ ② 必须失败。
+    """
+    import zlib
+    import new_song as NS
+    packs = NS._theme_packs()
+
+    def chords_for(th, seed):
+        pack = packs[th]
+        plan = (pack.get('form') or {}).get('plan') or []
+        progs = NS.theme_progressions(pack, seed=seed)
+        out = []
+        for item in plan:
+            name = item.get('name') or ''
+            bars = int(item.get('bars') or 8)
+            pi = min(int(item.get('prog') or 0), len(progs) - 1)
+            # 与生成端**同一个函数**（`CONVENTION.md` §1：同一口径只写一处；
+            # 守卫自己重抄一份的话，变异注入永远抓不到）
+            pi = NS.prog_index_for_section(pack, seed, name, pi, len(progs))
+            base = progs[min(pi, len(progs) - 1)]
+            if not name.startswith('A'):
+                base = base[1:] + base[:1]
+            out.append((name, [base[j % len(base)] for j in range(bars)]))
+        return out
+
+    checked = 0
+    _seeds = (10163, 74894, 7, 42, 31337, 2024)
+    for th in sorted(packs):
+        plan = (packs[th].get('form') or {}).get('plan') or []
+        nz_used = {int(it.get('prog') or 0) for it in plan
+                   if not str(it.get('name') or '').startswith('A')}
+        nz_used.discard(0)
+        if len(nz_used) < 2:
+            continue                      # 非 A 段只用一个非 0 号 ⇒ 本来就没有轮换空间
+        checked += 1
+        a = chords_for(th, _seeds[0])
+        # ① A 段锁 0：**任何** seed 下 A 段序列都必须与第一个 seed 一致
+        for sd in _seeds[1:]:
+            for (na, ca), (nb, cb) in zip(a, chords_for(th, sd)):
+                if na.startswith('A'):
+                    assert ca == cb, \
+                        '%s 的 A 段（%s）随 seed 变了 —— 主进行是主题身份，必须锁住' % (th, na)
+        # ② **跨 seed 必须出现 ≥2 种非 A 段序列**。
+        #   ⚠ 判据**不能**写成"指定的某两个 seed 必须不同"：实测 `night` 在
+        #     (10163, 74894) 上**恰好撞同一条进行** —— 那是概率事件，不是失效。
+        #     量过 20 个 seed：各主题有 **9~15 种**不同序列 ⇒ 用"种数"才稳定。
+        seqs = {tuple(tuple(c) for n, c in chords_for(th, sd) if not n.startswith('A'))
+                for sd in _seeds}
+        assert len(seqs) >= 2, \
+            ('%s：%d 个 seed 只产出 1 种非 A 段和弦序列 —— 按 seed 轮换失效'
+             '（查 build_from_theme 的 progidx 选内容那段）' % (th, len(_seeds)))
+        # ③ **曲内多样性**：同一首曲子里，非 A 段不许**全部**落在同一条进行上。
+        #   ⚠ 这条是**必须的补强**：只查 ② 的话，把 `prog_index_for_section` 换成
+        #     "返回原下标"**抓不到** —— 因为 `theme_progressions` 自身也随 seed 重排，
+        #     跨 seed 仍有 3 种序列（实测）。而那个注入真正的病是"**曲内所有非 A 段同一条进行**"。
+        for sd in _seeds:
+            used = {tuple(c) for n, c in chords_for(th, sd) if not n.startswith('A')}
+            assert len(used) >= 2, \
+                ('%s（seed %d）：%d 个非 A 段全部落在**同一条**进行上 —— '
+                 '曲内没有和声对比（`prog_index_for_section` 退回原下标了？）'
+                 % (th, sd, sum(1 for n, _c in chords_for(th, sd)
+                                if not n.startswith('A'))))
+        # ③ 确定性：同 seed 两次一致
+        assert chords_for(th, _seeds[0]) == a, '%s：同一 seed 两次结果不一致（不确定）' % th
+    assert checked >= 3, \
+        '只有 %d 个主题"非 A 段用了 ≥2 个非 0 进行"—— 这条判据会空转' % checked
+    print('        %d 个主题：A 段锁 prog=0 不动 · 非 A 段跨 %d 个 seed 有多种进行 · 同 seed 可复现'
+          % (checked, len(_seeds)))
+
+
+@check
 def t_theme_swing_contracts():
     """**按主题给 swing：有证据才开、不许超上限、闭环能量出来**（2026-10-07 ③）。
 

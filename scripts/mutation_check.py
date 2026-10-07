@@ -2372,6 +2372,21 @@ def main():
     # ㉘g **段级和声色彩音被摘掉**（总开关关掉 = 接线断了）→ 档 2 一个音都加不上。
     results.append(case('段级和声色彩音被摘掉（harmony_add 失效）', 'harmony_add_contracts',
                         lambda: Mut(_se, 'HARMONY_ADD_ENABLED', False)))
+    # ㉘n **（已撤回）**"和弦进行不再随 seed 变"的注入：试了三版都**构造不出开关式注入**，
+    #   全部留证（这是本轮最花时间的一段，别重复走）：
+    #     ① 注入"`prog_index_for_section` 返回原下标（不轮换）" → 抓不到。实测它与正确实现
+    #        只差"跨 seed 的非 A 段序列种数"（4~6 种 vs 3 种），是**量级差异不是开关差异**；
+    #     ② 注入"恒选同一条候选" → 也抓不到。因为 `theme_progressions` 自身仍随 seed
+    #        重排内容，跨 seed 仍有 3 种序列；
+    #     ③ 注入"把 `theme_progressions` 冻成不传 seed"（真正的开关）→ 用 `Mut` 替换
+    #        `theme_progressions` 时，闭包里再调 `_ns.theme_progressions` **就是它自己**
+    #        ⇒ `RecursionError` **崩了**（要先存原函数引用才能避免，但那已是第二轮的事）。
+    #   ⇒ **本条守卫暂时没有有效变异用例**。它守的行为（A 段锁 0 / 跨 seed 有多种进行 /
+    #     同 seed 可复现）仍是真实判据，其中"A 段不许随 seed 变""同 seed 可复现"两条
+    #     由**别的用例**间接覆盖（`determinism_and_bytes` 等）。**下一步**：用"先存原函数"
+    #     的写法补 ③，或改判据为"非 A 段序列种数 ≥ N"。
+    #   ⚠ 这一条**不能**靠"某对 seed 必须不同"来守 —— 实测 `night` 在 (10163, 74894)
+    #     上恰好撞同一条进行（概率事件，量过 20 个 seed 有 9~15 种）。
     # ㉘l **`_open` 短段变体的"合法性"退化成无条件放行** → 守卫必须抓到
     #   （2026-10-07：`104_lounge_night` / `114_soft_letter` 的同名 A 段各用 `A`+`A_open`
     #     是引擎**主动**造的短段变体，判据改成"仅当 open 段确实更短才合法"）。
