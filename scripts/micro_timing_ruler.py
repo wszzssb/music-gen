@@ -67,12 +67,23 @@ def _grid_dev(path, bpm=None):
                 bpm = 60_000_000.0 / hit[0].tempo
                 break
     bpm = bpm or 120.0
+    # ⚠ **按文件里的拍号算格与格相位**（2026-10-07 修）：原来硬编码 `tpb/4` 且
+    #   `slot = gi % 16` —— 那是**只对 4/4 成立**。3/4 的一小节是 3 拍（12 个 16 分格），
+    #   按 16 取模会让**每小节的相位错一次**，于是把正常直拍读成"swing 63.3ms"
+    #   （实测 `102_waltz_court`，3/4）。正解：从 `time_signature` 读拍号，
+    #   格 = `tpb/4`（16 分不变），**每小节格数 = num*16/den**，`slot = gi % slots_per_bar`。
+    num, den = 4, 4
+    for tr in mf.tracks:
+        hit = [m for m in tr if m.is_meta and m.type == 'time_signature']
+        if hit:
+            num, den = hit[0].numerator, hit[0].denominator
+            break
+    slots_per_bar = max(1, int(round(num * 16.0 / den)))
     grid_t = tpb / 4.0                          # 16 分格，单位 tick
     # ⚠ **单位**：`(60/bpm)/tpb` 是**秒**/tick，要乘 1000 才是毫秒。
     #   第一版漏了 ×1000，所有偏移被缩小 1000 倍（显示成 0.00ms、swing 恒 0）——
     #   是自证脚本把它抓出来的（真 10ms 报 0.00）。
     ms_per_tick = ((60.0 / bpm) / tpb) * 1000.0
-    half = grid_t / 2.0
     out = {}
     for i, tr in enumerate(mf.tracks):
         t = 0
@@ -81,7 +92,7 @@ def _grid_dev(path, bpm=None):
             t += m.time
             if (not m.is_meta) and m.type == 'note_on' and m.velocity > 0:
                 gi = int(round(t / grid_t))     # 最近的格
-                slot = gi % 16
+                slot = gi % slots_per_bar      # ← 按**本曲拍号**的小节格数取相位
                 # ⚠ **这里不需要"折进 ±半格"**（2026-10-07 实测删掉一行死代码）：
                 #   `gi = round(t/grid_t)` 取的就是**最近**的格 ⇒ `t − gi·grid_t` 天然落在
                 #   ±半格内。我一度以为"不折会让 swing 超半格时偏移变 0"，加了折叠；
@@ -93,10 +104,10 @@ def _grid_dev(path, bpm=None):
                 rows.append((slot, dv * ms_per_tick))
         if rows:
             out[(tr.name or 'tr%d' % i)] = rows
-    return out, bpm, tpb, grid_t
+    return out, bpm, tpb, grid_t, slots_per_bar
 
 
-def _swing(rows):
+def _swing(rows, slots=16):
     """奇数格（反拍）中位偏移 − 偶数格中位偏移（ms）。>15ms 才算 swing（同 `groove_probe`）。"""
     ev = [d for s, d in rows if s % 2 == 0]
     od = [d for s, d in rows if s % 2 == 1]
@@ -107,7 +118,7 @@ def _swing(rows):
 
 def report(path, bpm=None, quiet=False):
     try:
-        tracks, bpm, tpb, grid_t = _grid_dev(path, bpm)
+        tracks, bpm, tpb, grid_t, slots_per_bar = _grid_dev(path, bpm)
     except Exception as ex:
         return {'file': path, 'error': str(ex)[:80]}
     grid_ms = (grid_t * (60.0 / bpm) / tpb) * 1000.0
@@ -122,12 +133,35 @@ def report(path, bpm=None, quiet=False):
         #   判据：折叠加权 |偏差| 的中位若接近半格（>40% 半格），就标不可信。
         h = grid_ms / 2.0
         unc = bool(devs) and (stx.median([abs(d) for d in devs]) > 0.4 * h)
+        # **三连音/非二元细分检测**（2026-10-07 加；第一版按"整体中位 ≈ 网格/3"写，**没抓到**）：
+        #   三连音相对 16 分格天然差 **±网格/3**，而 swing 判据（奇偶格中位差）会把它读成
+        #   "反拍被推后"。实测 `102_waltz_court`（3/4）的 Hook：奇数格偏差**精确落在
+        #   ±网格/3**（slot3/11 = −63.29ms、slot5 = +61.71ms；直方 −grid/3 90 个、+grid/3 42 个）
+        #   ⇒ swing 报 −63.29ms 是**假的**。
+        #   ⚠ 判据要按"**±网格/3 的分桶占比**"，不能按整体中位（该轨整体中位恰好是 0.00）。
+        sw_v = _swing(data)
+        trip = False
+        if devs:
+            third = grid_ms / 3.0
+            tol = 0.25 * third
+            ear = sum(1 for d in devs if abs(d + third) < tol)      # 提前 1/3 格
+            lat = sum(1 for d in devs if abs(d - third) < tol)      # 推后 1/3 格
+            # ⚠ **必须要求"双向"**：swing 只有**一个方向**（反拍统一推后），
+            #   而三连音**同时**有提前与推后两个方向。第一版只按"±网格/3 的命中占比"，
+            #   把 40ms 的纯 swing 也判成三连音（40ms 恰好也占网格 32%）——自证当场抓到。
+            #   门限按实测定：`102_waltz_court` 的 Hook 早向 **0.286**、晚向 **0.133**
+            #   （3/4 的琶音三连音：−grid/3 90 个、+grid/3 42 个；其余格恰好 0），
+            #   而纯 swing（40ms）早向是 **0** ⇒ 用"双向各 ≥0.12、合计 ≥0.30"即可分开。
+            trip = ((ear + lat) / float(len(devs)) >= 0.30
+                    and ear >= 0.12 * len(devs) and lat >= 0.12 * len(devs))
+            if trip:
+                sw_v = None                     # 三连音轨不报 swing（避免假读数）
         rows[k] = dict(n=n, med=round(stx.median(devs), 3) if n else 0.0,
                        sd=round(stx.pstdev(devs), 3) if n > 1 else 0.0,
                        zero_pct=round(100.0 * zero / n, 1) if n else 0.0,
                        rng=round(max(devs) - min(devs), 3) if n else 0.0,
-                       grid_uncertain=unc,
-                       swing=(round(_swing(data), 2) if _swing(data) is not None else None))
+                       grid_uncertain=unc, triplet_like=trip,
+                       swing=(round(sw_v, 2) if sw_v is not None else None))
     try:
         _rel = os.path.relpath(path, ROOT)
     except ValueError:                          # 跨盘符（临时文件在 C: 等）→ 用绝对路径
@@ -139,7 +173,7 @@ def report(path, bpm=None, quiet=False):
     except Exception:
         _hits, _multi = [], False
     return {'file': _rel, 'bpm': round(bpm, 1),
-            'grid_ms': round(grid_ms, 2), 'tracks': rows,
+            'grid_ms': round(grid_ms, 2), 'slots_per_bar': slots_per_bar, 'tracks': rows,
             'tempo_events': len(_hits), 'tempo_multi': _multi,
             'tempo_bpms': sorted({b for _t, b in _hits})[:6]}
 

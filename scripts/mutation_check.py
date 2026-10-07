@@ -2418,6 +2418,15 @@ def main():
                         lambda: Mut(_mr, '_grid_dev', _mr_griddev_no1000)))
     # ㉘i **（已撤回）**"折叠失效"的注入：实测折叠是**死代码**（见 `_mr_griddev_nofold` 的说明），
     #     注入后行为一字不变 ⇒ 用例永远抓不到。**留函数不注册**，当证据。
+    # ㉘j **swing 值越出上限**（判据被改坏、给出超上限的值）→ 值域断言必须抓到。
+    #   ⚠ 第一版注入的是"把 SWING_CAP 抬到 999"，**抓不到**：值 = `min(CAP, 0.04*share)`，
+    #     而 share 最大 0.62 ⇒ 真实值最高 0.0248，永远碰不到 cap ⇒ 那条断言**恒真**。
+    #     改成直接注入"超上限的返回值"，才真的检验值域断言。
+    results.append(case('swing 值越出上限（判据被改坏）', 'theme_swing_contracts',
+                        lambda: Mut(_ns, '_theme_swing_raw', lambda pack, lib=None: 9.9)))
+    # ㉘k **swing 判据恒 0**（永远不开）→ "有区分度"那条断言必须抓到（恒假）。
+    results.append(case('swing 判据恒 0（有证据也不开）', 'theme_swing_contracts',
+                        lambda: Mut(_ns, '_theme_swing_raw', lambda pack, lib=None: 0.0)))
 
     # ㉙ **"流畅度"与"突兀声"两个量法坏不坏得起来**（用户 2026-09-22 要求沉淀成守卫）。
     #     ① 突兀声的对齐窗口改窄到 0 → 正常音头（起音延迟 42~78ms）全被判成"没有起音的杂音"

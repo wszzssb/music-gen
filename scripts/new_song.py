@@ -69,6 +69,18 @@ CELL_CANDS_CAP = 4
 # 用固定阈值而不是逐曲分位，是为了保住**跨曲差异**（逐曲分位会把每首都归一化成 0/1/2 各若干）。
 HARMONY_TENSION_P33 = 0.158
 HARMONY_TENSION_P67 = 0.289
+# **按主题给 swing 的门槛与步长**（2026-10-07 ③）：
+# 为什么要"按主题"而不是"全曲都加"：用 `micro_timing_ruler.py` 量模板库（可信样本 93 首），
+#   **各角色的 swing 中位全是 0.00ms**、只有 6%~17% 的模板真的摆 ⇒ "普遍加 swing"**被数据否掉**。
+#   但**逐风格**差异极大：`jazz` 真摇摆 **62%**（|swing| 中位 29.4ms）· `blues` 40% ·
+#   而 `chiptune`/`electronic`/`game16`/`game32`/`folk`/`romantic` **0%**。
+#   ⇒ 判据 = **该主题自己的模板里"真摇摆(>15ms)"的占比**；占比 ≥25% 才开，
+#     步长按占比线性给（每 25% 给 0.01 拍），上限 0.03 拍 ≈ 15.6ms @120BPM
+#     （正好压在 `HANDOFF-GEN-MICRO` 的判据线上，不越过"明显摇摆"那档）。
+#   ⚠ 这条**不动任何已验收的曲目**：它只在**重生成**时生效，且 0 = 逐字节不变。
+SWING_SHARE_MIN = 0.25
+SWING_STEP_PER_25PCT = 0.01
+SWING_CAP = 0.03
 ENERGY_CAP_DB = 4.0      # 段间电平偏移上限（再大就不是"段间对比"而是"忽大忽小"）
 ENERGY_MIN_DB = 0.5      # 小于这个就当没有起伏，不写 mix（不制造假变化）
 # **CC7 → 实际电平的换算系数**（实测，不是理论）：FluidSynth + GeneralUser GS 下
@@ -748,6 +760,68 @@ def _voice_seed(short, salt):
     return zlib.crc32(('%s|%s' % (short, salt)).encode('utf-8')) & 0xFFFFFFFF
 
 
+_SWING_CACHE = {}
+
+
+def theme_swing(pack, lib=None, _use_cache=True):
+    """主题 → **swing 量（拍）**，按该主题自己模板里"真摇摆"的占比给（2026-10-07 ③）。
+
+    ⚠ **带进程内缓存**：实现要逐首量模板（单主题 ≈1.7 秒），而批量重生成会反复问同一个主题
+      ⇒ 不带缓存时 17 首要多花 ≈29 秒。缓存键 = 主题名（同一进程内模板库不变）。
+      自检要守**真逻辑**时传 `_use_cache=False`（`t_theme_swing_contracts` 就是这么做的）。
+    """
+    key = pack.get('theme') or '?'
+    if _use_cache and key in _SWING_CACHE:
+        return _SWING_CACHE[key]
+    v = _theme_swing_raw(pack, lib)
+    if _use_cache:
+        _SWING_CACHE[key] = v
+    return v
+
+
+def _theme_swing_raw(pack, lib=None):
+    """主题 → **swing 量（拍）**，按该主题自己模板里"真摇摆"的占比给（2026-10-07 ③）。
+
+    判据（数据来源 `micro_timing_ruler.py`，口径见 `SWING_SHARE_MIN` 那段注释）：
+      · 用主题包的 `styles` 找到它的模板；逐首量 `max(|swing|)`
+      · **只统计可信样本**（恒定 tempo + 格自洽）—— 否则把 rubato 当成 swing
+      · `share = 真摇摆(|swing|>15ms) 的占比`；`share < SWING_SHARE_MIN(0.25)` → **返回 0**
+      · 否则 `min(SWING_CAP, SWING_STEP_PER_25PCT * (share / 0.25))`
+
+    ⚠ **返回 0 就是"不开"**（引擎缺省 0 = 老行为逐字节不变）⇒ 这条对已验收曲目零影响。
+    ⚠ 取不到模板库/量不了 → 返回 0（**不猜**）。
+    """
+    try:
+        import micro_timing_ruler as _mt
+    except Exception:
+        return 0.0
+    import glob as _glob
+    root = lib or os.path.join(ROOT, 'refs', 'midi2')
+    ok = big = 0
+    for st in (pack.get('styles') or []):
+        for f in sorted(_glob.glob(os.path.join(root, st, '*.mid'))):
+            try:
+                r = _mt.report(f)
+            except Exception:
+                continue
+            if 'error' in r or r.get('tempo_multi'):
+                continue
+            if any(v['grid_uncertain'] for v in r['tracks'].values()):
+                continue
+            sw = [abs(v['swing']) for v in r['tracks'].values() if v['swing'] is not None]
+            if not sw:
+                continue
+            ok += 1
+            if max(sw) > 15.0:
+                big += 1
+    if ok < 3:                       # 样本太少不下结论
+        return 0.0
+    share = big / float(ok)
+    if share < SWING_SHARE_MIN:
+        return 0.0
+    return round(min(SWING_CAP, SWING_STEP_PER_25PCT * (share / SWING_SHARE_MIN)), 4)
+
+
 def harmony_tension_levels(pack, secs):
     """段落 → **和声张力档**（0/1/2，写进 `arr.harmony_add`）—— 2026-10-07 新增。
     依据：Nikrang/Sears/Widmer《Automatic estimation of harmonic tension by distributed
@@ -1006,6 +1080,11 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
               % ' · '.join('%s %+.1fdB' % (k, v) for k, v in sorted(_hb.items())))
     _bpm, _bpm_src = _bpm_from_pack(pack, seed)
     print('  BPM %g —— %s' % (_bpm, _bpm_src))
+    # **按主题给 swing**（2026-10-07 ③；见 `theme_swing`）：有证据才开，0 = 不写这个键。
+    _sw = theme_swing(pack)
+    if _sw:
+        print('  微时序：该主题模板真摇摆占比够 → swing %.3f 拍（≈%.0fms）'
+              % (_sw, _sw * 60000.0 / max(1.0, float(_bpm or 120))))
     d = {'name': short,
          'bpm': _bpm,
          'meter': list(pack.get('meter') or [4, 4]),
@@ -1020,6 +1099,10 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
          'programs': theme_programs(pack, seed=seed, verbose=True),
          'patterns': {'bass_style': (pack.get('rhythm') or {}).get('bass_style', 'simple'),
                       'perc_style': (pack.get('rhythm') or {}).get('perc_style', 'light'),
+                      # **微时序（swing）**：按该主题模板里"真摇摆"的占比给（见 `theme_swing`）。
+                      # ⚠ **返回 0 就不写这个键**（缺省 = 引擎老行为、逐字节不变）；
+                      #   有证据才写 —— 数据依据：jazz 62% / blues 40% / chiptune·electronic 0%。
+                      **(dict(swing=_sw) if _sw else {}),
                       # **乐句级力度曲线**（opt-in，见 `song_engine.mel_dyn_env`）：
                       # 只有主题路径的新歌才开 —— 老曲目没有这个键，MIDI 字节不变，
                       # 不需要全库重渲染。

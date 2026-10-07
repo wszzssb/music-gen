@@ -7003,8 +7003,121 @@ def t_micro_timing_ruler_known_answers():
     # ⑤ 前提检查字段存在
     assert 'tempo_multi' in r and 'grid_uncertain' in list(r['tracks'].values())[0], \
         '前提检查字段缺失（多 tempo / 格不自洽 要能标出来）'
+    # ⑥ **三连音不许被读成 swing**（2026-10-07 加；第一版判据"整体中位≈网格/3"**没抓到**）：
+    #   三连音相对 16 分格天然差 ±网格/3，而 swing 判据（奇偶格中位差）会把它读成
+    #   "反拍被推后"。实测 `102_waltz_court` 的 Hook 报 **−63.29ms = −网格/3**（假的）。
+    #   判据要按"±网格/3 的**分桶占比**"，不能按整体中位（该轨整体中位恰好 0.00）。
+    def build_triplet(nbars=6):
+        tr = mido.MidiTrack()
+        tr.append(mido.MetaMessage('set_tempo', tempo=int(60_000_000 / BPM), time=0))
+        tr.append(mido.MetaMessage('track_name', name='t', time=0))
+        evs = []
+        for bar in range(nbars):
+            for k in range(12):                    # 每小节 12 个三连音（= 4 拍 × 3）
+                t = int(round((bar * 8 + k * (8.0 / 3.0)) * (TPB / 4.0)))
+                evs.append(t)
+        evs.sort()
+        last = 0
+        for t in evs:
+            on = max(t, last)
+            tr.append(mido.Message('note_on', note=80, velocity=90, time=on - last))
+            off = on + 30
+            tr.append(mido.Message('note_off', note=80, velocity=0, time=off - on))
+            last = off
+        mf = mido.MidiFile(ticks_per_beat=TPB)
+        mf.tracks.append(tr)
+        p = os.path.join(TMP, 'micro_triplet.mid')
+        mf.save(p)
+        return p
+
+    rt = MT.report(build_triplet(), BPM)
+    tt = list(rt['tracks'].values())[0]
+    assert tt.get('triplet_like'), \
+        '三连音轨没被标为 triplet_like（swing=%s）—— 它会被误报成 swing' % tt['swing']
+    assert tt['swing'] is None, '三连音轨不该报 swing，实得 %s' % tt['swing']
     print('        已知 swing 0/10/20/40ms 误差<1ms · 抖动不误报（swing %.2f sd %.2f）'
-          ' · 单位/折叠/前提检查 齐备' % (t['swing'] or 0.0, t['sd']))
+          ' · **三连音被识别**（swing=None）· 单位/前提检查 齐备' % (t['swing'] or 0.0, t['sd']))
+
+
+@check
+def t_theme_swing_contracts():
+    """**按主题给 swing：有证据才开、不许超上限、闭环能量出来**（2026-10-07 ③）。
+
+    数据依据（`micro_timing_ruler.py` 量模板库可信样本 93 首）：
+      · **各角色的 swing 中位全是 0.00ms**，只有 **6%~17%** 的模板真的摆
+        ⇒ "普遍加 swing"**被数据否掉**，所以这里**按主题**给、且**没证据就返回 0**。
+      · 逐风格差异极大：`jazz` 真摇摆 **62%**（中位 29.4ms）· `blues` **40%** ·
+        `chiptune`/`electronic`/`game16`/`game32`/`folk`/`romantic` **全 0%**。
+
+    钉四件：
+      ① **值域**：每个主题的 `theme_swing` 必须落在 `[0, SWING_CAP]`
+      ② **有区分**：至少 3 个主题 >0 **且** 至少 3 个 ==0（否则这条判据退化成恒真/恒假）
+      ③ **闭环**：把某主题的 swing 写进曲目 → 用**尺子**（`micro_timing_ruler`）量出来
+         ≈ `swing × 60000 / BPM`（毫秒）；0 的曲目必须量出 0（= 缺省逐字节不变）
+      ④ **不许拿池外音色那类兜底**：取不到模板库/样本不足时返回 0（**不猜**）
+    """
+    import tempfile
+    import new_song as NS
+    import song_engine as SE
+    import micro_timing_ruler as MT
+    packs = NS._theme_packs()
+    assert len(packs) >= 10, '主题包太少（%d），这条检查会空转' % len(packs)
+    vals = dict((th, NS.theme_swing(packs[th], _use_cache=False)) for th in packs)
+    # ① 值域
+    for th, v in sorted(vals.items()):
+        assert 0.0 <= v <= NS.SWING_CAP + 1e-9, \
+            '%s 的 swing=%s 越界（应 ∈ [0, %.2f]）' % (th, v, NS.SWING_CAP)
+    # ② 有区分度（不是恒 0、也不是全开）
+    n_pos = sum(1 for v in vals.values() if v > 0)
+    n_zero = sum(1 for v in vals.values() if v == 0.0)
+    assert n_pos >= 3 and n_zero >= 3, \
+        '这条判据没有区分度（>0 的 %d 个、==0 的 %d 个）—— 恒真/恒假都说明判据坏了' % (n_pos, n_zero)
+    # ③ 闭环：挑一个 >0 的主题，写进曲目 → 尺子量出来
+    pos_th = sorted([t for t, v in vals.items() if v > 0],
+                    key=lambda t: -vals[t])[0]
+    song = None
+    for d in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
+        try:
+            _sj = json.load(open(d, encoding='utf-8'))
+        except Exception:
+            continue
+        if (_sj.get('theme') or {}).get('name') == pos_th:
+            song = (d, _sj)
+            break
+    assert song, '找不到主题 %s 的曲目当闭环夹具' % pos_th
+    pj, sj = song
+    sw = vals[pos_th]
+    d0 = json.loads(json.dumps(sj))
+    d0.setdefault('patterns', {}).pop('swing', None)
+    res = {}
+    for tag, val in (('off', None), ('on', sw)):
+        dd = json.loads(json.dumps(d0))
+        if val:
+            dd['patterns']['swing'] = val
+        tmpj = os.path.join(TMP, 'swing_%s.json' % tag)
+        json.dump(dd, open(tmpj, 'w', encoding='utf-8'), ensure_ascii=False)
+        _r = SE.load(tmpj)
+        a = _r[0] if isinstance(_r, tuple) else _r
+        ev, _nb = SE.build_events(a)
+        out = os.path.join(TMP, 'swing_%s.mid' % tag)
+        SE.write_midi(a, ev, out)
+        rr = MT.report(out)
+        sws = [abs(v['swing']) for v in rr['tracks'].values() if v['swing'] is not None]
+        res[tag] = max(sws) if sws else 0.0
+    assert res['off'] < 1.0, 'swing=0（缺省）时尺子却量出 %.2fms —— 缺省应当是直拍' % res['off']
+    bpm = float(sj.get('bpm') or 120)
+    want = sw * 60000.0 / bpm
+    assert abs(res['on'] - want) < max(2.0, 0.25 * want), \
+        '闭环失败：写 swing=%.4f 拍（@%.0fBPM 应 %.1fms），尺子量出 %.1fms' % (sw, bpm, want, res['on'])
+    # ④ 取不到模板库 → 0（不猜）
+    assert NS._theme_swing_raw({'styles': ['__no_such_style__']}) == 0.0, \
+        '取不到模板时必须返回 0（不许猜）'
+    # ⑤ **缓存不许改变结果**（批量重生成靠它省 29 秒，但结论必须与不缓存一致）
+    _th0 = sorted(packs)[0]
+    assert NS.theme_swing(packs[_th0]) == NS.theme_swing(packs[_th0], _use_cache=False), \
+        'theme_swing 缓存改变了结果（缓存键/清理写错了）'
+    print('        %d 主题：%d 个 >0（最大 %s=%.4f）· %d 个 =0 · 闭环 %s 写 %.4f 拍 → 尺子 %.1fms（应 %.1f）'
+          % (len(vals), n_pos, pos_th, vals[pos_th], n_zero, pos_th, sw, res['on'], want))
 
 
 @check
