@@ -2331,13 +2331,13 @@ def main():
     import new_song as _ns
     results.append(case('new_song 音区修正被摘掉', 'melody_register_fix',
                         lambda: Mut(_ns, 'fix_melody_register', lambda *a, **k: [])))
-    # ㉘ **主奏音色池序退回"模板音色排最前"** → 引子（独奏位）又会拿到模板特色音色
-    #     （实测那次是 GM 80 方波，用户"前面部分非常奇怪"）。
-    results.append(case('主奏音色池序退回"模板音色排最前"', 'melody_prog_pool_order',
-                        lambda: Mut(_ns, 'melody_prog_pool',
-                                    lambda t: tuple(dict.fromkeys(
-                                        [p for p in (t, 0, 13, 8, 4, 24, 9)
-                                         if p is not None])))))
+    # ㉘ **引子音色退回"恒定 4 电钢"** → 17 首生成曲的第 1 段又全是 GM4、开头重新变得一样
+    #     （用户 2026-10-07："全部直接生成的开头都比较像"）。
+    #     注入成"分配恒定给同一个音色" ⇒ `melody_prog_pool` 的池首跨主题只剩 1 种，
+    #     由"池首跨主题区分度"那条断言抓（实测应 13 种）。
+    results.append(case('引子音色退回恒定（跨主题池首塌成 1 种）', 'melody_prog_pool_order',
+                        lambda: Mut(_ns, 'lead_assign',
+                                    lambda: dict((t, 72) for t in _ns._theme_packs()))))
     # ㉘b **主奏音色的跨主题分配退回"池内票数第一"** → 15 个主题又只剩 7 种
     #     （GM 73 长笛独占 8 个主题），用户"我听了确实还是有点像"就是这么来的。
     results.append(case('主奏音色退回"池内首选"（区分度塌回 7 种）', 'melody_prog_pool_order',

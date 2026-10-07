@@ -676,6 +676,7 @@ def _grid(res):
     bar_ticks = max(1, int(round(div * num * 4.0 / den)))
     slots = max(1, int(round(num * 16.0 / den)))
     occ = {'low': [0] * slots, 'high': [0] * slots}
+    bass_occ = [0] * slots          # **贝斯角色**的逐格占用（选 bass_style 的依据，2026-10-07 加）
     on = {'low': 0, 'high': 0, 'bass': 0, 'perc': 0}
     bars = set()
     for t in res['tracks']:
@@ -687,6 +688,7 @@ def _grid(res):
             on[zone] += 1
             if role == 'bass':
                 on['bass'] += 1
+                bass_occ[slot] += 1
             if role == 'perc':
                 on['perc'] += 1
             bars.add(s // bar_ticks)
@@ -697,11 +699,52 @@ def _grid(res):
                                     for c in occ['high']),
             'low_occ': [round(c / float(nbars), 3) for c in occ['low']],
             'high_occ': [round(c / float(nbars), 3) for c in occ['high']],
+            'bass_occ': [round(c / float(nbars), 3) for c in bass_occ],
             'low_density': round(on['low'] / float(nbars), 2),
             'high_density': round(on['high'] / float(nbars), 2),
             'bass_density': round(on['bass'] / float(nbars), 2),
             'perc_density': round(on['perc'] / float(nbars), 2),
             'slots': slots}
+
+
+def bass_style_from_occ(bass_occ):
+    """**贝斯角色的逐格占用 → 引擎的 `bass_style`**（形状匹配，2026-10-07）。
+
+    为什么换掉原来的二分规则（`'sixteenth' if bass_dens >= 3.0 else 'simple'`，3/4 一律 waltz）：
+    实测模板层**最常见的低音形状是"每 8 分一个" `#.#.#.#.#.#.#.#.`（34 首）**，
+    而二分规则永远给不出 `eighth` ⇒ 引擎 6 种 bass 型里 `eighth`/`offbeat`/`pump16`
+    **一次都没被用过**（15 个主题只有 3 种取值）。换成"拿主题自己的模板投形状票"后，
+    15 个主题的取值 3 种 → **4 种**（`eighth` 从 0 个变 8 个）。
+
+    做法：定义 6 个型的**期望落点格**，与"该模板的低音显著格"比对，
+    分数 = 命中 − 漏 − 多；**只采信正分**（没信号就不硬分，交由既有回退）。
+
+    ⚠ 两个踩过的坑（都写进 PITFALLS 351 同族）：
+      · **别用密度当周期线索**：实测有模板密度 83 音/小节（`################`），
+        `dens>=3.6 → sixteenth` 会把"每拍正拍"的 `#...#...#...#...`（密度 3.06）也判成 sixteenth。
+      · **显著格要相对 `max` 而不是相对均值**：`bass_occ` 是占用率，长音持续时每格都有一点
+        占用（实测 `#...............` 均值 0.13、非零格 0.28），用均值当门会把 16 格全判成活动格。
+    """
+    EXPECT = {'simple': [0, 4, 8, 12],
+              'eighth': [0, 2, 4, 6, 8, 10, 12, 14],
+              'sixteenth': list(range(16)),
+              'offbeat': [1, 3, 5, 7, 9, 11, 13, 15],
+              'waltz': [0, 4, 8]}
+    n = len(bass_occ)
+    mx = max(bass_occ) if bass_occ else 0.0
+    if mx <= 0:
+        return None
+    obs = set(i for i in range(n) if bass_occ[i] >= 0.3 * mx)
+    if not obs:
+        return None
+    out = {}
+    for name, exp in EXPECT.items():
+        if len(exp) > n:
+            continue
+        e = set(exp)
+        out[name] = len(obs & e) - len(e - obs) - len(obs - e)
+    best = max(out.items(), key=lambda kv: (kv[1], -len(EXPECT[kv[0]])))
+    return best[0] if best[1] > 0 else None
 
 
 def aggregate(theme, rows, feats, min_n=MIN_TEMPLATES):

@@ -60,6 +60,10 @@ if __name__ == '__main__':
 
 # 段落层次用到的"第二梯队"编制（主题包说这个主题确实会用 → 副歌/桥段开出来做变化）
 SECOND_TIER = ('strings', 'pad', 'glock', 'ep', 'arp')
+# `theme_programs` 里**非主奏轨**最多看几个"同族候选"（含池首）。
+# 2 → 4 的标定过程写在 `theme_programs` 的注释里（`_tmp/music-combo/cap_sweep.py`）：
+# 组合种数 104 → 204（+96%），再放宽收益递减（cap=5 只 +3%）。
+CELL_CANDS_CAP = 4
 ENERGY_CAP_DB = 4.0      # 段间电平偏移上限（再大就不是"段间对比"而是"忽大忽小"）
 ENERGY_MIN_DB = 0.5      # 小于这个就当没有起伏，不写 mix（不制造假变化）
 # **CC7 → 实际电平的换算系数**（实测，不是理论）：FluidSynth + GeneralUser GS 下
@@ -327,7 +331,9 @@ def theme_programs(pack, pick=0, seed=None, verbose=False):
       保证"挑出来的仍是模板证据、且不跨族乱搭"：
         ① 只在**与首选同族**的候选里挑（`theme_pack.role_of_program`；否则 battle 的
            strings 池里那个**定音鼓 47**、daily 的 **大号 58** 会被塞进弦乐声部）；
-        ② 非主奏轨最多看到**前 2 个**候选（长尾票数低、听感风险大）。
+        ② 非主奏轨最多看到**前 `CELL_CANDS_CAP` 个**候选（长尾票数低、听感风险大）。
+           ⚠ 2026-10-07 由 2 放宽到 **4**（用户"学习各种乐器的各种组合音增加差异"）：
+           离线标定见 `theme_programs` 正文与 `CELL_CANDS_CAP` 常量处。
       ⚠ **`Melody` 不参与**（见下面那条注释）：`programs.Melody` 留画像首选，
         主奏的多样性由段级 `melody_prog` 序列承担。
 
@@ -374,7 +380,21 @@ def theme_programs(pack, pick=0, seed=None, verbose=False):
         import theme_pack as _tp
         fam = _tp.role_of_program(cands[0])
         same = [p for p in cands if _tp.role_of_program(p) == fam] or cands[:1]
-        cap = len(same) if track == 'Melody' else min(len(same), 2)
+        # ⚠ **cap 由 2 放宽到 4**（2026-10-07，用户："学习各种乐器的各种组合音增加差异"）。
+        #   依据：`refs/midi2` 的 222 首真实模板里用到 **109 种音色**、130/189 种组合，
+        #   而**主题包池本来就是"每首模板一票、按频次排序"**（见 `extract_theme_timbres.py`），
+        #   所以"取前 N 个"里 N 越大并不是引入噪声，只是把**已经有票数的长尾**用起来。
+        #   离线标定（15 主题 × 20 seed = 300 次分配，`_tmp/music-combo/cap_sweep.py`）：
+        #     cap=2 → 104 种组合 / 角色音色 Bass 5 · Strings 10 · Piano 6
+        #     cap=3 → 189 种（+82%）
+        #     **cap=4 → 204 种（+96%）· Bass 6 · Strings 13 · Piano 7**  ← 拐点
+        #     cap=5 → 210 种（+3%，收益递减）· 无上限 → 206 种（噪声反而回吐）
+        #   所以取 4：既吃到绝大部分增益，又不把票数极低的长尾（听感风险大）放进来。
+        #   权威旁证（见 `docs/HANDOFF-GEN-SAMENESS.md` §9）：Rimsky-Korsakov 指出
+        #   "**固定的复合音色会抹掉音色个性、产生黯淡中性的织体；简单本原的组合才带来
+        #   无限色彩变化**" —— 本库的症状正是"每曲都用同一套 6 件编制"，与"cap 太紧
+        #   导致每个角色只有 1~2 个候选"是同一件事的两面。
+        cap = len(same) if track == 'Melody' else min(len(same), CELL_CANDS_CAP)
         h = zlib.crc32(('%d|%s' % (int(seed), track)).encode('utf-8')) & 0xFFFFFFFF
         out[track] = (same[h % cap], song_engine.CH[track])
     if verbose:
@@ -871,18 +891,22 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     # —— 即不是音源的锅，是 MIDI 层就没换）。
     #
     # 规则（三条都有实测依据）：
-    #   ① 前两位（引子 + 第一个主歌）拿**钢琴族保守音色** —— 曲式该有的可预期性，
-    #      也是 2026-09-22"引子拿方波独奏 = 前面部分非常奇怪"那条教训的落地；
+    #   ① **第 1 段（引子）拿该主题分配到的音色**（2026-10-07 改：原先是"恒定 4 电钢"）——
+    #      旧口径下 17 首的第 1 段主奏**全是 GM4**，用户第二次点名"开头都比较像"；
+    #      现在池首 = `lead_pool_for_theme(pack)[0]` = `lead_assign()` 分给该主题的音色
+    #      （15 主题 13 种），第一印象逐主题不同。**慢起音仍被 `lead_candidates` 挡在池外**
+    #      （`SLOW_ATTACK`），所以 2026-09-22"引子拿方波独奏"那条风险改由机制挡。
     #   ② 只用**起音 ≤20ms** 的音色：颤音琴(11) 42ms 实测"慢半拍"被用户点名淘汰
     #      （`t_lead_timbre_attack` 在守；候选已在 `lead_candidates` 里过滤）；
-    #   ③ **第 3 段起按主题自己的主奏池轮换**（2026-10-01 用户"都要多样化"）——
+    #   ③ **逐段按主题自己的主奏池轮换**（2026-10-01 用户"都要多样化"）——
     #      旧版按"角色首次出现顺序"取固定小池，导致主题音色只落在 Outro（实测 100-107
     #      只占 3.3%~6.2%）。现在 A2/A3/B/B2/C… 逐段换主题主奏音色（"同一支旋律换乐器再陈述"），
     #      起始音色由 seed 决定 → 同主题不同曲子也不同。
     _mel_tpl = (theme_programs(pack, seed=seed).get('Melody') or (None,))[0]
-    _MEL_PROGS = melody_prog_pool(_mel_tpl, seed=_voice_seed(short, 'lead'),
+    _MEL_SEED = _voice_seed(short, 'lead')
+    _MEL_PROGS = melody_prog_pool(_mel_tpl, seed=_MEL_SEED,
                                   leads=lead_pool_for_theme(pack))
-    _MEL_SEQ = melody_prog_seq(_MEL_PROGS, len(secs))
+    _MEL_SEQ = melody_prog_seq(_MEL_PROGS, len(secs), seed=_MEL_SEED)
     for _i, _s in enumerate(secs):
         _s['arr']['melody_prog'] = _MEL_SEQ[_i]
     # **引子渐入**（`arr.perc_in` → `song_engine.perc_part(inbars=…)`）：真实模板里引子是
@@ -1379,35 +1403,63 @@ def melody_prog_pool(mel_tpl, seed=None, leads=None):
           在长音旋律上正是"只响 0.几秒"的元凶，没有必要为"保守"再留一个位置。
       守卫 `t_melody_prog_pool_order` 同步改（第 1 位保守的断言保留，前两位 == (4,0) 那条
       改成"第 1 位保守 + 第 2 位必须是该主题候选"）。
+    ⚠ **池首由"恒定 4 电钢"改成"该主题分配到的音色"**（2026-10-07，用户第二次点名：
+      "**全部直接生成的开头都比较像**"）。实测 17 首主题生成曲的 `sections[0].arr.melody_prog`
+      **17/17 全是 GM 4** —— 前 8 小节的第一个音色每首都一样，这是"开头像"最直接的原因。
+      改法是**去掉恒定 `head=[4]`**：池首 = `leads[0]` = `lead_assign()` 分给该主题的音色
+      （15 主题 13 种、已达二分图最大匹配上界），于是**第一印象逐主题不同**。
+      ⚠ 依据纪律不变：池首仍在**该主题自己的 `ep` 候选池内**（`lead_candidates` 已滤掉慢起音
+      = 弦乐/簧管/人声，见 `SLOW_ATTACK`），所以 2026-09-22 那条"引子慢起音/独奏位突兀"
+      的教训仍然被**机制**挡住，不是靠"恒定 4"挡住的。若某主题的分配音色听感仍不合适，
+      回退口子是 `leads` 传空 —— 那时退回旧的保守池（4 电钢打头）。
     """
     if not leads:
         return tuple(dict.fromkeys([p for p in (4, 0, 13, 8, mel_tpl, 24, 9)
                                     if p is not None]))
     ls = list(dict.fromkeys([p for p in leads if p is not None]))
-    if seed is not None and len(ls) > 1:
+    # ⚠ **池首不参与 seed 旋转**（2026-10-07）：旋转的是**池身**，池首恒为
+    #   `leads[0]` = `lead_assign()` 分给该主题的音色。理由是实测：若连池首一起旋转，
+    #   按真实曲名派生 seed 时池首只剩 **7/15 种**（GM71×5、GM73×5）—— 因为长池主题的
+    #   引子音色变成了"池内任取一个"，等于把刚刚分配好的区分度又随机抹掉一半。
+    #   现在：引子音色是**有意分配**的（跨主题 13 种），池身顺序才随曲子变。
+    _head = ls[:1]
+    _body = ls[1:]
+    if seed is not None and len(_body) > 1:
         import zlib
-        k = zlib.crc32(b'lead|%d' % (int(seed) & 0xFFFFFFFF)) % len(ls)
-        ls = ls[k:] + ls[:k]
-    head = [4]
+        k = zlib.crc32(b'lead|%d' % (int(seed) & 0xFFFFFFFF)) % len(_body)
+        _body = _body[k:] + _body[:k]
+    ls = _head + _body
     if mel_tpl is not None and mel_tpl not in ls:
         ls = ls + [mel_tpl]               # 兜住老口径：programs.Melody 必须在池里
-    return tuple(dict.fromkeys(head + ls))
+    return tuple(dict.fromkeys(ls))
 
 
-def melody_prog_seq(pool, n_sec):
+def melody_prog_seq(pool, n_sec, seed=None):
     """池 → **n 段的实际序列**：第 1 段照池序（引子保守），之后只在池身轮换。
 
     为什么不让整池 `i % len(pool)` 一路轮下去（2026-10-01）：那样第 3 段就会绕回
     "4 电钢"，把主题主奏音色又稀释掉（sorrow 那种池长 4 的曲子只剩 53% 是主题音色）。
     ⚠ 2026-10-01 第二改：保守头从 2 段缩到 1 段（见 `melody_prog_pool`），因为 8 首曲子的
     **前两段主奏完全相同**（第 1 段 4 电钢 8/8、第 2 段 0 钢琴 8/8）正是"还是有点像"的来源。
+
+    ⚠ **`seed` 只改池身的"起点相位"，不改结果种类**（2026-10-07）：曾把段级索引改成"随 seed
+      偏移"并**删掉环形取模**，实测**出了新退化** —— 池身只走一遍就开始重复末位
+      （gorgeous 的 `68 69 71 73` 循环变成 `68 73 69 71 73 69 71…`），是把"轮换"写坏了。
+      正解保留**环形** `body[(off+i) % len(body)]`，`off` 只由 seed 定相位。
+      同时记下这条维度的**上界 = 池身长度**（`i % len(body)` 本质是环，n 个元素最多 n 种环）：
+      classic 池身只有 `[68]`（分配走 71 后）⇒ 序列必然是 `71 68 68 …`，这是池宽决定的，
+      不是索引写法能突破的。本库 15 主题里 **5 个主题只有 2 个候选**（见 `_ASSIGN_CAP`）。
+
+    ⚠ 第 1 段现在拿的是**池首**（= 该主题分配到的音色，见 `melody_prog_pool` 末段那条），
+      不再是恒定 4 电钢。
     """
     if not pool or n_sec <= 0:
         return []
     head, body = list(pool[:1]), list(pool[1:]) or list(pool[:1])
     seq = head[:n_sec]
+    off = 0 if not seed else (int(seed) - 1) % len(body)
     for i in range(max(0, n_sec - len(seq))):
-        seq.append(body[i % len(body)])
+        seq.append(body[(off + i) % len(body)])
     return seq
 
 

@@ -1258,6 +1258,7 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'HANDOFF-FAMILY-VOTE.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-FAKE-NOTE.md'),
+             os.path.join(ROOT, 'docs', 'HANDOFF-GEN-SAMENESS.md'),
              # 2026-10-06：HISTORY 拆出的归档件（也要查"指针腐烂"）
              os.path.join(ROOT, 'HISTORY.md'),
              os.path.join(ROOT, 'HISTORY-ARCHIVE.md'),
@@ -1302,6 +1303,7 @@ def t_docs_paths():
               os.path.join(ROOT, 'docs', 'HANDOFF-FAMILY-VOTE.md'),
               os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
               os.path.join(ROOT, 'docs', 'HANDOFF-FAKE-NOTE.md'),
+              os.path.join(ROOT, 'docs', 'HANDOFF-GEN-SAMENESS.md'),
               os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'), files[-1]]
     dead = []
     for p in dokeys:
@@ -10495,55 +10497,63 @@ def t_melody_register_fix():
 
 @check
 def t_melody_prog_pool_order():
-    """**段级主奏音色的池序：引子拿保守音色，模板"特色"音色留给靠后的角色**（用户 2026-09-22）。
+    """**段级主奏音色的池序：池首 = 该主题分配到的音色（跨主题不同），模板音色留在池里**。
 
-    实测背景：池序原来是 `[模板音色, 0, 13, 8, 4, 24, 9]`，而角色按**首次出现顺序**取 ——
-    `intro` 最先出现 → **拿到模板音色**。`20_piano_rain` 重生成时模板给的是 **GM 80
-    （Lead 1 square 方波）**，于是引子成了"高音方波独奏"（首音 93 = A6 · 力度 91），
-    用户原话"**前面部分非常奇怪**"；而池序注释自己写的就是"从保守到特色"。
+    ⚠ **口径在 2026-10-07 改过一次，旧口径的来历必须留着**（否则会有人再"改回去"）：
+    旧口径要求**池首恒定 4 电钢**（2026-09-24 起）—— 来历是 `20_piano_rain` 重生成时
+    模板给 GM 80（方波），引子成了"高音方波独奏"、用户"**前面部分非常奇怪**"，
+    于是把最保守的音色钉在独奏位。**代价是 17 首生成曲的第 1 段主奏 17/17 全是 GM4**，
+    用户 2026-10-07 第二次点名"**全部直接生成的开头都比较像**" ⇒ 这条恒定被撤掉。
+    换成"池首 = `lead_pool_for_theme(pack)[0]`"（= `lead_assign()` 分给该主题的音色，
+    15 主题 13 种、已达二分图最大匹配上界）后，第一印象逐主题不同。
+    **原来的风险仍由机制挡住**：`lead_candidates` 用 `SLOW_ATTACK` 滤掉弦乐/簧管/人声，
+    所以"慢起音/慢半拍"进不了池首（这条断言在下面保留）。
 
-    钉三件：① 池首必须是**钢琴族的保守音色**（4 电钢 / 0 钢琴）；② **模板音色仍留在池里**
+    钉四件：① 池首 == 该主题的分配音色（且非慢起音）；② **模板音色仍留在池里**
     （不能因改序而白设 —— 它若不在池里，`programs.Melody` 会被段级值立刻覆盖）；
-    ③ 模板音色不占"引子/主歌"两个位置（前两位）。模板音色本身就是 0 时，① 与 ③ 天然一致。
-
-    ⚠ ① **从"必须是 0"放宽成"0 或 4"**（2026-09-24）：池首换成 **4 电钢**是因为
-    `sustain_criteria` 报了「"只响 0.几秒"触发 20/31 首（>30% = 恒真噪声）」——
-    池首的 GM 0 钢琴衰减 0.19~0.25s 就掉 12dB，而旋律写的是长音；GM 4 是技能第 17 条
-    点名的持续型（起音 1ms），且同属钢琴族保守音色 → 初衷不变。
-    这条断言仍然**有牙齿**：把池首换成模板音色（80）或任何特色音色都会失败。
+    ③ 池身正好是主题候选；④ 换 seed 会换起始顺序（否则"多样化"是空转）。
     """
     import new_song as NS
+    # 无 leads（老调用/池缺 ep 的主题）仍是旧的保守池：这是回退口子，必须留着
     for tpl in (80, 71, 48, 0):
         pool = NS.melody_prog_pool(tpl)
         assert pool[0] in (0, 4), \
-            '池首必须是钢琴族的保守音色（4 电钢 / 0 钢琴），实得 %s：%r' % (pool[0], pool)
+            '**无 leads 的回退池**首必须是钢琴族保守音色（4 电钢 / 0 钢琴），实得 %s：%r' % (pool[0], pool)
         assert tpl in pool, \
             '模板音色 %d 必须留在池里（否则 programs.Melody 被段级值覆盖 = 白设）：%r' % (tpl, pool)
         if tpl != 0:
             assert pool.index(tpl) >= 2, \
                 '模板音色 %d 不该占"引子/主歌"两位（前两位），实得第 %d 位：%r' % (
                     tpl, pool.index(tpl), pool)
-    # ---- **新口径（2026-10-01，用户"都要多样化"）**：段级主奏音色不再只从固定小池取，
-    # 而是**主题自己的主奏候选轮换**（否则实测主题音色只占全曲 3.3%~6.2%，8 个主题被抹平）。
-    # 钉四件：① 前两位仍是保守音色；② 池身正好是主题候选；③ 序列前两段保守、之后只用主题候选；
-    #        ④ 换 seed 会换起始顺序（否则"多样化"是空转）、且序列里不许有慢起音音色。
+    # ---- **新口径（2026-10-01"都要多样化" + 2026-10-07"开头都比较像"）**：
+    # 段级主奏音色从**主题自己的主奏候选**取，池首就是主题分配音色（不再恒定 4）。
     _leads = [73, 71, 65]
     _pool = NS.melody_prog_pool(71, seed=3, leads=_leads)
-    assert _pool[0] == 4, '第 1 段（引子）必须是保守音色 4 电钢：%r' % (_pool,)
-    assert set(_pool[1:]) == set(_leads), '第 2 段起必须正好是主题主奏候选：%r' % (_pool,)
+    assert _pool[0] in _leads, '池首必须是主题自己的主奏候选：%r' % (_pool,)
+    assert set(_pool) == set(_leads) | {71} or set(_pool) == set(_leads), \
+        '池成员只该是主题主奏候选（+模板音色兜底）：%r' % (_pool,)
     _seq = NS.melody_prog_seq(_pool, 6)
-    assert _seq[0] == 4, '序列第 1 段必须保守（引子/独奏位）：%r' % (_seq,)
-    assert set(_seq[1:]) <= set(_leads), '第 2 段起只该用主题候选：%r' % (_seq,)
-    assert _seq[1] == _pool[1], \
-        '第 2 段必须拿池身首位（8 首曲子的第一印象由此分开）：%r / %r' % (_seq, _pool)
+    assert _seq[0] in _leads, \
+        '第 1 段（引子）必须用主题主奏候选（不再是恒定 4 电钢）：%r' % (_seq,)
+    assert set(_seq) <= set(_pool), '序列只能从池里取：%r / %r' % (_seq, _pool)
     assert not (set(_seq) & set(NS.SLOW_ATTACK)), '主奏序列里不许有慢起音音色：%r' % (_seq,)
-    _orders = {tuple(NS.melody_prog_pool(71, seed=s, leads=_leads)[1:]) for s in range(1, 12)}
-    assert len(_orders) > 1, '不同 seed 必须给出不同的主奏顺序（否则多样化是空转）'
+    # **跨主题：池首必须逐主题不同** —— 这是"开头像"那条诉求的守卫（旧口径下 17/17 全是 4）
+    _packs = NS._theme_packs()
+    _heads = {}
+    for _t, _pk in sorted(_packs.items()):
+        _p = NS.melody_prog_pool(71, seed=3, leads=NS.lead_pool_for_theme(_pk))
+        _heads[_t] = _p[0]
+    assert len(set(_heads.values())) >= 12, \
+        ('池首（= 引子音色）跨主题区分度不足：只有 %d 种（旧口径恒定 4 = 1 种，'
+         '实测应 13 种）' % len(set(_heads.values())))
+    assert _heads.get('classic') not in (4,), \
+        'classic 的引子音色不该是恒定的 4 电钢（旧口径回归）：%r' % (_heads.get('classic'),)
+    assert not (set(_heads.values()) & set(NS.SLOW_ATTACK)), \
+        '池首不许有慢起音（引子 = 独奏位，慢起音听感"慢半拍"）：%r' % (sorted(set(_heads.values())),)
     # ---- **跨主题区分度**（2026-10-01 第二改，用户"我听了确实还是有点像"）：
     # 分配前 15 个主题只有 7 种主奏音色、GM 73 长笛独占 8 个主题；分配后必须显著变多，
     # 且**每个结果都在该主题自己的候选池里**（不许为了区分度引入池外音色）。
     _asg = NS.lead_assign()
-    _packs = NS._theme_packs()
     assert len(_asg) == len(_packs) >= 15, '分配必须覆盖全部主题：%d / %d' % (
         len(_asg), len(_packs))
     for _t, _q in sorted(_asg.items()):
@@ -10553,9 +10563,9 @@ def t_melody_prog_pool_order():
         '跨主题区分度不足：只有 %d 种主奏音色（分配前 7 种、实测 13）' % len(set(_asg.values()))
     _flute = sorted(t for t, q in _asg.items() if q == 73)
     assert len(_flute) <= 2, '长笛不该再独占 8 个主题：%r' % (_flute,)
-    print('        池首=保守音色 · 池身=主题主奏候选、按 seed 换序（%d 种顺序）'
+    print('        池首=主题分配音色（%d 种，跨主题各不同）· 池身=主题主奏候选、按 seed 换序'
           ' · 跨主题分配：15 主题 → %d 种主奏音色（长笛 %d 个主题）'
-          % (len(_orders), len(set(_asg.values())), len(_flute)))
+          % (len(set(_heads.values())), len(set(_asg.values())), len(_flute)))
 
 
 @check

@@ -2,9 +2,16 @@
  "theme": "daily",
  "label": "日常",
  "desc": "日常（主题模板包：16 首同主题模板聚合）",
- "styles": ["pop", "folk", "anime"],
+ "styles": [
+  "pop",
+  "folk",
+  "anime"
+ ],
  "engine_style": "daily",
- "meter": [4, 4],
+ "meter": [
+  4,
+  4
+ ],
  "min_templates": 8,
  "template_count": 16,
  "bpm": {
@@ -17,7 +24,20 @@
   "pc": 9,
   "mode": "major",
   "confidence": 0.25,
-  "scale_degree_weight": [4200479.87, 74894.22, 1001345.32, 207684.53, 1251866.76, 1552891.35, 56734.64, 2000176.28, 188792.08, 1059475.32, 334389.88, 774215.24]
+  "scale_degree_weight": [
+   4200479.87,
+   74894.22,
+   1001345.32,
+   207684.53,
+   1251866.76,
+   1552891.35,
+   56734.64,
+   2000176.28,
+   188792.08,
+   1059475.32,
+   334389.88,
+   774215.24
+  ]
  },
  "templates": [
   {
@@ -25,7 +45,10 @@
    "style": "anime",
    "md5": "45a9ec6b6827e80b99f1be6e0a3a8748",
    "bpm": 88.03,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 50,
    "seconds": 135.7,
    "source": "https://bitmidi.com/uploads/102697.mid",
@@ -36,7 +59,10 @@
    "style": "anime",
    "md5": "f700cbb4ff517189755a911ae9b09c3b",
    "bpm": 90.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 25,
    "seconds": 66.7,
    "source": "https://bitmidi.com/uploads/6855.mid",
@@ -47,7 +73,10 @@
    "style": "anime",
    "md5": "9855558b42b3e6ee2ac69bbdddd39d9b",
    "bpm": 99.96,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 32,
    "seconds": 76.8,
    "source": "https://bitmidi.com/uploads/6848.mid",
@@ -58,7 +87,10 @@
    "style": "anime",
    "md5": "cf3b7c75b2cb653b1d95cfa762243d75",
    "bpm": 128.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 193,
    "seconds": 360.0,
    "source": "https://bitmidi.com/uploads/25321.mid",
@@ -69,7 +101,10 @@
    "style": "anime",
    "md5": "255041e4abbc2b38e9a9a95dc999c87c",
    "bpm": 139.98,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 92,
    "seconds": 157.7,
    "source": "https://bitmidi.com/uploads/3749.mid",
@@ -80,7 +115,10 @@
    "style": "anime",
    "md5": "0597bf18743a5aacfedc981eb58c9da9",
    "bpm": 156.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 146,
    "seconds": 223.4,
    "source": "https://bitmidi.com/uploads/3439.mid",
@@ -91,7 +129,10 @@
    "style": "folk",
    "md5": "1ceaa75f2ae81462948f215ebb8be0b6",
    "bpm": 103.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 94,
    "seconds": 216.7,
    "source": "https://bitmidi.com/uploads/59404.mid",
@@ -102,7 +143,10 @@
    "style": "folk",
    "md5": "6b96d369bf09a5638891ec42a633953f",
    "bpm": 120.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 143,
    "seconds": 284.9,
    "source": "https://bitmidi.com/uploads/22796.mid",
@@ -113,7 +157,10 @@
    "style": "folk",
    "md5": "70a5389348d5d2bcad714245bd02c5e1",
    "bpm": 125.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 126,
    "seconds": 240.9,
    "source": "https://bitmidi.com/uploads/3229.mid",
@@ -124,7 +171,10 @@
    "style": "folk",
    "md5": "580a2b660f1148a5919d1603fb74a675",
    "bpm": 128.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 32,
    "seconds": 59.3,
    "source": "https://bitmidi.com/uploads/6053.mid",
@@ -135,7 +185,10 @@
    "style": "folk",
    "md5": "123e9efce8a0a062f8a88c6eff240f2d",
    "bpm": 161.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 214,
    "seconds": 318.3,
    "source": "https://bitmidi.com/uploads/3715.mid",
@@ -146,7 +199,10 @@
    "style": "pop",
    "md5": "261cbf31ee92b73e4c11d37ff837511c",
    "bpm": 120.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 112,
    "seconds": 222.2,
    "source": "https://bitmidi.com/uploads/60059.mid",
@@ -157,7 +213,10 @@
    "style": "pop",
    "md5": "795cb1d8f3adf8f9647c5a17d6fe03b0",
    "bpm": 125.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 82,
    "seconds": 157.3,
    "source": "https://bitmidi.com/uploads/35242.mid",
@@ -168,7 +227,10 @@
    "style": "pop",
    "md5": "a15e4ec30d5281e6e10107525742861a",
    "bpm": 132.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 16,
    "seconds": 29.1,
    "source": "https://bitmidi.com/uploads/39730.mid",
@@ -179,7 +241,10 @@
    "style": "pop",
    "md5": "a90d8973d0c7d3bcb385913a0c2ffcad",
    "bpm": 140.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 8,
    "seconds": 13.7,
    "source": "https://bitmidi.com/uploads/40059.mid",
@@ -190,7 +255,10 @@
    "style": "pop",
    "md5": "476a8297bae896474f960a5b445fafb0",
    "bpm": 158.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 127,
    "seconds": 191.4,
    "source": "https://bitmidi.com/uploads/39732.mid",
@@ -201,160 +269,457 @@
   "bitmidi": 16
  },
  "harmony": {
-  "primary": ["Amaj7", "D6", "Amaj7", "D6"],
+  "primary": [
+   "Amaj7",
+   "D6",
+   "Amaj7",
+   "D6"
+  ],
   "primary_source": "window2",
   "progressions": [
    {
-    "degrees": [4, 5, 5, 7],
-    "romans": ["IIImaj7", "IV7", "IVmaj7", "V7"],
+    "degrees": [
+     4,
+     5,
+     5,
+     7
+    ],
+    "romans": [
+     "IIImaj7",
+     "IV7",
+     "IVmaj7",
+     "V7"
+    ],
     "count": 4,
-    "templates": ["anime/ABBA.Name of the game K.mid", "folk/Celtic-Skies.mid"],
+    "templates": [
+     "anime/ABBA.Name of the game K.mid",
+     "folk/Celtic-Skies.mid"
+    ],
     "template_share": 0.12,
-    "symbols": ["C#maj7", "D7", "Dmaj7", "E7"],
+    "symbols": [
+     "C#maj7",
+     "D7",
+     "Dmaj7",
+     "E7"
+    ],
     "usable": true
    },
    {
-    "degrees": [0, 5, 0, 2],
-    "romans": ["Imaj7", "IV6", "Imaj7", "ii6"],
+    "degrees": [
+     0,
+     5,
+     0,
+     2
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6",
+     "Imaj7",
+     "ii6"
+    ],
     "count": 4,
-    "templates": ["folk/A.JACKSON.Gone country.mid", "folk/Celtic-Skies.mid"],
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
+    ],
     "template_share": 0.12,
-    "symbols": ["Amaj7", "D6", "Amaj7", "Bm6"],
+    "symbols": [
+     "Amaj7",
+     "D6",
+     "Amaj7",
+     "Bm6"
+    ],
     "usable": true
    },
    {
-    "degrees": [7, 0, 5, 0],
-    "romans": ["V7", "Imaj7", "IV6", "Imaj7"],
+    "degrees": [
+     7,
+     0,
+     5,
+     0
+    ],
+    "romans": [
+     "V7",
+     "Imaj7",
+     "IV6",
+     "Imaj7"
+    ],
     "count": 4,
-    "templates": ["folk/A.JACKSON.Gone country.mid", "folk/Celtic-Skies.mid"],
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
+    ],
     "template_share": 0.12,
-    "symbols": ["E7", "Amaj7", "D6", "Amaj7"],
+    "symbols": [
+     "E7",
+     "Amaj7",
+     "D6",
+     "Amaj7"
+    ],
     "usable": true
    },
    {
-    "degrees": [7, 0, 5, 5],
-    "romans": ["Vsus4", "I6", "IV7", "IV6"],
+    "degrees": [
+     7,
+     0,
+     5,
+     5
+    ],
+    "romans": [
+     "Vsus4",
+     "I6",
+     "IV7",
+     "IV6"
+    ],
     "count": 4,
-    "templates": ["anime/ABBA.Name of the game K.mid", "folk/Celtic-Skies.mid"],
+    "templates": [
+     "anime/ABBA.Name of the game K.mid",
+     "folk/Celtic-Skies.mid"
+    ],
     "template_share": 0.12,
-    "symbols": ["Esus4", "A6", "D7", "D6"],
+    "symbols": [
+     "Esus4",
+     "A6",
+     "D7",
+     "D6"
+    ],
     "usable": true
    },
    {
-    "degrees": [5, 0, 5, 9],
-    "romans": ["IV6", "Imaj7", "iv6", "vi7"],
+    "degrees": [
+     5,
+     0,
+     5,
+     9
+    ],
+    "romans": [
+     "IV6",
+     "Imaj7",
+     "iv6",
+     "vi7"
+    ],
     "count": 8,
-    "templates": ["folk/A.JACKSON.Gone country.mid"],
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid"
+    ],
     "template_share": 0.06,
-    "symbols": ["D6", "Amaj7", "Dm6", "F#m7"],
+    "symbols": [
+     "D6",
+     "Amaj7",
+     "Dm6",
+     "F#m7"
+    ],
     "usable": true
    }
   ],
   "progressions_4": [
    {
-    "degrees": [4, 5, 5, 7],
-    "romans": ["IIImaj7", "IV7", "IVmaj7", "V7"],
+    "degrees": [
+     4,
+     5,
+     5,
+     7
+    ],
+    "romans": [
+     "IIImaj7",
+     "IV7",
+     "IVmaj7",
+     "V7"
+    ],
     "count": 4,
-    "templates": ["anime/ABBA.Name of the game K.mid", "folk/Celtic-Skies.mid"],
+    "templates": [
+     "anime/ABBA.Name of the game K.mid",
+     "folk/Celtic-Skies.mid"
+    ],
     "template_share": 0.12,
-    "symbols": ["C#maj7", "D7", "Dmaj7", "E7"],
+    "symbols": [
+     "C#maj7",
+     "D7",
+     "Dmaj7",
+     "E7"
+    ],
     "usable": true
    },
    {
-    "degrees": [0, 5, 0, 2],
-    "romans": ["Imaj7", "IV6", "Imaj7", "ii6"],
+    "degrees": [
+     0,
+     5,
+     0,
+     2
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6",
+     "Imaj7",
+     "ii6"
+    ],
     "count": 4,
-    "templates": ["folk/A.JACKSON.Gone country.mid", "folk/Celtic-Skies.mid"],
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
+    ],
     "template_share": 0.12,
-    "symbols": ["Amaj7", "D6", "Amaj7", "Bm6"],
+    "symbols": [
+     "Amaj7",
+     "D6",
+     "Amaj7",
+     "Bm6"
+    ],
     "usable": true
    },
    {
-    "degrees": [7, 0, 5, 0],
-    "romans": ["V7", "Imaj7", "IV6", "Imaj7"],
+    "degrees": [
+     7,
+     0,
+     5,
+     0
+    ],
+    "romans": [
+     "V7",
+     "Imaj7",
+     "IV6",
+     "Imaj7"
+    ],
     "count": 4,
-    "templates": ["folk/A.JACKSON.Gone country.mid", "folk/Celtic-Skies.mid"],
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid"
+    ],
     "template_share": 0.12,
-    "symbols": ["E7", "Amaj7", "D6", "Amaj7"],
+    "symbols": [
+     "E7",
+     "Amaj7",
+     "D6",
+     "Amaj7"
+    ],
     "usable": true
    },
    {
-    "degrees": [7, 0, 5, 5],
-    "romans": ["Vsus4", "I6", "IV7", "IV6"],
+    "degrees": [
+     7,
+     0,
+     5,
+     5
+    ],
+    "romans": [
+     "Vsus4",
+     "I6",
+     "IV7",
+     "IV6"
+    ],
     "count": 4,
-    "templates": ["anime/ABBA.Name of the game K.mid", "folk/Celtic-Skies.mid"],
+    "templates": [
+     "anime/ABBA.Name of the game K.mid",
+     "folk/Celtic-Skies.mid"
+    ],
     "template_share": 0.12,
-    "symbols": ["Esus4", "A6", "D7", "D6"],
+    "symbols": [
+     "Esus4",
+     "A6",
+     "D7",
+     "D6"
+    ],
     "usable": true
    },
    {
-    "degrees": [5, 0, 5, 9],
-    "romans": ["IV6", "Imaj7", "iv6", "vi7"],
+    "degrees": [
+     5,
+     0,
+     5,
+     9
+    ],
+    "romans": [
+     "IV6",
+     "Imaj7",
+     "iv6",
+     "vi7"
+    ],
     "count": 8,
-    "templates": ["folk/A.JACKSON.Gone country.mid"],
+    "templates": [
+     "folk/A.JACKSON.Gone country.mid"
+    ],
     "template_share": 0.06,
-    "symbols": ["D6", "Amaj7", "Dm6", "F#m7"],
+    "symbols": [
+     "D6",
+     "Amaj7",
+     "Dm6",
+     "F#m7"
+    ],
     "usable": true
    }
   ],
   "progressions_2": [
    {
-    "degrees": [0, 5],
-    "romans": ["Imaj7", "IV6"],
+    "degrees": [
+     0,
+     5
+    ],
+    "romans": [
+     "Imaj7",
+     "IV6"
+    ],
     "count": 94,
-    "templates": ["anime/ABBA.Name of the game K.mid", "anime/Composition - The Anime Medley.mid", "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid", "folk/A.JACKSON.Gone country.mid", "folk/Celtic-Skies.mid", "pop/Disco Citizens - Footprint.mid", "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid", "pop/IGGY POP.Louie Louie.mid", "pop/Pop-Vamp.mid"],
+    "templates": [
+     "anime/ABBA.Name of the game K.mid",
+     "anime/Composition - The Anime Medley.mid",
+     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid",
+     "pop/Disco Citizens - Footprint.mid",
+     "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
+     "pop/IGGY POP.Louie Louie.mid",
+     "pop/Pop-Vamp.mid"
+    ],
     "template_share": 0.56,
-    "symbols": ["Amaj7", "D6"],
+    "symbols": [
+     "Amaj7",
+     "D6"
+    ],
     "usable": true
    },
    {
-    "degrees": [7, 0],
-    "romans": ["Vsus4", "I"],
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "Vsus4",
+     "I"
+    ],
     "count": 42,
-    "templates": ["anime/ABBA.Name of the game K.mid", "anime/Animal Crossing - Load Game.mid", "anime/Composition - The Anime Medley.mid", "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid", "folk/A.JACKSON.Gone country.mid", "folk/Celtic-Skies.mid", "folk/I-Was-Country-When-Country-Wasn't-Cool.mid", "pop/Disco-Fans.mid", "pop/Pop-Vamp.mid"],
+    "templates": [
+     "anime/ABBA.Name of the game K.mid",
+     "anime/Animal Crossing - Load Game.mid",
+     "anime/Composition - The Anime Medley.mid",
+     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Celtic-Skies.mid",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
+     "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid"
+    ],
     "template_share": 0.56,
-    "symbols": ["Esus4", "A"],
+    "symbols": [
+     "Esus4",
+     "A"
+    ],
     "usable": true
    },
    {
-    "degrees": [0, 7],
-    "romans": ["I", "Vsus4"],
+    "degrees": [
+     0,
+     7
+    ],
+    "romans": [
+     "I",
+     "Vsus4"
+    ],
     "count": 39,
-    "templates": ["anime/Animal Crossing - Load Game.mid", "anime/Composition - The Anime Medley.mid", "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid", "folk/A.JACKSON.Gone country.mid", "folk/American-Folk-(Variation-2).mid", "folk/Celtic-Skies.mid", "folk/I-Was-Country-When-Country-Wasn't-Cool.mid", "pop/Disco-Fans.mid", "pop/Pop-Vamp.mid"],
+    "templates": [
+     "anime/Animal Crossing - Load Game.mid",
+     "anime/Composition - The Anime Medley.mid",
+     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/American-Folk-(Variation-2).mid",
+     "folk/Celtic-Skies.mid",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid",
+     "pop/Disco-Fans.mid",
+     "pop/Pop-Vamp.mid"
+    ],
     "template_share": 0.56,
-    "symbols": ["A", "Esus4"],
+    "symbols": [
+     "A",
+     "Esus4"
+    ],
     "usable": true
    },
    {
-    "degrees": [5, 0],
-    "romans": ["IV6", "Imaj7"],
+    "degrees": [
+     5,
+     0
+    ],
+    "romans": [
+     "IV6",
+     "Imaj7"
+    ],
     "count": 91,
-    "templates": ["anime/ABBA.Name of the game K.mid", "anime/Composition - The Anime Medley.mid", "folk/A.JACKSON.Gone country.mid", "folk/Acid-Folk.mid", "folk/American-Folk-(Variation-2).mid", "folk/Celtic-Skies.mid", "pop/IGGY POP.Louie Louie.mid", "pop/Pop-Vamp.mid"],
+    "templates": [
+     "anime/ABBA.Name of the game K.mid",
+     "anime/Composition - The Anime Medley.mid",
+     "folk/A.JACKSON.Gone country.mid",
+     "folk/Acid-Folk.mid",
+     "folk/American-Folk-(Variation-2).mid",
+     "folk/Celtic-Skies.mid",
+     "pop/IGGY POP.Louie Louie.mid",
+     "pop/Pop-Vamp.mid"
+    ],
     "template_share": 0.5,
-    "symbols": ["D6", "Amaj7"],
+    "symbols": [
+     "D6",
+     "Amaj7"
+    ],
     "usable": true
    },
    {
-    "degrees": [2, 7],
-    "romans": ["iim7b5", "Vsus4"],
+    "degrees": [
+     2,
+     7
+    ],
+    "romans": [
+     "iim7b5",
+     "Vsus4"
+    ],
     "count": 23,
-    "templates": ["anime/ABBA.Name of the game K.mid", "anime/Action 52 - Game 52 Action Gamemaster Cheetahmen Theme.mid", "anime/Composition - The Anime Medley.mid", "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid", "pop/Disco-Fans.mid"],
+    "templates": [
+     "anime/ABBA.Name of the game K.mid",
+     "anime/Action 52 - Game 52 Action Gamemaster Cheetahmen Theme.mid",
+     "anime/Composition - The Anime Medley.mid",
+     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
+     "pop/Disco-Fans.mid"
+    ],
     "template_share": 0.31,
-    "symbols": ["Bm7b5", "Esus4"],
+    "symbols": [
+     "Bm7b5",
+     "Esus4"
+    ],
     "usable": true
    },
    {
-    "degrees": [7, 11],
-    "romans": ["V7", "VIIsus4"],
+    "degrees": [
+     7,
+     11
+    ],
+    "romans": [
+     "V7",
+     "VIIsus4"
+    ],
     "count": 21,
-    "templates": ["anime/Composition - The Anime Medley.mid", "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid", "folk/Celtic-Skies.mid", "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"],
+    "templates": [
+     "anime/Composition - The Anime Medley.mid",
+     "anime/The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
+     "folk/Celtic-Skies.mid",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
+    ],
     "template_share": 0.25,
-    "symbols": ["E7", "G#sus4"],
+    "symbols": [
+     "E7",
+     "G#sus4"
+    ],
     "usable": true
    }
   ],
-  "pool_progression": ["A", "Asus4", "A6", "Amaj7"],
-  "pool_progression_romans": ["I", "Isus4", "I6", "Imaj7"],
+  "pool_progression": [
+   "A",
+   "Asus4",
+   "A6",
+   "Amaj7"
+  ],
+  "pool_progression_romans": [
+   "I",
+   "Isus4",
+   "I6",
+   "Imaj7"
+  ],
   "chord_pool": [
    {
     "degree": 0,
@@ -446,15 +811,50 @@
  "rhythm": {
   "low16": "★·★·★·★·★·★·★·★·",
   "high16": "★·★·★·★·★·★·★·★·",
-  "low_slot_share": [0.81, 0.31, 0.56, 0.44, 0.75, 0.31, 0.69, 0.44, 0.69, 0.44, 0.62, 0.31, 0.75, 0.31, 0.69, 0.5],
-  "high_slot_share": [0.81, 0.12, 0.56, 0.25, 0.88, 0.06, 0.81, 0.19, 0.81, 0.12, 0.62, 0.12, 0.88, 0.06, 0.62, 0.25],
+  "low_slot_share": [
+   0.81,
+   0.31,
+   0.56,
+   0.44,
+   0.75,
+   0.31,
+   0.69,
+   0.44,
+   0.69,
+   0.44,
+   0.62,
+   0.31,
+   0.75,
+   0.31,
+   0.69,
+   0.5
+  ],
+  "high_slot_share": [
+   0.81,
+   0.12,
+   0.56,
+   0.25,
+   0.88,
+   0.06,
+   0.81,
+   0.19,
+   0.81,
+   0.12,
+   0.62,
+   0.12,
+   0.88,
+   0.06,
+   0.62,
+   0.25
+  ],
   "low_density": 20.73,
   "high_density": 12.86,
   "bass_density": 3.5,
   "perc_density": 7.58,
   "slots": 16,
-  "bass_style": "sixteenth",
-  "perc_style": "light"
+  "bass_style": "eighth",
+  "perc_style": "light",
+  "bass_style_prev": "sixteenth"
  },
  "arrangement": {
   "roles": {
@@ -473,19 +873,58 @@
    "strings": 0.19
   },
   "role_range": {
-   "bass": [29, 52],
-   "brass": [62, 82],
-   "fx": [56, 56],
-   "glock": [38, 104],
-   "guitar": [50, 81],
-   "lead": [53, 74],
-   "organ": [71, 88],
-   "pad": [53, 76],
-   "perc": [57, 57],
-   "piano": [38, 81],
-   "pipe": [52, 91],
-   "reed": [34, 89],
-   "strings": [36, 86]
+   "bass": [
+    29,
+    52
+   ],
+   "brass": [
+    62,
+    82
+   ],
+   "fx": [
+    56,
+    56
+   ],
+   "glock": [
+    38,
+    104
+   ],
+   "guitar": [
+    50,
+    81
+   ],
+   "lead": [
+    53,
+    74
+   ],
+   "organ": [
+    71,
+    88
+   ],
+   "pad": [
+    53,
+    76
+   ],
+   "perc": [
+    57,
+    57
+   ],
+   "piano": [
+    38,
+    81
+   ],
+   "pipe": [
+    52,
+    91
+   ],
+   "reed": [
+    34,
+    89
+   ],
+   "strings": [
+    36,
+    86
+   ]
   },
   "arr_share": {
    "bass": 0.38,
@@ -497,9 +936,19 @@
    "ep": 0.19,
    "perc": 0.06
   },
-  "arr_on": ["piano"],
+  "arr_on": [
+   "piano"
+  ],
   "arr_off": [],
-  "arr_maybe": ["bass", "ep", "glock", "pad", "perc", "strings", "uku"],
+  "arr_maybe": [
+   "bass",
+   "ep",
+   "glock",
+   "pad",
+   "perc",
+   "strings",
+   "uku"
+  ],
   "track_count": 5.7,
   "style_mix": {
    "anime": 6,
@@ -507,14 +956,44 @@
    "pop": 5
   },
   "prog_pool": {
-   "bass": [32, 39, 35, 33, 38],
-   "piano": [0, 1, 2],
-   "strings": [48, 58, 62],
-   "ep": [73, 67, 87, 80],
-   "glock": [11],
-   "uku": [25, 105, 111, 30],
-   "pad": [94],
-   "perc": [119]
+   "bass": [
+    32,
+    39,
+    35,
+    33,
+    38
+   ],
+   "piano": [
+    0,
+    1,
+    2
+   ],
+   "strings": [
+    48,
+    58,
+    62
+   ],
+   "ep": [
+    73,
+    67,
+    87,
+    80
+   ],
+   "glock": [
+    11
+   ],
+   "uku": [
+    25,
+    105,
+    111,
+    30
+   ],
+   "pad": [
+    94
+   ],
+   "perc": [
+    119
+   ]
   }
  },
  "form": {
@@ -596,7 +1075,10 @@
  },
  "melody": {
   "notes": 1989,
-  "range": [68, 96],
+  "range": [
+   68,
+   96
+  ],
   "mean_pitch": 74.21,
   "notes_per_bar": 2.58,
   "stepwise_pct": 54.98,
@@ -671,11 +1153,75 @@
    "15": 24
   },
   "phrases": 132,
-  "phrase_bars": [8.11, 11.0, 0.06, 0.06, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 1.0, 0.75, 0.62, 0.75, 0.62, 21.12, 4.25, 1.12, 0.62, 0.62, 2.38, 0.25, 0.25, 0.25, 0.25, 0.25, 17.0, 2.0, 8.5, 7.12, 0.62, 8.12, 3.98, 4.0, 5.98, 0.6, 4.0, 1.75, 1.54, 1.67, 1.65, 1.64, 1.6, 59.0, 24.0, 15.0, 0.55, 0.65, 0.76, 0.55, 0.62, 0.88, 0.64],
+  "phrase_bars": [
+   8.11,
+   11.0,
+   0.06,
+   0.06,
+   0.12,
+   0.12,
+   0.12,
+   0.12,
+   0.12,
+   0.12,
+   0.12,
+   0.12,
+   0.12,
+   0.12,
+   0.12,
+   0.12,
+   0.12,
+   1.0,
+   0.75,
+   0.62,
+   0.75,
+   0.62,
+   21.12,
+   4.25,
+   1.12,
+   0.62,
+   0.62,
+   2.38,
+   0.25,
+   0.25,
+   0.25,
+   0.25,
+   0.25,
+   17.0,
+   2.0,
+   8.5,
+   7.12,
+   0.62,
+   8.12,
+   3.98,
+   4.0,
+   5.98,
+   0.6,
+   4.0,
+   1.75,
+   1.54,
+   1.67,
+   1.65,
+   1.64,
+   1.6,
+   59.0,
+   24.0,
+   15.0,
+   0.55,
+   0.65,
+   0.76,
+   0.55,
+   0.62,
+   0.88,
+   0.64
+  ],
   "bars": 85.7,
   "templates": 9
  },
- "notes": ["共 16 首模板，来源：bitmidi×16", "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/daily_tracks.json"],
+ "notes": [
+  "共 16 首模板，来源：bitmidi×16",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/daily_tracks.json"
+ ],
  "tool": "theme_pack.py",
  "mix_target": {
   "ref": "daily_mix",
@@ -764,7 +1310,9 @@
      "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
      "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
      "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
-     "url_alt": ["https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"],
+     "url_alt": [
+      "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
+     ],
      "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
     }
    },
@@ -811,12 +1359,52 @@
   },
   "perc_style_target": 0.35,
   "energy_curve_db": [],
-  "structure_db": [-18.0, -18.0, -17.0, -17.0, -17.0, -17.0, -17.0],
-  "density_curve_db": [-5.92, -2.71, 0.39, 2.5, 0.0, 2.31, -2.67],
+  "structure_db": [
+   -18.0,
+   -18.0,
+   -17.0,
+   -17.0,
+   -17.0,
+   -17.0,
+   -17.0
+  ],
+  "density_curve_db": [
+   -5.92,
+   -2.71,
+   0.39,
+   2.5,
+   0.0,
+   2.31,
+   -2.67
+  ],
   "density_meta": {
    "n": 15,
-   "files": ["The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid", "Animal Crossing - Save Game.mid", "Animal Crossing - Load Game.mid", "Composition - The Anime Medley.mid", "Action 52 - Game 52 Action Gamemaster Cheetahmen Theme.mid", "ABBA.Name of the game K.mid", "I-Was-Country-When-Country-Wasn't-Cool.mid", "Celtic-Skies.mid", "A.JACKSON.Gone country.mid", "American-Folk-(Variation-2).mid", "Acid-Folk.mid", "IGGY POP.Louie Louie.mid", "Pop-Vamp.mid", "Disco Citizens - Footprint.mid", "Disco-Fans.mid"],
-   "abs_curve": [20.38, 29.5, 42.13, 53.75, 40.29, 52.56, 29.62],
+   "files": [
+    "The-Sound-Of-Music-(From-'The-Sound-Of-Music').mid",
+    "Animal Crossing - Save Game.mid",
+    "Animal Crossing - Load Game.mid",
+    "Composition - The Anime Medley.mid",
+    "Action 52 - Game 52 Action Gamemaster Cheetahmen Theme.mid",
+    "ABBA.Name of the game K.mid",
+    "I-Was-Country-When-Country-Wasn't-Cool.mid",
+    "Celtic-Skies.mid",
+    "A.JACKSON.Gone country.mid",
+    "American-Folk-(Variation-2).mid",
+    "Acid-Folk.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Pop-Vamp.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid"
+   ],
+   "abs_curve": [
+    20.38,
+    29.5,
+    42.13,
+    53.75,
+    40.29,
+    52.56,
+    29.62
+   ],
    "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
   },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
@@ -830,7 +1418,18 @@
     "centroid": 3284,
     "perc": 0.437,
     "mode": "major",
-    "structure": [-17, -14, -14, -14, -14, -14, -14, -14, -15, -14],
+    "structure": [
+     -17,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -15,
+     -14
+    ],
     "parts": {
      "bpm": 1.0,
      "perc": 0.826,
@@ -847,7 +1446,17 @@
     "centroid": 1533,
     "perc": 0.15,
     "mode": "major",
-    "structure": [-16, -17, -17, -17, -17, -17, -17, -16, -16],
+    "structure": [
+     -16,
+     -17,
+     -17,
+     -17,
+     -17,
+     -17,
+     -17,
+     -16,
+     -16
+    ],
     "parts": {
      "bpm": 0.803,
      "perc": 0.6,
@@ -864,7 +1473,16 @@
     "centroid": 3338,
     "perc": 0.605,
     "mode": "major",
-    "structure": [-22, -19, -17, -20, -23, -18, -19, -19],
+    "structure": [
+     -22,
+     -19,
+     -17,
+     -20,
+     -23,
+     -18,
+     -19,
+     -19
+    ],
     "parts": {
      "bpm": 0.853,
      "perc": 0.49,
