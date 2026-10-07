@@ -1259,6 +1259,7 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-FAKE-NOTE.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-GEN-SAMENESS.md'),
+             os.path.join(ROOT, 'docs', 'HISTORY-GEN-SAMENESS.md'),
              # 2026-10-06：HISTORY 拆出的归档件（也要查"指针腐烂"）
              os.path.join(ROOT, 'HISTORY.md'),
              os.path.join(ROOT, 'HISTORY-ARCHIVE.md'),
@@ -1304,6 +1305,8 @@ def t_docs_paths():
               os.path.join(ROOT, 'docs', 'HANDOFF-BGM35-R2.md'),
               os.path.join(ROOT, 'docs', 'HANDOFF-FAKE-NOTE.md'),
               os.path.join(ROOT, 'docs', 'HANDOFF-GEN-SAMENESS.md'),
+              # 2026-10-07：上面那份压缩时搬出去的**第一轮归档**（同一条线，也要查指针）
+              os.path.join(ROOT, 'docs', 'HISTORY-GEN-SAMENESS.md'),
               os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'), files[-1]]
     dead = []
     for p in dokeys:
