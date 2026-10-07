@@ -2372,6 +2372,52 @@ def main():
     # ㉘g **段级和声色彩音被摘掉**（总开关关掉 = 接线断了）→ 档 2 一个音都加不上。
     results.append(case('段级和声色彩音被摘掉（harmony_add 失效）', 'harmony_add_contracts',
                         lambda: Mut(_se, 'HARMONY_ADD_ENABLED', False)))
+    # ㉘h **符号层微时序尺子的单位错 1000 倍**（漏 ×1000）→ swing 恒 0、已知答案自证必抓。
+    import micro_timing_ruler as _mr
+    _orig_gd = _mr._grid_dev
+
+    def _mr_griddev_no1000(path, bpm=None):
+        """把 ms/tick 改回"漏 ×1000"的那一版（模拟第一版的 bug）。"""
+        out = _orig_gd(path, bpm)
+        tracks, b, tpb, g = out
+        return ({k: [(s, d / 1000.0) for s, d in v] for k, v in tracks.items()}, b, tpb, g)
+
+    def _mr_griddev_nofold(path, bpm=None):
+        """把"折进 ±半格"那一步去掉（模拟不折叠的版本）。
+
+        ⚠ **这个注入抓不到，也不该抓**（2026-10-07 实测）：`gi = round(t/grid)` 取的就是最近格，
+        `t − gi·grid` **天然在 ±半格内** ⇒ 折叠是**死代码**，注入后行为完全一致
+        （折叠/不折叠在 0~125ms 全一致，见 `_tmp/music-micro/fold_probe.py`）。
+        所以这个用例**已撤回**，只留函数与说明当证据，不注册。
+        """
+        import mido as _md
+        mf = _md.MidiFile(path)
+        tpb2 = mf.ticks_per_beat
+        b2 = bpm or 120.0
+        for tr in mf.tracks:
+            hit = [m for m in tr if m.is_meta and m.type == 'set_tempo']
+            if hit and not bpm:
+                b2 = 60_000_000.0 / hit[0].tempo
+                break
+        gt = tpb2 / 4.0
+        mpt = ((60.0 / b2) / tpb2) * 1000.0
+        res = {}
+        for i, tr in enumerate(mf.tracks):
+            t = 0
+            rows = []
+            for m in tr:
+                t += m.time
+                if (not m.is_meta) and m.type == 'note_on' and m.velocity > 0:
+                    gi = int(round(t / gt))
+                    rows.append((gi % 16, (t - gi * gt) * mpt))   # ← 不折叠
+            if rows:
+                res[(tr.name or 'tr%d' % i)] = rows
+        return res, b2, tpb2, gt
+
+    results.append(case('微时序尺子单位错（ms/tick 漏 ×1000）', 'micro_timing_ruler_known_answers',
+                        lambda: Mut(_mr, '_grid_dev', _mr_griddev_no1000)))
+    # ㉘i **（已撤回）**"折叠失效"的注入：实测折叠是**死代码**（见 `_mr_griddev_nofold` 的说明），
+    #     注入后行为一字不变 ⇒ 用例永远抓不到。**留函数不注册**，当证据。
 
     # ㉙ **"流畅度"与"突兀声"两个量法坏不坏得起来**（用户 2026-09-22 要求沉淀成守卫）。
     #     ① 突兀声的对齐窗口改窄到 0 → 正常音头（起音延迟 42~78ms）全被判成"没有起音的杂音"

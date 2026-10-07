@@ -6922,6 +6922,92 @@ def t_harmony_add_contracts():
 
 
 @check
+def t_micro_timing_ruler_known_answers():
+    """**符号层微时序尺子必须过已知答案**（2026-10-07 ③；依据 UVM 30–40ms 感知阈）。
+
+    为什么要有这把尺子：`groove_probe` 是**音频**尺子 —— 本轮自证发现它在**理想/现实合成**上
+    能测 10ms（误差 0.4~2.6ms），但在**真实分轨/混音**上有 ±15ms 噪声底（检测侧：软起音 +
+    复音 + 分离残留）。所以"模板符号层到底有没有微时序"这个问题**音频尺子答不了**，
+    必须直接在 **MIDI 音符时刻**上量（零检测误差）。
+
+    钉五件（前四件是**判据自证**，第五件是前提检查）：
+      ① **swing 已知值 → 检出**：真 0/10/20/40ms，误差 <1ms（合成件，零检测误差）
+      ② **纯抖动不误报成 swing**：±15ms 均匀抖动 → swing≈0、sd≈8.7ms（= 15/√3）
+      ③ **单位不许错**：`ms/tick` 必须 ≈ `(60/bpm)/tpb*1000` —— 第一版漏 ×1000，
+         所有偏移缩小 1000 倍（swing 恒 0），是自证脚本抓到的
+      ④ **折叠加检**：`|偏移|` 要折进 (−半格, +半格] —— 不折的话 swing 超半格会被
+         取整到下一格、偏移变 0（实测真 40ms 报 0.00）
+      ⑤ **前提检查存在**：多 tempo / 格不自洽的文件要能被标出来（否则把 rubato 误读成微时序）
+    """
+    import tempfile
+    import micro_timing_ruler as MT
+    import mido
+    TPB, BPM = 480, 120.0
+    GRID = TPB / 4.0
+    ms_per_tick = ((60.0 / BPM) / TPB) * 1000.0
+    # ③ 单位自证
+    assert abs(ms_per_tick - 1.0417) < 0.01, 'ms/tick 换算错了：%.4f（应 ≈1.0417）' % ms_per_tick
+
+    def build(swing_ms=0.0, jitter_ms=0.0, nbars=6):
+        tr = mido.MidiTrack()
+        tr.append(mido.MetaMessage('set_tempo', tempo=int(60_000_000 / BPM), time=0))
+        tr.append(mido.MetaMessage('track_name', name='t', time=0))
+        import random
+        rng = random.Random(7)
+        evs = []
+        for bar in range(nbars):
+            for slot in range(16):                      # 每个 16 分格一个音（奇偶格都有）
+                t = (bar * 16 + slot) * GRID
+                if slot % 2 == 1:
+                    t += swing_ms / ms_per_tick
+                if jitter_ms:
+                    t += rng.uniform(-jitter_ms, jitter_ms) / ms_per_tick
+                evs.append(max(0, int(round(t))))
+        evs.sort()
+        last = 0
+        for t in evs:
+            on = max(t, last)
+            tr.append(mido.Message('note_on', note=80, velocity=90, time=on - last))
+            off = on + 30                               # ⚠ 音长必须 > swing，否则 note_off 早于 note_on、事件被丢
+            tr.append(mido.Message('note_off', note=80, velocity=0, time=off - on))
+            last = off
+        mf = mido.MidiFile(ticks_per_beat=TPB)
+        mf.tracks.append(tr)
+        p = os.path.join(TMP, 'micro_ruler.mid')
+        mf.save(p)
+        return p
+
+    # ④ **偏移天然落在 ±半格内**（`gi = round(t/grid)` 取的就是最近格）。
+    #    ⚠ 曾经这里有一条"折叠必须生效"的断言 + 对应变异用例，**都已删**（2026-10-07 实测）：
+    #      "折叠"是**死代码** —— 折叠与不折叠在 0~125ms **全部一致**（`fold_probe`），
+    #      所以那条变异注入**永远抓不到**（它没改变行为）。当时真因是 ms/tick 漏 ×1000。
+    #      保留这条**弱但真实**的断言：偏移不许越出半格（越出说明换算或取整写坏了）。
+    r40 = MT.report(build(40), BPM)
+    t40 = list(r40['tracks'].values())[0]
+    _half = (GRID * ms_per_tick) / 2.0
+    _mdev = max(abs(v['med']) for v in r40['tracks'].values())
+    assert _mdev <= _half + 1e-6, \
+        '报出 |中位偏移| %.2fms > 半格 %.2fms（取整/换算写坏了）' % (_mdev, _half)
+    # ① swing 已知值 → 检出
+    for sw in (0, 10, 20, 40):
+        r = MT.report(build(sw), BPM)
+        t = list(r['tracks'].values())[0]
+        got = t['swing'] or 0.0
+        assert abs(got - sw) < 1.0, \
+            '符号层尺子测 swing 不准：真 %dms 报 %.2fms（④叠加/③单位 检查）' % (sw, got)
+    # ② 纯抖动不误报
+    r = MT.report(build(0, 15), BPM)
+    t = list(r['tracks'].values())[0]
+    assert abs(t['swing'] or 0.0) < 3.0, '纯抖动被误报成 swing：%.2fms' % (t['swing'] or 0.0)
+    assert 5.0 < t['sd'] < 14.0, '抖动 sd 不合理：%.2f（应 ≈8.7 = 15/√3）' % t['sd']
+    # ⑤ 前提检查字段存在
+    assert 'tempo_multi' in r and 'grid_uncertain' in list(r['tracks'].values())[0], \
+        '前提检查字段缺失（多 tempo / 格不自洽 要能标出来）'
+    print('        已知 swing 0/10/20/40ms 误差<1ms · 抖动不误报（swing %.2f sd %.2f）'
+          ' · 单位/折叠/前提检查 齐备' % (t['swing'] or 0.0, t['sd']))
+
+
+@check
 def t_theme_basis_whitelist():
     """**新歌声明的"模板依据"必须是主题模板包**（不许拿自己做的曲子当模板）。
 
