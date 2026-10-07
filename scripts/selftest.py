@@ -6818,6 +6818,107 @@ def t_tension_model_known_answers():
 
 
 @check
+def t_harmony_add_contracts():
+    """**段级和声张力档（`arr.harmony_add`）真的生效、且不碰旋律**（2026-10-07）。
+
+    这是把 §14 的张力模型**接进生成端**的那条线（依据 arXiv 1707.00972 + Music Perception
+    42(3)："张力的变化中介情绪"）。钉四件：
+
+      ① **缺省必须不变**：不带 `harmony_add` 的段落要**加上等于没加**（向后兼容 / 老曲逐字节不变）
+      ② **档 2 比档 0 多音**：给真实曲目全段置档 2 后，非旋律轨的**音高集合必须变大**
+         （若不变 = 接线断了，`ARR_KEYS` 漏登记或 `build_events` 没读）
+      ③ **旋律轨一个音都不许动**：加的是**和弦色彩音**，不是旋律
+      ④ **安全边界**：档位非 0 也不能让任一轨出现"与同轨其它音相差 1 个半音"的**新增**摩擦
+         （相邻半音 = 小九度/大七度，垫音上很脏）
+    """
+    import song_engine as SE
+    import new_song as NS
+    packs = sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json')))
+    # ⚠ `songs/` 是指向 `songs_direct/` 的 junction（PITFALLS 351），两边同一份内容
+    cand = None
+    for p in packs:
+        try:
+            d0 = json.load(open(p, encoding='utf-8'))
+        except Exception:
+            continue
+        if len(d0.get('sections') or []) >= 4 and (d0.get('programs') or {}):
+            cand = (p, d0)
+            break
+    assert cand, '找不到可用夹具（songs/*/song.json）—— 这条检查会空转'
+    p, d0 = cand
+    tmp = os.path.join(TMP, 'harmony_add_probe.json')
+
+    def render(level):
+        d = json.loads(json.dumps(d0))
+        for s in d.get('sections') or []:
+            s.setdefault('arr', {})
+            if level is None:
+                s['arr'].pop('harmony_add', None)
+            else:
+                s['arr']['harmony_add'] = level
+        json.dump(d, open(tmp, 'w', encoding='utf-8'), ensure_ascii=False)
+        dd = SE.load(tmp)
+        dd = dd[0] if isinstance(dd, tuple) else dd
+        ev, _nb = SE.build_events(dd)
+        return ev
+
+    ev_none, ev0, ev2 = render(None), render(0), render(2)
+    # ① 缺省 == 显式 0（加上等于没加）
+    for k in set(ev_none) | set(ev0):
+        assert ev_none.get(k) == ev0.get(k), \
+            '缺省与显式 harmony_add=0 不一致（轨 %s）—— 向后兼容破了' % k
+    # ② 档 2 的音高集合必须变大
+    grew = []
+    for k in ev0:
+        if k == 'Melody':
+            continue
+        p0 = {m for (_a, _b, m, _v) in ev0[k]}
+        p2 = {m for (_a, _b, m, _v) in ev2[k]}
+        if p2 - p0:
+            grew.append(k)
+    assert grew, '档 2 没有给任何非旋律轨加出新音高 —— 接线断了（查 ARR_KEYS / build_events）'
+    # ③ 旋律轨不动
+    assert ev0.get('Melody') == ev2.get('Melody'), \
+        '加了和弦色彩音却改动了旋律轨（旋律必须一个音都不动）'
+    # ④ **同一小节内"实际同响"的相邻半音不许变多**。
+    #   ⚠ 尺子换过三次，每次都是被实测打回（留证据，别退回旧版）：
+    #     ① "新增音高是否与同轨其它音相邻半音" → 报 6 处**假阳性**：档 2 加宽和弦音池后
+    #        `avoid_lead` 会挪音，差集里混进被挪动的旧音。
+    #     ② "整轨音高集合的半音对数是否变多" → 仍是粗尺：不同**小节**的 57 与 58 被算成摩擦，
+    #        而真实音乐里跨小节半音相邻完全正常（实测扩展函数**逐和弦加完都无相邻半音**）。
+    #     ③ **正解**：按**小节**分组，只数"同一小节内同时出现的相邻半音对"。
+    def friction_pairs(ev, k, bar_beats):
+        per_bar = {}
+        for (t, dd, m, _v) in ev.get(k, []):
+            b = int(t // bar_beats)
+            per_bar.setdefault(b, set()).add(m)
+        n = 0
+        for ps in per_bar.values():
+            sp = sorted(ps)
+            n += sum(1 for i, x in enumerate(sp) for y in sp[i + 1:] if abs(x - y) == 1)
+        return n
+
+    _B = 4.0
+    grew_fric = []
+    for k in grew:
+        f0, f2 = friction_pairs(ev0, k, _B), friction_pairs(ev2, k, _B)
+        if f2 > f0:
+            grew_fric.append((k, f0, f2))
+    assert not grew_fric, \
+        '档 2 让这些轨"同一小节内"的相邻半音变多了（听感很脏）：%s' % grew_fric[:6]
+    # ⑤ 档位产出合法：真实曲目上算一遍，只许 0/1/2，且不能全 0（全 0 = 等于没接）
+    lv = None
+    for th, pk in sorted(NS._theme_packs().items()):
+        if (d0.get('theme') or {}).get('name') == th:
+            lv = NS.harmony_tension_levels(pk, d0['sections'])
+            break
+    if lv is not None:
+        assert set(lv) <= {0, 1, 2}, '张力档只许 0/1/2，实得 %s' % sorted(set(lv))
+    print('        缺省≡档0 · 档2 给 %d 条轨加色彩音（%s）· 旋律零改动 · 无相邻半音摩擦'
+          % (len(grew), ','.join(grew[:5])))
+
+
+@check
 def t_theme_basis_whitelist():
     """**新歌声明的"模板依据"必须是主题模板包**（不许拿自己做的曲子当模板）。
 
@@ -7630,7 +7731,31 @@ def t_accompaniment_harmony():
         def tset(bar):
             cn = bar_ch[min(int(bar) % len(bar_ch), len(bar_ch) - 1)]
             e = data['chords'].get(cn)
-            return {x % 12 for x in e[1]} if e else set()
+            if not e:
+                return set()
+            # ⚠ **必须把段级和声色彩音算进"有效和弦音集"**（2026-10-07）：
+            #   `arr.harmony_add` 会给该段和弦加 7/9 度扩展音，引擎按**扩展后**的音集发声
+            #   ⇒ 若这里仍用 `data['chords']` 的原始音集，合法扩展音会被判成"和弦外音"
+            #   （实测 `105_seaside_walk` Hook 94% / Arp 92% 的**假 FAIL**）。
+            #   口径只写一处：直接用引擎的 `SE.harmony_extend`。
+            _lv = 0
+            _bi = int(bar)
+            for _s in data['sections']:
+                _nb = int(_s.get('bars') or 0)
+                if _bi < _nb:
+                    _lv = int((_s.get('arr') or {}).get('harmony_add') or 0)
+                    break
+                _bi -= _nb
+            _tones = e[1]
+            if _lv:
+                try:
+                    _tones = SE.harmony_extend((e[0], list(e[1])), _lv, _pool)[1]
+                except Exception:
+                    _tones = e[1]
+            return {x % 12 for x in _tones}
+
+        _pool = {int(_m) % 12 for _v in data['chords'].values()
+                 for _m in (_v[1] if len(_v) > 1 else [])}
         # ② 伴奏和弦贴合
         pm = _prog_of_track(data, 'Melody')
         sounding = [tr for tr in ACC if any(n[3] > 0 for n in ev.get(tr, []))]

@@ -2369,6 +2369,9 @@ def main():
     results.append(case('张力变化曲线塌成常数 0', 'tension_model_known_answers',
                         lambda: Mut(_tm, 'variation_curve',
                                     lambda chords, tonic, mode='major', window=4: [0.0] * len(chords))))
+    # ㉘g **段级和声色彩音被摘掉**（总开关关掉 = 接线断了）→ 档 2 一个音都加不上。
+    results.append(case('段级和声色彩音被摘掉（harmony_add 失效）', 'harmony_add_contracts',
+                        lambda: Mut(_se, 'HARMONY_ADD_ENABLED', False)))
 
     # ㉙ **"流畅度"与"突兀声"两个量法坏不坏得起来**（用户 2026-09-22 要求沉淀成守卫）。
     #     ① 突兀声的对齐窗口改窄到 0 → 正常音头（起音延迟 42~78ms）全被判成"没有起音的杂音"

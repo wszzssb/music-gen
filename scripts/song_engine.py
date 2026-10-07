@@ -168,8 +168,7 @@ STYLES = {
 # 2026-09-15 实测踩过 —— 加了 `arr.perc_in`（引子渐入）却忘了同步这张表，
 # 结果新歌生成时报"无效的编配开关: perc_in"，而且只在 `dry_compose` 里露一次面。
 ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
-            'perc', 'perc_in', 'harmony', 'shimmer', 'mix',
-            # 段级密度（0–4，见 `build_events` 里的说明）与**段级主奏音色**
+            'perc', 'perc_in', 'harmony', 'shimmer', 'mix',            # 段级密度（0–4，见 `build_events` 里的说明）与**段级主奏音色**
             # （`melody_prog`，见 `write_midi` 里的说明）—— 2026-09-15 加。
             # ⚠ **必须同步这张表**（上面那条教训就是加了 `perc_in` 忘了这里）。
             'density', 'melody_prog',
@@ -214,6 +213,17 @@ ARR_KEYS = ('uku', 'piano', 'ep', 'strings', 'glock', 'bass', 'pad', 'arp',
             # 时值中位 **3.900 拍** —— 高频区长鸣非常刺耳，用户听 MIDI 说"声音怪怪的"。
             # 钟琴靠衰减自然收尾，MIDI 只需给"起音长度"。
             'glock_dur',
+            # **`harmony_add`**（2026-10-07）：段内**和声张力档**（0/1/2）→ 给该段和弦
+            # **加扩展音**（1 = 加七度；2 = 再加九度；缺省/0 = 逐字节不变）。
+            # 依据：Nikrang/Sears/Widmer（arXiv 1707.00972）把和声张力定义为"与上下文的
+            # 距离/意外度"，并实证 **七和弦 > 三和弦**、大<小<减<增；Music Perception 42(3)
+            # 说"**张力的变化**中介情绪"。所以"紧张处给更扩展的和声"是有文献方向的编配手法；
+            # 而档位由**该曲自己的和弦进行**算出来（`tension_model.variation_curve`），
+            # 每首分布不同 ⇒ 加的地方不同 ⇒ 这本身就是一条差异化轴。
+            # ⚠ 安全边界写在 `_harmony_extend`：只加根音之上的 7/9 度、音高夹 12~108、
+            #   且不许与已有和弦音形成相邻半音。扩展音**加宽**和弦音池 ⇒ 既有的
+            #   `avoid_lead`（伴奏避让主奏 ≥4 半音）反而多出落点。
+            'harmony_add',
             # `glock_oct`（2026-09-17）：**钟琴八度**（半音，默认 24 = 老行为）。
             # 为什么加：拿用户认可的 `BGM35 (1).mid` 当基准量了一次 —— 我方
             # **C7 及以上占 11.1%，参考曲只有 0.6%（19 倍）**，其中 Glock 独占
@@ -1910,6 +1920,56 @@ def vary_comp(events, i, B, seed, span=4):
     return out
 
 
+# **段级和声色彩音总开关**（2026-10-07）：`arr.harmony_add`（0/1/2）的**唯一**总闸。
+# 置 False = 整条特性关掉（老行为逐字节不变）。留这个开关有两个用处：
+#   ① 出事时一键回退（不必回滚代码）
+#   ② 变异测试能注入"特性被摘掉"，让 `selftest.t_harmony_add_contracts` **坏得起来**
+HARMONY_ADD_ENABLED = True
+
+
+def harmony_extend(ch, level, pool_pcs):
+    """段级和声色彩音：给和弦**加扩展音**（`arr.harmony_add`：0 = 不动 · 1 = 加七度 · 2 = 再加九度）。
+
+    **模块级公开函数**（2026-10-07 从 `build_events` 的闭包里提出来）—— 因为
+    `selftest.t_accompaniment_harmony` 也必须用**同一个口径**算"有效和弦音集"，
+    否则它会把合法扩展音判成"和弦外音"（实测 `105_seaside_walk` Hook 94% / Arp 92%）。
+
+    三条安全边界：
+      · 只加**根音之上的七度、九度**（+10/+11、+13/+14；不引入十一/十三度）
+      · 夹在"该和弦音集区域内"（`lo..hi+7`）且 ≤108
+      · 不许与**已有和弦音**相邻半音 / 同音级重复；
+        **音级也不许紧邻全曲和弦池里的任何音级**（`pool_pcs`）——相邻小节常是**不同和弦**，
+        否则同一小节里会出现半音摩擦（实测 `Arp` 档 2 多出 4 个"小节内半音对"）。
+
+    `level` 非正、`ch` 形状异常、或加不上任何音 → **原样返回**（缺省逐字节不变）。
+    """
+    if not level or not isinstance(ch, (list, tuple)) or len(ch) < 2:
+        return ch
+    root, tones = ch[0], list(ch[1])
+    if not tones:
+        return ch
+    pc = int(root) % 12
+    lo, hi = min(tones), max(tones)
+    base = max((t for t in range(lo, hi + 1) if t % 12 == pc), default=lo)
+    ivs = [(10, 11)] if level < 2 else [(10, 11), (13, 14)]
+    add = []
+    for group in ivs:
+        for iv in group:
+            def _clash_pc(x):
+                return ((x + 1) % 12 in pool_pcs) or ((x - 1) % 12 in pool_pcs)
+            cand = next((c for c in (base + iv, base + iv + 12)
+                         if lo <= c <= min(108, hi + 7)
+                         and not any(abs(c - t) <= 1 for t in tones + add)
+                         and not any((c - t) % 12 == 0 for t in tones + add)
+                         and not _clash_pc(c % 12)), None)
+            if cand is not None:
+                add.append(cand)
+                break
+    if not add:
+        return ch
+    return (root, sorted(set(tones + add)))
+
+
 def build_events(d):
     """展开成 {轨名: [(起始拍, 时值拍, 音高, 力度)]}"""
     ch_all = {k: (v[0], v[1]) for k, v in d['chords'].items()}
@@ -1921,6 +1981,18 @@ def build_events(d):
     def voicing(ch):
         return (ch[0], [m + shift for m in ch[1]]) if shift else ch
 
+    # **全曲和弦池的音级**（供 `_harmony_extend` 避让）：相邻小节常是**不同和弦**，
+    # 若扩展音的**音级**恰好是另一个和弦某音的半音邻音，同一小节内就会出现摩擦
+    # （实测 `Arp` 档 2 多出 4 个"同一小节内的半音对"）。用整池音级一次挡住。
+    _pool_pcs = set()
+    for _v in ch_all.values():
+        for _m in (_v[1] if len(_v) > 1 else []):
+            _pool_pcs.add(int(_m) % 12)
+
+    def voicing_for(ch, level):
+        # 扩展逻辑已提到**模块级** `harmony_extend`（守卫要共用同一口径，见其 docstring）
+        return (harmony_extend(voicing(ch), level, _pool_pcs)
+                if HARMONY_ADD_ENABLED else voicing(ch))
     ev = {k: [] for k in d['programs']}
     # 断奏因子（opt-in，默认 1.0）：把伴奏音变短 = **在鼓点之间腾出空间**。
     # 参考曲的 20ms 短窗电平起伏 σ≈22dB（鼓点之间掉得下去），我们原来只有 ~10dB（一直在糊）
@@ -1959,13 +2031,15 @@ def build_events(d):
                 mel = sorted(_w, key=lambda x: (x[0], x[1]))
         bucket = {k: [] for k in d['programs']}
         sec_chords = []              # 本段已出现过的和弦根音（吉他换把位档位，见 guitar_arpeggio）
+        # **段级和声张力档**（`arr.harmony_add` 0/1/2；缺省 0 = 逐字节不变，见 ARR_KEYS 那条）
+        _hadd = int(arr.get('harmony_add') or 0)
         for i in range(nbars):
             cn = sec['chords'][i]
             bar_chord[bar0 + i] = cn
             if cn not in ch_all:
                 raise SystemExit('段落 %s 第 %d 小节引用了未定义的和弦 "%s"'
                                  % (sec.get('name', '?'), i + 1, cn))
-            ch = voicing(ch_all[cn])
+            ch = voicing_for(ch_all[cn], _hadd)
             if ch[0] not in sec_chords:
                 sec_chords.append(ch[0])
             nxt = None
@@ -1974,7 +2048,7 @@ def build_events(d):
                 if nn not in ch_all:
                     raise SystemExit('段落 %s 第 %d 小节引用了未定义的和弦 "%s"'
                                      % (sec.get('name', '?'), i + 2, nn))
-                nxt = voicing(ch_all[nn])
+                nxt = voicing_for(ch_all[nn], _hadd)
             t0 = (bar0 + i) * B
             # **段级密度**（opt-in `arr.density` 0–4；缺省 -1 = 逐字节保持现有行为）——
             # 依据（用户指定的最佳案例 BGM35 实测）：它"逐小节起音数 0→66，**变化 66 倍**"，
@@ -2601,6 +2675,10 @@ def build_events(d):
                 if not _bad or not _tones:
                     _out.append((_t, _dd, _m, _v))
                     continue
+                # 注：**曾经**在这里加过"还要避开同轨其它音（≥2 半音）"的过滤，用来治
+                # `harmony_add` 引入的小节内半音摩擦 —— 实测**不是根因**（加了摩擦不减），
+                # 已撤回。真正的根因是"扩展音的音级撞了另一个和弦的半音邻音"，
+                # 修在 `_harmony_extend` 的 `_pool_pcs` 那一处（见该函数）。
                 _c = [c for c in _tones if all(abs(c - b) >= 4 for b in _bad)]
                 if _c:
                     _out.append((_t, _dd, min(_c, key=lambda x: (abs(x - _m), x)), _v))

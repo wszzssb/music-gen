@@ -64,6 +64,11 @@ SECOND_TIER = ('strings', 'pad', 'glock', 'ep', 'arp')
 # 2 → 4 的标定过程写在 `theme_programs` 的注释里（`_tmp/music-combo/cap_sweep.py`）：
 # 组合种数 104 → 204（+96%），再放宽收益递减（cap=5 只 +3%）。
 CELL_CANDS_CAP = 4
+# **和声张力档的全局阈值**（2026-10-07）：取自 17 首生成曲 **209 个段**的实测分位
+# （`p33=0.158`、`p67=0.289`，见 `docs/HANDOFF-GEN-SAMENESS.md` §15）。
+# 用固定阈值而不是逐曲分位，是为了保住**跨曲差异**（逐曲分位会把每首都归一化成 0/1/2 各若干）。
+HARMONY_TENSION_P33 = 0.158
+HARMONY_TENSION_P67 = 0.289
 ENERGY_CAP_DB = 4.0      # 段间电平偏移上限（再大就不是"段间对比"而是"忽大忽小"）
 ENERGY_MIN_DB = 0.5      # 小于这个就当没有起伏，不写 mix（不制造假变化）
 # **CC7 → 实际电平的换算系数**（实测，不是理论）：FluidSynth + GeneralUser GS 下
@@ -743,6 +748,62 @@ def _voice_seed(short, salt):
     return zlib.crc32(('%s|%s' % (short, salt)).encode('utf-8')) & 0xFFFFFFFF
 
 
+def harmony_tension_levels(pack, secs):
+    """段落 → **和声张力档**（0/1/2，写进 `arr.harmony_add`）—— 2026-10-07 新增。
+    依据：Nikrang/Sears/Widmer《Automatic estimation of harmonic tension by distributed
+    representation of chords》(arXiv 1707.00972) —— 和声张力 = 当前和弦与**前 n 个和弦**的
+    加权距离（预期性越低越紧张），并实证"**七和弦比三和弦紧张**"；Music Perception 42(3)
+    则说"**张力的变化**中介情绪"。所以"本曲张力变化大的段落给更扩展的和声"是有文献方向的编配。
+
+    做法（**全部用该曲自己的和弦进行**，不引入任何外部数据）：
+      ① 逐段算 `tension_model.variation_curve(段内和弦)` 的均值（**变化量**，不是绝对水平）
+      ② 按**全局固定阈值**（实测分位 p33=0.158 / p67=0.289，取自 17 首生成曲的 209 个段）
+         切三档 → 0/1/2
+         ⚠ **不要按"每首自己的分位"切**（第一版就是）：那样每首都必然有 0/1/2 三档，
+           差异化被归一化掉；用固定阈值后，"和声语言本来就紧张"的曲子整体拿到更多色彩音
+           （实测 `midnight_glass` 多数段 → 档 2，而 `village_tale` 几乎全档 0）。
+      ③ 段数 <3 或取不到张力 → 全 0（**逐字节不变**，向后兼容）
+
+    ⚠ **档位只加不减**（0 = 不动）：`density` 那条曲线已经在管"疏/密"，这里再删音会与它打架；
+      而且"紧张处加色彩"比"松弛处删音"在听感上更安全（少一个音可能抽掉支撑）。
+    """
+    try:
+        import tension_model as _tm
+    except Exception:
+        return [0] * len(secs)
+    h = (pack.get('key') or {})
+    tonic_name = h.get('tonic') or (pack.get('harmony') or {}).get('tonic') or 'C'
+    tonic = _tm.parse_symbol(str(tonic_name) + '')[0]
+    if tonic is None:
+        return [0] * len(secs)
+    tpc = _tm.PC[tonic]
+    mode = h.get('mode') or (pack.get('harmony') or {}).get('mode') or 'major'
+    raw = []
+    for s in secs:
+        ch = [c for c in (s.get('chords') or []) if c]
+        if len(ch) < 3:
+            raw.append(None)
+            continue
+        cur = _tm.variation_curve(ch, tpc, mode)
+        raw.append(sum(cur) / len(cur) if cur else None)
+    vals = sorted(v for v in raw if v is not None)
+    if len(vals) < 3:
+        return [0] * len(secs)
+    # 全局固定阈值（见 docstring ②）：来自 17 首生成曲 209 个段的实测分位
+    lo, hi = HARMONY_TENSION_P33, HARMONY_TENSION_P67
+    out = []
+    for v in raw:
+        if v is None:
+            out.append(0)
+        elif v >= hi:
+            out.append(2)
+        elif v >= lo:
+            out.append(1)
+        else:
+            out.append(0)
+    return out
+
+
 def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     """主题模板包 → song.json 数据（**作曲依据全在包里**）"""
     import build_song
@@ -836,6 +897,16 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     for sec, mx in zip(secs, emix):
         if mx:
             sec['arr']['mix'] = mx
+
+    # **段级和声张力档**（`arr.harmony_add` 0/1/2）—— 2026-10-07 新增，见 `harmony_tension_levels`。
+    # 放在 mix 之后：它只加和弦色彩音，不动密度与电平，与上面两条曲线互不干扰。
+    _htl = harmony_tension_levels(pack, secs)
+    if any(_htl):
+        for s, lv in zip(secs, _htl):
+            if lv:
+                s['arr'] = dict(s.get('arr') or {}, harmony_add=lv)
+    else:                       # 全是 0 = 不写（保持逐字节向后兼容）
+        pass
 
     # **段级调式**（2026-09-18 补）：`melody_gen` 的调式取 `sec.get('mode')`，段落没写就退回
     # **画像自己的 `base_scale`**（画像来自真实曲目、与主题包无关）→ 旋律与和弦各走各的调式。
