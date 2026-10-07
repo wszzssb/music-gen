@@ -320,7 +320,57 @@ CELL_TAIL_W = 0.006   # 打分里"末落点越靠后越好"的权重（见 _cell
 ⚠ 动它要**逐首量 40–80Hz / 5–18kHz 两个频段**再定（低频靠 bass、高频靠 perc），
 否则会重演"高频塌 26dB"那条老坑。
 
-## 11. 没验证什么（诚实清单）
+## 12. 研究与风格扩展（2026-10-07 第二轮）
+
+用户：「**还有没有其它音乐论文，依照他们继续看看怎么让直接生成音乐更好听更有差异化而且不局限现在几个风格**」
+→ 搜到一批，并把最有落点的一条**做了**（§12.3）；另一条**量出是负结果**（§12.2）。
+
+### 12.1 文献（按"能落到哪一处"分组；⚠ 只读了摘要/片段，动手前要读实）
+
+| 组 | 文献 | 落到本仓库哪一处 |
+|---|---|---|
+| **编配/结构** | [NeurIPS 2025《Unifying Symbolic Music Arrangement: Track-Aware Reconstruction and Structured Tokenization》](https://papernotes.org/NeurIPS2025/audio_speech/unifying_symbolic_music_arrangement_track-aware_reconstruction_and_structured/) · [Lead Sheet Generation and Arrangement by cGAN（arXiv 1807.11161）](https://ar5iv.labs.arxiv.org/html/1807.11161) · [XMusic（arXiv 2501.08809）](https://arxiv-org.ezproxy.obspm.fr/html/2501.08809v1) | 主题→引擎预设那一层（`theme_pack.THEMES[..]['engine']`） |
+| **好听度/张力** | [《Building the Anticipation: How Variation in Tension Mediates Emotions in Music》(*Music Perception* 42(3):256)](https://online.ucspress.edu/mp/article-abstract/42/3/256/204039/Building-the-AnticipationHow-Variation-in-Tension) · [《Feature-Based Modelling of Perceived Emotion in Film Music》(CMMR 2025)](https://zenodo.org/records/17488748/files/CMMR2025_P1_2.pdf?download=1) | `new_song.energy_mix` 的段间张力曲线（**下一件事**） |
+| **演奏表情** | [微时序/量化对 groove 感知（UVM 论文，偏差 30–40ms≈感知阈）](https://scholarworks.uvm.edu/cgi/viewcontent.cgi?params=/context/hcoltheses/article/1704/&path_info=The_Effects_of_Microtiming_Deviations_and_Quantization_on_the_Perception_of_Musical_Groove___Emilia_Winquist.pdf) · [swing 量化研究（*Communications Physics* 2022）](https://preview-www.nature.com/articles/s42005-022-00995-z.pdf) · [Harrison & Pearce 声部进行认知模型](https://cms.mus.cam.ac.uk/publications/harrison-pearce-voice-leadings/) | 引擎导出前的表情层（**本仓库这条判据完全空白，要先建尺子**） |
+
+### 12.2 负结果 5：**"扩引擎预设"改不了骨架**（本轮最重要的一条否证）
+
+量到：**5 个引擎预设的"角色集合"完全相同**（都是 `Arp/Bass/Glock/Hook/Melody/Pad/Perc/Piano/Strings` 9 个），
+而 `new_song.theme_arr` **根本不读预设的 `programs`** —— 它只读主题包的
+`arr_on/arr_off/arr_maybe/arr_share`（`FOUNDATION = ('bass','piano')` 还把这两个钉住）。
+⇒ **扩预设不会新增角色、也不会改骨架**，它只影响"音色（`programs`）"与"节奏型（`patterns`）"。
+所以 §10.4 说的"骨架可变"**要在 `theme_pack` 的 `arr_share` / `FOUNDATION` 上动，不在 `song_engine.STYLES`**。
+
+### 12.3 做到了：**低音节奏型改成"用模板证据选"**（`bass_style` 形状匹配）
+
+**根因**：`theme_pack.py` 的二分规则 `bass_style = 'sixteenth' if bass_dens >= 3.0 else 'simple'`（3/4 一律 waltz）
+让引擎 6 种 `bass_style` 里 `eighth`/`offbeat`/`pump16` **一次都没被用过**（15 个主题只有 3 种取值）。
+而模板层实测：**`#.#.#.#.#.#.#.#.`（每 8 分一个）= 34 首，是最常见的低音形状**。
+
+**改法**（`theme_pack.bass_style_from_occ` + 外科式只更新 4 个主题的 `rhythm.bass_style`）：
+
+| 主题 | 改前 | 改后 | 模板投票（只算正分） |
+|---|---|---|---|
+| battle | sixteenth | **eighth** | eighth 13 · sixteenth 8 · simple 1 |
+| cheerful | sixteenth | **eighth** | eighth 5 · sixteenth 3 · simple 2 |
+| daily | sixteenth | **eighth** | eighth 3 · sixteenth 2 · simple 2 |
+| retro | sixteenth | **eighth** | eighth 12 · sixteenth 11 · simple 1 |
+
+⚠ **只改有把握的 4 个**：加了"最小证据门槛"（领先者 ≥2 票且**严格多于**第二名），
+其余 9 个主题（`classic`/`gorgeous`/`lounge`/`mystery`/`night`/`seaside`/`tender`/`sorrow`/`waltz`）
+**证据不足 → 保留原值**（平票时 `most_common` 是"先遇到的"，不是判据 —— 实测 `lounge` 5:5、`night` 5:5、`tender` 2:2）。
+
+**验收读数**：
+- 15 个主题的 `bass_style` 取值 **3 种 → 4 种**（`eighth` 从 **0** 个变 **4** 个）
+- 4 首重生成后，**`programs` 与"第 1 段主奏"13 维逐项未变**（只差 bass 这一维 —— 干净的消融）
+- MIDI 层实测低音落点：4 首全部 `#...#...#...#...`（每拍）→ **`#.#.#.#.#.#.#.#.`（每 8 分）**，与 `eighth` 期望形状精确一致
+- `selftest --fast` **213/215**（两个失败项 `section_transition`/`theme_melody_reuse` 在本轮之前就存在）· 变异 **310/311**
+
+⚠ **还没验证**：改前/改后音频的 A/B（脚本第一次跑因 `trap ... EXIT` 用错备份而产出**假 after**，
+已用 git 还原点修正并重生成）· **低频 40–80Hz 只在 1 首上量过（+0.15dB，未变差）** ·
+听感完全没判（红线：听感赢）。
+
+## 13. 没验证什么（诚实清单）
 - **听感只做过一轮 A/B，用户未认可**（"都好像"）—— 所以本文档里所有"分化 +56%"之类的读数
   **都还只是 MIDI 层的结构性证据**，**不等于"听起来更不像了"**。
 - **样本小**：跨主题距离只量了 **3 首**（battle/seaside/night，各 1 首）；2.3 的"开头指纹形状"
