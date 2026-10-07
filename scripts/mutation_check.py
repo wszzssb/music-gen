@@ -2357,6 +2357,18 @@ def main():
         return 'sixteenth' if m >= 3.0 else 'simple'
     results.append(case('低音节奏型退回"按密度二分"（eighth 永远选不到）', 'bass_style_from_occ',
                         lambda: Mut(_tp, 'bass_style_from_occ', _density_rule)))
+    # ㉘e **张力模型的质量排序被打乱**（把 dim/aug 的惩罚对调）→ 论文实证的
+    #     major<minor<dim<aug 就不成立，已知答案自证必须抓到。
+    import tension_model as _tm
+    _q = dict(_tm.QUAL_TENSION)
+    _q2 = dict(_q)
+    _q2['dim'], _q2['aug'] = _q.get('aug', 0.95), _q.get('dim', 0.75)
+    results.append(case('张力模型质量排序被打乱（dim/aug 对调）', 'tension_model_known_answers',
+                        lambda: Mut(_tm, 'QUAL_TENSION', _q2)))
+    # ㉘f **变化曲线塌成常数**（生成端要用的就是它）→ 同和弦与插调外和弦都分不开。
+    results.append(case('张力变化曲线塌成常数 0', 'tension_model_known_answers',
+                        lambda: Mut(_tm, 'variation_curve',
+                                    lambda chords, tonic, mode='major', window=4: [0.0] * len(chords))))
 
     # ㉙ **"流畅度"与"突兀声"两个量法坏不坏得起来**（用户 2026-09-22 要求沉淀成守卫）。
     #     ① 突兀声的对齐窗口改窄到 0 → 正常音头（起音延迟 42~78ms）全被判成"没有起音的杂音"

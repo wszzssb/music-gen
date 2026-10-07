@@ -6792,6 +6792,32 @@ def t_bass_style_from_occ():
 
 
 @check
+def t_tension_model_known_answers():
+    """**和声张力模型必须过"已知答案"**（2026-10-07；依据 arXiv 1707.00972 的实证排序）。
+
+    为什么要有这条：张力是新加的第三条控制轴（响度/密度之外），**新尺子没过已知答案
+    就不许拿它下方向性判断**（`RESTORE-METHOD` §10 第 4 条）。这篇论文的实证结论
+    正好是现成的锚点：major<minor<dim<aug · 三和弦<七和弦 · PAC<HC<DC。
+
+    本检查**不依赖任何音频/模板**（纯判据自证，毫秒级），所以它守的是"模型本身没被改坏"；
+    模型接进生成端之后，再由端到端用例守"接线对不对"。
+    """
+    import tension_model as TM
+    fails, detail = TM.selftest()
+    assert not fails, '和声张力模型的已知答案自证失败：%s' % '；'.join(fails)
+    # 反向守卫：主和弦**不许塌到 0**（塌了就没法找"张力峰/谷"，句内对比会被抹平）
+    assert TM.chord_tension('C', 0, 'major') > 0.0, \
+        '主和弦张力塌到 0（实测第一版就是这样，句内对比全丢）'
+    # 变化曲线**必须有分辨力**：同和弦重复恒 0，插调外和弦必须跳起
+    flat = TM.variation_curve(['C'] * 6, 0, 'major')
+    assert max(flat) <= 1e-9, '同和弦重复时变化曲线应为 0，实得 %s' % flat
+    jump = TM.variation_curve(['C', 'C', 'C', 'F#', 'C'], 0, 'major')
+    assert max(jump) > 0.5, '插入调外和弦后变化曲线没跳起：%s' % jump
+    print('        已知答案 6 条全过 · 主和弦非 0（%.2f）· 变化曲线有分辨力（%s）'
+          % (TM.chord_tension('C', 0, 'major'), [round(x, 2) for x in jump]))
+
+
+@check
 def t_theme_basis_whitelist():
     """**新歌声明的"模板依据"必须是主题模板包**（不许拿自己做的曲子当模板）。
 
