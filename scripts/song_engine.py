@@ -496,7 +496,7 @@ def arr_sparse(arr):
     return out
 
 
-def arr_by_role(base, roles, energy=None, tier=1, sparse=False, seed=None):
+def arr_by_role(base, roles, energy=None, tier=1, sparse=False, seed=None, share=None):
     """**按段落角色**改编制（opt-in；`patterns.arr_by_role` 或 `song.json.arr_by_role`）
 
     参数：
@@ -531,6 +531,33 @@ def arr_by_role(base, roles, energy=None, tier=1, sparse=False, seed=None):
         mid = sum(energy) / float(len(energy))
     seen = {'B': 0, 'bridge': 0}
     _ovr = []                                # 被角色编制覆盖掉的**显式**开关（见函数尾）
+    # **按主题的真实编配比例筛层**（2026-10-08；用户口径原话："每个音乐都不是要用上所有乐器，
+    #   可以独奏和只选几个乐器"）。依据 = 主题包的 `arr_share`（真实模板里**该层出现的比例**）：
+    #     · ≥0.5 → 这个主题常用，正常开
+    #     · 0.2~0.5 → 一半左右，由 seed 决定（曲名派生，同族纪律）
+    #     · <0.2 → 这个主题基本不用，**直接不开**
+    #   ⚠ 改前 `ROLE_COLOR`/`ROLE_LIFT` 是**全局写死**的 ⇒ 每个主题都开同一批层：
+    #     battle（真实 uku 0.27 / pad **0.00**）的主歌照样响尤克里里、桥段照样垫 pad；
+    #     classic/waltz/sorrow（真实模板中位 **2~3 件**）却被铺到 5~7 件。
+    import random as _rr
+    _rng = _rr.Random(((seed or 0) * 2654435761) & 0xffffffff)
+    _keep = {}
+    # ⚠ **只筛"在 `arr_share` 里有真实对应角色"的层**（2026-10-08 第一版踩过）：
+    #   `uku/glock/ep/strings/pad` 能在真实模板里数出来，`arp/shimmer` 是**引擎自有的装饰层**
+    #   （模板分析里没有这个概念）⇒ 拿 `share.get('arp', 0.0)` 去筛会把它们**一律判 0、全部关掉**，
+    #   实测 battle 就因此变成"主歌副歌一样厚、副歌没有亮色"（2.9 件/段 vs 真实中位 6）。
+    #   `arp/shimmer` 保留：它们还承担高频/律动（`perc_style=none` 时 5–18k 会塌，见 L3226）。
+    _SHARED = ('uku', 'glock', 'ep', 'strings', 'pad')
+    if share:
+        for _k in ROLE_COLOR + ROLE_LIFT:
+            if _k not in _SHARED:
+                _keep[_k] = True             # 引擎自有层（arp/shimmer）：不受 arr_share 约束
+                continue
+            _s = float(share.get(_k, 0.0) or 0.0)
+            _keep[_k] = (True if _s >= 0.5 else (False if _s < 0.2 else _rng.random() < _s))
+    else:
+        # 不传 share = 老行为（全开），保证旧调用点/还原曲逐字不变
+        _keep = {_k: True for _k in ROLE_COLOR + ROLE_LIFT}
     for i in range(n):
         role = roles[i] if i < len(roles) else 'A'
         a = out[i]
@@ -547,24 +574,45 @@ def arr_by_role(base, roles, energy=None, tier=1, sparse=False, seed=None):
             # 而且**不吭声**。还原/扒带（`notes_extra`）场景下这种覆盖尤其致命。
             if k in a and bool(a[k]) != bool(pack.get(k)):
                 _ovr.append('%s段 %s %s→%s' % (role, k, bool(a[k]), bool(pack.get(k))))
-            a[k] = bool(pack.get(k))
-        for k in ROLE_BASE:                  # 基础层永在（bass 是低频唯一来源、piano 是主奏）
-            a[k] = True
-        a['perc'] = int(pack.get('perc') or 0)
+            a[k] = bool(pack.get(k)) and _keep.get(k, True)
+        # **基础层按主题裁**（2026-10-08，用户选 B："每个音乐都不是要用上所有乐器，
+        #   可以独奏和只选几个乐器"）。
+        #   `piano` 在 15 个主题里 14 个 ≥0.5 ⇒ 基本永在（它也是主奏音色来源、左手覆盖低频）；
+        #   而 **`bass` 在 classic **0.00** / waltz 0.06 / sorrow 0.19 / mystery 0.27 /
+        #   seaside 0.44** —— 这五个主题的 `arr_on` 就是 **`[piano]` 单轨钢琴**
+        #   （真实模板 218 首里 **136 首 = 单轨**）。改前 `ROLE_BASE` 让 bass **每首永在**，
+        #   等于给钢琴独奏曲硬塞一条贝斯，并把"最静的小节"顶到 5 个音
+        #   （`102_classic_marble` 逐小节起伏因此只有 5.8 倍、跌破 8 倍门）。
+        #   规则与其它层一致：≥0.5 永在 · 0.2~0.5 按 seed（曲名派生） · <0.2 不开。
+        for k in ROLE_BASE:
+            _s = float((share or {}).get(k, 1.0) or 0.0) if share else 1.0
+            a[k] = bool(_s >= 0.5 or (_s >= 0.2 and _rng.random() < _s))
+        # 鼓：主题的 `arr_share.perc` 极低时（如某些抒情曲）才整体不开；否则按角色档
+        # ⚠ 不能一律开：`arr_share.perc` 有主题是 0.0（那说明真实模板里没有打击乐）。
+        _psh = float((share or {}).get('perc', 1.0) or 0.0)
+        a['perc'] = int(pack.get('perc') or 0) if (_psh >= 0.2 or not share) else 0
         # **段级密度**（`arr.density` 0–4，见 `build_events` 里的说明）：按编制档映射 ——
-        # 用户指定案例 BGM35 的"逐小节起音数 0→66（**66 倍**）"就是靠段间密度的大起大落，
-        # 而我们原来只有 1.5–2.8 倍（全程一条平线）。引子/尾声给 0（只留骨架音），
-        # 主歌 2，副歌随次序 3 → 4。
+        # 用户指定案例 BGM35 的"逐小节起音数 0→66（**66 倍**）"就是靠段间密度的大起大落。
+        # ⚠ 2026-10-08 主歌 2 → **1**：编配按 `arr_share` 变薄之后（用户口径"不要都用上所有
+        #   乐器"），段落之间的**音符数差**也跟着变小 —— `102_classic_marble` 5.8 倍、
+        #   `114_waltz_court` 7.7 倍，双双跌破 `density_dynamic_range` 的 8 倍门。而这门的
+        #   意图是"**要有极静与极密的小节**"（参考侧 22 倍），薄编配更应该靠**疏密**而不是
+        #   **层数**去拉对比（真实模板逐小节起伏中位 8.0 / P90 16.0，量于 218 首 `refs/midi2`）。
         a['density'] = (0 if role in ('intro', 'outro')
-                        else (4 if _idx >= 4 else (3 if _idx >= 2 else 2)))
+                        else (4 if _idx >= 4 else (3 if _idx >= 2 else 1)))
         if role == 'intro':
             # **引子渐入**（2026-09-15 按真值改）：真值里引子**不是**"不许上打击" ——
             # cheerful 10 首里 7 首前 4 小节有鼓，合计中位 18 点（主段约 22 点/小节），
             # 模式是 "b1–b2 安静、b3–b4 鼓组进来"。所以引子给 `perc=1`，
             # 并由 `perc_in: 2` 让前 2 小节不敲（`perc_part(inbars=…)`）。
             # 尾声仍保持档 0 的 `perc=0`（sorrow 池鼓点中位 0 = 真的不收打击）。
-            a['perc'] = 1
-            a['perc_in'] = 2
+            # ⚠ **2026-10-08**：这条原先是**无条件**给引子 `perc = 1`，而它的依据只是
+            #   **cheerful 一个主题**的统计 —— 推广到全部主题后，classic（`arr_share.perc`
+            #   **0.08**）、waltz（0.25）、mystery（0.20）的引子也被塞了鼓。改成按主题自己的
+            #   `arr_share.perc`（判据与其它层一致：<0.2 不开）。
+            if float((share or {}).get('perc', 1.0) or 0.0) >= 0.2:
+                a['perc'] = 1
+                a['perc_in'] = 2
         if hi:                               # 能量曲线：只做**微调**，不推翻角色底色
             if energy[i] > mid:
                 a['strings'] = True

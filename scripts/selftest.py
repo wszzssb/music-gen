@@ -8574,8 +8574,8 @@ def t_arr_role_variety():
     # 变异自证：还原成旧行为（原样返回）→ 必须失败
     _old = se.arr_by_role
     try:
-        se.arr_by_role = lambda base, roles, energy=None, tier=1, sparse=False, seed=None: \
-            [dict(b) for b in base]
+        se.arr_by_role = lambda base, roles, energy=None, tier=1, sparse=False, seed=None, \
+            share=None: [dict(b) for b in base]
         pack = tp.load_pack('cheerful')
         d = ns.build_from_theme(pack, 'arr_role_probe', seed=1, ncand=1)
         m, _ss = jac_med(d.get('sections') or [])

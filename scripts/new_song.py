@@ -1026,7 +1026,12 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
         _sparse = (pack.get('rhythm') or {}).get('perc_style') in ('dance', 'pump')
         arrs = song_engine.arr_by_role([s['arr'] for s in secs], roles,
                                        energy=(eused or None), tier=1, sparse=_sparse,
-                                       seed=_voice_seed(short, 'arr'))
+                                       seed=_voice_seed(short, 'arr'),
+                                       # **按主题的真实编配比例筛层**（2026-10-08）：用户口径
+                                       # "每个音乐都不是要用上所有乐器，可以独奏和只选几个乐器"。
+                                       # `arr_share` 是真实模板里该层出现的比例 —— battle 的
+                                       # uku 只有 0.27、pad 0.00，而改前每个主题都铺同一批层。
+                                       share=(pack.get('arrangement') or {}).get('arr_share'))
         for s, a in zip(secs, arrs):
             s['arr'] = a
     # **段间密度曲线**（"按段对齐"的密度层，`mix_target.density_curve_db`）：
