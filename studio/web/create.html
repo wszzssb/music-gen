@@ -81,13 +81,9 @@
                    placeholder="例：piano,strings 或 piano,strings,perc（可用：bass/piano/ep/strings/glock/pad/arp/uku/shimmer/perc/none）">
           </div>
           <div class="field">
-            <label>独奏化（可选：整首改用一件乐器）</label>
-            <select id="genInst">
-              <option value="">不指定（按主题编配）</option>
-              <option value="piano">全用钢琴</option>
-              <option value="ep">全用电钢琴</option>
-              <option value="strings">全用弦乐</option>
-            </select>
+            <label>独奏化（可选）<span class="muted">一件 = 合并成独奏；多件（逗号） = 保留声部</span></label>
+            <input type="text" id="genInst"
+                   placeholder="例：piano 或 piano,strings,bass（留空 = 不做独奏化）">
           </div>
         </div>
         <div class="chips" id="themeMeta"></div>

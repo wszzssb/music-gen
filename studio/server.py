@@ -913,9 +913,13 @@ def start_job(sid, kind, opts=None):
         #      （鼓变成音型、层被并轨），拿原曲的频谱目标去调是"往错的目标推"；
         #   ② `solo_instrument` 自己出新曲目目录并调 `make_song --no-tune` 渲染（技能 §21 的口径），
         #      串两次渲染等于白多 2~3 分钟，用户却只看得到最后一份产物。
-        inst = str(opts.get('instrument') or 'piano')
+        inst = str(opts.get('instrument') or opts.get('instruments') or 'piano')
+        # **单件 vs 多件是两条路**（2026-10-08）：单件 `--instrument` 把全部声部**合并**成
+        # 一条轨（原有行为）；多件 `--instruments`（逗号分隔）**保留声部**、每轨换一件并
+        # 关掉清单外的编配层。用"有没有逗号"自动判 —— 面板只需传一个字符串。
+        _flag = '--instruments' if ',' in inst else '--instrument'
         cmds, outs = [[os.path.join(_SCRIPTS, 'solo_instrument.py'), sid,
-                       '--instrument', inst,
+                       _flag, inst,
                        '--out', str(opts.get('out') or (sid + '_solo'))]], ''
     elif kind.startswith('solo:'):
         tr = kind.split(':', 1)[1]

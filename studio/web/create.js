@@ -247,7 +247,11 @@
       // ⚠ 独奏化的产物落在**新曲目** `<曲名>_solo/`（`solo_instrument.py --out`）——
       //   产物区必须去读那一个。第一版这里传的是原曲名，于是"选了全用钢琴 → 生成完
       //   界面上什么都没有"（没有试听、没有下载，只有一个空的"操作"卡；2026-10-07 实测）。
-      var soloOut = id + '_solo';
+      // ⚠ 输出名必须与 `solo_instrument.py` 的 `suffix` 规则**逐字一致**，否则面板读的是
+      //   一个不存在的目录（原来写死 `_solo`，对 `ep`/`strings` 就已经对不上了 —— 2026-10-08 修）。
+      //   规则：piano（GM 0）→ `_solo`；其余 → `_solo_<清单，逗号换横线，去空格，截 24>`。
+      var _slug = String(inst || '').replace(/,/g, '-').replace(/\s+/g, '').slice(0, 24);
+      var soloOut = id + ((!inst || inst === 'piano' || inst === '0') ? '_solo' : ('_solo_' + _slug));
       $('jobKind').textContent = '· ' + (inst ? soloOut : id);
       showSteps(inst ? 'render-tune-solo' : 'render-tune');
       var r = await post('/api/job?kind=' + (inst ? 'render-tune-solo' : 'render-tune') +

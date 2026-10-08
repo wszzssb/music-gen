@@ -57,6 +57,12 @@ SONGS = os.path.join(ROOT, 'songs')
 # ---------------------------------------------------------------- 目标乐器
 # 别名 → (GM program, 显示名)。想用数字就直接给 GM 号（0–127）。
 INSTRUMENTS = {
+    # ⚠ **`bass` 是后补的**（2026-10-08）：多乐器模式要写 `--instruments piano,strings,bass`，
+    #   而原表里只有 `cello`（42）之类、**没有 `bass`** —— 用户最顺手的词反而报错。
+    'bass': (32, 'Acoustic Bass 贝斯'), 'fingerbass': (33, 'Finger Bass 指弹贝斯'),
+    'pickbass': (34, 'Pick Bass 拨片贝斯'), 'fretless': (35, 'Fretless 无品贝斯'),
+    'slapbass': (36, 'Slap Bass 击弦贝斯'), 'tuba': (58, 'Tuba 大号'),
+    'trombone': (57, 'Trombone 长号'), 'contrabass': (43, 'Contrabass 低音提琴'),
     'piano': (0, 'Acoustic Grand 钢琴'), 'bright': (1, 'Bright 亮钢琴'),
     'ep': (4, 'Electric Piano 1 电钢琴'), 'honky': (3, 'Honky-tonk'),
     'harpsi': (6, 'Harpsichord 大键琴'), 'clav': (7, 'Clavinet'),
@@ -555,6 +561,80 @@ def make_transitions(d, notes, ctab, ev, opts):
     return out, rows
 
 
+# **GM 低音区乐器**（用于多乐器模式下给 `Bass` 轨挑乐器）：32–39 贝斯组 · 42 大提琴 ·
+# 43 低音提琴 · 57 长号 · 58 大号。判定用 GM 号而不是名字（名字别名各地不同，GM 号是规范）。
+LOW_GM = set(range(32, 40)) | {42, 43, 57, 58}
+# 多乐器模式下能"按名字关层"的层键（= `song_engine.ARR_KEYS` 的乐器子集）
+_MULTI_LAYERS = ('bass', 'piano', 'ep', 'strings', 'glock', 'pad', 'arp', 'uku', 'shimmer')
+
+
+def to_multi(d, specs, opts=None):
+    """**多乐器化**（2026-10-08，用户口径"能不能只用规定的几个乐器演奏"）：保留声部结构，
+    把每轨换成清单里的一件乐器，并把**清单外的编配层关掉**。
+
+    与 `to_solo` 的关系：`to_solo` 是单件 —— 它把**全部声部合并**进一条轨；多乐器时不能那么做
+    （合并会把不同乐器该弹的声部揉在一起，那就不叫"用这几件乐器演奏"了）。所以这条路径
+    **不合并、不冻结**：直接改 `programs` + 关 `arr` 层 —— 音符本来由引擎按 `arr` 生成，
+    关掉层它们就不再出现。
+
+    分配按**轨的角色**（不是按清单顺序硬塞）：
+      · `Melody`（主奏）→ 清单第 1 件
+      · `Bass`（低音）→ 清单里**低音区**那件（`LOW_GM`）；清单里没有 → 与主奏同件
+      · 其余伴奏/和声轨 → 清单里剩下的，按序循环
+    ⚠ **适用面**：音符由引擎按 `arr` 生成的曲子（生成曲）。扒带曲的音符冻结在 `notes_extra`，
+      关 `arr` 去不掉它们 —— 那种曲子用单件 `--instrument`（它会把已有音符合并重写）。
+    返回 `(新曲目数据, 报告)`。
+    """
+    specs = [str(s).strip() for s in (specs or []) if str(s).strip()]
+    if not specs:
+        raise SystemExit('--instruments 是空的（例：--instruments piano,strings,bass）')
+    pairs = [parse_instrument(s) for s in specs]
+    progs = [p for p, _l in pairs]
+    labels = [l for _p, l in pairs]
+    mel_prog = progs[0]
+    lows = [p for p in progs if p in LOW_GM]
+    bass_prog = lows[0] if lows else mel_prog
+    rest = progs[1:] or [mel_prog]
+
+    d = copy.deepcopy(d)
+    programs = d.setdefault('programs', {})
+    order = [t for t in programs] + [t for t in se.CH if t not in programs]
+    assign, ri = {}, 0
+    for tr in order:
+        if tr == 'Melody':
+            assign[tr] = mel_prog
+        elif tr == 'Bass':
+            assign[tr] = bass_prog
+        else:
+            assign[tr] = rest[ri % len(rest)]
+            ri += 1
+    for tr, p in assign.items():
+        programs[tr] = [p, 0]
+
+    # 按**名字**关层：清单里出现的层名才保留；`perc` 按清单；给 GM 号的项映射不到层，
+    # 只换音色、不动 `arr`（并在报告里点明，免得用户以为"没生效"）。
+    keyed = {s.lower() for s in specs}
+    want_layers = keyed & set(_MULTI_LAYERS)
+    unmapped = [s for s in specs if s.lower() not in set(_MULTI_LAYERS) | {'perc'}]
+    if want_layers:
+        has_perc = 'perc' in keyed
+        for sec in d.get('sections') or []:
+            a = sec.setdefault('arr', {})
+            for k in _MULTI_LAYERS:
+                a[k] = k in want_layers
+            a['perc'] = 1 if has_perc else 0
+            if not has_perc:
+                a.pop('perc_in', None)
+    rep = {'mode': 'multi', 'gm': mel_prog, 'instrument': '+'.join(labels),
+           'assign': assign, 'labels': labels, 'layers_kept': sorted(want_layers),
+           'unmapped': unmapped, 'src_tracks': {}}
+    # `notes_md` 是**单件路径**的函数，它读这几个键。多乐器模式**不做**那三步
+    # （不合并声部 → 无跨轨去重；不裁长；不做低音区整理），所以如实补 0。
+    rep.update({'dedupe_dropped': 0, 'long_trimmed': 0, 'octave_moved': 0,
+                'main_notes': 0, 'melody_notes': 0, 'drums': {}})
+    return d, rep
+
+
 def to_solo(d, prog, label, opts):
     """**纯函数**：曲目数据 → 单乐器版数据 + 报告（自检直接调它，不写盘）"""
     d = copy.deepcopy(d)
@@ -829,6 +909,10 @@ def main():
     ap = argparse.ArgumentParser(description='把一首曲子改成"只用一件指定乐器演奏"')
     ap.add_argument('song', nargs='?', help='曲目名（songs/<名字>）或 song.json 的路径')
     ap.add_argument('--instrument', default='piano', help='钢琴/弦乐/吉他…别名，或 GM 号（默认 piano）')
+    ap.add_argument('--instruments', default=None,
+                    help='**多件乐器**（逗号分隔，例：piano,strings,bass）—— 保留声部结构，'
+                         '每轨换一件 ＋ 关掉清单外的编配层。与 `--instrument`（单件：把全部'
+                         '声部**合并**成一条轨）是两条路；两个都给时以本参数为准')
     ap.add_argument('--out', default=None, help='输出曲目名（默认 <原名>_solo[_<乐器>]）')
     ap.add_argument('--drums', choices=('piano', 'drop', 'keep'), default='piano',
                     help='鼓轨：转成乐器音型（默认）/ 丢掉 / 原样保留（通道 10 上仍是鼓声）')
@@ -866,6 +950,9 @@ def main():
     src_dir = os.path.dirname(os.path.abspath(src_json))
     base = os.path.basename(src_dir)
     suffix = '_solo' if prog == 0 else '_solo_%s' % str(a.instrument).strip().lower()
+    if a.instruments:                   # 多乐器：输出名带上清单（截断，避免超长目录名）
+        suffix = '_solo_' + str(a.instruments).replace(',', '-')[:24]
+        suffix = suffix.replace(' ', '')
     if a.out and os.path.isabs(a.out):          # 绝对路径 = 写到曲库外（自检/交付用）
         out_dir = a.out
         name = os.path.basename(out_dir.rstrip('\\/'))
@@ -880,9 +967,22 @@ def main():
         raise SystemExit('主轨名只能是 %s 之一' % ', '.join(sorted(se.CH)))
     print('== solo_instrument: %s → %s' % (base, name))
     d = se.load(src_json)
-    out, rep = to_solo(d, prog, label, opts)
-    rep['max_beats'], rep['low_floor'] = a.max_beats, a.low_floor
-    _print_report(rep)
+    # **两条路**（2026-10-08）：`--instruments`（多件，保留声部）优先于 `--instrument`（单件，
+    # 合并全部声部）。多乐器走 `to_multi`，其余写盘/渲染流程**完全复用**。
+    if a.instruments:
+        print('== solo_instrument（多乐器）: %s → %s' % (base, name))
+        out, rep = to_multi(d, [s for s in str(a.instruments).split(',') if s.strip()], opts)
+        rep['max_beats'], rep['low_floor'] = a.max_beats, a.low_floor
+        print('  分配：%s' % ' · '.join('%s→%s' % (k, v) for k, v in sorted(rep['assign'].items())))
+        if rep['layers_kept']:
+            print('  保留的编配层：%s%s' % ('、'.join(rep['layers_kept']),
+                                            '＋perc' if 'perc' in str(a.instruments).lower() else ''))
+        if rep['unmapped']:
+            print('  ⚠ 这几项只换了音色、没关层（是 GM 号或非层名）：%s' % '、'.join(rep['unmapped']))
+    else:
+        out, rep = to_solo(d, prog, label, opts)
+        rep['max_beats'], rep['low_floor'] = a.max_beats, a.low_floor
+        _print_report(rep)
     if a.dry:
         print('  （--dry：没有写盘）')
         return 0
@@ -904,7 +1004,9 @@ def main():
     # `notes.md` 不是可选项：曲目目录必须齐 4 件（`song.json`+`compose.py`+`notes.md`+`render.json`），
     # 缺它会红两条守卫（`notes_present` / `render_json_schema`）—— PITFALLS 297 ③。
     with open(os.path.join(out_dir, 'notes.md'), 'w', encoding='utf-8', newline='\n') as f:
-        f.write(notes_md(name, base, src_json, prog, label, rep, a))
+        # 多乐器时 `prog/label` 是单件语义 —— 用报告里的（`to_multi` 填了 `gm`/`instrument`）
+        f.write(notes_md(name, base, src_json, rep.get('gm') or prog,
+                         rep.get('instrument') or label, rep, a))
     # 渲染参数：**沿用原曲**（rms/宽度/搁架是同一批素材调出来的）；ref 保留 → 成绩单有对照
     cfg_src = os.path.join(src_dir, 'render.json')
     cfg = {}
