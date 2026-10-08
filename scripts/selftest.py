@@ -7983,6 +7983,12 @@ def t_accompaniment_harmony():
          本库这类曲目 6 首：`201_asa_learn` · `asa_no_kaori_vel_solo` ·
          `bgm35_extract_solo{,_fills,_nodrum}` · `dear_good_friends_solo`。
          ⚠ **只跳过音区分离这一项**，②和弦贴合照判（它对同音色曲同样有效）。
+          ⚠ **2026-10-07 复核：那 6 首在当前曲库里已经不存在** ⇒ 打印是 `同音色不判 0 首`，
+          **这句口径目前是空转的**（没有生效对象）。所以变异用例 0b2d 已从"每轨给不同音色"
+          （**死注入**：正常态本就是 0 首 ⇒ 注入前后读数一字未变）改成**开关式**：
+          "让 `_prog_of_track` 恒返回同一个值" ⇒ 全库被判同音色 ⇒ ③ 的样本被清空 ⇒
+          命中 `assert len(sep) >= 200`。要让它重新有实质，得先往库里放回一首
+          "旋律与伴奏同 program"的曲目。
       ② **逐曲带理由豁免** `patterns.accomp_exempt.sep`（口径同 `accomp_exempt.fit`：
          理由空白 = 没写 = 不放行）。为什么需要：③ 的汇总量是**全库合并**的，
          单曲读数会被别的曲平均掉 —— 实测交接那轮里"哪首拖后腿"就被定位错了。
@@ -8025,25 +8031,29 @@ def t_accompaniment_harmony():
             #   `arr.harmony_add` 会给该段和弦加 7/9 度扩展音，引擎按**扩展后**的音集发声
             #   ⇒ 若这里仍用 `data['chords']` 的原始音集，合法扩展音会被判成"和弦外音"
             #   （实测 `105_seaside_walk` Hook 94% / Arp 92% 的**假 FAIL**）。
-            #   口径只写一处：直接用引擎的 `SE.harmony_extend`。
+            #   ⚠ **连"避让池"也必须同源**（同日第二修）：早先这里用**全曲池**，而引擎按
+            #   **按小节池**加音 ⇒ 引擎加出的扩展音不在守卫算出的音集里 ⇒ 又一批假 FAIL
+            #   （实测 `103_sorrow_letter/Hook 79%`、`113/Hook 92%`、`114/Arp 90%`）。
+            #   口径只写一处：池用引擎的 `SE.sec_pool_pcs`（按小节），扩展用 `SE.harmony_extend`。
             _lv = 0
             _bi = int(bar)
+            _sec = None
             for _s in data['sections']:
                 _nb = int(_s.get('bars') or 0)
                 if _bi < _nb:
                     _lv = int((_s.get('arr') or {}).get('harmony_add') or 0)
+                    _sec = _s
                     break
                 _bi -= _nb
             _tones = e[1]
-            if _lv:
+            if _lv and _sec is not None:
                 try:
-                    _tones = SE.harmony_extend((e[0], list(e[1])), _lv, _pool)[1]
+                    _tones = SE.harmony_extend(
+                        (e[0], list(e[1])), _lv,
+                        SE.sec_pool_pcs(data['chords'], _sec['chords'], _bi))[1]
                 except Exception:
                     _tones = e[1]
             return {x % 12 for x in _tones}
-
-        _pool = {int(_m) % 12 for _v in data['chords'].values()
-                 for _m in (_v[1] if len(_v) > 1 else [])}
         # ② 伴奏和弦贴合
         pm = _prog_of_track(data, 'Melody')
         sounding = [tr for tr in ACC if any(n[3] > 0 for n in ev.get(tr, []))]
@@ -10754,6 +10764,35 @@ def t_melody_onset_spread():
     print('        %d 个段落：落点偏离最大 %.3f（%s），门 %.2f' % (checked, worst[0], worst[1],
                                                               ONSET_TVD_MAX))
     assert not bad, '落点过于集中：%s' % '；'.join(bad[:4])
+
+
+@check
+def t_melody_candidate_gate():
+    """**落点门内候选必须胜出门外候选**（2026-10-07）—— 挑候选的**静态判据**。
+
+    守的是 `melody_gen.select_candidate`：它是"挑哪条候选"的唯一入口，先按"**逐段最坏落点
+    TVD 是否超 `ONSET_TVD_MAX`**"分档，门内一律优于门外，同档才比 `cand_score`。
+
+    为什么这条要单独守：**没有别的守卫守得住它**。把分档摘掉（退回 `cand_score` 里那个
+    6 倍超门罚）时，只有当某首曲目**恰好**选中了超门候选才会让 `t_melody_onset_spread` 变红
+    —— 那是**依赖某首曲目具体读数**的偶然证据（`107_mystery_door` 现在红得起来，只因为它的
+    4 条候选里正好有一条 0.656）。这里直接喂**合成读数**，不依赖任何一首曲子。
+
+    **判据自证**（三条都必须是"开关式"差异）：
+      ① 门外候选的 score **明显更小** → 仍必须挑门内那条（摘掉分档 ⇒ 必挑错）
+      ② 全在门内 → 按 score（分档不许影响同档排序）
+      ③ 全超门 → 退回打分（不许崩、不许挑非最小）
+    """
+    import melody_gen as M
+    # ① 门内（score 1.90）必须赢过门外（score 0.20）—— 这条是分档**唯一的新行为**
+    assert M.select_candidate([(0.20, 1), (1.90, 0)]) == 1, \
+        '落点门外候选（score 0.20）压过了门内候选（score 1.90）—— 分档失效（退回纯软罚）'
+    # ② 同档按 score
+    assert M.select_candidate([(1.90, 0), (0.20, 0)]) == 1, '门内候选之间没有按打分挑'
+    # ③ 全超门 → 退回打分（最小 score），且不许抛异常
+    assert M.select_candidate([(0.30, 1), (0.20, 1)]) == 1, '全候选超门时没有退回打分'
+    print('        门外 score 0.20 不敌门内 1.90 · 同档按打分 · 全超门退回打分（门 %.2f）'
+          % M.ONSET_TVD_MAX)
 
 
 @check

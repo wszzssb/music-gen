@@ -1938,8 +1938,11 @@ def harmony_extend(ch, level, pool_pcs):
       · 只加**根音之上的七度、九度**（+10/+11、+13/+14；不引入十一/十三度）
       · 夹在"该和弦音集区域内"（`lo..hi+7`）且 ≤108
       · 不许与**已有和弦音**相邻半音 / 同音级重复；
-        **音级也不许紧邻全曲和弦池里的任何音级**（`pool_pcs`）——相邻小节常是**不同和弦**，
-        否则同一小节里会出现半音摩擦（实测 `Arp` 档 2 多出 4 个"小节内半音对"）。
+        **音级也不许紧邻 `pool_pcs` 里的任何音级** —— `pool_pcs` 由调用方给，口径是
+        **按小节**（本小节和弦 ∪ 下一小节和弦，见 `build_events` 里 `voicing_for` 上方的说明）：
+        冲突只发生在**同一小节内真的同时响**的音之间（实测 `Arp` 档 2 的 6 处"小节内半音对"
+        全是"4 拍长音层"撞"扩展的小九度"）。⚠ 早先两版口径（**全曲池** / **按段池**）都被
+        实测打回 —— 它们把"永不同响"的和弦也算成半音邻居，池一大（≥8 个音级）就把候选拒光。
 
     `level` 非正、`ch` 形状异常、或加不上任何音 → **原样返回**（缺省逐字节不变）。
     """
@@ -1970,6 +1973,30 @@ def harmony_extend(ch, level, pool_pcs):
     return (root, sorted(set(tones + add)))
 
 
+def sec_pool_pcs(ch_all, sec_chords, i):
+    """**扩展音避让池**（`harmony_extend` 的 `pool_pcs` 参数）—— 口径第 ③ 版 = **按小节**。
+
+    = **第 i 小节的和弦 ∪ 第 i+1 小节的和弦**的音级（段内视角：段末小节没有"下一小节"）。
+    为什么是这两条边界（2026-10-07 实测，见 `build_events` 里 `voicing_for` 上方的完整说明）：
+    冲突只发生在**同一小节内真的同时响**的音之间；而同一小节响的只有本小节和弦
+    （`guitar_arpeggio` 会提前引用下一小节和弦，所以并进来）。早先两版（**全曲池** /
+    **按段池**）都把"永不同响"的和弦当成半音邻居 —— 池一大（≥8 个音级）候选被拒光。
+
+    ⚠ **必须提成模块级函数**：`selftest.t_accompaniment_harmony` 要算"有效和弦音集"
+    （它拿扩展后的音集判"伴奏是否弹和弦音"）。它早先用**全曲池**，与引擎不同源 ⇒
+    引擎按小节池加出的扩展音被判成和弦外音，报出 `103_sorrow_letter/Hook 79%` 这种**假 FAIL**
+    （同 `harmony_extend` 被提取出来的那条纪律：**同一口径只写一处**）。
+    """
+    pcs = set()
+    for cn in (sec_chords[i] if 0 <= i < len(sec_chords) else None,
+               sec_chords[i + 1] if 0 <= i + 1 < len(sec_chords) else None):
+        v = ch_all.get(cn) if cn else None
+        if v:
+            for m in v[1]:
+                pcs.add(int(m) % 12)
+    return pcs
+
+
 def build_events(d):
     """展开成 {轨名: [(起始拍, 时值拍, 音高, 力度)]}"""
     ch_all = {k: (v[0], v[1]) for k, v in d['chords'].items()}
@@ -1981,17 +2008,22 @@ def build_events(d):
     def voicing(ch):
         return (ch[0], [m + shift for m in ch[1]]) if shift else ch
 
-    # **全曲和弦池的音级**（供 `_harmony_extend` 避让）：相邻小节常是**不同和弦**，
-    # 若扩展音的**音级**恰好是另一个和弦某音的半音邻音，同一小节内就会出现摩擦
-    # （实测 `Arp` 档 2 多出 4 个"同一小节内的半音对"）。用整池音级一次挡住。
-    _pool_pcs = set()
-    for _v in ch_all.values():
-        for _m in (_v[1] if len(_v) > 1 else []):
-            _pool_pcs.add(int(_m) % 12)
-
-    def voicing_for(ch, level):
+    # **扩展音避让用的音级池**（`harmony_extend` 拒掉"音级紧邻池内任一音级"的候选）。
+    # 池的口径迭代过三版，每版都被实测打回（留证据，别退回旧版）：
+    #   ① **全曲池**（首版，2026-10-07 ②轮）：把"跨小节、跨段永不同响"的和弦也当成半音邻居。
+    #      当时曲目池只有 5~6 个音级、没暴露；§17 的"非 A 段按 seed 换进行"落地后
+    #      `100_battle_dawn` 的池涨到 **9/12**，于是"不许紧邻池内任何音级"把 8 个和弦里的
+    #      6 个候选全拒 ⇒ `t_harmony_add_contracts` 报"档 2 没给任何非旋律轨加出新音高"。
+    #   ② **按段池**：语义上对了（跨段永不同响），但**粒度仍太粗** —— 段内 4~6 个和弦的
+    #      音级合起来照样把候选拒光（实测夹具 `100_battle_dawn` 11 段里一段都加不出音）。
+    #   ③ **按小节池（现版）** = **本小节和弦 ∪ 下一小节和弦**的音级。依据是实测的**冲突位置**：
+    #      把 ① 那条规则临时关掉，`Arp` 轨档 2 当场冒出 **6 处**"同一小节内的相邻半音对"，
+    #      6 处全是「`Am7`/`G7` 小节里 **4 拍长音层** 的 69(A4)/67(G4)」撞「扩展音 70(A#4)/68(G#4)」——
+    #      即冲突只发生在**同一小节内真的同时响**的音之间，而**同一小节响的和弦只有一个**。
+    #      `nxt` 也在这小节内发声（`guitar_arpeggio` 会提前引用下一小节和弦），所以并进来。
+    def voicing_for(ch, level, pool_pcs):
         # 扩展逻辑已提到**模块级** `harmony_extend`（守卫要共用同一口径，见其 docstring）
-        return (harmony_extend(voicing(ch), level, _pool_pcs)
+        return (harmony_extend(voicing(ch), level, pool_pcs)
                 if HARMONY_ADD_ENABLED else voicing(ch))
     ev = {k: [] for k in d['programs']}
     # 断奏因子（opt-in，默认 1.0）：把伴奏音变短 = **在鼓点之间腾出空间**。
@@ -2039,7 +2071,11 @@ def build_events(d):
             if cn not in ch_all:
                 raise SystemExit('段落 %s 第 %d 小节引用了未定义的和弦 "%s"'
                                  % (sec.get('name', '?'), i + 1, cn))
-            ch = voicing_for(ch_all[cn], _hadd)
+            # **本小节的扩展音避让池** = 本小节和弦 ∪ 下一小节和弦的音级
+            # （口径第 ③ 版，提成模块级 `sec_pool_pcs` 好让守卫共用同一口径 —— 见 `voicing_for`
+            #  上面那段说明：冲突只发生在同小节真的同时响的音之间）
+            _bar_pcs = sec_pool_pcs(ch_all, sec['chords'], i)
+            ch = voicing_for(ch_all[cn], _hadd, _bar_pcs)
             if ch[0] not in sec_chords:
                 sec_chords.append(ch[0])
             nxt = None
@@ -2048,7 +2084,7 @@ def build_events(d):
                 if nn not in ch_all:
                     raise SystemExit('段落 %s 第 %d 小节引用了未定义的和弦 "%s"'
                                      % (sec.get('name', '?'), i + 2, nn))
-                nxt = voicing_for(ch_all[nn], _hadd)
+                nxt = voicing_for(ch_all[nn], _hadd, _bar_pcs)
             t0 = (bar0 + i) * B
             # **段级密度**（opt-in `arr.density` 0–4；缺省 -1 = 逐字节保持现有行为）——
             # 依据（用户指定的最佳案例 BGM35 实测）：它"逐小节起音数 0→66，**变化 66 倍**"，
@@ -2677,8 +2713,9 @@ def build_events(d):
                     continue
                 # 注：**曾经**在这里加过"还要避开同轨其它音（≥2 半音）"的过滤，用来治
                 # `harmony_add` 引入的小节内半音摩擦 —— 实测**不是根因**（加了摩擦不减），
-                # 已撤回。真正的根因是"扩展音的音级撞了另一个和弦的半音邻音"，
-                # 修在 `_harmony_extend` 的 `_pool_pcs` 那一处（见该函数）。
+                # 已撤回。真正的根因是"扩展音的音级撞了**同一小节**里另一个音的半音邻音"，
+                # 修在 `harmony_extend` 的避让池那一处（口径第 ③ 版 = **按小节池**，
+                # 见 `build_events` 里 `voicing_for` 上方那段说明）。
                 _c = [c for c in _tones if all(abs(c - b) >= 4 for b in _bad)]
                 if _c:
                     _out.append((_t, _dd, min(_c, key=lambda x: (abs(x - _m), x)), _v))

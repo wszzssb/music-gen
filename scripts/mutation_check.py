@@ -299,13 +299,19 @@ def main():
         return Mut(st, '_density_exempt', lambda j2: {})
     results.append(case('密度豁免没接上代码', 'density_dynamic_range', _density_exempt_ignored))
 
-    # 0b2d. **同音色旋律没被跳过**（2026-10-05 新口径）：把 `_prog_of_track` 换成"每轨都不同音色"
-    #       ⇒ 同音色曲重新参与"音区分离"，全库汇总量掉回门以下 → 检查必须红。
-    #       ⚠ 这条证明的是"同音色跳过被接上了"；它顺带证明"跳过失效会让判据红"
-    #       （否则这条口径就是个装饰品）。
-    def _same_timbre_ignored():
-        return Mut(st, '_prog_of_track', lambda j2, tr: hash(tr) % 100)
-    results.append(case('同音色旋律没被跳过', 'accompaniment_harmony', _same_timbre_ignored))
+    # 0b2d. **同音色旋律的跳过口径接通了**（2026-10-07 改写）：让 `_prog_of_track` **恒返回同一个值**
+    #       ⇒ 全库每一首都判成"同音色旋律" ⇒ ③ 音区分离的样本被清空 ⇒ 命中守卫里那句
+    #       `assert len(sep) >= 200`（"音区分离的样本太少 —— 这条检查会空转"）。
+    #       ⚠ **旧注入（"每轨 program 都不同"）是死注入，抓不到 —— 已撤回**（2026-10-07 实测，
+    #       探针 `D:\test\_tmp\music-sameness\probe_sametimbre.py`）：它本意是"把同音色曲重新放回
+    #       统计、让合并中位掉到门以下"，但当前库**正常态就是"同音色不判 0 首"**
+    #       （那条口径在库里**没有生效对象** —— 守卫 docstring 里"本库这类曲目 6 首"已过时），
+    #       注入前后读数**一字未变**（中位 +19 · 151 轨 · 0 首跳过）。这正是 §17.5 那条纪律的
+    #       第二次现场：**先用离线小脚本判"注入是否真的改变了行为"，再注册用例**。
+    def _same_timbre_all_skipped():
+        return Mut(st, '_prog_of_track', lambda j2, tr: 0)
+    results.append(case('同音色跳过口径断了（全库被判同音色）', 'accompaniment_harmony',
+                        _same_timbre_all_skipped))
 
     # 0b2e. **逐曲音区分离豁免没接上代码**（同上）：`accomp_exempt` 换成"永不豁免"
     #       ⇒ 已声明 `sep` 的偏低曲重新进统计 → 检查必须红。
@@ -2486,6 +2492,15 @@ def main():
     import melody_gen as _mg2
     results.append(case('落点判据坏掉（TVD 恒 0）', 'melody_onset_spread',
                         lambda: Mut(_mg2, 'onset_tvd', lambda *a, **k: 0.0)))
+
+    # ㉞ **落点门分档被摘掉**（退回纯软罚）→ 门外候选能凭别项压过门内候选。
+    #     与 ㉜ 是**两个方向**，别合并：㉜ 打的是**尺子**（TVD 恒 0 ⇒ 判据自证失败），
+    #     这条打的是**挑选策略**（尺子好端端的，但超门候选照样能被选中 —— 实测
+    #     `107_mystery_door` 候选 4 worst 0.656 靠"形态罚省 0.24"胜出、成品破门）。
+    results.append(case('落点门分档被摘掉（门外候选压过门内）', 'melody_candidate_gate',
+                        lambda: Mut(_mg2, 'select_candidate',
+                                    lambda scored: min(range(len(scored)),
+                                                       key=lambda i: scored[i][0]))))
 
     # ㉝ **`metrics` 又改回直连取 ffmpeg 路径** → 本机无外网时那一行会卡死，
     #     实测自检最慢项卡 **>9 分钟**（全量自检从 2 分钟掉回 >20 分钟），

@@ -1721,6 +1721,26 @@ def dur_tvd(mel, prof):
     return 0.5 * sum(abs(h.get(k, 0) / tot - (P.get(str(k), 0) / pt)) for k in keys)
 
 
+def select_candidate(scored):
+    """**按"落点是否超门"分档挑候选**（2026-10-07）：门内候选一律优于门外候选，同档内按打分。
+
+    `scored` = `[(score, over), ...]`；`over` = 该候选的**逐段最坏落点 TVD 是否超 `ONSET_TVD_MAX`**
+    （0 = 门内）。返回下标。**门本身没动** —— 改的只是"挑哪条"。
+
+    为什么必须分档（而不是继续用 `cand_score` 里的 6 倍超门罚）：**软罚会被别的项盖过**。
+    实测 `107_mystery_door`（seed 6326，4 条候选）：候选 4 的 worst **0.656**（超门 0.006 ⇒
+    只罚 0.036），却靠"形态罚 0.00（对手 0.24）+ 时值偏离 0.478（对手 0.564）"胜出被选中
+    ⇒ 成品 Outro 破门，是全库 235 段里**唯一**一段破门。守卫 `t_melody_onset_spread` 是**硬门**，
+    所以"在不在门内"必须先于任何别的维度比较。
+    全候选都超门时退回纯打分（如实打印，不假装没事）—— 不改门限、不做豁免。
+
+    抽成**模块级函数**的理由与 `cand_score` 相同：`mutation_check` 的注入机制是改内存里的
+    模块属性，写在 `main()` 里就只能靠 subprocess 端到端验（守卫 `t_melody_candidate_gate`
+    直接喂合成读数给这个函数）。
+    """
+    return min(range(len(scored)), key=lambda i: (scored[i][1], scored[i][0]))
+
+
 # **落点分布的门**（守卫 `t_melody_onset_spread` 用的就是它 —— 单一真源，别在两处各写一份）
 ONSET_TVD_MAX = 0.65
 
@@ -1765,6 +1785,11 @@ def cand_score(shape_share, lang_share, clash, stepwise, step_bias, onset_dist=0
     #   候选 2（最坏 **0.688**，破门），只因对方级进高 0.12 —— 结果成品 Outro 段 0.688 破门。
     #   落点破门是守卫会 FAIL 的硬伤，不该被"级进好一点"换掉 ⇒ 超门部分按 6 倍罚
     #   （**只影响候选之间的相对排序，门本身没动** —— 与 `stepwise_pct` 同一条纪律）。
+    # ⚠ **但 6 倍罚是软的，照样会被别的项盖过**（2026-10-07 实测，当场抓到）：
+    #   `107_mystery_door`（seed 6326）的候选 4 worst **0.656**（超门 0.006 ⇒ 只罚 0.036），
+    #   靠"形态罚省 0.24 + 时值偏离省 0.086"胜出被选中 ⇒ 成品 Outro 破门
+    #   （全库扫描 235 段里**唯一**一段）。⇒ 真正的把守是 `main` 里**按"是否超门"分档**
+    #   （门内候选一律优于门外候选），这里只负责"门内候选之间"的次级排序。
     onset_pen = 6.0 * max(0.0, onset_dist - ONSET_TVD_MAX)
     return (shape_share * 2.0 + lang_share + clash * 0.5
             - step_bias * stepwise + onset_dist + onset_pen + form_pen + dur_dist + run_pen
@@ -2217,7 +2242,8 @@ def main():
             out.append([b] + list(n[1:]))
         return sorted(out, key=lambda x: (x[0], x[1]))
 
-    best = None
+    cands = []                   # 逐候选收集：(score, over, mel, per, ci, nfix, clash, sw)
+    _over_list = []              # 超门的候选（候选号, worst TVD, 打分），用于复盘打印
     for ci in range(max(1, ncand)):
         rng = random.Random(seed + ci * 1000)
         per = persona(prof, rng)
@@ -2308,9 +2334,25 @@ def main():
         # 用户在 2026-09-14 实测：同骨架 4 条候选"级进 17% → 52% 越来越顺，202 之后
         # 两条都比原版好"，而旧挑法完全不看听感维度 → 会随机挑到跳进多的那条
         # （根因还有 `persona` 里 `leap = uniform(0.70, 1.40)` 的两倍范围）。
-        if best is None or score < best[0]:
-            best = (score, mel, per, ci, nfix, clash)
-            best_sw = sw
+        # **落点门是硬门，候选选择必须先按"是否超门"分档**（2026-10-07 修，见下）：
+        #   守卫 `t_melody_onset_spread` 是**硬门**（每段 ≤ `ONSET_TVD_MAX`），而这里原先只有
+        #   `cand_score` 里的"超门罚"（6 倍）——**软罚能被别的项盖过**。实测 `107_mystery_door`
+        #   （seed 6326，4 条候选）：
+        #       候选1 worst **0.541**（门内，形态罚 0.24，时值 0.564）
+        #       候选4 worst **0.656**（**破门**，形态罚 0.00，时值 0.478）
+        #   候选4 的超门罚只有 6×0.006 = **0.036**，被"形态罚省下 0.24 + 时值省下 0.086"
+        #   轻易盖过 ⇒ 它被选中 ⇒ 成品 Outro 破门（全库扫描 235 段里**唯一**一段破门）。
+        #   ⇒ 分档顺序：**门内候选一律优于门外候选**；门内一条都没有时才退回原打分
+        #   （全破门的情况要打印出来，不能假装没事）。**门本身没动**，改的只是"挑哪条"。
+        _over = 1 if ot > ONSET_TVD_MAX else 0
+        cands.append((score, _over, mel, per, ci, nfix, clash, sw))
+        if _over:
+            _over_list.append((ci + 1, ot, score))
+    # **挑候选**（口径见 `select_candidate`）：门内候选一律优于门外候选，同档内按打分。
+    _bi = select_candidate([(c[0], c[1]) for c in cands])
+    _bc = cands[_bi]
+    best = (_bc[0], _bc[2], _bc[3], _bc[4], _bc[5], _bc[6])
+    best_over, best_sw = _bc[1], _bc[7]
     d['melody'] = best[1]
     # **转音细胞**（2026-10-06，HANDOFF-ORNAMENT §4）：全曲级 · 只在密度/碎音**预算**内插 ·
     # 逐段决定 · 种子**曲名派生**（同族纪律 `PITFALLS` **304**：`--seed` 会被"多首显式同一个
@@ -2335,6 +2377,14 @@ def main():
     if step_bias:
         print('  ✓ 级进偏好 %.2f 生效：选中候选级进 %.0f%%（候选 %d 条里挑）'
               % (step_bias, best_sw * 100, max(1, ncand)))
+    # **落点门分档留痕**（2026-10-07）：把"这条旋律是门内挑的、还是全候选破门被迫挑的"打印出来
+    # （不写进 song.json：那是"引擎的挑选过程"，不是曲目数据 —— 要查看生成日志）。
+    if _over_list:
+        _in_gate = max(1, ncand) - len(_over_list)
+        print('  %s 落点门（%.2f）：%d/%d 条候选在门内 ⇒ 选中候选%s（超门候选：%s）'
+              % ('!' if best_over else '·', ONSET_TVD_MAX, _in_gate, max(1, ncand),
+                 '**全是超门的**' if best_over else '在门内',
+                 ' · '.join('候选%d %.3f' % (a, b) for (a, b, _s) in _over_list)))
     # **生成元数据**：写进 song.json，让"这首该像哪份画像"变成可查的事实 ——
     # 自检 `melody_matches_profile` 靠它决定查谁，人复盘时也不必翻 notes（复现会漂移）。
     d['melody_gen'] = {
