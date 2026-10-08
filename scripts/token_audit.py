@@ -34,6 +34,10 @@ DOCS = {
     'docs/SONG-FORMAT.md（写歌时才读）': os.path.join(ROOT, 'docs', 'SONG-FORMAT.md'),
     'docs/THEME-PACK.md（主题模板包/混音目标）': os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
     'docs/CONVENTION.md（新增内容往哪放）': os.path.join(ROOT, 'docs', 'CONVENTION.md'),
+    # 2026-10-08 新增：用户要的"音乐家用这个软件做音乐的最高标准"（交接件）。
+    # **先抬预算再落内容**（CONVENTION 文首那个框）—— 所以这条与 LIMITS 里那条同批加。
+    'docs/STANDARD.md（音乐家使用标准·红线与门）':
+        os.path.join(ROOT, 'docs', 'STANDARD.md'),
     'docs/AUDIO-CRITIC.md（音频大模型嘴替·交接）': os.path.join(ROOT, 'docs', 'AUDIO-CRITIC.md'),
     'CHEATSHEET.md（命令速查，按需查）': os.path.join(ROOT, 'CHEATSHEET.md'),
     'PITFALLS.md（出症状才按编号查）': os.path.join(ROOT, 'PITFALLS.md'),
@@ -287,7 +291,7 @@ LIMITS = {
     #   （用户原话："**交接给下一个对话做 ab**"）。估 +250 字符 ≈ 225 tok，按纪律留余量。
     # 2026-10-06 抬 14200 → **14500**（+300）：§8 还原工序里补一行"原曲有 50Hz 以下内容 ⇒
     #   走 `add_sub_layer.py` 补 sub 层"（判据 rel ≥ −10）。**压缩目标 14300**。
-    'SKILL.md（音乐任务加载）': 14800,   # 原 13400（+400 · 2026-10-04 夜：逐轨精度审计两个闸门）
+    'SKILL.md（音乐任务加载）': 15000,   # 原 14800（+200 · 2026-10-08：路由表加一行 `docs/STANDARD.md`）
     #   （整层缺失档 + 准入判据）+ 读数好≠能交付。**压缩目标：12700**。
     # +500（2026-10-04）：§8 第 0 步前补一条"**扒谱开工先查两处'静默丢/添内容'**"——
     #   ① 引擎轨名表漏名字 ⇒ 整条轨静默消失（实测丢 **60%** 的音 · PITFALLS 313）
@@ -502,6 +506,9 @@ LIMITS = {
     #   漏了它地图上会出现"未归类"域 = 这份文档在索引里不存在（自检 `doc_map_fresh` 当场 FAIL）。
     #   估 +180，按纪律 2 倍 + 余量 → **2350**。压缩目标：**2100**。
     'docs/CONVENTION.md（新增内容往哪放）': 2350,   # 参考类，非热点路径
+    # 2026-10-08 新增 `docs/STANDARD.md`（用户："假如一个音乐家用这个软件做音乐要有这些要求，
+    #   保持最高标准"）。**先抬宽**：估内容 ≈3.5k，限给 **5000**。压缩目标：**3800**。
+    'docs/STANDARD.md（音乐家使用标准·红线与门）': 5000,
     # 新增（2026-09-21）：**"音频大模型当嘴替"那一块的唯一主场**（工具用法 / 四条硬约束 /
     #   实测数字 / 边界 / 环境装法 / **下一步交接**）。用户要求"AI 内容分成一个大点分开"——
     #   所以它不散落在 README/CHEATSHEET/SKILL 里，那边只留一行指针。

@@ -1244,6 +1244,8 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'SONG-FORMAT.md'),
              os.path.join(ROOT, 'docs', 'THEME-PACK.md'),
              os.path.join(ROOT, 'docs', 'CONVENTION.md'),
+             # 2026-10-08：音乐家使用标准（红线与门）—— 也要查"指针腐烂"
+             os.path.join(ROOT, 'docs', 'STANDARD.md'),
              os.path.join(ROOT, 'docs', 'AUDIO-CRITIC.md'),
              os.path.join(ROOT, 'docs', 'RESTORE-METHOD.md'),
              os.path.join(ROOT, 'docs', 'TRANSCRIBE-AUDIT.md'),
