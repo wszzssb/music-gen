@@ -912,17 +912,11 @@ function bind(){
   $('btnMetrics').onclick=loadMetrics;
   $('winSel').onchange=()=>{ S.metricWin=$('winSel').value; loadMetrics(); };
   $('btnChords').onclick=openChordEditor;
-  $('btnNew').onclick=async()=>{
-    const id=prompt('新曲目名（字母/数字/下划线，例：24_my_song）'); if(!id) return;
-    const theme=prompt('主题模板包（daily/seaside/night/tender/battle/gorgeous… 见 --list-themes）','daily');
-    if(!theme) return;
-    const ref=prompt('频谱对齐画像名（与模板依据无关，可留空用默认）','')||'';
-    const d=await api('/api/new?id='+encodeURIComponent(id),
-      {method:'POST',headers:{'content-type':'application/json'},
-       body:JSON.stringify({id,theme,ref})});
-    if(!d.ok){ alert('新建失败：'+d.error+'\n'+(d.log||'')); return; }
-    S.sid=id; await loadSongs();
-  };
+  // **「➕ 新建」直接进创作台**（2026-10-08）：这里原来是三个 `prompt`（曲名/主题/画像）
+  //   直接 POST `/api/new` —— 它**绕开了创作台表单**，于是"只用这几件乐器""独奏化"这些
+  //   选项在引擎面板上根本看不到（用户实测反馈"我说 studio 这个"，就是在面板上找入口）。
+  //   创作台是一屏表单、功能是全的超集，跳过去比再维护一套 prompt 更省事。
+  $('btnNew').onclick=()=>{ location.href='/create'; };
   $('btnRefresh').onclick=()=>{loadSong();};
   $('btnPlay').onclick=togglePlay;
   $('btnStop').onclick=()=>{ ENG.stop(); drawWave(); };
