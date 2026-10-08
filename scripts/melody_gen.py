@@ -1909,6 +1909,18 @@ def _hard_motif_gates():
             'rep': _st.MOTIF_MAX_REPEAT, 'cad': _st.MOTIF_MIN_CADENCE}
 
 
+def _hard_fit_gate():
+    """**强拍贴合**的硬门（`probe_melody_health.MIN_FIT_PCT`，与守卫 `t_melody_chord_fit` 同源）。
+
+    ⚠ 2026-10-07 踩过一次：`final_form_gate` 第一版在这里写死 `_f < 0.999`（99.9%），
+    而守卫与 `MIN_FIT_PCT` 都是 **70%** —— 闭环比守卫**严得多**，于是 12 首新曲里有 **6 首**
+    报"全部 8 条候选超门 ⇒ 回退到次优"，白白丢掉更好的候选。**这又是 353/360 那一族**
+    （闭环的每一维都必须是守卫那一维的**同一个门**，不只是"同一批维度"）。
+    """
+    import probe_melody_health as _pm
+    return float(_pm.MIN_FIT_PCT) / 100.0
+
+
 def final_form_gate(mel, sections, prof, chords=None, meter=None, tonic=None):
     """**成品口径**的形态硬门（落点 / 密度 / 小步）→ `(是否超门, 说明)`。
 
@@ -1927,7 +1939,10 @@ def final_form_gate(mel, sections, prof, chords=None, meter=None, tonic=None):
     _fs = form_stats(mel, sections) or {}
     _bad = []
     _d = _fs.get('dens')
-    if _d is not None and not (_fd[0] <= _d <= _fd[1]):
+    # ⚠ **容差必须与守卫同一份**（2026-10-07 踩过）：`melody_form_rules` 判的是
+    #   `FORM_DENS[0] - 0.2 <= dens <= FORM_DENS[1] + 0.3`，闭环原先**没有容差**
+    #   ⇒ 比守卫严，一批合规候选被判超门（同 353/360 那一族：维度要对**且门要对**）。
+    if _d is not None and not (_fd[0] - 0.2 <= _d <= _fd[1] + 0.3):
         _bad.append('密度%.2f' % _d)
     _s = small_step_pct(mel, sections)
     if _s > _siv:
@@ -1941,7 +1956,10 @@ def final_form_gate(mel, sections, prof, chords=None, meter=None, tonic=None):
     # 落到和弦外（实测 `121_battle_onslaught`：melody_gen 写入前 **96%** → fix 之后 **85%**）。
     if chords:
         _f = chord_fit_pct(mel, sections, chords, meter)
-        if _f is not None and _f < 0.999:
+        # 门取自 `_hard_fit_gate()`（= `probe_melody_health.MIN_FIT_PCT`，与守卫同源）。
+        # ⚠ 原先这里写死 `0.999` —— 见 `_hard_fit_gate` 的 docstring（一次实测：12 首新曲里 6 首
+        #   因此报"全部候选超门"、退到次优）。
+        if _f is not None and _f < _hard_fit_gate():
             _bad.append('强拍%.0f%%' % (_f * 100))
     # **动机层**（2026-10-07 补，同 358）：`melody_motif_rules` 的四个维度也是硬门，
     # 而闭环原来只查形态/落点 ⇒ `125_cheerful_parade` 的"跳后反向 48%"漏到最后才被抓。
