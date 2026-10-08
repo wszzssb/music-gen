@@ -189,6 +189,16 @@ button.chip.on {
   border-color: oklch(0.66 0.17 268 / 62%);
   color: #fff;
 }
+/* 当前用途下**不适用**的乐器：灰掉且不可点（例：独奏化不支持"打击/垫子/琶音"这类编配层） */
+button.chip.off {
+  opacity: 0.32;
+  pointer-events: none;
+  text-decoration: line-through;
+}
+/* **格子对齐**（2026-10-08 用户反馈"格子能不能对齐"）：`.grid2` 里"速度 BPM"那格的 label
+   带两行提示（主题实测中位/区间），于是它的 input 被推低、与同排其它格错位。
+   给每格 label 一个**统一的最小高度**（容纳两行），input 顶部自然对齐。 */
+.grid2 > .field > label { display: block; min-height: 2.9em; }
 
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); flex: none; }
 .dot.ok { background: var(--ok); box-shadow: 0 0 0 0 oklch(0.75 0.16 162 / 45%); animation: pulse 2.2s ease-out infinite; }

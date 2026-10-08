@@ -218,8 +218,9 @@
     if (!/^[0-9A-Za-z_][0-9A-Za-z_-]{0,40}$/.test(id)) {
       toast('曲目名只能用字母/数字/下划线', true); return;
     }
-    // 独奏化：从**按钮组**取（一件 = 合并成独奏；多件 = 保留声部；空 = 不做）
-    var inst = picked('instChips', 'data-inst').join(',');
+    // 乐器勾选：用途决定它怎么用（自动编配时忽略）
+    var _keys = picked('instChips', 'data-inst');
+    var inst = (ST.use === 'solo') ? _keys.join(',') : '';
     var b = $('btnGen');
     b.disabled = true; b.textContent = '正在建曲目…';
     try {
@@ -228,8 +229,8 @@
         id: id, theme: $('genTheme').value,
         seed: $('genSeed').value === '' ? null : $('genSeed').value,
         energy_gain: Number($('genGain').value),
-        // **只用这几件乐器**：从按钮组取（不选 = null → 不传 `--arr-only`，按主题自动编配）
-        arr_only: picked('arrChips', 'data-layer').join(',') || null,
+        // 用途 = 生成时只用这几件时才传（`--arr-only`）；否则 null（按主题自动编配）
+        arr_only: (ST.use === 'arr') ? (_keys.join(',') || null) : null,
         render: false
       });
       // 速度：与主题画像的默认值不同才写回 song.json —— 引擎就是拿 `bpm` 做 拍→秒 换算的，
@@ -479,14 +480,19 @@
     }
   });
   /* ------------------------------------------------------------ 点选按钮 */
-  // **乐器按钮组**（2026-10-08 用户口径："能不能不让我填，改成几个按钮"）：点一下选中/取消。
-  // · `arrChips` → `--arr-only`（生成时只用这几件）；一个都不选 = 不传该参数（按主题编配）
-  // · `instChips` → `--instruments` / `--instrument`（独奏化）；不选 = 不做独奏化
+  // **乐器按钮组 + 用途三选一**（2026-10-08 用户口径："下面那排按钮感觉功能重复了，简化一下"）。
+  // 原来「只用这几件乐器」和「独奏化」各有一排 10 个按钮，其实都是选乐器 ⇒ 合成一排，
+  // 另给一个用途按钮：自动编配 / 生成时只用这几件（`--arr-only`）/ 独奏化（`--instruments`）。
+  // 切到某用途时，**不适用的乐器自动灰掉**（编配层 vs 乐器别名是两套词表）。
+  var ARR_LAYERS = ['piano', 'ep', 'strings', 'bass', 'perc', 'glock', 'pad', 'arp'];
+  var SOLO_INSTS = ['piano', 'ep', 'strings', 'bass', 'glock', 'violin', 'flute', 'trumpet', 'sax'];
+
   function bindChips(box) {
     var bs = $(box).querySelectorAll('button.chip');
     for (var i = 0; i < bs.length; i++) {
       bs[i].onclick = function (e) {
         if (e) { e.preventDefault(); }
+        if (this.classList.contains('off')) { return; }   // 当前用途不适用
         this.classList.toggle('on');
       };
     }
@@ -496,8 +502,39 @@
     for (var i = 0; i < bs.length; i++) { out.push(bs[i].getAttribute(attr)); }
     return out;
   }
-  bindChips('arrChips');
+  function setUse(u) {
+    ST.use = u || 'auto';
+    var us = $('useChips').querySelectorAll('button.chip');
+    for (var i = 0; i < us.length; i++) {
+      us[i].classList.toggle('on', us[i].getAttribute('data-use') === ST.use);
+    }
+    var ok = (ST.use === 'arr') ? ARR_LAYERS : (ST.use === 'solo' ? SOLO_INSTS : null);
+    var gs = $('instChips').querySelectorAll('button.chip');
+    for (var j = 0; j < gs.length; j++) {
+      var k = gs[j].getAttribute('data-inst');
+      var bad = !!ok && ok.indexOf(k) < 0;
+      gs[j].classList.toggle('off', bad);
+      if (bad) { gs[j].classList.remove('on'); }
+    }
+    $('useHint').textContent = (ST.use === 'arr')
+      ? '生成时就只开勾选的这几件；一件都没勾 = 只留主奏'
+      : (ST.use === 'solo'
+         ? '对已有曲子改造：一件 = 合并成全曲独奏，多件 = 保留声部、每轨换一件'
+         : '选一个；选「自动编配」时忽略上面的乐器');
+  }
   bindChips('instChips');
+  (function () {
+    var us = $('useChips').querySelectorAll('button.chip');
+    for (var i = 0; i < us.length; i++) {
+      us[i].onclick = (function (btn) {
+        return function (e) {
+          if (e) { e.preventDefault(); }
+          setUse(btn.getAttribute('data-use'));
+        };
+      })(us[i]);
+    }
+  })();
+  setUse('auto');
   $('btnAsk').onclick = ask;
   $('askText').addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { ask(); }
