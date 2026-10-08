@@ -467,6 +467,16 @@
   }
 
   /* ------------------------------------------------------------ 事件绑定 */
+  // **窗口内刷新**（2026-10-08）：`创作台.cmd` 是 pywebview + WebView2 的原生窗口，它只在
+  // **启动那一刻**加载 `/create` —— 写代码的人改了前端却忘了关窗重开时，看到的一直是旧页面
+  // （用户实测反馈"创作台.cmd，这个页面没有改"，而服务端其实早就是新版：`/create` 已含新控件、
+  // `cache-control` 也是 no-store）。这里给窗口内一个刷新入口，省掉"必须关窗重开"这一步。
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+      e.preventDefault();
+      location.reload();
+    }
+  });
   $('btnAsk').onclick = ask;
   $('askText').addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { ask(); }
