@@ -88,6 +88,12 @@
     /* ── 引擎面板：title / placeholder ── */
     '创作台：提要求生成 / 扒谱提取 / 导出':
       'Create: prompt-based generation / two-tier transcription / export',
+    // 2026-10-08：顶部栏新增「独奏化」入口（独立页 `/solo`）时漏了这两条字典 —— 补上。
+    '🎹 独奏化': '🎹 Solo-ize',
+    '独奏化：选一首曲子 + 选一件乐器 → 把全部声部改成只用这件乐器演奏（产物是新曲目）':
+      'Solo-ize: pick a song + one instrument → all parts become that instrument (output is a new song)',
+    '新建曲目：进创作台（可选主题/速度/能量/编配）':
+      'New song: opens the create page (theme / tempo / energy / arrangement)',
     'MIDI 编辑器：导入任意 .mid → 钢琴卷帘/量化/移调/力度 → 导出':
       'MIDI editor: import any .mid → piano roll / quantize / transpose / velocity → export',
     'check_song.py：和弦音集/强拍/通道等数据契约': 'check_song.py: chord-set / downbeat / channel data contract',
@@ -113,7 +119,9 @@
       'Solve per-stem gain, render for real, measure, keep only if better (auto-rollback)',
     '播放（空格）': 'Play (space)',
     '编辑和弦表（名字必须能被 song_engine 校验）': 'Edit the chord table (names must pass song_engine)',
-    '脚手架：新建曲目（new_song.py）': 'Scaffold: create a new song (new_song.py)',
+    // ⚠ 旧 title 的字典条目：`index.html` 的「➕ 新建」已改成进创作台（文案变了），
+    //   这条成了"字典里有、页面里找不到"的死条目 —— i18n_check 会报出来，删掉。
+
     '这个曲目目录里的 .mid（含中间产物）——选一个就在 MIDI 编辑器里打开':
       '.mid files in this song folder (incl. intermediates) — pick one to open in the MIDI editor',
     '选择曲目': 'Choose song',
