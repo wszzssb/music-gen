@@ -221,6 +221,13 @@
     // 乐器勾选：用途决定它怎么用（自动编配时忽略）
     var _keys = picked('instChips', 'data-inst');
     var inst = (ST.use === 'solo') ? _keys.join(',') : '';
+    // **选了"只用这几件"却一件都没勾** ⇒ 拦住并说清两条出路（别静默按自动编配跑掉 ——
+    //   用户 2026-10-08 截图正是这个状态，而当时的提示还写错了）。
+    if (ST.use === 'arr' && !_keys.length) {
+      toast('选了「生成时只用这几件」但一件都没勾 —— 勾几件，或改选「只留主奏」', true);
+      b.disabled = false; b.textContent = '🎼 开始生成';
+      return;
+    }
     var b = $('btnGen');
     b.disabled = true; b.textContent = '正在建曲目…';
     try {
@@ -229,8 +236,9 @@
         id: id, theme: $('genTheme').value,
         seed: $('genSeed').value === '' ? null : $('genSeed').value,
         energy_gain: Number($('genGain').value),
-        // 用途 = 生成时只用这几件时才传（`--arr-only`）；否则 null（按主题自动编配）
-        arr_only: (ST.use === 'arr') ? (_keys.join(',') || null) : null,
+        // 编配三选一：auto = 不传参数（按主题）· arr = 白名单 · none = 只留主奏
+        arr_only: (ST.use === 'none') ? 'none'
+                  : ((ST.use === 'arr') ? (_keys.join(',') || null) : null),
         // **主奏音色**（`--lead <GM 号>`）：null = 跟随主题（不传该参数）
         lead: (ST.lead == null) ? null : String(ST.lead),
         render: false
@@ -519,11 +527,12 @@
       if (bad) { gs[j].classList.remove('on'); }
     }
     $('useHint').textContent = (ST.use === 'arr')
-      // ⚠ 文案必须与实现一致（2026-10-08 用户截图暴露）：提交时是
-      //   `picked(...).join(',') || null` —— **空勾选 = 不传 `--arr-only` = 按主题自动编配**，
-      //   而不是"只留主奏"（那要显式写 `--arr-only none`，面板暂未给按钮）。
-      ? '生成时就只开勾选的这几件；一件都没勾 = 按主题自动编配'
-      : '按主题自己的真实编配比例决定用哪几件（推荐）';
+      ? '生成时就只开勾选的这几件（至少勾一件）'
+      : (ST.use === 'none'
+         // **只留主奏**：对应命令行 `--arr-only none` —— 所有乐器层全关，只剩旋律（Melody）。
+         // 后端一直支持，是创作台先前没给这个入口（用户："为什么不能只保留主奏"）。
+         ? '整首只有主奏（旋律那条线）—— 没有伴奏/和声/打击；低频会偏空'
+         : '按主题自己的真实编配比例决定用哪几件（推荐）');
   }
   // **主奏音色：两级选择**（2026-10-08 用户："选弦乐等大类能不能下面有小类选"）。
   // 数据与渲染都在 `gm.js`（128 个 GM 音色的中文名 + 16 大类）；这里只存"选中了哪个号"。
