@@ -49,28 +49,16 @@
     </section>
 
     <section class="card">
-      <h2>② 选乐器 <span class="muted">独奏 = 一件；点一下选中</span></h2>
-      <div class="chips" id="soloChips">
-        <button type="button" class="chip on" data-inst="piano">🎹 钢琴</button>
-        <button type="button" class="chip" data-inst="ep">🎛 电钢</button>
-        <button type="button" class="chip" data-inst="strings">🎻 弦乐</button>
-        <button type="button" class="chip" data-inst="bass">🎸 贝斯</button>
-        <button type="button" class="chip" data-inst="glock">🔔 钟琴</button>
-        <button type="button" class="chip" data-inst="pad">🌫 垫子（合成垫）</button>
-        <button type="button" class="chip" data-inst="shimmer">💫 微光（弓弦垫）</button>
-        <button type="button" class="chip" data-inst="perc">🥁 打击（钢鼓·有音高）</button>
-        <button type="button" class="chip" data-inst="timpani">🥁 定音鼓</button>
-        <button type="button" class="chip" data-inst="violin">🎻 小提琴</button>
-        <button type="button" class="chip" data-inst="cello">🎻 大提琴</button>
-        <button type="button" class="chip" data-inst="flute">🪈 长笛</button>
-        <button type="button" class="chip" data-inst="trumpet">🎺 小号</button>
-        <button type="button" class="chip" data-inst="sax">🎷 萨克斯</button>
-        <button type="button" class="chip" data-inst="clean">🎸 清音吉他</button>
+      <h2>② 选乐器 <span class="muted">独奏 = 一件；先选大类，再选这一类里的音色</span></h2>
+      <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="soloGroup" class="mini" style="max-width:132px"
+                title="General MIDI 的 16 个大类"></select>
+        <span class="muted" id="soloPick">（还没选，默认钢琴）</span>
       </div>
+      <div class="chips" id="soloChips" style="margin-top:6px"></div>
       <p class="muted" style="margin-top:var(--sp-2)">
-        没有「琶音」：它不是音色，而是"把和弦拆成流动音型"的<b>织体</b>，没有对应的 GM 乐器，
-        所以不能拿来独奏。别的 GM 音色（0–127 号）也能用，走命令行
-        <code>solo_instrument.py &lt;曲目&gt; --instrument &lt;号&gt;</code>。
+        128 个 GM 音色都能选（80 号以上是合成音色）。没有「琶音」：它不是音色，而是
+        "把和弦拆成流动音型"的<b>织体</b>，没有对应的 GM 乐器，所以不能拿来独奏。
       </p>
     </section>
 
@@ -87,6 +75,7 @@
    </div>
   </main>
 </div>
-<script src="/solo.js?v=1"></script>
+<script src="/gm.js?v=1"></script>
+<script src="/solo.js?v=2"></script>
 </body>
 </html>

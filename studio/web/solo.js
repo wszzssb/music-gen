@@ -25,7 +25,7 @@
     el.scrollTop = el.scrollHeight;
   }
 
-  var ST = { picked: 'piano', job: null, out: '', sid: '' };
+  var ST = { picked: 0, job: null, out: '', sid: '' };
 
   /* ------------------------------------------------ 曲库 */
   async function loadSongs() {
@@ -43,31 +43,29 @@
     $('engineDot').className = 'dot' + (list.length ? ' ok' : '');
   }
 
-  /* ------------------------------------------------ 乐器（单选） */
-  function bindChips() {
-    var bs = $('soloChips').querySelectorAll('button.chip');
-    for (var i = 0; i < bs.length; i++) {
-      bs[i].onclick = function (e) {
-        if (e) { e.preventDefault(); }
-        var all = $('soloChips').querySelectorAll('button.chip');
-        for (var j = 0; j < all.length; j++) { all[j].classList.remove('on'); }
-        this.classList.add('on');
-        ST.picked = this.getAttribute('data-inst');
-      };
-    }
+  /* ------------------------------------------------ 乐器（两级：大类 → 小类） */
+  // 与创作台共用 `gm.js`（General MIDI 128 个音色的中文名 + 16 大类）。
+  // 用户口径："选弦乐等大类能不能下面有小类选" —— 独奏 = 一件 ⇒ 这里是**单选**；
+  // 默认 GM 0 钢琴（与 `solo_instrument.py --instrument` 的默认一致）。
+  function setPick(num) {
+    ST.picked = num;
+    $('soloPick').textContent = '已选：' + gmName(num) + '（GM ' + num + '）';
   }
+  gmBind('soloGroup', 'soloChips', setPick, 0);
+  setPick(0);
 
   /* ------------------------------------------------ 起作业 */
   async function go() {
     var sid = $('soloSong').value;
     if (!sid) { alert('先选一首曲子'); return; }
     ST.sid = sid;
-    // ⚠ 输出名必须与 `solo_instrument.py` 的 `suffix` 规则逐字一致（piano → `_solo`，其余 `_solo_<名>`），
-    //   否则作业跑完、产物在另一个目录，这一页会以为"没反应"。
-    ST.out = sid + ((ST.picked === 'piano') ? '_solo' : ('_solo_' + ST.picked));
-    log('== 开始：' + sid + ' → ' + ST.out + '（乐器 ' + ST.picked + '）');
+    // ⚠ 输出名必须与 `solo_instrument.py` 的 `suffix` 规则逐字一致
+    //   （`prog == 0` → `_solo`，其余 `_solo_<instrument>`），否则作业跑完、产物在另一个目录，
+    //   这一页会以为"没反应"。现在 `instrument` 传的是 **GM 号**。
+    ST.out = sid + ((ST.picked === 0) ? '_solo' : ('_solo_' + ST.picked));
+    log('== 开始：' + sid + ' → ' + ST.out + '（乐器 ' + gmName(ST.picked) + ' GM ' + ST.picked + '）');
     var d = await post('/api/job?id=' + encodeURIComponent(sid) + '&kind=render-tune-solo',
-      { opts: { instrument: ST.picked, out: ST.out, no_render: $('noRender').checked } });
+      { opts: { instrument: String(ST.picked), out: ST.out, no_render: $('noRender').checked } });
     if (!d.ok) { log('!! 起任务失败：' + (d.error || '未知')); return; }
     ST.job = d.job;
     $('btnGo').disabled = true;
@@ -102,7 +100,6 @@
   }
 
   /* ------------------------------------------------ 入口 */
-  bindChips();
   $('btnGo').onclick = go;
   $('btnRefresh').onclick = function () { loadSongs(); log('曲库已刷新'); };
   loadSongs();
