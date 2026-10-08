@@ -63,6 +63,16 @@ INSTRUMENTS = {
     'pickbass': (34, 'Pick Bass 拨片贝斯'), 'fretless': (35, 'Fretless 无品贝斯'),
     'slapbass': (36, 'Slap Bass 击弦贝斯'), 'tuba': (58, 'Tuba 大号'),
     'trombone': (57, 'Trombone 长号'), 'contrabass': (43, 'Contrabass 低音提琴'),
+    # ⚠ **编配层名也要能独奏**（2026-10-08 用户问"为什么有一些乐器不能独奏"）：
+    #   面板上的「垫子 / 打击 / 微光」是**编配层**的叫法，原表里没有对应别名 ⇒ 独奏化时报
+    #   "不认识的乐器"。其中两类要分开看：
+    #     · `pad` / `shimmer` 本来就是**合成音色**（GM 89 / 94）→ 直接映射，能独奏 ✓
+    #     · `perc` 是 **MIDI 鼓组**（通道 10，`program` 对它无效）—— 但"打击乐独奏"完全成立，
+    #       所以映射到**有音高的打击音色**（钢鼓 114，另有 `timpani` 定音鼓 47 / `marimba`✓ 已有）
+    #     · `arp` **不在表里、也不该在**：它不是音色而是"把和弦拆成流动音型"的**织体**，
+    #       没有对应的 GM 音色 ⇒ 这条是真不能独奏（面板上会说明）
+    'pad': (89, 'Pad 2 (warm) 合成垫'), 'shimmer': (94, 'Pad 5 (bowed) 弓弦垫'),
+    'perc': (114, 'Steel Drums 钢鼓（打击类，有音高）'), 'timpani': (47, 'Timpani 定音鼓'),
     'piano': (0, 'Acoustic Grand 钢琴'), 'bright': (1, 'Bright 亮钢琴'),
     'ep': (4, 'Electric Piano 1 电钢琴'), 'honky': (3, 'Honky-tonk'),
     'harpsi': (6, 'Harpsichord 大键琴'), 'clav': (7, 'Clavinet'),

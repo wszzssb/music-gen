@@ -480,12 +480,13 @@
     }
   });
   /* ------------------------------------------------------------ 点选按钮 */
-  // **乐器按钮组 + 用途三选一**（2026-10-08 用户口径："下面那排按钮感觉功能重复了，简化一下"）。
-  // 原来「只用这几件乐器」和「独奏化」各有一排 10 个按钮，其实都是选乐器 ⇒ 合成一排，
-  // 另给一个用途按钮：自动编配 / 生成时只用这几件（`--arr-only`）/ 独奏化（`--instruments`）。
-  // 切到某用途时，**不适用的乐器自动灰掉**（编配层 vs 乐器别名是两套词表）。
-  var ARR_LAYERS = ['piano', 'ep', 'strings', 'bass', 'perc', 'glock', 'pad', 'arp'];
-  var SOLO_INSTS = ['piano', 'ep', 'strings', 'bass', 'glock', 'violin', 'flute', 'trumpet', 'sax'];
+  // **乐器按钮 + 编配二选一**（2026-10-08）。三件事的演进：
+  //   ① 原来是两个文本框要手打 `piano,strings` → 用户"能不能不让我填，改成几个按钮" → 按钮
+  //   ② 原来「只用这几件乐器」和「独奏化」各一排按钮（功能重复）→ 合并成一排 + 用途三选一
+  //   ③ 用户"独奏化和直接写歌在一起不知道怎么用" → **独奏化搬去引擎面板**（它是对**已有曲子**
+  //      的改造，不属于"生成新曲"的表单）；这里只留"生成时用什么编配"（自动 / 只用这几件）。
+  var ARR_LAYERS = ['piano', 'ep', 'strings', 'bass', 'perc', 'glock', 'pad', 'arp',
+                    'uku', 'shimmer'];
 
   function bindChips(box) {
     var bs = $(box).querySelectorAll('button.chip');
@@ -508,19 +509,16 @@
     for (var i = 0; i < us.length; i++) {
       us[i].classList.toggle('on', us[i].getAttribute('data-use') === ST.use);
     }
-    var ok = (ST.use === 'arr') ? ARR_LAYERS : (ST.use === 'solo' ? SOLO_INSTS : null);
+    // 只有"生成时只用这几件"才用得上乐器勾选；"自动编配"时把整排灰掉，免得以为选了有用
     var gs = $('instChips').querySelectorAll('button.chip');
     for (var j = 0; j < gs.length; j++) {
-      var k = gs[j].getAttribute('data-inst');
-      var bad = !!ok && ok.indexOf(k) < 0;
+      var bad = (ST.use !== 'arr');
       gs[j].classList.toggle('off', bad);
       if (bad) { gs[j].classList.remove('on'); }
     }
     $('useHint').textContent = (ST.use === 'arr')
       ? '生成时就只开勾选的这几件；一件都没勾 = 只留主奏'
-      : (ST.use === 'solo'
-         ? '对已有曲子改造：一件 = 合并成全曲独奏，多件 = 保留声部、每轨换一件'
-         : '选一个；选「自动编配」时忽略上面的乐器');
+      : '按主题自己的真实编配比例决定用哪几件（推荐）';
   }
   bindChips('instChips');
   (function () {

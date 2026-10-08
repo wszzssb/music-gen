@@ -76,9 +76,10 @@
             <input type="range" id="genGain" min="0.8" max="1.3" step="0.05" value="1">
           </div>
         </div>
-        <!-- **一组乐器按钮 + 一个用途**（2026-10-08 用户口径："下面那排按钮感觉功能重复了，
-             简化一下"）：原来「只用这几件乐器」和「独奏化」各有一排 10 个按钮，其实都是选乐器。
-             现在只有一排乐器按钮，用途三选一；切到某一用途时**不适用的乐器会自动灰掉**。 -->
+        <!-- **创作台只管"生成"**（2026-10-08 用户口径："独奏化和直接写歌在一起不知道怎么用"）：
+             这里原来还混着「独奏化（改造已有曲子）」——那是另一件事，已移到引擎面板，对**当前
+             选中的那首曲子**操作（见 studio/web/index.html 的 🎹 独奏化）。创作台只保留
+             "生成时用什么编配"这一件事。 -->
         <div class="field">
           <label>乐器 <span class="muted">点一下选中/取消</span></label>
           <div class="chips" id="instChips">
@@ -90,18 +91,15 @@
             <button type="button" class="chip" data-inst="glock">🔔 钟琴</button>
             <button type="button" class="chip" data-inst="pad">🌫 垫子</button>
             <button type="button" class="chip" data-inst="arp">✨ 琶音</button>
-            <button type="button" class="chip" data-inst="violin">🎻 小提琴</button>
-            <button type="button" class="chip" data-inst="flute">🪈 长笛</button>
-            <button type="button" class="chip" data-inst="trumpet">🎺 小号</button>
-            <button type="button" class="chip" data-inst="sax">🎷 萨克斯</button>
+            <button type="button" class="chip" data-inst="uku">🪕 尤克里里</button>
+            <button type="button" class="chip" data-inst="shimmer">💫 微光</button>
           </div>
         </div>
         <div class="field">
-          <label>这几件乐器怎么用 <span class="muted" id="useHint">选一个；选「自动编配」时忽略上面的乐器</span></label>
+          <label>编配 <span class="muted" id="useHint">选一个；选「自动编配」时忽略上面的乐器</span></label>
           <div class="chips" id="useChips">
             <button type="button" class="chip on" data-use="auto">按主题自动编配</button>
             <button type="button" class="chip" data-use="arr">生成时只用这几件</button>
-            <button type="button" class="chip" data-use="solo">独奏化（改造已有曲子）</button>
           </div>
         </div>
         <div class="chips" id="themeMeta"></div>
@@ -176,6 +174,6 @@
   </main>
 </div>
 <div class="toast" id="toast"></div>
-<script src="/create.js?v=5"></script>
+<script src="/create.js?v=6"></script>
 </body>
 </html>
