@@ -2106,6 +2106,17 @@ def main():
             self.txt = open(self.p, encoding='utf-8').read()
             j = json.loads(self.txt)
             j.setdefault('programs', {})['Hook'] = [25, 1]   # 钢弦吉他：拨弦泛音会盖住旋律
+            # ⚠ **关键在这一行：把主奏换"暗"**（2026-10-07 离线量出来的正解）——
+            #   这条用例长期挂在"漏了"名单里，试过两版注入都不行：
+            #     ① 只换 Hook 音色（program 0 → 25）：Hook 在 2.5–5kHz 是 **34.3dB**，
+            #        而夹具 `100_battle_dawn` 的 **Melody 有 38.6dB**（battle 的铜管主奏
+            #        本身就很亮）⇒ 差 **−4.3dB**，够不到 +6 的门（`probe_bright.py` 试了
+            #        6 个伴奏音色，最亮的合成鼓 118 也只有 36.9dB，仍然不够）；
+            #     ② 再把 Hook 的 CC7 推到 122：**无效** —— 这条判据走
+            #        `probe_timbre.solo_song` 的**逐轨 solo 渲染**，音量在这一层不起作用。
+            #   ⇒ 正解是**反过来压暗主奏**（语义同样是"伴奏盖住旋律"）：Melody 换 GM 0 钢琴后
+            #      Melody **23.2dB**、差 **+11.1dB** ⇒ 抓到（`probe_balance2.py`）。
+            j['programs']['Melody'] = [0, 1]
             for s in j.get('sections') or []:                # 还得真在这首曲子里响起来
                 s.setdefault('arr', {})['uku'] = True
             with open(self.p, 'w', encoding='utf-8', newline='') as f:

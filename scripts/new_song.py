@@ -1870,10 +1870,11 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
             if _lm:
                 print('  旋律连奏：%d 个音的音长接到下一个音（空隙按真值补齐，起音一个不动）' % _lm)
             _ov, _why = (_MG.final_form_gate(data['melody'], data['sections'], _prof,
-                                             data.get('chords'), data.get('meter'))
+                                             data.get('chords'), data.get('meter'),
+                                             (pack.get('key') or {}).get('pc'))
                          if _prof else (0, ''))
             print('  · 成品形态门（密度×%.2f · --pick %d）：%s'
-                  % (_ds, _k, _why or '门内（落点/密度/小步/强拍）'))
+                  % (_ds, _k, _why or '门内（落点/密度/小步/强拍/动机）'))
             if not _ov:
                 _picked = (_ds, _k)
                 break

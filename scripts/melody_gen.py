@@ -1897,7 +1897,19 @@ def _hard_form_gates():
     return tuple(_st.FORM_DENS), float(_pm.SMALL_IV_MAX) / 100.0
 
 
-def final_form_gate(mel, sections, prof, chords=None, meter=None):
+def _hard_motif_gates():
+    """**动机层硬门**的单一真源（`selftest.MOTIF_*`，懒加载避免循环导入）。
+
+    这条补于 2026-10-07：成品闭环（`final_form_gate`）原来只查"落点/密度/小步/强拍"，
+    **看不见动机层** —— 而守卫 `melody_motif_rules` 是硬门（实测 `125_cheerful_parade`
+    跳后反向 **48%**（门 60%）在闭环里一路绿灯，最后才被守卫拦下）。同 PITFALLS 358。
+    """
+    import selftest as _st
+    return {'rev': _st.MOTIF_MIN_REVERSE, 'fill': _st.MOTIF_MIN_FILL,
+            'rep': _st.MOTIF_MAX_REPEAT, 'cad': _st.MOTIF_MIN_CADENCE}
+
+
+def final_form_gate(mel, sections, prof, chords=None, meter=None, tonic=None):
     """**成品口径**的形态硬门（落点 / 密度 / 小步）→ `(是否超门, 说明)`。
 
     为什么提成**模块级**、且必须由调用方在"最后一步之后"再调一次：`melody_gen` 选出候选时
@@ -1931,6 +1943,27 @@ def final_form_gate(mel, sections, prof, chords=None, meter=None):
         _f = chord_fit_pct(mel, sections, chords, meter)
         if _f is not None and _f < 0.999:
             _bad.append('强拍%.0f%%' % (_f * 100))
+    # **动机层**（2026-10-07 补，同 358）：`melody_motif_rules` 的四个维度也是硬门，
+    # 而闭环原来只查形态/落点 ⇒ `125_cheerful_parade` 的"跳后反向 48%"漏到最后才被抓。
+    # ⚠ 样本量保护：`leap_after` 太少时"反向率/回填率"是噪声（与 `MIN_FIT_N` 同族纪律）。
+    if chords is not None and tonic is not None:
+        _mg = _hard_motif_gates()
+        try:
+            _ms = motif_stats(mel, sections, chords, tonic) or {}
+        except Exception:                                          # noqa: BLE001
+            _ms = {}
+        if _ms.get('leap_after', 0) >= 5:
+            _lr = _ms.get('leap_reverse_rate')
+            if _lr is not None and _lr < _mg['rev']:
+                _bad.append('反向%.0f%%' % (_lr * 100))
+            _fr = _ms.get('gap_fill_rate')
+            if _fr is not None and _fr < _mg['fill']:
+                _bad.append('回填%.0f%%' % (_fr * 100))
+        if _ms.get('bars', 0) >= 4:
+            if _ms.get('rhythm_repeat', 0) > _mg['rep']:
+                _bad.append('动机重复%.0f%%' % (_ms['rhythm_repeat'] * 100))
+            if _ms.get('cadence_rate', 1.0) < _mg['cad']:
+                _bad.append('收束%.0f%%' % (_ms['cadence_rate'] * 100))
     return (1 if _bad else 0), ','.join(_bad)
 
 

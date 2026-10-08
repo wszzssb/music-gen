@@ -729,7 +729,7 @@ D:\software\skill\music-gen\.venv\Scripts\python.exe D:\software\skill\music-gen
 - 主奏音色 A/B 素材：`ab121f.sh` → `songs\121_battle_onslaught\variants\{121_lead_trumpet,121_lead_sax_flute}.ogg`
 - ⚠ **备份**：改前的 15 个主题包在 `D:\test\_tmp\music-sameness\backup\themes_before\`
 
-### 19.7 🔴 下一轮第一优先级：清掉那 3 条"候选 vs 成品"同源红
+### 19.7 ✅ 已清（2026-10-07 当日）：那 3 条"候选 vs 成品"同源红
 
 **现象**（全部有日志证据）：
 | 曲目 | 生成日志说 | 守卫量到 |
@@ -752,6 +752,20 @@ D:\software\skill\music-gen\.venv\Scripts\python.exe D:\software\skill\music-gen
    是不是天生偏疏"（新画像的 `melody.notes_per_bar`），必要时在生成端按画像把密度**夹到门内**。
 
 **验收**：那 3 条红消失 + `selftest` 回到全绿；且**用成品量**（不是候选）复算一遍门。
+
+**✅ 当日达成**（`selftest` **222/222**）—— 实际是按这四步收掉的（顺序有讲究，别跳）：
+1. **`final_form_gate` 补"强拍贴合"** ＋ `melody_gen.form_penalty` 的小步罚 **4.0 → 40.0**
+   （超 1 个百分点原本只值 0.04 分，随便被别的项盖过 ⇒ 又一条 352 同族）；
+2. **动机层也接进闭环**（补 `motif_stats` 的四维：跳后反向 / 回填 / 节奏动机重复 / 句末收束）——
+   补之前 `125_cheerful_parade` 的"跳后反向 48%"在闭环里**一路绿灯**；补完**第 2 条候选就门内**
+   （`selftest` 219 → **220**）。⚠ 新教训：**闭环的维度清单必须等于守卫的硬门清单**（PITFALLS **360**）；
+3. **全超门时回退到"超门项最少"的那条**（原实现是"留最后试的那条"= 最差，实测把红灯从 2 条
+   变成 **4 条**：`melody_chord_fit`/`melody_health`/`melody_onset_spread` 同时报）；
+4. `123_mystery_lantern` 试到 **12 条候选**仍全部超门 ⇒ 回退那条只剩"密度 1.75"一项，
+   而形态门对密度有 **`-0.2` 容差** ⇒ 通过（**它是"生成端在该 seed 上做不到"，不是判据问题**；
+   同为 mystery 的 `126_mystery_veil` 正常达标）。
+⚠ 顺带修掉一个我自己引入的崩溃：main 里用 `_fit` 做变量名**覆盖了同作用域的闭包函数**
+（按段裁剪旋律用）⇒ `TypeError: 'float' object is not callable`，把三首曲子的旋律写成占位音。
 
 ### 19.8 本轮另两件（2026-10-07 续，细节见 `PITFALLS` **358/359**）
 
