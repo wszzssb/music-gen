@@ -119,3 +119,6 @@ deliveries/bgm23_*/
 #     _gmcap/gm_probe.wav 有 **134MB**，是一条命令可重生成的探针音频（纯 FluidSynth）→ 不入库。
 #     表本身（gm_capability.json）小、有用，但它与 wav 同目录 ⇒ 整目录排除，需要时重跑生成。
 _gmcap/
+
+# Windows 快捷方式（用户自己建的入口，不进库）
+*.lnk
