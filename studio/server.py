@@ -1301,6 +1301,12 @@ class Handler(BaseHTTPRequestHandler):
                         args += ['--seed', str(int(seed))]
                     except (TypeError, ValueError):
                         return self._err('seed 要是整数（例：7 / 21）')
+                # **编配白名单**（`--arr-only`，2026-10-08 用户口径："能不能只用规定的几个
+                #   乐器演奏"）。只在**生成时**用这几件乐器；"独奏化"是另一条路径
+                #   （`kind=render-tune-solo` → `solo_instrument.py`），两者互不替代。
+                arr_only = (body.get('arr_only') or '').strip()
+                if arr_only:
+                    args += ['--arr-only', arr_only]
                 # 能量：创作台的「提要求」会给一个 0.8~1.3 的建议值（`ask_parse` 推的）
                 try:
                     eg = float(body.get('energy_gain') or 0)

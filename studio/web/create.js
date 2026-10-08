@@ -227,6 +227,8 @@
         id: id, theme: $('genTheme').value,
         seed: $('genSeed').value === '' ? null : $('genSeed').value,
         energy_gain: Number($('genGain').value),
+        // **只用这几件乐器**（`--arr-only`）：留空 = 按主题自动编配（见 `new_song._apply_arr_only`）
+        arr_only: ($('genArrOnly').value || '').trim() || null,
         render: false
       });
       // 速度：与主题画像的默认值不同才写回 song.json —— 引擎就是拿 `bpm` 做 拍→秒 换算的，

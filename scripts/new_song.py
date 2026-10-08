@@ -940,7 +940,7 @@ def harmony_tension_levels(pack, secs):
     return out
 
 
-def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
+def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=None):
     """主题模板包 → song.json 数据（**作曲依据全在包里**）"""
     import build_song
     import song_engine
@@ -1018,6 +1018,14 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
     # **按段落角色差异化编制**（opt-in：`patterns.arr_by_role`，见 `song_engine.arr_by_role`）
     # 为什么：只按能量曲线调音量的话，231 个段落里 bass 100% / piano 98% / perc 97% 在场，
     # 段间乐器组合 Jaccard 中位 0.86 —— 用户听感就是"好多部分都是一样的"。
+    # **编配白名单**（`--arr-only`，2026-10-08）。用户口径原话："每个音乐都不是要用上所有
+    #   乐器，可以独奏和只选几个乐器" + "能不能只用规定的几个乐器演奏"。
+    #   显式给清单时**跳过按角色编制**（`arr_by_role`）—— 与既有约定一致：日志里那句
+    #   "要用手写的值：把 patterns.arr_by_role 设为 false"就是这条；清单外的层一律关。
+    _allow_arr = None
+    if arr_only:
+        arr_by_role = False
+        _allow_arr = _apply_arr_only(secs, arr_only)
     if arr_by_role:
         roles = [song_engine.role_of_section(s['name']) for s in secs]
         # 舞曲/欢快类主题**削薄**编配（`arr_sparse`）：实测 36 号关掉 pad/strings/
@@ -1085,7 +1093,14 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
         _qa = dict(_q.get('arr') or {})
         for _k in ('uku', 'arp', 'strings', 'glock', 'ep', 'shimmer', 'glock_all'):
             _qa[_k] = False
-        _qa.update({'bass': True, 'piano': True, 'pad': True, 'perc': 0, 'density': 0})
+        # ⚠ **白名单优先**（`--arr-only`，2026-10-08）：呼吸口也要尊重"只用这几件乐器" ——
+        #   否则它会把 bass/piano/pad 一律强开（实测 `--arr-only piano` 生成的曲子里，
+        #   被挑中的对比段仍出现 `bass=True pad=True`，就是这一行干的）。
+        #   `perc: 0` 保持不变（呼吸口本来就不该敲）。
+        _qa.update({'bass': bool(_allow_arr is None or 'bass' in _allow_arr),
+                    'piano': bool(_allow_arr is None or 'piano' in _allow_arr),
+                    'pad': bool(_allow_arr is None or 'pad' in _allow_arr),
+                    'perc': 0, 'density': 0})
         # ⚠ **不要在这里再压 `mix`**（2026-09-18 实测后去掉）：原结构配方（已删 2026-09-24） 里
         # 呼吸口 RMS −19.7 vs 主体 −15.8 —— **只降 3.9dB**，它靠**密度**降（起音 36→6.4），
         # **不是靠音量**。实测我们只做 density 时入口落差 −1.9~−3.6dB，与配方吻合；
@@ -1773,8 +1788,52 @@ def dry_compose(song_json):
         return False
 
 
+# ─────────────── 编配白名单：`--arr-only`（2026-10-08，用户口径"只用规定的几个乐器演奏"） ─────
+# 能指定的**乐器层**（= `song_engine.ARR_KEYS` 里的乐器子集）；`perc` 单独按 0/1 处理，
+# `none` 表示"这些层全关"（只剩主奏 Melody + `arr` 里那几层以外的骨架）。
+# ⚠ 主奏（Melody 轨）**不在这张清单里**：它的音色由主题的主奏池决定（见 `--theme`），
+#   本参数只管**伴奏/和声/打击层**。
+ARR_INSTR_KEYS = ('bass', 'piano', 'ep', 'strings', 'glock', 'pad', 'arp', 'uku', 'shimmer')
+
+
+def _apply_arr_only(secs, spec, verbose=True):
+    """把每段的 `arr` 写成"**只开清单里的乐器层**"（其余一律关）。
+
+    `spec` 形如 `"piano,strings"`（逗号 / 顿号 / 空格分隔；`perc` 可加；`none` = 全关）。
+    · 清单里的乐器层 → `True`；清单外的 → `False`
+    · `perc` → 清单给了才开（`1`；纯钢琴独奏那类不该有鼓），并顺手清掉 `perc_in`
+    · **只写乐器层**，不碰 `density` / `mix` / `melody_prog` 等控制键（那些由引擎与
+      `density_curve` 决定 —— 用户指定的是"用哪几件乐器"，不是"怎么弹")
+    · 低频提示：清单里既没 `bass` 也没 `piano` 时打印警告（不阻止 —— 纯打击/纯主奏是合法编配）
+    """
+    import re as _re
+    keys = [k.strip().lower() for k in _re.split(r'[,，、\s]+', spec or '') if k.strip()]
+    bad = [k for k in keys if k not in ARR_INSTR_KEYS and k not in ('perc', 'none')]
+    if bad:
+        raise SystemExit('--arr-only 里有不认识的乐器层：%s'
+                         '（可用：%s · perc · none）'
+                         % ('、'.join(bad), '、'.join(ARR_INSTR_KEYS)))
+    want = set(keys) - {'none'}
+    has_perc = 'perc' in want
+    for s in secs:
+        a = s.setdefault('arr', {})
+        for k in ARR_INSTR_KEYS:
+            a[k] = k in want
+        a['perc'] = 1 if has_perc else 0
+        if not has_perc:
+            a.pop('perc_in', None)
+    if verbose:
+        print('  编配白名单（--arr-only %s）：只开 %s%s —— 已跳过按角色编制'
+              % (spec, '、'.join(sorted(want - {'perc'})) or '（无，只剩主奏 Melody）',
+                 '＋perc' if has_perc else ''))
+        if not (want & {'bass', 'piano'}):
+            print('  !! 清单里既没有 bass 也没有 piano —— 低频会偏空'
+                  '（纯打击/纯主奏编配，确认是你想要的）')
+    return want
+
+
 def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
-                force=False, bpm=None):
+                force=False, bpm=None, arr_only=None):
     """`--theme` 路径：按主题模板包生成一首新歌"""
     import theme_pack as tp
     # **没给 seed 就按曲名派生**（2026-10-01）：不给的话默认 7 → 同一主题每首一样，
@@ -1814,7 +1873,8 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
         print('  --force：删掉旧目录重建 %s' % new)
         shutil.rmtree(dst)
     os.makedirs(dst)
-    data = build_from_theme(pack, short, seed=seed, ncand=ncand, energy_gain=energy_gain)
+    data = build_from_theme(pack, short, seed=seed, ncand=ncand, energy_gain=energy_gain,
+                            arr_only=arr_only)
     song_json = os.path.join(dst, 'song.json')
     json_io.save(song_json, data)
     print('已创建 songs\\%s\\song.json' % new)
@@ -2117,10 +2177,14 @@ def main():
     #   （实测 battle 3 首全 139、daily 4 首全 128），是"同质化"的直接来源。
     cli_bpm = float(sys.argv[sys.argv.index('--bpm') + 1]) \
         if '--bpm' in sys.argv else None
+    # **编配白名单**（`--arr-only piano,strings`，2026-10-08）：**生成时**就只用这几件乐器
+    # （与"独奏化"是两件事 —— 那是把已有曲子合并到一件乐器，见 `solo_instrument.py`）。
+    arr_only = sys.argv[sys.argv.index('--arr-only') + 1] \
+        if '--arr-only' in sys.argv else None
     force = '--force' in sys.argv
     if theme:
         rc = theme_mode(new, theme, ref_name=ref_name, seed=seed, ncand=ncand,
-                        energy_gain=egain, force=force, bpm=cli_bpm)
+                        energy_gain=egain, force=force, bpm=cli_bpm, arr_only=arr_only)
         # ⚠ **挂曲库必须跟着 `theme_mode` 的出口**：main 末尾那处调用**走不到这里**
         #   —— `--theme` 路径在下面这样一行就 return 了。第一版我把调用写在 main 末尾，
         #   实测 3 首变体全是 404、日志里也没有"已挂面板曲库"（加了 ≠ 生效）。
