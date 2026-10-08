@@ -97,6 +97,29 @@
     if (!t.total_bars || !sec) { return null; }
     return t.total_bars * barBeats(t.meter) * 60 / sec;
   }
+  /** **"想要的时长（秒）"输入框 → BPM**（2026-10-08 用户："为什么写歌调时间会影响 bpm"）。
+   *  时长与 BPM 本来就是同一个量的两种写法：`秒 = 小节数 × 每小节四分 × 60 ÷ BPM`
+   *  （小节数由主题结构定死，所以"要 N 秒"只能去动 BPM）。
+   *  与"提要求"那条路**同一口径**：换算值落在主题实测区间内才填；超界只提示、不硬填。 */
+  function applySecs() {
+    var sec = Number($('genSecs').value) || 0;
+    var t = curTheme();
+    if (!sec || !t.total_bars) { $('secHint').textContent = ''; return; }
+    var bpm = t.total_bars * barBeats(t.meter) * 60 / sec;
+    var lo = t.bpm_p25, hi = t.bpm_p75;
+    if (lo && hi && bpm >= lo && bpm <= hi) {
+      $('genBpm').value = Math.round(bpm * 10) / 10;
+      ST.bpmTouched = true;
+      $('secHint').textContent = ' → 已设为 ' + $('genBpm').value + ' BPM';
+    } else {
+      var edge = (lo && bpm < lo) ? lo : hi;
+      var real = (edge && t.total_bars) ? (t.total_bars * barBeats(t.meter) * 60 / edge) : null;
+      $('secHint').textContent = ' 要 ' + sec + ' 秒需 ' + (Math.round(bpm * 10) / 10)
+        + ' BPM，超出主题区间 ' + lo + '~' + hi + (real ? '；按 ' + edge + ' BPM 实际约 '
+        + Math.round(real) + ' 秒' : '') + '（没有硬填）';
+    }
+    renderThemeMeta();
+  }
 
   /* ------------------------------------------------------------ 启动 */
   async function boot() {
@@ -567,7 +590,13 @@
   };
   $('genGain').oninput = function () { $('gainVal').textContent = Number(this.value).toFixed(2); };
   $('genTheme').onchange = onThemeChange;
-  $('genBpm').oninput = function () { ST.bpmTouched = true; renderThemeMeta(); };
+  $('genBpm').oninput = function () {
+    ST.bpmTouched = true;
+    // 手动改 BPM 时把"要 N 秒"的结论清掉（两边同时显示会互相矛盾）
+    $('genSecs').value = ''; $('secHint').textContent = '';
+    renderThemeMeta();
+  };
+  $('genSecs').oninput = applySecs;
   $('btnToggleLog').onclick = function () {
     var h = $('jobLog').classList.toggle('hidden');
     this.textContent = h ? '展开日志' : '收起日志';

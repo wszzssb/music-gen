@@ -232,12 +232,15 @@ def theme_list():
         except (OSError, ValueError):
             prof = {}
         bpm = prof.get('bpm') or {}
+        # ⚠ **拍号也要带出去**（2026-10-08）：创作台要用它做"秒数 ↔ BPM"换算（3/4 一小节只有
+        #   3 个四分，按 ×4 算会偏 25%），而且用户此前完全看不到拍号（只能从主题名猜）。
+        _meter = (prof.get('form') or {}).get('meter') or prof.get('meter') or [4, 4]
         form = prof.get('form') or {}
         out.append({'key': k, 'cn': THEME_CN.get(k, k),
                     'bpm': bpm.get('median'), 'bpm_p25': bpm.get('p25'),
                     'bpm_p75': bpm.get('p75'),
                     'engine_style': prof.get('engine_style'),
-                    'meter': prof.get('meter') or [4, 4],
+                    'meter': _meter,
                     'total_bars': form.get('total_bars')})
     return out
 

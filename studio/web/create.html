@@ -69,6 +69,11 @@
             <input type="number" id="genBpm" step="1" min="40" max="240" placeholder="留空 = 主题默认">
           </div>
           <div class="field">
+            <label>想要的时长（秒）<span class="muted" id="secHint"></span></label>
+            <input type="number" id="genSecs" step="1" min="10"
+                   placeholder="填秒数 → 自动换算 BPM（结构与拍号不动）">
+          </div>
+          <div class="field">
             <label>随机种子（留空 = 按曲名派生）</label>
             <input type="number" id="genSeed" placeholder="留空即可">
           </div>
@@ -195,6 +200,6 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="/gm.js?v=1"></script>
-<script src="/create.js?v=11"></script>
+<script src="/create.js?v=12"></script>
 </body>
 </html>
