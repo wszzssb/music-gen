@@ -1319,6 +1319,12 @@ class Handler(BaseHTTPRequestHandler):
                 arr_only = (body.get('arr_only') or '').strip()
                 if arr_only:
                     args += ['--arr-only', arr_only]
+                # **指定主奏音色**（`--lead sax` / `--lead sax,trumpet`，2026-10-08）：主奏本来由
+                #   主题主奏池 + seed 决定 —— 15 个主题里只有 battle/night 的池含萨克斯，所以
+                #   别的主题生成出来没有萨克斯（用户问："为什么直接生成没有萨克斯"）。
+                lead = (body.get('lead') or '').strip()
+                if lead:
+                    args += ['--lead', lead]
                 # 能量：创作台的「提要求」会给一个 0.8~1.3 的建议值（`ask_parse` 推的）
                 try:
                     eg = float(body.get('energy_gain') or 0)

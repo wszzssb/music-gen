@@ -940,7 +940,7 @@ def harmony_tension_levels(pack, secs):
     return out
 
 
-def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=None):
+def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=None, lead=None):
     """主题模板包 → song.json 数据（**作曲依据全在包里**）"""
     import build_song
     import song_engine
@@ -1141,6 +1141,24 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
     _MEL_PROGS = melody_prog_pool(_mel_tpl, seed=_MEL_SEED,
                                   leads=lead_pool_for_theme(pack))
     _MEL_SEQ = melody_prog_seq(_MEL_PROGS, len(secs), seed=_MEL_SEED)
+    # **指定主奏音色**（`--lead sax` / `--lead sax,trumpet`，2026-10-08 用户问
+    #   "为什么直接生成没有萨克斯"）。主奏（Melody 轨的逐段音色 `arr.melody_prog`）本来由
+    #   **主题主奏池 + seed** 决定 —— 实测 15 个主题里只有 **battle（上低音萨克斯 67）与
+    #   night（中音萨克斯 65）**的池里含萨克斯，所以别的主题生成出来当然没有；而面板上那排
+    #   「乐器」按钮是**编配层**（伴奏/和声/打击），管不到主奏。
+    #   给了 `--lead` 就直接指定：**一件 = 全曲都用它**；多件 = 按段轮换（保留"同一条旋律
+    #   换乐器陈述"的写法）。名字走 `solo_instrument` 的 GM 别名表（也接受 0–127 的号）。
+    #   ⚠ 绕过了 `lead_candidates` 的"慢起音过滤"（弦乐/簧管/人声）—— 那是自动挑选时的纪律，
+    #     用户点名时以用户为准（但长音上"只响 0.几秒"的听感风险仍在，见 `melody_prog_pool`）。
+    if lead:
+        import re as _re
+        import solo_instrument as _si
+        _want = [_si.parse_instrument(_x)[0]
+                 for _x in _re.split(r'[,，、\s]+', str(lead)) if _x.strip()]
+        if _want:
+            _MEL_SEQ = [_want[_i % len(_want)] for _i in range(len(secs))]
+            print('  主奏音色：**由 --lead 指定** → %s（%d 件，按段轮换）'
+                  % ('、'.join('GM %d' % p for p in _want), len(_want)))
     for _i, _s in enumerate(secs):
         _s['arr']['melody_prog'] = _MEL_SEQ[_i]
     # **引子渐入**（`arr.perc_in` → `song_engine.perc_part(inbars=…)`）：真实模板里引子是
@@ -1833,7 +1851,7 @@ def _apply_arr_only(secs, spec, verbose=True):
 
 
 def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
-                force=False, bpm=None, arr_only=None):
+                force=False, bpm=None, arr_only=None, lead=None):
     """`--theme` 路径：按主题模板包生成一首新歌"""
     import theme_pack as tp
     # **没给 seed 就按曲名派生**（2026-10-01）：不给的话默认 7 → 同一主题每首一样，
@@ -1874,7 +1892,7 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
         shutil.rmtree(dst)
     os.makedirs(dst)
     data = build_from_theme(pack, short, seed=seed, ncand=ncand, energy_gain=energy_gain,
-                            arr_only=arr_only)
+                            arr_only=arr_only, lead=lead)
     song_json = os.path.join(dst, 'song.json')
     json_io.save(song_json, data)
     print('已创建 songs\\%s\\song.json' % new)
@@ -2181,10 +2199,15 @@ def main():
     # （与"独奏化"是两件事 —— 那是把已有曲子合并到一件乐器，见 `solo_instrument.py`）。
     arr_only = sys.argv[sys.argv.index('--arr-only') + 1] \
         if '--arr-only' in sys.argv else None
+    # **指定主奏音色**（`--lead sax` 或 `--lead sax,trumpet`，2026-10-08）：见
+    # `build_from_theme` 里那段（主奏本来由主题主奏池 + seed 决定，15 个主题里只有
+    # battle/night 的池含萨克斯 ⇒ 用户问"为什么直接生成没有萨克斯"）。
+    lead = sys.argv[sys.argv.index('--lead') + 1] if '--lead' in sys.argv else None
     force = '--force' in sys.argv
     if theme:
         rc = theme_mode(new, theme, ref_name=ref_name, seed=seed, ncand=ncand,
-                        energy_gain=egain, force=force, bpm=cli_bpm, arr_only=arr_only)
+                        energy_gain=egain, force=force, bpm=cli_bpm, arr_only=arr_only,
+                        lead=lead)
         # ⚠ **挂曲库必须跟着 `theme_mode` 的出口**：main 末尾那处调用**走不到这里**
         #   —— `--theme` 路径在下面这样一行就 return 了。第一版我把调用写在 main 末尾，
         #   实测 3 首变体全是 404、日志里也没有"已挂面板曲库"（加了 ≠ 生效）。
