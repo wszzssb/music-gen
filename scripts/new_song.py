@@ -1258,7 +1258,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None):
 STEP_BIAS = float(os.environ.get('BGM_STEP_BIAS', '1.0'))
 
 
-def run_melody_gen(song_json, pack, theme, seed, ncand, step_bias=None):
+def run_melody_gen(song_json, pack, theme, seed, ncand, step_bias=None, pick=0, dens_scale=1.0):
     """用**主题旋律画像**生成旋律（唯一入口 `melody_gen.py`）；失败就大声报错
 
     非 4/4（如三拍圆舞）时 `melody_gen` 拒绝工作（它按"一小节 16 格"写的）→ 这里**返回 False**
@@ -1290,9 +1290,14 @@ def run_melody_gen(song_json, pack, theme, seed, ncand, step_bias=None):
         ncand = max(int(ncand), 4)
     tried, last = [], None
     for k in (1.0, 0.75, 0.6, 0.5):
-        dens = round(max(1.2, base * k), 2)
+        # `dens_scale`（2026-10-07）：成品门闭环的第二轮用它把目标密度抬高
+        # （"短段复用长旋律"会丢音 ⇒ 实际密度低于目标）；仍受 `melody_gen.DENS_MAX` 夹住。
+        dens = round(max(1.2, min(MG.DENS_MAX, base * k * dens_scale)), 2)
         cmd = [sys.executable, os.path.join(HERE, 'melody_gen.py'), song_json, prof,
                '--seed', str(seed), '--candidates', str(ncand),
+               # **用第几条候选**（2026-10-07）：`new_song` 要在 `fix_melody_register` 之后按
+               # **成品**判形态门，不达标就 pick+1 再试（见 main 里的闭环）。
+               '--pick', str(int(pick)),
                '--tonic', str((pack.get('key') or {}).get('pc') or 0),
                '--dens', '%.2f' % dens, '--avoid', 'songs',
                '--step-bias', '%.2f' % sb,
@@ -1833,19 +1838,49 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
         print('  → 骨架已生成（songs\\%s\\），但**编配跑不通**：先按上面的报错改 song.json'
               % new)
         return 1
-    # 旋律：主题画像驱动
-    if not run_melody_gen(song_json, pack, theme, seed, ncand):
-        print('  → 骨架已生成（songs\\%s\\），但**旋律还是占位音**：手写 melody 后再 '
-              'make_song.py %s --check' % (new, new))
-        return 1
-    data = json.load(open(song_json, encoding='utf-8'))
-    # **旋律↔和弦的音区**（生成后修正；量法与 `harmony_check` 第 ① 项同一份）——
-    # 不加这步，新生成的曲子在那一项上会整片 FAIL（实测 8/10 段）。
-    fix_melody_register(data)
-    # **旋律连奏**（用户 2026-09-22："重要是更流畅"）—— 只延时值、起音不动。
-    _lm = legato_melody(data)
-    if _lm:
-        print('  旋律连奏：%d 个音的音长接到下一个音（空隙按真值补齐，起音一个不动）' % _lm)
+    # 旋律：主题画像驱动 —— **成品门闭环**（2026-10-07，PITFALLS 358）：
+    #   `run_melody_gen` 内部的密度档重试用的是 `probe_melody_health` 的口径，但它跑在
+    #   `fix_melody_register` **之前** —— 而后者会把"飘太高"与"跨度越界"的音**逐个**折八度
+    #   （改音程！），实测同一份旋律：`melody_gen` 里算 `小步 33.3%`（门内）→ fix 之后
+    #   **35.7%**（破门）。所以真正的门必须在 fix + legato **之后**判；不达标就换下一条候选
+    #   （`melody_gen --pick k`，候选按（门内优先, 打分）排序）。
+    import melody_gen as _MG
+    try:
+        _prof = json.load(open(tp.melody_path(theme), encoding='utf-8'))
+    except (OSError, ValueError):
+        _prof = None
+    _picked, _worst = None, ''
+    # 两轮：第二轮把**密度目标**抬高（`dens×1.35`）—— 成品密度偏低的曲子（实测
+    # `123_mystery_lantern` 四条候选全在 1.45~1.62，门 1.8）只有这样才够得着；
+    # 生成端的目标密度本来就取了画像上界，而"短段复用长旋律"会丢音（`form_stats` 按段展开后
+    # 比 melody 字典的音数少）⇒ 实际密度低于目标。
+    for _ds in (1.0, 1.35):
+        for _k in range(max(1, int(ncand))):
+            if not run_melody_gen(song_json, pack, theme, seed, ncand, pick=_k, dens_scale=_ds):
+                print('  → 骨架已生成（songs\\%s\\），但**旋律还是占位音**：手写 melody 后再 '
+                      'make_song.py %s --check' % (new, new))
+                return 1
+            data = json.load(open(song_json, encoding='utf-8'))
+            # **旋律↔和弦的音区**（生成后修正；量法与 `harmony_check` 第 ① 项同一份）——
+            # 不加这步，新生成的曲子在那一项上会整片 FAIL（实测 8/10 段）。
+            fix_melody_register(data)
+            # **旋律连奏**（用户 2026-09-22："重要是更流畅"）—— 只延时值、起音不动。
+            _lm = legato_melody(data)
+            if _lm:
+                print('  旋律连奏：%d 个音的音长接到下一个音（空隙按真值补齐，起音一个不动）' % _lm)
+            _ov, _why = (_MG.final_form_gate(data['melody'], data['sections'], _prof)
+                         if _prof else (0, ''))
+            print('  · 成品形态门（密度×%.2f · --pick %d）：%s'
+                  % (_ds, _k, _why or '门内（落点/密度/小步）'))
+            if not _ov:
+                _picked = (_ds, _k)
+                break
+            _worst = _why or _worst
+        if _picked is not None:
+            break
+    if _picked is None:
+        print('  !! 成品形态门：两轮 × %d 条候选**全部超门**（最后一条：%s）'
+              '—— 保留最后一条，别当成"已修好"' % (max(1, int(ncand)), _worst))
     data['theme'] = data.get('theme') or {}
     data['theme']['melody_profile'] = 'refs/themes/%s_melody.json' % theme
     data['theme']['seed'] = seed

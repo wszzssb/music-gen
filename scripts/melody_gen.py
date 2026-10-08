@@ -1836,7 +1836,12 @@ def form_penalty(fs, ms, small=None, span=None):
     if la:
         pen += max(0.0, 0.50 - lr / la) * 2.0                     # 跳后不反向
     if small is not None:                                         # 小步打转（"d d d d ddd"）
-        pen += max(0.0, small - 0.35) * 4.0
+        # ⚠ 权重 4.0 → **40.0**（2026-10-07）：`probe_melody_health.SMALL_IV_MAX=35%` 是**硬门**，
+        #   而 4.0 的罚分对"超 1 个百分点"只值 **0.04 分** —— 随便被别的项盖过（实测
+        #   `121_battle_onslaught` 的候选就这么被选中，成品 36% 破门）。PITFALLS 352：
+        #   软罚守不住硬门。×40 后"超 1pt = 0.4 分"，与形态层其它罚项同量级，
+        #   足以在同批候选之间把小步更低的那条顶上来。
+        pen += max(0.0, small - 0.35) * 40.0
     return pen
 
 
@@ -1852,6 +1857,35 @@ def _hard_form_gates():
     import selftest as _st
     import probe_melody_health as _pm
     return tuple(_st.FORM_DENS), float(_pm.SMALL_IV_MAX) / 100.0
+
+
+def final_form_gate(mel, sections, prof):
+    """**成品口径**的形态硬门（落点 / 密度 / 小步）→ `(是否超门, 说明)`。
+
+    为什么提成**模块级**、且必须由调用方在"最后一步之后"再调一次：`melody_gen` 选出候选时
+    算的门只是**候选**的门 —— `new_song` 之后还会改旋律：
+    `fix_melody_register`（⓪ 飘太高的音**逐个**降八度、① 以中位音高为中心把越界音折回 ±12）
+    会**改动音程**，`legato_melody` 会改时值。实测**同一份旋律**：`melody_gen` 里算
+    `小步 33.3%`（门内），`fix_melody_register` 跑完再算 **35.7%**（破门）
+    ⇒ 候选在门内、成品出线（PITFALLS 358）。
+    所以"用成品判门 + 不达标就换候选"的闭环放在 `new_song`，两边共用这一个函数。
+
+    口径与候选阶段逐项同源：`_hard_form_gates()`（`FORM_DENS` / `SMALL_IV_MAX`）+
+    `ONSET_TVD_MAX`；密度取自 `form_stats()[dens]`（守卫同款）。
+    """
+    _fd, _siv = _hard_form_gates()
+    _fs = form_stats(mel, sections) or {}
+    _bad = []
+    _d = _fs.get('dens')
+    if _d is not None and not (_fd[0] <= _d <= _fd[1]):
+        _bad.append('密度%.2f' % _d)
+    _s = small_step_pct(mel, sections)
+    if _s > _siv:
+        _bad.append('小步%.0f%%' % (_s * 100))
+    _t = max(onset_tvd(mel, prof), onset_tvd_worst(mel, sections, prof))
+    if _t > ONSET_TVD_MAX:
+        _bad.append('落点%.3f' % _t)
+    return (1 if _bad else 0), ','.join(_bad)
 
 
 # ────────────────────────── 转音细胞（2026-10-06 · HANDOFF-ORNAMENT §4） ──────────
@@ -2156,6 +2190,10 @@ def main():
     # 接进候选打分（见 `dur_tvd`）—— 落点维早有 `onset_tvd`，**时值维原先没人管**。
     dur_bias = float(sys.argv[sys.argv.index('--dur-bias') + 1]) \
         if '--dur-bias' in sys.argv else 0.0
+    # **用第几条候选**（opt-in `--pick k`，2026-10-07）：候选按（门内优先, 打分）排序后取第 k 条。
+    # 由 `new_song` 用 —— 它要在 `fix_melody_register`（逐音折八度）之后按**成品**校验形态门，
+    # 不达标就 `--pick k+1` 再试（见 `melody_gen.final_form_gate` 的 docstring）。
+    pick = int(sys.argv[sys.argv.index('--pick') + 1]) if '--pick' in sys.argv else 0
     # **时值填充系数**（opt-in `--dur-fill`；缺省 = `CELL_DUR_FILL`，见 `_make_cell`）。
     # 何时用：画像的时值偏短、而 `need`（音至少覆盖到下一个落点的比例）把音统一拉长 →
     # 候选之间**没有差异**、`--dur-bias` 也就挑不出来。实测 07_hidden_door（画像 mystery
@@ -2378,27 +2416,49 @@ def main():
         cands.append((score, _over, mel, per, ci, nfix, clash, sw))
         if _over:
             _over_list.append((ci + 1, ot, score))
-    # **挑候选**（口径见 `select_candidate`）：门内候选一律优于门外候选，同档内按打分。
-    _bi = select_candidate([(c[0], c[1]) for c in cands])
-    _bc = cands[_bi]
-    best = (_bc[0], _bc[2], _bc[3], _bc[4], _bc[5], _bc[6])
-    best_over, best_sw = _bc[1], _bc[7]
-    d['melody'] = best[1]
-    # **转音细胞**（2026-10-06，HANDOFF-ORNAMENT §4）：全曲级 · 只在密度/碎音**预算**内插 ·
-    # 逐段决定 · 种子**曲名派生**（同族纪律 `PITFALLS` **304**：`--seed` 会被"多首显式同一个
-    # seed"抹平）。`--no-ornaments` 关掉它 —— A/B 要"同 seed、只差这一个维度"就用它。
-    orn_rep = None
-    if '--no-ornaments' not in sys.argv:
+    # **两阶段选择**（2026-10-07，PITFALLS 358）：候选打分量的门算在**候选**旋律上，而守卫量的
+    # 是**落盘成品** —— 中间隔着转音细胞后处理（`apply_ornaments` 会**置换**弱格装饰音，
+    # 从而改动密度/落点/小步）。实测：`123_mystery_lantern` 日志写"4 条候选全在门内"、
+    # 成品却 `密度 1.45`＋`段 B 落点 0.716`；`121_battle_onslaught` 候选 3/4 在门内、成品小步 36%。
+    # ⇒ 挑出候选后**先跑一遍后处理**，用**成品**重算硬门；超门就换次优候选（全超门才退回原选择）。
+    # ⚠ 别改成"把超门罚分加重"—— PITFALLS 352 已证明软罚守不住硬门。
+    _mode_of = lambda s: {'minor': SCALE_MINOR, 'dorian': SCALE_DORIAN}.get(      # noqa: E731
+        s.get('mode') or 'major', base_scale)
+    _profname = os.path.basename(prof_path).replace('_melody.json', '')
+
+    def _orn(mel):
+        """对一条候选跑**转音后处理** → `(成品旋律, 转音报告)`；`--no-ornaments` 时原样返回。
+
+        ⚠ 每次调用都**重建 rng**（种子曲名派生 + seed，同族纪律 PITFALLS 304）——
+        否则"试第 2 条候选"时 rng 已被上一次消耗，同一条候选会得到不同结果。
+        """
+        if '--no-ornaments' in sys.argv:
+            return mel, None
+        import copy as _copy
         import zlib
         _oname = os.path.basename(os.path.dirname(os.path.abspath(song)))
-        _orn_rng = random.Random((zlib.crc32(_oname.encode('utf-8')) & 0xffffffff)
-                                 ^ (seed * 2654435761) ^ 0x5EED)
-        orn_rep = apply_ornaments(
-            d['melody'], d['sections'], chords, prof, tonic,
-            lambda s: {'minor': SCALE_MINOR, 'dorian': SCALE_DORIAN}.get(
-                s.get('mode') or 'major', base_scale),
-            _orn_rng, bpm=d.get('bpm'),
-            profile=os.path.basename(prof_path).replace('_melody.json', ''))
+        _rng = random.Random((zlib.crc32(_oname.encode('utf-8')) & 0xffffffff)
+                             ^ (seed * 2654435761) ^ 0x5EED)
+        _m = _copy.deepcopy(mel)
+        _rep = apply_ornaments(_m, d['sections'], chords, prof, tonic, _mode_of, _rng,
+                               bpm=d.get('bpm'), profile=_profname)
+        return _m, _rep
+
+    # **按候选排序取第 `--pick k` 条**（2026-10-07）：候选阶段的硬门在这里**只用于排序**
+    # （门内优先），真正的"成品"要等 `new_song` 跑完 `fix_melody_register`（**逐音**折八度，
+    # 会改音程）才算 —— 那一步不在这支脚本里（实测同一份旋律：这里 33.3%、它跑完 35.7%）。
+    # 所以"用成品判门 + 不达标就换候选"的闭环交给 `new_song`（它按 `--pick k` 逐条试，
+    # 用本模块导出的 `final_form_gate()` 校验）。⚠ 别再在这里做成品循环 —— 它看不到成品。
+    _order = sorted(range(len(cands)), key=lambda i: (cands[i][1], cands[i][0]))
+    _sel = _order[min(max(0, pick), len(_order) - 1)]
+    _m2, _r2 = _orn(cands[_sel][2])
+    _bc = cands[_sel]
+    best = (_bc[0], _bc[2], _bc[3], _bc[4], _bc[5], _bc[6])
+    best_over, best_sw = _bc[1], _bc[7]
+    d['melody'] = _m2
+    orn_rep = _r2
+    print('  · 候选挑选：按（门内优先, 打分）排序取第 %d/%d 条（--pick %d）'
+          % (_sel + 1, len(_order), pick))
     if use_cells:                     # 落点体检（守卫口径：on8 ≥ 85% / 弱格 ≤ 15%）
         for _k, _m in d['melody'].items():
             _o8, _wk, _ent = rhythm_cell_stats(_m)
