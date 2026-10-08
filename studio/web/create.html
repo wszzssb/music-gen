@@ -84,20 +84,17 @@
              这排按钮把它指定下来；「跟随主题」= 原来的行为。 -->
         <div class="field">
           <label>主奏音色 <span class="muted">旋律用什么乐器；不选 = 跟随主题（推荐）</span></label>
-          <div class="chips" id="leadChips">
-            <button type="button" class="chip on" data-lead="">跟随主题</button>
-            <button type="button" class="chip" data-lead="piano">🎹 钢琴</button>
-            <button type="button" class="chip" data-lead="ep">🎛 电钢</button>
-            <button type="button" class="chip" data-lead="glock">🔔 钟琴</button>
-            <button type="button" class="chip" data-lead="clean">🎸 清音吉他</button>
-            <button type="button" class="chip" data-lead="steel">🎸 钢弦吉他</button>
-            <button type="button" class="chip" data-lead="square">〰 方波</button>
-            <button type="button" class="chip" data-lead="saw">📈 锯齿</button>
-            <button type="button" class="chip" data-lead="trumpet">🎺 小号</button>
-            <button type="button" class="chip" data-lead="sax">🎷 萨克斯</button>
-            <button type="button" class="chip" data-lead="flute">🪈 长笛</button>
-            <button type="button" class="chip" data-lead="oboe">🎵 双簧管</button>
+          <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap">
+            <button type="button" class="chip on" id="leadNone">跟随主题</button>
+            <select id="leadGroup" class="mini" style="max-width:132px"
+                    title="先选大类（General MIDI 的 16 组），下面出这一类的 8 个音色"></select>
+            <span class="muted" id="leadPick"></span>
           </div>
+          <div class="chips" id="leadChips" style="margin-top:6px"></div>
+          <p class="muted" style="margin-top:4px">
+            两级：**大类 → 小类**（例：弦乐 → 中提琴/大提琴/弦乐合奏…）。两端只传 GM 号，所以
+            128 个音色都能选（80 号以上是合成音色）。
+          </p>
         </div>
         <!-- **创作台只管"生成"**（2026-10-08 用户口径："独奏化和直接写歌在一起不知道怎么用"）：
              这里原来还混着「独奏化（改造已有曲子）」——那是另一件事，已移到引擎面板，对**当前
@@ -197,6 +194,7 @@
   </main>
 </div>
 <div class="toast" id="toast"></div>
-<script src="/create.js?v=7"></script>
+<script src="/gm.js?v=1"></script>
+<script src="/create.js?v=8"></script>
 </body>
 </html>

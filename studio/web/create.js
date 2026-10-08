@@ -231,8 +231,8 @@
         energy_gain: Number($('genGain').value),
         // 用途 = 生成时只用这几件时才传（`--arr-only`）；否则 null（按主题自动编配）
         arr_only: (ST.use === 'arr') ? (_keys.join(',') || null) : null,
-        // **主奏音色**（`--lead`）：空字符串 = 跟随主题（不传该参数）
-        lead: pickedLead() || null,
+        // **主奏音色**（`--lead <GM 号>`）：null = 跟随主题（不传该参数）
+        lead: (ST.lead == null) ? null : String(ST.lead),
         render: false
       });
       // 速度：与主题画像的默认值不同才写回 song.json —— 引擎就是拿 `bpm` 做 拍→秒 换算的，
@@ -522,25 +522,23 @@
       ? '生成时就只开勾选的这几件；一件都没勾 = 只留主奏'
       : '按主题自己的真实编配比例决定用哪几件（推荐）';
   }
-  // **主奏音色：单选**（2026-10-08 用户："为什么直接生成没有萨克斯"）。它与「乐器」（编配层）
-  // 是两件事：主奏 = 旋律用什么乐器（`--lead`），编配 = 伴奏/和声/打击用哪几件（`--arr-only`）。
-  // 「跟随主题」= 原来的行为（主题主奏池 + seed 轮换）。
-  function bindLead() {
-    var bs = $('leadChips').querySelectorAll('button.chip');
-    for (var i = 0; i < bs.length; i++) {
-      bs[i].onclick = function (e) {
-        if (e) { e.preventDefault(); }
-        var all = $('leadChips').querySelectorAll('button.chip');
-        for (var j = 0; j < all.length; j++) { all[j].classList.remove('on'); }
-        this.classList.add('on');
-      };
-    }
+  // **主奏音色：两级选择**（2026-10-08 用户："选弦乐等大类能不能下面有小类选"）。
+  // 数据与渲染都在 `gm.js`（128 个 GM 音色的中文名 + 16 大类）；这里只存"选中了哪个号"。
+  // 「跟随主题」= 不指定（原来的行为：主题主奏池 + seed 轮换）。
+  ST.lead = null;
+  function setLead(num) {
+    ST.lead = num;
+    $('leadNone').classList.toggle('on', num == null);
+    $('leadPick').textContent = (num == null) ? '（跟随主题）' : ('已选：' + gmName(num) + '（GM ' + num + '）');
   }
-  function pickedLead() {
-    var b = $('leadChips').querySelector('button.chip.on');
-    return b ? (b.getAttribute('data-lead') || '') : '';
-  }
-  bindLead();
+  $('leadNone').onclick = function (e) {
+    if (e) { e.preventDefault(); }
+    var all = $('leadChips').querySelectorAll('button.chip');
+    for (var k = 0; k < all.length; k++) { all[k].classList.remove('on'); }
+    setLead(null);
+  };
+  gmBind('leadGroup', 'leadChips', setLead, null);
+  setLead(null);
   bindChips('instChips');
   (function () {
     var us = $('useChips').querySelectorAll('button.chip');
