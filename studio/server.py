@@ -921,6 +921,9 @@ def start_job(sid, kind, opts=None):
         cmds, outs = [[os.path.join(_SCRIPTS, 'solo_instrument.py'), sid,
                        _flag, inst,
                        '--out', str(opts.get('out') or (sid + '_solo'))]], ''
+        # 「只生成数据、不渲染」：独奏化页上的复选框（渲染要 30 秒~2 分钟，先看数据时省掉）
+        if opts.get('no_render'):
+            cmds[0].append('--no-render')
     elif kind.startswith('solo:'):
         tr = kind.split(':', 1)[1]
         out = os.path.join(jobs_dir, 'solo_%s_%d.ogg' % (re.sub(r'\W+', '', tr), int(time.time())))
@@ -1062,6 +1065,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._file(os.path.join(WEB, 'ed.html'))
             if u.path == '/create' or u.path == '/create.html':
                 return self._file(os.path.join(WEB, 'create.html'))
+            # **独奏化**独立成页（2026-10-08 用户口径："可以在创作台下面单独下来"）：
+            # 它是"选一首现成的曲子 + 选**一件**乐器"的独立工序，不该塞在"生成新曲"的表单里，
+            # 也不该混在引擎面板的工具行里 ⇒ 侧栏里与创作台并列一项。
+            if u.path == '/solo' or u.path == '/solo.html':
+                return self._file(os.path.join(WEB, 'solo.html'))
             if u.path == '/api/create/themes':
                 return self._json({'ok': True, 'themes': theme_list()})
             if re.match(r'^/[A-Za-z0-9_.\-]+\.(js|css|png|svg|ico|woff2?)$', u.path):

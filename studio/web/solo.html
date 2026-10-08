@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BGM Studio 独奏化</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>♪</text></svg>">
+<link rel="stylesheet" href="/create.css?v=3">
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="logo">♪</span>
+      <div><b>BGM Studio</b><small>独奏化</small></div>
+    </div>
+    <nav>
+      <a class="nav-item" href="/create">✨ 创作台</a>
+      <a class="nav-item active" href="/solo">🎹 独奏化</a>
+      <a class="nav-item" href="/">🎛 引擎面板</a>
+      <a class="nav-item" href="/editor">✂ MIDI 编辑器</a>
+    </nav>
+    <div class="side-foot">
+      <button class="btn ghost sm wide" id="btnRefresh">↻ 刷新曲库</button>
+    </div>
+  </aside>
+
+  <main class="main">
+   <div class="main-inner">
+
+    <div class="topbar">
+      <div>
+        <h1>独奏化</h1>
+        <p class="sub">选一首曲子 ＋ 选<b>一件</b>乐器 → 把它所有声部改成只用这件乐器演奏（产物是<b>新曲目</b>，原曲不动）</p>
+      </div>
+      <div class="topbar-right">
+        <span class="dot" id="engineDot"></span>
+        <span class="muted" id="engineInfo">正在连接引擎…</span>
+      </div>
+    </div>
+
+    <section class="card">
+      <h2>① 选曲子</h2>
+      <div class="field">
+        <label>要改造的曲目 <span class="muted">曲库里已有的（生成的、扒带的都行）</span></label>
+        <select id="soloSong"></select>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>② 选乐器 <span class="muted">独奏 = 一件；点一下选中</span></h2>
+      <div class="chips" id="soloChips">
+        <button type="button" class="chip on" data-inst="piano">🎹 钢琴</button>
+        <button type="button" class="chip" data-inst="ep">🎛 电钢</button>
+        <button type="button" class="chip" data-inst="strings">🎻 弦乐</button>
+        <button type="button" class="chip" data-inst="bass">🎸 贝斯</button>
+        <button type="button" class="chip" data-inst="glock">🔔 钟琴</button>
+        <button type="button" class="chip" data-inst="pad">🌫 垫子（合成垫）</button>
+        <button type="button" class="chip" data-inst="shimmer">💫 微光（弓弦垫）</button>
+        <button type="button" class="chip" data-inst="perc">🥁 打击（钢鼓·有音高）</button>
+        <button type="button" class="chip" data-inst="timpani">🥁 定音鼓</button>
+        <button type="button" class="chip" data-inst="violin">🎻 小提琴</button>
+        <button type="button" class="chip" data-inst="cello">🎻 大提琴</button>
+        <button type="button" class="chip" data-inst="flute">🪈 长笛</button>
+        <button type="button" class="chip" data-inst="trumpet">🎺 小号</button>
+        <button type="button" class="chip" data-inst="sax">🎷 萨克斯</button>
+        <button type="button" class="chip" data-inst="clean">🎸 清音吉他</button>
+      </div>
+      <p class="muted" style="margin-top:var(--sp-2)">
+        没有「琶音」：它不是音色，而是"把和弦拆成流动音型"的<b>织体</b>，没有对应的 GM 乐器，
+        所以不能拿来独奏。别的 GM 音色（0–127 号）也能用，走命令行
+        <code>solo_instrument.py &lt;曲目&gt; --instrument &lt;号&gt;</code>。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>③ 开始</h2>
+      <div class="row">
+        <button class="btn primary" id="btnGo">🎹 开始独奏化</button>
+        <label class="muted"><input type="checkbox" id="noRender"> 只生成数据、不渲染</label>
+        <span class="muted" id="goHint">约 30 秒~2 分钟；完成后新曲目会加进曲库（点它试听）</span>
+      </div>
+      <pre id="log" style="max-height:260px;overflow:auto;white-space:pre-wrap;font-size:12px;line-height:1.5;background:oklch(1 0 0 / 4%);border:1px solid var(--border);border-radius:6px;padding:8px;margin-top:var(--sp-2)"></pre>
+    </section>
+
+   </div>
+  </main>
+</div>
+<script src="/solo.js?v=1"></script>
+</body>
+</html>

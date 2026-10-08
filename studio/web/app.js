@@ -837,6 +837,13 @@ async function pollJob(){
     if(wasKind==='preview' && d.job.state==='done'){ await playPreview(); return; }
     if(d.job.state==='done'){
       if(d.job.rc!==null && d.job.rc!==0){ log('任务失败（rc='+d.job.rc+'）：'+(d.log||'').split('\n').slice(-3).join(' / ')); }
+      // **独奏化产物是"另一个曲目"**（`<曲名>_solo…`）—— 必须刷新曲库让它出现在左边，
+      // 否则用户看到的是"点了没反应"（当前曲目本身没变，新曲目在列表里没刷新出来）。
+      if(wasKind==='render-tune-solo'){
+        await loadSongs();
+        log('独奏化完成 → 新曲目「'+(S.soloOut||'')+'」已加进左侧曲库（点它试听）');
+        return;
+      }
       /* **按任务类型分派**：`solo:` 的产物必须**真的播出来**。
        * 原来这里不分类型，一律 `S.player.src='…kind=mix…'` 且从不 play() ——
        * 对 solo 试听来说等于"渲染完了没人听"（用户报"试听按钮没有用"）；
@@ -917,6 +924,11 @@ function bind(){
   //   选项在引擎面板上根本看不到（用户实测反馈"我说 studio 这个"，就是在面板上找入口）。
   //   创作台是一屏表单、功能是全的超集，跳过去比再维护一套 prompt 更省事。
   $('btnNew').onclick=()=>{ location.href='/create'; };
+  // ⚠ **独奏化已搬到独立页 `/solo`**（2026-10-08，用户口径："可以在创作台下面单独下来"）：
+  //   它作用于**已有曲子**、并产出**另一个曲目**，放在引擎面板的工具行里同样别扭 —— 那里只
+  //   管"调当前这首曲子的编配/混音"。这一页顶部栏留了「🎹 独奏化」链接通向那一页。
+  //   （原来这里挂过 `$('btnSolo').onclick` —— 控件已删，这里若留着会 `null.onclick` 抛错、
+  //     整个脚本初始化失败，所以连注释一起记在这里。）
   $('btnRefresh').onclick=()=>{loadSong();};
   $('btnPlay').onclick=togglePlay;
   $('btnStop').onclick=()=>{ ENG.stop(); drawWave(); };

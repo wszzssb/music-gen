@@ -10,6 +10,7 @@
 <header id="bar">
   <span class="brand">🎛 BGM Studio</span>
   <a id="lnkCreate" href="/create" title="创作台：提要求生成 / 扒谱提取 / 导出" style="color:#4c9aff;text-decoration:none">✨ 创作台</a>
+  <a id="lnkSolo" href="/solo" title="独奏化：选一首曲子 + 选一件乐器 → 把全部声部改成只用这件乐器演奏（产物是新曲目）" style="color:#4c9aff;text-decoration:none">🎹 独奏化</a>
   <a id="lnkEditor" href="/editor" title="MIDI 编辑器：导入任意 .mid → 钢琴卷帘/量化/移调/力度 → 导出" style="color:#4c9aff;text-decoration:none">🎹 MIDI 编辑器</a>
   <select id="songSel" title="选择曲目"></select>
   <select id="midSel" title="这个曲目目录里的 .mid（含中间产物）——选一个就在 MIDI 编辑器里打开"><option value="">🎹 MIDI…</option></select>
@@ -44,7 +45,7 @@
     <h2>音轨 <span class="dim" id="trackHint">（点轨名 → 卷帘高亮）</span></h2>
     <div id="trackList"></div>
     <div class="row">
-      <button id="btnNew" class="mini" title="新建曲目：进创作台（可选主题/速度/能量/「只用这几件乐器」/独奏化）">➕ 新建</button>
+      <button id="btnNew" class="mini" title="新建曲目：进创作台（可选主题/速度/能量/编配）">➕ 新建</button>
       <button id="btnRefresh" class="mini">↻ 刷新</button>
       <span class="dim" id="filesHint"></span>
     </div>
@@ -127,7 +128,7 @@
      从不 play()，且用户点过 ⏹ 后它是 null，`S.player.src=` 会抛异常）。
      试听/播放统一走 WebAudio 引擎（`engine.js`），所以删掉了。 -->
 <script src="/engine.js?v=14"></script>
-<script src="/app.js?v=27"></script>
+<script src="/app.js?v=29"></script>
 <!-- 中英切换：i18n.js 按系统语言自动选（localStorage bgmLang → navigator.language），
      右上角 🌐 按钮手动切。放在 app.js 之后，靠 MutationObserver 兜住动态生成的文案。 -->
 <script src="/i18n.js?v=2"></script>
