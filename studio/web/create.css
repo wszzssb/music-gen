@@ -180,6 +180,15 @@ input::placeholder, textarea::placeholder { color: var(--text-3); }
 .chip b { color: var(--text); font-weight: 600; }
 .chip.theme { background: oklch(0.66 0.17 268 / 15%); border-color: oklch(0.66 0.17 268 / 30%); color: oklch(0.86 0.07 268); }
 .chip.warn { background: oklch(0.8 0.15 82 / 14%); border-color: oklch(0.8 0.15 82 / 28%); color: oklch(0.87 0.1 82); }
+/* **可点选的 chip**（2026-10-08）：编配白名单 / 独奏化的乐器按钮，点一下切换选中。
+   `.on` 用与 `.chip.theme` 同一套色系（紫），一眼看出"选了哪几件"。 */
+button.chip { cursor: pointer; user-select: none; font: inherit; }
+button.chip:hover { border-color: oklch(0.66 0.17 268 / 45%); }
+button.chip.on {
+  background: oklch(0.66 0.17 268 / 34%);
+  border-color: oklch(0.66 0.17 268 / 62%);
+  color: #fff;
+}
 
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); flex: none; }
 .dot.ok { background: var(--ok); box-shadow: 0 0 0 0 oklch(0.75 0.16 162 / 45%); animation: pulse 2.2s ease-out infinite; }

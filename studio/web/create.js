@@ -218,7 +218,8 @@
     if (!/^[0-9A-Za-z_][0-9A-Za-z_-]{0,40}$/.test(id)) {
       toast('曲目名只能用字母/数字/下划线', true); return;
     }
-    var inst = $('genInst').value;
+    // 独奏化：从**按钮组**取（一件 = 合并成独奏；多件 = 保留声部；空 = 不做）
+    var inst = picked('instChips', 'data-inst').join(',');
     var b = $('btnGen');
     b.disabled = true; b.textContent = '正在建曲目…';
     try {
@@ -227,8 +228,8 @@
         id: id, theme: $('genTheme').value,
         seed: $('genSeed').value === '' ? null : $('genSeed').value,
         energy_gain: Number($('genGain').value),
-        // **只用这几件乐器**（`--arr-only`）：留空 = 按主题自动编配（见 `new_song._apply_arr_only`）
-        arr_only: ($('genArrOnly').value || '').trim() || null,
+        // **只用这几件乐器**：从按钮组取（不选 = null → 不传 `--arr-only`，按主题自动编配）
+        arr_only: picked('arrChips', 'data-layer').join(',') || null,
         render: false
       });
       // 速度：与主题画像的默认值不同才写回 song.json —— 引擎就是拿 `bpm` 做 拍→秒 换算的，
@@ -477,6 +478,26 @@
       location.reload();
     }
   });
+  /* ------------------------------------------------------------ 点选按钮 */
+  // **乐器按钮组**（2026-10-08 用户口径："能不能不让我填，改成几个按钮"）：点一下选中/取消。
+  // · `arrChips` → `--arr-only`（生成时只用这几件）；一个都不选 = 不传该参数（按主题编配）
+  // · `instChips` → `--instruments` / `--instrument`（独奏化）；不选 = 不做独奏化
+  function bindChips(box) {
+    var bs = $(box).querySelectorAll('button.chip');
+    for (var i = 0; i < bs.length; i++) {
+      bs[i].onclick = function (e) {
+        if (e) { e.preventDefault(); }
+        this.classList.toggle('on');
+      };
+    }
+  }
+  function picked(box, attr) {
+    var out = [], bs = $(box).querySelectorAll('button.chip.on');
+    for (var i = 0; i < bs.length; i++) { out.push(bs[i].getAttribute(attr)); }
+    return out;
+  }
+  bindChips('arrChips');
+  bindChips('instChips');
   $('btnAsk').onclick = ask;
   $('askText').addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { ask(); }
