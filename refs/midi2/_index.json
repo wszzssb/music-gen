@@ -1215,31 +1215,6 @@
   ]
  },
  {
-  "file": "ballad/Song-Within-A-Song.mid",
-  "style": "ballad",
-  "md5": "eab31fe9783a9272736f543e324285b5",
-  "bytes": 67487,
-  "bpm": 90.0,
-  "timesig": [
-   4,
-   4
-  ],
-  "bars": 172.62,
-  "seconds": 460.3,
-  "note_count": 7247,
-  "tracks": [
-   {
-    "index": 0,
-    "name": "",
-    "channel": 0,
-    "program": 126,
-    "notes": 7247,
-    "lo": 25,
-    "hi": 93
-   }
-  ]
- },
- {
   "file": "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
   "style": "ballad",
   "md5": "96ebe7106597cd36421d1c9f89b097c7",
@@ -1961,6 +1936,585 @@
   ]
  },
  {
+  "file": "battle/2 Days - Xion - Final Battle.mid",
+  "style": "battle",
+  "md5": "d1193b475d58afb52262efdcf1acea76",
+  "bytes": 11792,
+  "bpm": 87.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 72.0,
+  "seconds": 198.6,
+  "note_count": 1807,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 0,
+    "program": 0,
+    "notes": 727,
+    "lo": 53,
+    "hi": 84
+   },
+   {
+    "index": 1,
+    "name": "",
+    "channel": 0,
+    "program": null,
+    "notes": 1080,
+    "lo": 29,
+    "hi": 67
+   }
+  ]
+ },
+ {
+  "file": "battle/ALLEN ORCH.Battle Of New Orleans.mid",
+  "style": "battle",
+  "md5": "fdbd33d80b76c46f2eec633213ab9224",
+  "bytes": 22141,
+  "bpm": 121.0,
+  "timesig": [
+   2,
+   4
+  ],
+  "bars": 133.6,
+  "seconds": 132.5,
+  "note_count": 3482,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Lead Guitar",
+    "channel": 0,
+    "program": 25,
+    "notes": 274,
+    "lo": 41,
+    "hi": 69
+   },
+   {
+    "index": 2,
+    "name": "Rhythm Guitar",
+    "channel": 1,
+    "program": 25,
+    "notes": 1284,
+    "lo": 43,
+    "hi": 67
+   },
+   {
+    "index": 3,
+    "name": "Bass",
+    "channel": 2,
+    "program": 32,
+    "notes": 257,
+    "lo": 31,
+    "hi": 38
+   },
+   {
+    "index": 4,
+    "name": "Banjo",
+    "channel": 3,
+    "program": 105,
+    "notes": 914,
+    "lo": 50,
+    "hi": 74
+   },
+   {
+    "index": 5,
+    "name": "Fiddle",
+    "channel": 4,
+    "program": 110,
+    "notes": 753,
+    "lo": 57,
+    "hi": 81
+   }
+  ]
+ },
+ {
+  "file": "battle/After-The-Battle-Of-Aughrim.mid",
+  "style": "battle",
+  "md5": "96a16cbde2cc07d20b6984e5285c1e83",
+  "bytes": 23817,
+  "bpm": 220.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 96.95,
+  "seconds": 105.8,
+  "note_count": 2853,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Violin",
+    "channel": 0,
+    "program": 40,
+    "notes": 567,
+    "lo": 62,
+    "hi": 83
+   },
+   {
+    "index": 2,
+    "name": "Banjo",
+    "channel": 1,
+    "program": 105,
+    "notes": 567,
+    "lo": 62,
+    "hi": 83
+   },
+   {
+    "index": 3,
+    "name": "Guitar",
+    "channel": 2,
+    "program": 25,
+    "notes": 768,
+    "lo": 43,
+    "hi": 79
+   },
+   {
+    "index": 4,
+    "name": "Bass",
+    "channel": 3,
+    "program": 32,
+    "notes": 384,
+    "lo": 38,
+    "hi": 47
+   },
+   {
+    "index": 5,
+    "name": "Accordian",
+    "channel": 4,
+    "program": 21,
+    "notes": 567,
+    "lo": 62,
+    "hi": 83
+   }
+  ]
+ },
+ {
+  "file": "battle/Apocalyptica-Fight Fire With Fire.mid",
+  "style": "battle",
+  "md5": "998f2337f2997ca421749bb6155049b1",
+  "bytes": 40449,
+  "bpm": 200.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 133.62,
+  "seconds": 160.3,
+  "note_count": 4864,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Perttu",
+    "channel": 0,
+    "program": 42,
+    "notes": 730,
+    "lo": 40,
+    "hi": 94
+   },
+   {
+    "index": 2,
+    "name": "Paavo",
+    "channel": 2,
+    "program": 42,
+    "notes": 1243,
+    "lo": 40,
+    "hi": 67
+   },
+   {
+    "index": 3,
+    "name": "Eicca",
+    "channel": 4,
+    "program": 42,
+    "notes": 1132,
+    "lo": 40,
+    "hi": 67
+   },
+   {
+    "index": 4,
+    "name": "Ly�m�soitin",
+    "channel": 9,
+    "program": 0,
+    "notes": 1759,
+    "lo": 36,
+    "hi": 57
+   }
+  ]
+ },
+ {
+  "file": "battle/Battle of Wilson Creek.mid",
+  "style": "battle",
+  "md5": "d1b9998a0b2c8384a6a6f35ac4f51b7e",
+  "bytes": 38800,
+  "bpm": 120.0,
+  "timesig": [
+   7,
+   8
+  ],
+  "bars": 104.0,
+  "seconds": 182.0,
+  "note_count": 6143,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Voice (Tenor)",
+    "channel": 0,
+    "program": 70,
+    "notes": 468,
+    "lo": 50,
+    "hi": 59
+   },
+   {
+    "index": 2,
+    "name": "Piano (hi)",
+    "channel": 1,
+    "program": 0,
+    "notes": 1190,
+    "lo": 57,
+    "hi": 86
+   },
+   {
+    "index": 3,
+    "name": "Piano (lo)",
+    "channel": 2,
+    "program": 0,
+    "notes": 641,
+    "lo": 36,
+    "hi": 62
+   },
+   {
+    "index": 4,
+    "name": "Strings",
+    "channel": 3,
+    "program": 48,
+    "notes": 938,
+    "lo": 59,
+    "hi": 86
+   },
+   {
+    "index": 5,
+    "name": "Guitar",
+    "channel": 4,
+    "program": 24,
+    "notes": 1223,
+    "lo": 36,
+    "hi": 72
+   },
+   {
+    "index": 6,
+    "name": "Acoustic Bass",
+    "channel": 5,
+    "program": 32,
+    "notes": 288,
+    "lo": 28,
+    "hi": 42
+   },
+   {
+    "index": 7,
+    "name": "GM Drums",
+    "channel": 9,
+    "program": 0,
+    "notes": 1395,
+    "lo": 35,
+    "hi": 57
+   }
+  ]
+ },
+ {
+  "file": "battle/Bitter Sweet - Fight Sight.mid",
+  "style": "battle",
+  "md5": "48f387bb60077747b1634b761669b433",
+  "bytes": 1241,
+  "bpm": 146.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 7.99,
+  "seconds": 13.1,
+  "note_count": 89,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Lead",
+    "channel": 1,
+    "program": 81,
+    "notes": 25,
+    "lo": 67,
+    "hi": 77
+   },
+   {
+    "index": 2,
+    "name": "Bass",
+    "channel": 2,
+    "program": 38,
+    "notes": 64,
+    "lo": 29,
+    "hi": 53
+   }
+  ]
+ },
+ {
+  "file": "battle/Can't-Fight-This-Feeling.mid",
+  "style": "battle",
+  "md5": "2c9fc415c93dab892f3e604fd503da60",
+  "bytes": 18395,
+  "bpm": 95.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 95.0,
+  "seconds": 240.0,
+  "note_count": 2048,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "A.PIANO 1",
+    "channel": 0,
+    "program": 0,
+    "notes": 541,
+    "lo": 57,
+    "hi": 85
+   },
+   {
+    "index": 2,
+    "name": "PICK BASS",
+    "channel": 1,
+    "program": 34,
+    "notes": 215,
+    "lo": 16,
+    "hi": 46
+   },
+   {
+    "index": 3,
+    "name": "HONKY TONK",
+    "channel": 2,
+    "program": 3,
+    "notes": 370,
+    "lo": 40,
+    "hi": 73
+   },
+   {
+    "index": 4,
+    "name": "HONKY TONK",
+    "channel": 3,
+    "program": 3,
+    "notes": 411,
+    "lo": 57,
+    "hi": 80
+   },
+   {
+    "index": 5,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": 0,
+    "notes": 511,
+    "lo": 35,
+    "hi": 37
+   }
+  ]
+ },
+ {
+  "file": "battle/Donkey Kong Land - Boss Battle.mid",
+  "style": "battle",
+  "md5": "8957e7fa8985a80a6f18cc48099b21b8",
+  "bytes": 19133,
+  "bpm": 129.96,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 79.75,
+  "seconds": 147.3,
+  "note_count": 2150,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 2150,
+    "lo": 34,
+    "hi": 84
+   }
+  ]
+ },
+ {
+  "file": "battle/Donkey Kong Land 2 - Boss Battle.mid",
+  "style": "battle",
+  "md5": "dc899f701ec014feb55d6fce5b1e69a6",
+  "bytes": 9588,
+  "bpm": 139.98,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 50.01,
+  "seconds": 85.7,
+  "note_count": 982,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 982,
+    "lo": 38,
+    "hi": 86
+   }
+  ]
+ },
+ {
+  "file": "battle/Final Fantasy IV - Boss Battle.mid",
+  "style": "battle",
+  "md5": "918d263234b6ec3974021f9e0dcd2cf5",
+  "bytes": 5616,
+  "bpm": 169.98,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 47.26,
+  "seconds": 66.7,
+  "note_count": 575,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 575,
+    "lo": 36,
+    "hi": 84
+   }
+  ]
+ },
+ {
+  "file": "battle/Final Fantasy VI - The Decisive Battle Boss Battle.mid",
+  "style": "battle",
+  "md5": "0dfee2b0d9c22f3f9f08628d1730f39e",
+  "bytes": 7005,
+  "bpm": 120.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 47.0,
+  "seconds": 94.0,
+  "note_count": 735,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 1,
+    "notes": 735,
+    "lo": 38,
+    "hi": 84
+   }
+  ]
+ },
+ {
+  "file": "battle/boss-battle.mid",
+  "style": "battle",
+  "md5": "ddbd3b4bc5d3230d67ecb3c809cec4cb",
+  "bytes": 58906,
+  "bpm": 159.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 118.0,
+  "seconds": 178.1,
+  "note_count": 6190,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "No Name\u0000",
+    "channel": 0,
+    "program": 33,
+    "notes": 814,
+    "lo": 28,
+    "hi": 43
+   },
+   {
+    "index": 2,
+    "name": "No Name\u0000",
+    "channel": 1,
+    "program": 36,
+    "notes": 814,
+    "lo": 28,
+    "hi": 43
+   },
+   {
+    "index": 3,
+    "name": "No Name\u0000",
+    "channel": 2,
+    "program": 81,
+    "notes": 478,
+    "lo": 68,
+    "hi": 88
+   },
+   {
+    "index": 4,
+    "name": "No Name\u0000",
+    "channel": 3,
+    "program": 67,
+    "notes": 513,
+    "lo": 68,
+    "hi": 88
+   },
+   {
+    "index": 5,
+    "name": "No Name\u0000",
+    "channel": 4,
+    "program": 17,
+    "notes": 538,
+    "lo": 72,
+    "hi": 94
+   },
+   {
+    "index": 6,
+    "name": "No Name\u0000",
+    "channel": 5,
+    "program": 48,
+    "notes": 272,
+    "lo": 58,
+    "hi": 86
+   },
+   {
+    "index": 7,
+    "name": "No Name\u0000",
+    "channel": 6,
+    "program": 48,
+    "notes": 191,
+    "lo": 52,
+    "hi": 81
+   },
+   {
+    "index": 8,
+    "name": "No Name\u0000",
+    "channel": 7,
+    "program": 48,
+    "notes": 701,
+    "lo": 58,
+    "hi": 67
+   },
+   {
+    "index": 9,
+    "name": "No Name\u0000",
+    "channel": 9,
+    "program": 0,
+    "notes": 1869,
+    "lo": 36,
+    "hi": 57
+   }
+  ]
+ },
+ {
   "file": "blues/A.JACKSON.Mercury blues K.mid",
   "style": "blues",
   "md5": "2ac87f99ea5dce284f879b34bee6513e",
@@ -2644,6 +3198,540 @@
     "notes": 2558,
     "lo": 29,
     "hi": 93
+   }
+  ]
+ },
+ {
+  "file": "cheerful/A.MARVEL.Make you happy.mid",
+  "style": "cheerful",
+  "md5": "72da07c6d1b10bf463559e09a258d165",
+  "bytes": 99886,
+  "bpm": 87.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 101.99,
+  "seconds": 281.4,
+  "note_count": 12126,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "Make you happy",
+    "channel": 1,
+    "program": 95,
+    "notes": 12126,
+    "lo": 26,
+    "hi": 91
+   }
+  ]
+ },
+ {
+  "file": "cheerful/A.PARTY.Don't give me your love.MID",
+  "style": "cheerful",
+  "md5": "5a12f39a11a2281c3bf43c54751a65f2",
+  "bytes": 77658,
+  "bpm": 127.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 142.32,
+  "seconds": 269.0,
+  "note_count": 6629,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 14,
+    "program": 18,
+    "notes": 6629,
+    "lo": 31,
+    "hi": 87
+   }
+  ]
+ },
+ {
+  "file": "cheerful/ABBA.Happy new year.mid",
+  "style": "cheerful",
+  "md5": "d1977d0fbb16add35a506b762a9b19be",
+  "bytes": 39380,
+  "bpm": 132.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 143.99,
+  "seconds": 261.8,
+  "note_count": 4167,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 5,
+    "program": 0,
+    "notes": 4167,
+    "lo": 28,
+    "hi": 100
+   }
+  ]
+ },
+ {
+  "file": "cheerful/ACE OF BASE.Happy nation.mid",
+  "style": "cheerful",
+  "md5": "938ecd2087dfde07c733c3b7b3aebf08",
+  "bytes": 54184,
+  "bpm": 96.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 87.35,
+  "seconds": 218.4,
+  "note_count": 6614,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 1,
+    "program": 33,
+    "notes": 6614,
+    "lo": 28,
+    "hi": 92
+   }
+  ]
+ },
+ {
+  "file": "cheerful/Abyss & Judge - Party is on.mid",
+  "style": "cheerful",
+  "md5": "a38dc747703b74df12f4f6de473ac87f",
+  "bytes": 741,
+  "bpm": 150.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 7.92,
+  "seconds": 12.7,
+  "note_count": 66,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "MIDI out",
+    "channel": 0,
+    "program": null,
+    "notes": 66,
+    "lo": 45,
+    "hi": 72
+   }
+  ]
+ },
+ {
+  "file": "cheerful/Alex Party - Dont Give Me Your Life.mid",
+  "style": "cheerful",
+  "md5": "dd3321f36925e1af6e8e327c9bfe5526",
+  "bytes": 11430,
+  "bpm": 130.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 51.94,
+  "seconds": 95.9,
+  "note_count": 1339,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "MIDI 01",
+    "channel": 0,
+    "program": 38,
+    "notes": 264,
+    "lo": 27,
+    "hi": 51
+   },
+   {
+    "index": 2,
+    "name": "MIDI 02",
+    "channel": 1,
+    "program": 80,
+    "notes": 160,
+    "lo": 68,
+    "hi": 87
+   },
+   {
+    "index": 3,
+    "name": "MIDI 03",
+    "channel": 9,
+    "program": null,
+    "notes": 534,
+    "lo": 36,
+    "hi": 57
+   },
+   {
+    "index": 4,
+    "name": "MIDI 04",
+    "channel": 2,
+    "program": 49,
+    "notes": 20,
+    "lo": 63,
+    "hi": 70
+   },
+   {
+    "index": 5,
+    "name": "MIDI 05",
+    "channel": 3,
+    "program": 17,
+    "notes": 225,
+    "lo": 51,
+    "hi": 75
+   },
+   {
+    "index": 6,
+    "name": "MIDI 06",
+    "channel": 4,
+    "program": 16,
+    "notes": 72,
+    "lo": 56,
+    "hi": 75
+   },
+   {
+    "index": 7,
+    "name": "MIDI 07",
+    "channel": 5,
+    "program": 11,
+    "notes": 64,
+    "lo": 75,
+    "hi": 94
+   }
+  ]
+ },
+ {
+  "file": "cheerful/Art Of Fighters & DJ Mad Dog - Party Starter.mid",
+  "style": "cheerful",
+  "md5": "a3014a10842d8e16b50ed2453eb37de5",
+  "bytes": 1312,
+  "bpm": 170.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 8.0,
+  "seconds": 11.3,
+  "note_count": 58,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano Module (MIDI)",
+    "channel": 0,
+    "program": 0,
+    "notes": 58,
+    "lo": 65,
+    "hi": 81
+   }
+  ]
+ },
+ {
+  "file": "cheerful/Be Happy.MID",
+  "style": "cheerful",
+  "md5": "64b28e042586f3d606a545fbe4133dec",
+  "bytes": 45491,
+  "bpm": 144.0,
+  "timesig": [
+   7,
+   4
+  ],
+  "bars": 84.14,
+  "seconds": 245.4,
+  "note_count": 7436,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Guitar",
+    "channel": 0,
+    "program": 29,
+    "notes": 1565,
+    "lo": 40,
+    "hi": 94
+   },
+   {
+    "index": 2,
+    "name": "Violin",
+    "channel": 1,
+    "program": 40,
+    "notes": 1163,
+    "lo": 55,
+    "hi": 94
+   },
+   {
+    "index": 3,
+    "name": "Bass",
+    "channel": 2,
+    "program": 33,
+    "notes": 1345,
+    "lo": 28,
+    "hi": 46
+   },
+   {
+    "index": 4,
+    "name": "Drums",
+    "channel": 9,
+    "program": 0,
+    "notes": 3363,
+    "lo": 36,
+    "hi": 49
+   }
+  ]
+ },
+ {
+  "file": "cheerful/Bloc Party - One More Chance.mid",
+  "style": "cheerful",
+  "md5": "5d8155ba87094e024e318681d57183c6",
+  "bytes": 7374,
+  "bpm": 140.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 16.12,
+  "seconds": 27.6,
+  "note_count": 687,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "MIDI out",
+    "channel": 0,
+    "program": null,
+    "notes": 248,
+    "lo": 38,
+    "hi": 72
+   },
+   {
+    "index": 2,
+    "name": "MIDI out #5",
+    "channel": 5,
+    "program": 3,
+    "notes": 36,
+    "lo": 60,
+    "hi": 64
+   },
+   {
+    "index": 3,
+    "name": "MIDI out #2",
+    "channel": 1,
+    "program": 34,
+    "notes": 88,
+    "lo": 28,
+    "hi": 36
+   },
+   {
+    "index": 4,
+    "name": "MIDI out #4",
+    "channel": 4,
+    "program": 116,
+    "notes": 106,
+    "lo": 60,
+    "hi": 60
+   },
+   {
+    "index": 5,
+    "name": "MIDI out #3",
+    "channel": 3,
+    "program": 33,
+    "notes": 88,
+    "lo": 28,
+    "hi": 36
+   },
+   {
+    "index": 6,
+    "name": "MIDI out #6",
+    "channel": 6,
+    "program": 90,
+    "notes": 36,
+    "lo": 60,
+    "hi": 64
+   },
+   {
+    "index": 7,
+    "name": "MIDI out #7",
+    "channel": 7,
+    "program": 119,
+    "notes": 16,
+    "lo": 50,
+    "hi": 50
+   },
+   {
+    "index": 8,
+    "name": "MIDI out #8",
+    "channel": 8,
+    "program": 122,
+    "notes": 5,
+    "lo": 48,
+    "hi": 48
+   },
+   {
+    "index": 9,
+    "name": "MIDI out #9",
+    "channel": 10,
+    "program": 119,
+    "notes": 64,
+    "lo": 60,
+    "hi": 60
+   }
+  ]
+ },
+ {
+  "file": "cheerful/Carnival-Or-Manha-De-Carnival-(Jazz-Gitaar-Trio).mid",
+  "style": "cheerful",
+  "md5": "02b7f0d02660b101aeae6ee46191dece",
+  "bytes": 29582,
+  "bpm": 140.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 109.07,
+  "seconds": 187.0,
+  "note_count": 3475,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "ACOU BASS",
+    "channel": 1,
+    "program": 32,
+    "notes": 414,
+    "lo": 33,
+    "hi": 50
+   },
+   {
+    "index": 2,
+    "name": "JAZZ GTR",
+    "channel": 2,
+    "program": 26,
+    "notes": 802,
+    "lo": 40,
+    "hi": 79
+   },
+   {
+    "index": 3,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": 40,
+    "notes": 2259,
+    "lo": 35,
+    "hi": 69
+   }
+  ]
+ },
+ {
+  "file": "cheerful/Carnival-Or-Manha-De-Carnival-1.mid",
+  "style": "cheerful",
+  "md5": "0c9ca1945962a72b112fdf37b056afeb",
+  "bytes": 32633,
+  "bpm": 140.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 132.84,
+  "seconds": 227.7,
+  "note_count": 3720,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "A.PIANO 1",
+    "channel": 0,
+    "program": 0,
+    "notes": 1918,
+    "lo": 33,
+    "hi": 107
+   },
+   {
+    "index": 2,
+    "name": "FRETLESS",
+    "channel": 1,
+    "program": 35,
+    "notes": 344,
+    "lo": 33,
+    "hi": 54
+   },
+   {
+    "index": 3,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": 32,
+    "notes": 1458,
+    "lo": 36,
+    "hi": 69
+   }
+  ]
+ },
+ {
+  "file": "cheerful/Happy Land.mid",
+  "style": "cheerful",
+  "md5": "2b0fbb7ec40c22e4c6fdd86acf4c1fce",
+  "bytes": 9044,
+  "bpm": 80.0,
+  "timesig": [
+   2,
+   4
+  ],
+  "bars": 50.0,
+  "seconds": 75.0,
+  "note_count": 1029,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Soprano",
+    "channel": 0,
+    "program": 40,
+    "notes": 129,
+    "lo": 69,
+    "hi": 81
+   },
+   {
+    "index": 2,
+    "name": "Alto",
+    "channel": 1,
+    "program": 40,
+    "notes": 129,
+    "lo": 65,
+    "hi": 69
+   },
+   {
+    "index": 3,
+    "name": "Tenor",
+    "channel": 2,
+    "program": 41,
+    "notes": 129,
+    "lo": 53,
+    "hi": 65
+   },
+   {
+    "index": 4,
+    "name": "Bass",
+    "channel": 3,
+    "program": 42,
+    "notes": 132,
+    "lo": 48,
+    "hi": 60
+   },
+   {
+    "index": 5,
+    "name": "(BRT) Reed Organ (hi)",
+    "channel": 4,
+    "program": 20,
+    "notes": 264,
+    "lo": 65,
+    "hi": 81
+   },
+   {
+    "index": 6,
+    "name": "(BRT) Reed Organ (lo)",
+    "channel": 4,
+    "program": null,
+    "notes": 246,
+    "lo": 48,
+    "hi": 65
    }
   ]
  },
@@ -4045,6 +5133,454 @@
     "notes": 2728,
     "lo": 36,
     "hi": 89
+   }
+  ]
+ },
+ {
+  "file": "daily/A-Cafe-In-Paris.mid",
+  "style": "daily",
+  "md5": "0db2fff78912423d2dd4be23920d58bf",
+  "bytes": 62577,
+  "bpm": 130.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 198.22,
+  "seconds": 365.9,
+  "note_count": 7477,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Bass ",
+    "channel": 1,
+    "program": 32,
+    "notes": 981,
+    "lo": 29,
+    "hi": 50
+   },
+   {
+    "index": 2,
+    "name": "Drums  ",
+    "channel": 9,
+    "program": 0,
+    "notes": 2835,
+    "lo": 35,
+    "hi": 54
+   },
+   {
+    "index": 3,
+    "name": "Piano   ",
+    "channel": 2,
+    "program": 0,
+    "notes": 2341,
+    "lo": 36,
+    "hi": 79
+   },
+   {
+    "index": 4,
+    "name": "solo",
+    "channel": 4,
+    "program": 0,
+    "notes": 1320,
+    "lo": 53,
+    "hi": 91
+   }
+  ]
+ },
+ {
+  "file": "daily/ABBA.Another Town, Another Train K.mid",
+  "style": "daily",
+  "md5": "88f77c2828e3581a95a69f35f43fa7c2",
+  "bytes": 35835,
+  "bpm": 121.0,
+  "timesig": [
+   2,
+   2
+  ],
+  "bars": 98.12,
+  "seconds": 194.6,
+  "note_count": 4247,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 4,
+    "program": 0,
+    "notes": 4247,
+    "lo": 36,
+    "hi": 89
+   }
+  ]
+ },
+ {
+  "file": "daily/Animal Crossing Wild World - Town Hall Day.mid",
+  "style": "daily",
+  "md5": "f747bfa2d1a3ce2bdbb23e1339972740",
+  "bytes": 3820,
+  "bpm": 120.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 35.85,
+  "seconds": 71.7,
+  "note_count": 410,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 1,
+    "notes": 410,
+    "lo": 40,
+    "hi": 90
+   }
+  ]
+ },
+ {
+  "file": "daily/BanjoKazooie Nuts  Bolts - Showdown Town.mid",
+  "style": "daily",
+  "md5": "36c771dee12633941f70e6b1873b0726",
+  "bytes": 41380,
+  "bpm": 120.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 216.92,
+  "seconds": 433.9,
+  "note_count": 4211,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 4211,
+    "lo": 28,
+    "hi": 94
+   }
+  ]
+ },
+ {
+  "file": "daily/Bomberman Tournament - Town.mid",
+  "style": "daily",
+  "md5": "f25b0929b26a43d1f8206858a67be4c6",
+  "bytes": 5295,
+  "bpm": 150.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 64.75,
+  "seconds": 103.6,
+  "note_count": 507,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 507,
+    "lo": 38,
+    "hi": 84
+   }
+  ]
+ },
+ {
+  "file": "daily/Bronski Beat - Small Town Boy.mid",
+  "style": "daily",
+  "md5": "5042276ad119ca798923c6b3a13c785f",
+  "bytes": 6027,
+  "bpm": 140.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 16.99,
+  "seconds": 29.1,
+  "note_count": 480,
+  "tracks": [
+   {
+    "index": 3,
+    "name": "BASS - Above and Beyond (MIDI)",
+    "channel": 2,
+    "program": 38,
+    "notes": 160,
+    "lo": 34,
+    "hi": 53
+   },
+   {
+    "index": 6,
+    "name": "Pad (MIDI)",
+    "channel": 5,
+    "program": 50,
+    "notes": 48,
+    "lo": 46,
+    "hi": 65
+   },
+   {
+    "index": 7,
+    "name": "Pluck Bass (MIDI)",
+    "channel": 6,
+    "program": 24,
+    "notes": 160,
+    "lo": 34,
+    "hi": 58
+   },
+   {
+    "index": 8,
+    "name": "PLUCK - Band Pass Saw 2 (MIDI)",
+    "channel": 7,
+    "program": 81,
+    "notes": 112,
+    "lo": 46,
+    "hi": 68
+   }
+  ]
+ },
+ {
+  "file": "daily/C.REA.Blue cafe K.mid",
+  "style": "daily",
+  "md5": "e24368327ff0677878fd3555de6116c2",
+  "bytes": 63777,
+  "bpm": 98.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 143.25,
+  "seconds": 350.8,
+  "note_count": 6651,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "BLUECAFE",
+    "channel": 7,
+    "program": 29,
+    "notes": 6651,
+    "lo": 24,
+    "hi": 88
+   }
+  ]
+ },
+ {
+  "file": "daily/Cafe Del Mar - Energy 52.mid",
+  "style": "daily",
+  "md5": "e6b70047388d1e53cc45256338c2bd6b",
+  "bytes": 6342,
+  "bpm": 125.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 28.32,
+  "seconds": 54.4,
+  "note_count": 784,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 3,
+    "program": 38,
+    "notes": 784,
+    "lo": 39,
+    "hi": 80
+   }
+  ]
+ },
+ {
+  "file": "daily/Cafe-Del-Mar.mid",
+  "style": "daily",
+  "md5": "81dec96e4a77f561f5f98ecf544de928",
+  "bytes": 212561,
+  "bpm": 137.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 254.0,
+  "seconds": 445.0,
+  "note_count": 25770,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "VOICEOOH",
+    "channel": 0,
+    "program": null,
+    "notes": 96,
+    "lo": 58,
+    "hi": 63
+   },
+   {
+    "index": 2,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": null,
+    "notes": 2608,
+    "lo": 42,
+    "hi": 46
+   },
+   {
+    "index": 3,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": null,
+    "notes": 2608,
+    "lo": 42,
+    "hi": 46
+   },
+   {
+    "index": 4,
+    "name": "P1-Syn. S",
+    "channel": 0,
+    "program": 53,
+    "notes": 265,
+    "lo": 46,
+    "hi": 75
+   },
+   {
+    "index": 5,
+    "name": "SYNTHBASS2",
+    "channel": 1,
+    "program": 39,
+    "notes": 1280,
+    "lo": 37,
+    "hi": 46
+   },
+   {
+    "index": 6,
+    "name": "SYNTHBASS1",
+    "channel": 2,
+    "program": 38,
+    "notes": 3840,
+    "lo": 34,
+    "hi": 70
+   },
+   {
+    "index": 7,
+    "name": "P4-Acoust",
+    "channel": 3,
+    "program": 32,
+    "notes": 3840,
+    "lo": 34,
+    "hi": 70
+   },
+   {
+    "index": 8,
+    "name": "P5-Brite ",
+    "channel": 4,
+    "program": 1,
+    "notes": 832,
+    "lo": 82,
+    "hi": 87
+   },
+   {
+    "index": 9,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": null,
+    "notes": 1990,
+    "lo": 35,
+    "hi": 38
+   },
+   {
+    "index": 10,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": null,
+    "notes": 264,
+    "lo": 39,
+    "hi": 39
+   },
+   {
+    "index": 11,
+    "name": "P10-STAND",
+    "channel": 9,
+    "program": null,
+    "notes": 1990,
+    "lo": 35,
+    "hi": 38
+   },
+   {
+    "index": 12,
+    "name": "P6-Finger",
+    "channel": 5,
+    "program": 33,
+    "notes": 1344,
+    "lo": 22,
+    "hi": 34
+   },
+   {
+    "index": 13,
+    "name": "P7-Voice ",
+    "channel": 6,
+    "program": 85,
+    "notes": 552,
+    "lo": 70,
+    "hi": 77
+   },
+   {
+    "index": 14,
+    "name": "P8-Bright",
+    "channel": 7,
+    "program": 100,
+    "notes": 552,
+    "lo": 70,
+    "hi": 77
+   },
+   {
+    "index": 15,
+    "name": "P9-Harpsi",
+    "channel": 8,
+    "program": 6,
+    "notes": 128,
+    "lo": 85,
+    "hi": 94
+   },
+   {
+    "index": 16,
+    "name": "P11-Marim",
+    "channel": 10,
+    "program": 12,
+    "notes": 3420,
+    "lo": 70,
+    "hi": 82
+   },
+   {
+    "index": 17,
+    "name": "P12-Echoe",
+    "channel": 11,
+    "program": 102,
+    "notes": 161,
+    "lo": 58,
+    "hi": 65
+   }
+  ]
+ },
+ {
+  "file": "daily/The Legend of Heroes_ Trails in the Sky - A Cat Relaxing in the Sun.mid",
+  "style": "daily",
+  "md5": "7c1a8803a6ded0a46eb8fed48a37089a",
+  "bytes": 5344,
+  "bpm": 66.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 50.0,
+  "seconds": 181.8,
+  "note_count": 603,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 603,
+    "lo": 42,
+    "hi": 83
    }
   ]
  },
@@ -5722,31 +7258,6 @@
   ]
  },
  {
-  "file": "folk/A.JACKSON.Gone country.mid",
-  "style": "folk",
-  "md5": "70a5389348d5d2bcad714245bd02c5e1",
-  "bytes": 46080,
-  "bpm": 125.0,
-  "timesig": [
-   4,
-   4
-  ],
-  "bars": 125.45,
-  "seconds": 240.9,
-  "note_count": 4893,
-  "tracks": [
-   {
-    "index": 0,
-    "name": "",
-    "channel": 2,
-    "program": 73,
-    "notes": 4893,
-    "lo": 28,
-    "hi": 91
-   }
-  ]
- },
- {
   "file": "folk/Acid-Folk.mid",
   "style": "folk",
   "md5": "123e9efce8a0a062f8a88c6eff240f2d",
@@ -6558,6 +8069,566 @@
     "notes": 688,
     "lo": 53,
     "hi": 74
+   }
+  ]
+ },
+ {
+  "file": "folk_tale/Medieval.mid",
+  "style": "folk_tale",
+  "md5": "a00978f00dd404cd5af431f4cf5fd199",
+  "bytes": 829,
+  "bpm": 90.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 8.19,
+  "seconds": 21.8,
+  "note_count": 57,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Unnamed-000",
+    "channel": 0,
+    "program": 71,
+    "notes": 35,
+    "lo": 67,
+    "hi": 84
+   },
+   {
+    "index": 2,
+    "name": "Unnamed-001",
+    "channel": 1,
+    "program": 50,
+    "notes": 22,
+    "lo": 41,
+    "hi": 60
+   }
+  ]
+ },
+ {
+  "file": "folk_tale/Putt-Putt Travels Through Time - Medieval.mid",
+  "style": "folk_tale",
+  "md5": "2aff916fdb204154d975256f3c9244cd",
+  "bytes": 8947,
+  "bpm": 150.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 94.5,
+  "seconds": 151.2,
+  "note_count": 996,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "Sunken Ship",
+    "channel": 0,
+    "program": 0,
+    "notes": 996,
+    "lo": 28,
+    "hi": 84
+   }
+  ]
+ },
+ {
+  "file": "galgame/Above & Beyond vs. Andy Moor - Air For Life (Original Mix).mid",
+  "style": "galgame",
+  "md5": "a1f33732ceaff9b31c68bf88557afc83",
+  "bytes": 431,
+  "bpm": 136.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 3.99,
+  "seconds": 7.0,
+  "note_count": 25,
+  "tracks": [
+   {
+    "index": 4,
+    "name": "MIDI out",
+    "channel": 0,
+    "program": null,
+    "notes": 25,
+    "lo": 64,
+    "hi": 76
+   }
+  ]
+ },
+ {
+  "file": "galgame/Air - Aozora.mid",
+  "style": "galgame",
+  "md5": "3386b7364072c208f82bfb4029f981c6",
+  "bytes": 10195,
+  "bpm": 60.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 70.0,
+  "seconds": 280.0,
+  "note_count": 299,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "Azora",
+    "channel": 0,
+    "program": 73,
+    "notes": 299,
+    "lo": 77,
+    "hi": 91
+   }
+  ]
+ },
+ {
+  "file": "galgame/Air - If Dreams Came True.mid",
+  "style": "galgame",
+  "md5": "ab67cef43b70fdd16c2720e9b280c1ff",
+  "bytes": 15796,
+  "bpm": 54.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 94.68,
+  "seconds": 420.8,
+  "note_count": 1507,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 0,
+    "program": 0,
+    "notes": 1507,
+    "lo": 28,
+    "hi": 102
+   }
+  ]
+ },
+ {
+  "file": "galgame/Air - Tori no Uta.mid",
+  "style": "galgame",
+  "md5": "86a4a13e6513f28533ad2bc5ab3bf463",
+  "bytes": 13046,
+  "bpm": 120.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 92.37,
+  "seconds": 184.7,
+  "note_count": 1531,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "MIDI out",
+    "channel": 0,
+    "program": 54,
+    "notes": 263,
+    "lo": 66,
+    "hi": 86
+   },
+   {
+    "index": 2,
+    "name": "MIDI out #2",
+    "channel": 1,
+    "program": 53,
+    "notes": 221,
+    "lo": 62,
+    "hi": 90
+   },
+   {
+    "index": 3,
+    "name": "MIDI out #3",
+    "channel": 2,
+    "program": 0,
+    "notes": 388,
+    "lo": 54,
+    "hi": 93
+   },
+   {
+    "index": 4,
+    "name": "MIDI out #4",
+    "channel": 3,
+    "program": 0,
+    "notes": 659,
+    "lo": 35,
+    "hi": 71
+   }
+  ]
+ },
+ {
+  "file": "galgame/Clannad - %C9tude pour les petites supercordes.mid",
+  "style": "galgame",
+  "md5": "f4befc85b8723ab4c8722171c1ee9cd7",
+  "bytes": 111442,
+  "bpm": 109.98,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 899.6,
+  "seconds": 1963.1,
+  "note_count": 10875,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "ARIA Player",
+    "channel": 0,
+    "program": 0,
+    "notes": 10875,
+    "lo": 36,
+    "hi": 77
+   }
+  ]
+ },
+ {
+  "file": "galgame/Clannad - Dango Daikazoku.mid",
+  "style": "galgame",
+  "md5": "f58d1d00efcfcf47b283c3df48d24021",
+  "bytes": 1880,
+  "bpm": 120.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 63.87,
+  "seconds": 127.7,
+  "note_count": 254,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 0,
+    "program": 65,
+    "notes": 254,
+    "lo": 55,
+    "hi": 74
+   }
+  ]
+ },
+ {
+  "file": "galgame/Clannad - Dear Old Home.mid",
+  "style": "galgame",
+  "md5": "732e6d889358c6cf6c7aa8543328761c",
+  "bytes": 1900,
+  "bpm": 76.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 18.0,
+  "seconds": 56.8,
+  "note_count": 261,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 0,
+    "program": 0,
+    "notes": 161,
+    "lo": 55,
+    "hi": 83
+   },
+   {
+    "index": 1,
+    "name": "",
+    "channel": 0,
+    "program": null,
+    "notes": 100,
+    "lo": 31,
+    "hi": 64
+   }
+  ]
+ },
+ {
+  "file": "galgame/Clannad - Harukana Toshitsuki -Piano-.mid",
+  "style": "galgame",
+  "md5": "6198c9455ee9ae40470813a9ef5ee58f",
+  "bytes": 4379,
+  "bpm": 85.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 48.91,
+  "seconds": 138.1,
+  "note_count": 378,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano 1",
+    "channel": 0,
+    "program": 0,
+    "notes": 207,
+    "lo": 54,
+    "hi": 99
+   },
+   {
+    "index": 2,
+    "name": "Piano 2",
+    "channel": 1,
+    "program": 0,
+    "notes": 171,
+    "lo": 37,
+    "hi": 68
+   }
+  ]
+ },
+ {
+  "file": "galgame/Fate Stay Night - Kodoku Na Junrei.mid",
+  "style": "galgame",
+  "md5": "84c48a5f09f35af46ebf43466d904542",
+  "bytes": 18777,
+  "bpm": 65.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 62.0,
+  "seconds": 171.7,
+  "note_count": 1875,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Violin",
+    "channel": 0,
+    "program": 40,
+    "notes": 148,
+    "lo": 53,
+    "hi": 82
+   },
+   {
+    "index": 2,
+    "name": "Dulcimer",
+    "channel": 1,
+    "program": 15,
+    "notes": 723,
+    "lo": 48,
+    "hi": 82
+   },
+   {
+    "index": 3,
+    "name": "Acoustic Bass 1",
+    "channel": 2,
+    "program": 32,
+    "notes": 676,
+    "lo": 48,
+    "hi": 77
+   },
+   {
+    "index": 4,
+    "name": "Acoustic Bass 2",
+    "channel": 3,
+    "program": 32,
+    "notes": 328,
+    "lo": 43,
+    "hi": 77
+   }
+  ]
+ },
+ {
+  "file": "galgame/Fate Stay Night - La Sola.mid",
+  "style": "galgame",
+  "md5": "6b2c570d321dd7cff72b75383236b9f3",
+  "bytes": 2824,
+  "bpm": 80.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 36.81,
+  "seconds": 110.4,
+  "note_count": 316,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Pista 1",
+    "channel": 0,
+    "program": 25,
+    "notes": 316,
+    "lo": 40,
+    "hi": 79
+   }
+  ]
+ },
+ {
+  "file": "galgame/Fate Stay Night - OP 2 - Brave Shine.mid",
+  "style": "galgame",
+  "md5": "b4ea18ea19f2b7b2383a7dc468893dd9",
+  "bytes": 4517,
+  "bpm": 170.0,
+  "timesig": [
+   2,
+   2
+  ],
+  "bars": 62.0,
+  "seconds": 87.5,
+  "note_count": 510,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "Steel Guitar",
+    "channel": 0,
+    "program": 25,
+    "notes": 510,
+    "lo": 40,
+    "hi": 69
+   }
+  ]
+ },
+ {
+  "file": "galgame/Kanon - Last Regrets.mid",
+  "style": "galgame",
+  "md5": "621ada409fdcfe604e5d0493f1650d83",
+  "bytes": 4915,
+  "bpm": 93.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 56.0,
+  "seconds": 144.5,
+  "note_count": 540,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Vocal",
+    "channel": 0,
+    "program": 54,
+    "notes": 90,
+    "lo": 78,
+    "hi": 95
+   },
+   {
+    "index": 2,
+    "name": "Piano RH",
+    "channel": 1,
+    "program": 0,
+    "notes": 328,
+    "lo": 52,
+    "hi": 88
+   },
+   {
+    "index": 3,
+    "name": "Piano LH",
+    "channel": 2,
+    "program": 0,
+    "notes": 122,
+    "lo": 38,
+    "hi": 66
+   }
+  ]
+ },
+ {
+  "file": "galgame/Kanon - The Day I Waited For The Wind.mid",
+  "style": "galgame",
+  "md5": "207b47cb07f4c5378919a8d0e68938b5",
+  "bytes": 9086,
+  "bpm": 70.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 44.0,
+  "seconds": 150.8,
+  "note_count": 1093,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "MIDI out",
+    "channel": 0,
+    "program": 0,
+    "notes": 569,
+    "lo": 48,
+    "hi": 94
+   },
+   {
+    "index": 2,
+    "name": "MIDI out #2",
+    "channel": 1,
+    "program": 0,
+    "notes": 524,
+    "lo": 39,
+    "hi": 70
+   }
+  ]
+ },
+ {
+  "file": "galgame/Kanon - Winter Fireworks.mid",
+  "style": "galgame",
+  "md5": "2edc276fb54bca6d5493343b23b2b23f",
+  "bytes": 5159,
+  "bpm": 100.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 49.62,
+  "seconds": 119.1,
+  "note_count": 578,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "MIDI out",
+    "channel": 0,
+    "program": 72,
+    "notes": 52,
+    "lo": 69,
+    "hi": 86
+   },
+   {
+    "index": 2,
+    "name": "MIDI out #2",
+    "channel": 1,
+    "program": 0,
+    "notes": 324,
+    "lo": 69,
+    "hi": 86
+   },
+   {
+    "index": 3,
+    "name": "MIDI out #3",
+    "channel": 2,
+    "program": 0,
+    "notes": 202,
+    "lo": 50,
+    "hi": 86
+   }
+  ]
+ },
+ {
+  "file": "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+  "style": "galgame",
+  "md5": "80e0ed55efc18ee4974d2c4fb8499856",
+  "bytes": 27619,
+  "bpm": 174.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 184.12,
+  "seconds": 254.0,
+  "note_count": 3138,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano Bottom",
+    "channel": 2,
+    "program": 0,
+    "notes": 1742,
+    "lo": 23,
+    "hi": 84
+   },
+   {
+    "index": 2,
+    "name": "Piano",
+    "channel": 3,
+    "program": 0,
+    "notes": 1396,
+    "lo": 52,
+    "hi": 107
    }
   ]
  },
@@ -8809,6 +10880,728 @@
   ]
  },
  {
+  "file": "gorgeous/2-06-Waltz-de-Chocobo-Xg.mid",
+  "style": "gorgeous",
+  "md5": "460ddbf42d0ca625eca3c326f93d0cda",
+  "bytes": 4536,
+  "bpm": 170.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 30.67,
+  "seconds": 32.5,
+  "note_count": 418,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "",
+    "channel": 0,
+    "program": 46,
+    "notes": 33,
+    "lo": 45,
+    "hi": 83
+   },
+   {
+    "index": 2,
+    "name": "",
+    "channel": 1,
+    "program": 46,
+    "notes": 52,
+    "lo": 67,
+    "hi": 79
+   },
+   {
+    "index": 3,
+    "name": "",
+    "channel": 2,
+    "program": 46,
+    "notes": 52,
+    "lo": 62,
+    "hi": 76
+   },
+   {
+    "index": 4,
+    "name": "",
+    "channel": 3,
+    "program": 46,
+    "notes": 44,
+    "lo": 62,
+    "hi": 72
+   },
+   {
+    "index": 5,
+    "name": "",
+    "channel": 4,
+    "program": 73,
+    "notes": 39,
+    "lo": 69,
+    "hi": 83
+   },
+   {
+    "index": 6,
+    "name": "",
+    "channel": 5,
+    "program": 69,
+    "notes": 39,
+    "lo": 66,
+    "hi": 81
+   },
+   {
+    "index": 7,
+    "name": "",
+    "channel": 6,
+    "program": 60,
+    "notes": 11,
+    "lo": 64,
+    "hi": 64
+   },
+   {
+    "index": 8,
+    "name": "",
+    "channel": 7,
+    "program": 60,
+    "notes": 11,
+    "lo": 59,
+    "hi": 62
+   },
+   {
+    "index": 9,
+    "name": "",
+    "channel": 8,
+    "program": 56,
+    "notes": 11,
+    "lo": 67,
+    "hi": 71
+   },
+   {
+    "index": 10,
+    "name": "",
+    "channel": 9,
+    "program": 48,
+    "notes": 49,
+    "lo": 40,
+    "hi": 57
+   },
+   {
+    "index": 11,
+    "name": "",
+    "channel": 10,
+    "program": 58,
+    "notes": 4,
+    "lo": 33,
+    "hi": 45
+   },
+   {
+    "index": 12,
+    "name": "",
+    "channel": 11,
+    "program": 32,
+    "notes": 54,
+    "lo": 40,
+    "hi": 57
+   },
+   {
+    "index": 13,
+    "name": "",
+    "channel": 14,
+    "program": 47,
+    "notes": 15,
+    "lo": 43,
+    "hi": 45
+   },
+   {
+    "index": 14,
+    "name": "",
+    "channel": 15,
+    "program": 57,
+    "notes": 4,
+    "lo": 45,
+    "hi": 57
+   }
+  ]
+ },
+ {
+  "file": "gorgeous/Binks'-Waltz.mid",
+  "style": "gorgeous",
+  "md5": "985ccfd3f935595e7fae11418327d2a3",
+  "bytes": 20815,
+  "bpm": 100.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 101.15,
+  "seconds": 242.8,
+  "note_count": 2337,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "A.PIANO 1",
+    "channel": 0,
+    "program": 0,
+    "notes": 2337,
+    "lo": 22,
+    "hi": 99
+   }
+  ]
+ },
+ {
+  "file": "gorgeous/Blue-Skirt-Waltz.mid",
+  "style": "gorgeous",
+  "md5": "63a51c822173398ccf34c39ede35a86b",
+  "bytes": 16560,
+  "bpm": 165.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 102.96,
+  "seconds": 112.3,
+  "note_count": 2393,
+  "tracks": [
+   {
+    "index": 2,
+    "name": "Fingered ",
+    "channel": 1,
+    "program": 33,
+    "notes": 141,
+    "lo": 26,
+    "hi": 45
+   },
+   {
+    "index": 3,
+    "name": "Piano",
+    "channel": 3,
+    "program": 0,
+    "notes": 135,
+    "lo": 54,
+    "hi": 79
+   },
+   {
+    "index": 4,
+    "name": "Guitar",
+    "channel": 4,
+    "program": 25,
+    "notes": 490,
+    "lo": 55,
+    "hi": 67
+   },
+   {
+    "index": 5,
+    "name": "Alto Sax",
+    "channel": 5,
+    "program": 65,
+    "notes": 468,
+    "lo": 50,
+    "hi": 83
+   },
+   {
+    "index": 6,
+    "name": "Strings",
+    "channel": 7,
+    "program": 48,
+    "notes": 44,
+    "lo": 55,
+    "hi": 67
+   },
+   {
+    "index": 7,
+    "name": "Drums",
+    "channel": 9,
+    "program": 0,
+    "notes": 777,
+    "lo": 35,
+    "hi": 70
+   },
+   {
+    "index": 8,
+    "name": "Guitar",
+    "channel": 6,
+    "program": 26,
+    "notes": 338,
+    "lo": 45,
+    "hi": 74
+   }
+  ]
+ },
+ {
+  "file": "gorgeous/Blue-Waltz.mid",
+  "style": "gorgeous",
+  "md5": "f3ddb3e0163ed767e22d2b7f205592c1",
+  "bytes": 20225,
+  "bpm": 100.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 149.1,
+  "seconds": 268.4,
+  "note_count": 2277,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 2,
+    "program": null,
+    "notes": 2277,
+    "lo": 22,
+    "hi": 106
+   }
+  ]
+ },
+ {
+  "file": "gorgeous/Bwv1066 Orchestral Suite n1 4mov.mid",
+  "style": "gorgeous",
+  "md5": "0a9475f1cbadece0d9e008221a81cf09",
+  "bytes": 18532,
+  "bpm": 60.0,
+  "timesig": [
+   6,
+   4
+  ],
+  "bars": 48.17,
+  "seconds": 289.0,
+  "note_count": 2762,
+  "tracks": [
+   {
+    "index": 5,
+    "name": "Oboe I",
+    "channel": 0,
+    "program": 68,
+    "notes": 252,
+    "lo": 67,
+    "hi": 84
+   },
+   {
+    "index": 6,
+    "name": "Oboe II",
+    "channel": 1,
+    "program": 68,
+    "notes": 252,
+    "lo": 67,
+    "hi": 84
+   },
+   {
+    "index": 7,
+    "name": "Bassoon",
+    "channel": 2,
+    "program": 70,
+    "notes": 160,
+    "lo": 36,
+    "hi": 62
+   },
+   {
+    "index": 8,
+    "name": "Violin I",
+    "channel": 11,
+    "program": 48,
+    "notes": 252,
+    "lo": 67,
+    "hi": 84
+   },
+   {
+    "index": 9,
+    "name": "Violin II",
+    "channel": 12,
+    "program": 48,
+    "notes": 512,
+    "lo": 59,
+    "hi": 77
+   },
+   {
+    "index": 10,
+    "name": "Viola",
+    "channel": 13,
+    "program": 48,
+    "notes": 518,
+    "lo": 53,
+    "hi": 74
+   },
+   {
+    "index": 11,
+    "name": "Cello",
+    "channel": 14,
+    "program": 48,
+    "notes": 160,
+    "lo": 36,
+    "hi": 62
+   },
+   {
+    "index": 12,
+    "name": "Harpsichord ",
+    "channel": 15,
+    "program": 6,
+    "notes": 656,
+    "lo": 36,
+    "hi": 81
+   }
+  ]
+ },
+ {
+  "file": "gorgeous/Daisy-Waltz-&-My-Bonnie-(Waltz).mid",
+  "style": "gorgeous",
+  "md5": "46cc850cde091896256461a71bb1fadd",
+  "bytes": 32591,
+  "bpm": 180.03,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 104.67,
+  "seconds": 139.5,
+  "note_count": 3885,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "KN2000 DA",
+    "channel": 10,
+    "program": 20,
+    "notes": 3885,
+    "lo": 33,
+    "hi": 90
+   }
+  ]
+ },
+ {
+  "file": "gorgeous/Royal Fireworks Suite 1mov Overture.mid",
+  "style": "gorgeous",
+  "md5": "f1ada1dbb7db87da5ff9d9446e8ec50a",
+  "bytes": 132582,
+  "bpm": 66.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 191.58,
+  "seconds": 522.5,
+  "note_count": 14882,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "1. OVERTURE",
+    "channel": 0,
+    "program": 73,
+    "notes": 842,
+    "lo": 62,
+    "hi": 93
+   },
+   {
+    "index": 2,
+    "name": "from FIREWORK SUITE",
+    "channel": 0,
+    "program": 73,
+    "notes": 704,
+    "lo": 61,
+    "hi": 88
+   },
+   {
+    "index": 3,
+    "name": "",
+    "channel": 2,
+    "program": 68,
+    "notes": 842,
+    "lo": 62,
+    "hi": 86
+   },
+   {
+    "index": 4,
+    "name": "by G. Handel (1749)",
+    "channel": 2,
+    "program": 68,
+    "notes": 704,
+    "lo": 61,
+    "hi": 83
+   },
+   {
+    "index": 5,
+    "name": "",
+    "channel": 3,
+    "program": 71,
+    "notes": 854,
+    "lo": 62,
+    "hi": 86
+   },
+   {
+    "index": 6,
+    "name": "arr : G. Pollen (1999)",
+    "channel": 3,
+    "program": 71,
+    "notes": 675,
+    "lo": 55,
+    "hi": 81
+   },
+   {
+    "index": 7,
+    "name": "",
+    "channel": 4,
+    "program": 70,
+    "notes": 783,
+    "lo": 38,
+    "hi": 69
+   },
+   {
+    "index": 8,
+    "name": "",
+    "channel": 4,
+    "program": 70,
+    "notes": 740,
+    "lo": 35,
+    "hi": 64
+   },
+   {
+    "index": 9,
+    "name": "",
+    "channel": 5,
+    "program": 60,
+    "notes": 495,
+    "lo": 57,
+    "hi": 74
+   },
+   {
+    "index": 10,
+    "name": "",
+    "channel": 5,
+    "program": 60,
+    "notes": 516,
+    "lo": 54,
+    "hi": 69
+   },
+   {
+    "index": 11,
+    "name": "",
+    "channel": 6,
+    "program": 56,
+    "notes": 545,
+    "lo": 62,
+    "hi": 86
+   },
+   {
+    "index": 12,
+    "name": "",
+    "channel": 6,
+    "program": 56,
+    "notes": 523,
+    "lo": 57,
+    "hi": 79
+   },
+   {
+    "index": 13,
+    "name": "",
+    "channel": 7,
+    "program": 57,
+    "notes": 581,
+    "lo": 45,
+    "hi": 69
+   },
+   {
+    "index": 14,
+    "name": "",
+    "channel": 7,
+    "program": 57,
+    "notes": 577,
+    "lo": 45,
+    "hi": 66
+   },
+   {
+    "index": 15,
+    "name": "",
+    "channel": 7,
+    "program": 57,
+    "notes": 505,
+    "lo": 45,
+    "hi": 61
+   },
+   {
+    "index": 16,
+    "name": "",
+    "channel": 8,
+    "program": 58,
+    "notes": 575,
+    "lo": 33,
+    "hi": 52
+   },
+   {
+    "index": 17,
+    "name": "",
+    "channel": 10,
+    "program": 47,
+    "notes": 412,
+    "lo": 45,
+    "hi": 50
+   },
+   {
+    "index": 18,
+    "name": "",
+    "channel": 11,
+    "program": 48,
+    "notes": 1013,
+    "lo": 62,
+    "hi": 86
+   },
+   {
+    "index": 19,
+    "name": "",
+    "channel": 12,
+    "program": 48,
+    "notes": 718,
+    "lo": 61,
+    "hi": 81
+   },
+   {
+    "index": 20,
+    "name": "",
+    "channel": 13,
+    "program": 48,
+    "notes": 759,
+    "lo": 50,
+    "hi": 79
+   },
+   {
+    "index": 21,
+    "name": "",
+    "channel": 14,
+    "program": 48,
+    "notes": 760,
+    "lo": 38,
+    "hi": 66
+   },
+   {
+    "index": 22,
+    "name": "",
+    "channel": 15,
+    "program": 48,
+    "notes": 759,
+    "lo": 26,
+    "hi": 52
+   }
+  ]
+ },
+ {
+  "file": "gorgeous/Royal Fireworks Suite 2mov Allegro.mid",
+  "style": "gorgeous",
+  "md5": "0aa6880ac680b7eda90a67c661976a88",
+  "bytes": 156086,
+  "bpm": 35.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 215.34,
+  "seconds": 1107.4,
+  "note_count": 18758,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Strings",
+    "channel": 0,
+    "program": 48,
+    "notes": 3971,
+    "lo": 38,
+    "hi": 86
+   },
+   {
+    "index": 2,
+    "name": "Strings",
+    "channel": 1,
+    "program": 48,
+    "notes": 3971,
+    "lo": 38,
+    "hi": 86
+   },
+   {
+    "index": 3,
+    "name": "DoubleBas",
+    "channel": 2,
+    "program": 48,
+    "notes": 958,
+    "lo": 38,
+    "hi": 64
+   },
+   {
+    "index": 4,
+    "name": "DoubleBas",
+    "channel": 3,
+    "program": 48,
+    "notes": 958,
+    "lo": 38,
+    "hi": 64
+   },
+   {
+    "index": 5,
+    "name": "Bassoon 1",
+    "channel": 4,
+    "program": 70,
+    "notes": 957,
+    "lo": 38,
+    "hi": 64
+   },
+   {
+    "index": 6,
+    "name": "Bassoon 2",
+    "channel": 5,
+    "program": 70,
+    "notes": 958,
+    "lo": 38,
+    "hi": 64
+   },
+   {
+    "index": 7,
+    "name": "Timpani",
+    "channel": 6,
+    "program": 47,
+    "notes": 589,
+    "lo": 45,
+    "hi": 50
+   },
+   {
+    "index": 9,
+    "name": "Trumpet",
+    "channel": 8,
+    "program": 56,
+    "notes": 1778,
+    "lo": 57,
+    "hi": 86
+   },
+   {
+    "index": 10,
+    "name": "Oboe 1",
+    "channel": 11,
+    "program": 68,
+    "notes": 1219,
+    "lo": 62,
+    "hi": 86
+   },
+   {
+    "index": 11,
+    "name": "Oboe 2",
+    "channel": 12,
+    "program": 68,
+    "notes": 1020,
+    "lo": 62,
+    "hi": 83
+   },
+   {
+    "index": 12,
+    "name": "Oboe 3",
+    "channel": 13,
+    "program": 68,
+    "notes": 775,
+    "lo": 61,
+    "hi": 81
+   },
+   {
+    "index": 13,
+    "name": "Horn 1",
+    "channel": 14,
+    "program": 60,
+    "notes": 1604,
+    "lo": 57,
+    "hi": 86
+   }
+  ]
+ },
+ {
   "file": "jazz/A HA.The swing of things.mid",
   "style": "jazz",
   "md5": "71227de6cff1b05ea9e551c35fd70f11",
@@ -10055,6 +12848,882 @@
   ]
  },
  {
+  "file": "lounge/Iio - Smooth (Airbase Remix).mid",
+  "style": "lounge",
+  "md5": "8acfcc5c5302d6c8cb2cb21f9df2caab",
+  "bytes": 4051,
+  "bpm": 140.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 16.0,
+  "seconds": 27.4,
+  "note_count": 432,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Trance Lead (MIDI)",
+    "channel": 0,
+    "program": 0,
+    "notes": 192,
+    "lo": 50,
+    "hi": 76
+   },
+   {
+    "index": 2,
+    "name": "Main Pads (MIDI)",
+    "channel": 1,
+    "program": 0,
+    "notes": 48,
+    "lo": 38,
+    "hi": 66
+   },
+   {
+    "index": 3,
+    "name": "Bass (MIDI)",
+    "channel": 2,
+    "program": 0,
+    "notes": 192,
+    "lo": 38,
+    "hi": 57
+   }
+  ]
+ },
+ {
+  "file": "lounge/JACKSON.Smooth criminal K.mid",
+  "style": "lounge",
+  "md5": "19fe6cfd4b25d3b21faf76e157e9b583",
+  "bytes": 45934,
+  "bpm": 116.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 101.0,
+  "seconds": 209.0,
+  "note_count": 5424,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 6,
+    "program": 61,
+    "notes": 5424,
+    "lo": 27,
+    "hi": 96
+   }
+  ]
+ },
+ {
+  "file": "lounge/KOKUBU.Smooth struttin'.mid",
+  "style": "lounge",
+  "md5": "34b5bc85b258800213c956f3bb7dbe53",
+  "bytes": 34103,
+  "bpm": 89.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 95.0,
+  "seconds": 256.2,
+  "note_count": 5086,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Smooth Struttin'",
+    "channel": 0,
+    "program": 0,
+    "notes": 1283,
+    "lo": 36,
+    "hi": 71
+   },
+   {
+    "index": 2,
+    "name": "by HIROKO KOKUBU",
+    "channel": 1,
+    "program": 0,
+    "notes": 755,
+    "lo": 40,
+    "hi": 96
+   },
+   {
+    "index": 3,
+    "name": "sequenced by",
+    "channel": 2,
+    "program": 61,
+    "notes": 310,
+    "lo": 54,
+    "hi": 86
+   },
+   {
+    "index": 4,
+    "name": "Iman Tjahjono",
+    "channel": 3,
+    "program": 33,
+    "notes": 277,
+    "lo": 28,
+    "hi": 43
+   },
+   {
+    "index": 5,
+    "name": "tjahjono@idcnet.com",
+    "channel": 4,
+    "program": 28,
+    "notes": 765,
+    "lo": 55,
+    "hi": 76
+   },
+   {
+    "index": 6,
+    "name": "",
+    "channel": 9,
+    "program": null,
+    "notes": 773,
+    "lo": 42,
+    "hi": 57
+   },
+   {
+    "index": 7,
+    "name": "",
+    "channel": 9,
+    "program": null,
+    "notes": 435,
+    "lo": 39,
+    "hi": 70
+   },
+   {
+    "index": 8,
+    "name": "",
+    "channel": 9,
+    "program": 0,
+    "notes": 488,
+    "lo": 36,
+    "hi": 48
+   }
+  ]
+ },
+ {
+  "file": "lounge/SADE.Smooth operator K.mid",
+  "style": "lounge",
+  "md5": "31d69d5a61552bc0d01a668add0d3654",
+  "bytes": 66451,
+  "bpm": 121.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 164.08,
+  "seconds": 325.5,
+  "note_count": 7598,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 11,
+    "program": 27,
+    "notes": 7598,
+    "lo": 28,
+    "hi": 98
+   }
+  ]
+ },
+ {
+  "file": "lounge/SANTANA.Smooth K.mid",
+  "style": "lounge",
+  "md5": "d90d52239a41a7e65a6d4581863dd669",
+  "bytes": 57290,
+  "bpm": 116.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 127.65,
+  "seconds": 264.1,
+  "note_count": 7180,
+  "tracks": [
+   {
+    "index": 3,
+    "name": "",
+    "channel": 1,
+    "program": 33,
+    "notes": 547,
+    "lo": 28,
+    "hi": 52
+   },
+   {
+    "index": 4,
+    "name": "",
+    "channel": 2,
+    "program": 50,
+    "notes": 13,
+    "lo": 68,
+    "hi": 83
+   },
+   {
+    "index": 5,
+    "name": "",
+    "channel": 3,
+    "program": 73,
+    "notes": 435,
+    "lo": 64,
+    "hi": 86
+   },
+   {
+    "index": 6,
+    "name": "",
+    "channel": 4,
+    "program": 54,
+    "notes": 208,
+    "lo": 57,
+    "hi": 74
+   },
+   {
+    "index": 7,
+    "name": "",
+    "channel": 5,
+    "program": 56,
+    "notes": 190,
+    "lo": 45,
+    "hi": 81
+   },
+   {
+    "index": 8,
+    "name": "",
+    "channel": 6,
+    "program": 61,
+    "notes": 316,
+    "lo": 59,
+    "hi": 86
+   },
+   {
+    "index": 9,
+    "name": "",
+    "channel": 7,
+    "program": 17,
+    "notes": 100,
+    "lo": 65,
+    "hi": 88
+   },
+   {
+    "index": 10,
+    "name": "",
+    "channel": 8,
+    "program": 29,
+    "notes": 503,
+    "lo": 40,
+    "hi": 86
+   },
+   {
+    "index": 11,
+    "name": "",
+    "channel": 9,
+    "program": 0,
+    "notes": 3590,
+    "lo": 28,
+    "hi": 87
+   },
+   {
+    "index": 12,
+    "name": "",
+    "channel": 10,
+    "program": 0,
+    "notes": 1126,
+    "lo": 40,
+    "hi": 69
+   },
+   {
+    "index": 13,
+    "name": "",
+    "channel": 15,
+    "program": null,
+    "notes": 152,
+    "lo": 57,
+    "hi": 74
+   }
+  ]
+ },
+ {
+  "file": "lounge/Sade - Smooth Operator.mid",
+  "style": "lounge",
+  "md5": "520deff71228d5bd93460c88b223ac6f",
+  "bytes": 38359,
+  "bpm": 120.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 135.81,
+  "seconds": 271.6,
+  "note_count": 4672,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "",
+    "channel": 6,
+    "program": 0,
+    "notes": 4672,
+    "lo": 26,
+    "hi": 93
+   }
+  ]
+ },
+ {
+  "file": "lounge/lounge.mid",
+  "style": "lounge",
+  "md5": "dc7ae2b677bc399a3ae29edda7769f04",
+  "bytes": 1790,
+  "bpm": 120.0,
+  "timesig": [
+   7,
+   8
+  ],
+  "bars": 17.1,
+  "seconds": 29.9,
+  "note_count": 204,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Violin",
+    "channel": 1,
+    "program": 40,
+    "notes": 67,
+    "lo": 58,
+    "hi": 78
+   },
+   {
+    "index": 2,
+    "name": "Violin",
+    "channel": 2,
+    "program": 40,
+    "notes": 26,
+    "lo": 55,
+    "hi": 73
+   },
+   {
+    "index": 3,
+    "name": "Viola",
+    "channel": 3,
+    "program": 41,
+    "notes": 29,
+    "lo": 51,
+    "hi": 66
+   },
+   {
+    "index": 4,
+    "name": "Cello",
+    "channel": 4,
+    "program": 42,
+    "notes": 27,
+    "lo": 43,
+    "hi": 60
+   },
+   {
+    "index": 5,
+    "name": "Contrabass",
+    "channel": 5,
+    "program": 43,
+    "notes": 55,
+    "lo": 27,
+    "hi": 41
+   }
+  ]
+ },
+ {
+  "file": "mystery/Clodhopper - Mystery.mid",
+  "style": "mystery",
+  "md5": "bd5fbf55e520b6554c9533bfc1b32a09",
+  "bytes": 610,
+  "bpm": 170.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 8.0,
+  "seconds": 11.3,
+  "note_count": 47,
+  "tracks": [
+   {
+    "index": 2,
+    "name": "MIDI out",
+    "channel": 0,
+    "program": null,
+    "notes": 47,
+    "lo": 74,
+    "hi": 86
+   }
+  ]
+ },
+ {
+  "file": "mystery/DJ Mystery - Type Face.mid",
+  "style": "mystery",
+  "md5": "e88a36a5d5e4789c8b72a94c4fe25e71",
+  "bytes": 552,
+  "bpm": 146.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 8.0,
+  "seconds": 13.2,
+  "note_count": 36,
+  "tracks": [
+   {
+    "index": 2,
+    "name": "NN-XT 2",
+    "channel": 0,
+    "program": 16,
+    "notes": 36,
+    "lo": 61,
+    "hi": 64
+   }
+  ]
+ },
+ {
+  "file": "mystery/Detective Conan - 5th Opening.mid",
+  "style": "mystery",
+  "md5": "2b2f790bd7af04aa46b4c1ea40a4472a",
+  "bytes": 8451,
+  "bpm": 120.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 143.06,
+  "seconds": 286.1,
+  "note_count": 1218,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 0,
+    "program": 0,
+    "notes": 651,
+    "lo": 57,
+    "hi": 86
+   },
+   {
+    "index": 1,
+    "name": "",
+    "channel": 0,
+    "program": null,
+    "notes": 567,
+    "lo": 40,
+    "hi": 62
+   }
+  ]
+ },
+ {
+  "file": "mystery/Detective Conan - Detective Conan.mid",
+  "style": "mystery",
+  "md5": "d345054d040d521a25d0dfd48f92bb54",
+  "bytes": 13707,
+  "bpm": 132.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 81.91,
+  "seconds": 148.9,
+  "note_count": 1443,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Acoustic Grand Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 1443,
+    "lo": 36,
+    "hi": 87
+   }
+  ]
+ },
+ {
+  "file": "mystery/Detective Conan - Meitantei Conan Theme.mid",
+  "style": "mystery",
+  "md5": "e987419e374a24c69e90f5ad7e736fdb",
+  "bytes": 13749,
+  "bpm": 131.95,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 81.91,
+  "seconds": 149.0,
+  "note_count": 1450,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 1450,
+    "lo": 36,
+    "hi": 87
+   }
+  ]
+ },
+ {
+  "file": "mystery/Detective Conan - Nanatsu no Umi.mid",
+  "style": "mystery",
+  "md5": "160b8c253794345419f9206f656af358",
+  "bytes": 28000,
+  "bpm": 94.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 127.0,
+  "seconds": 324.3,
+  "note_count": 2767,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Acoustic Grand Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 2049,
+    "lo": 29,
+    "hi": 101
+   },
+   {
+    "index": 2,
+    "name": "Voice",
+    "channel": 1,
+    "program": 0,
+    "notes": 718,
+    "lo": 55,
+    "hi": 74
+   }
+  ]
+ },
+ {
+  "file": "mystery/Detective Conan - Negaigoto Hitotsu Dake.mid",
+  "style": "mystery",
+  "md5": "3043cabbb4fac430929244f2b9285a2e",
+  "bytes": 10869,
+  "bpm": 122.97,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 135.42,
+  "seconds": 264.3,
+  "note_count": 1098,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": null,
+    "notes": 1098,
+    "lo": 31,
+    "hi": 86
+   }
+  ]
+ },
+ {
+  "file": "mystery/Dj Mystery - Punani.mid",
+  "style": "mystery",
+  "md5": "cdb567dbf96731cbe9bd2d047f5cc6e8",
+  "bytes": 961,
+  "bpm": 140.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 1.98,
+  "seconds": 3.4,
+  "note_count": 14,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Grand piano (MIDI)",
+    "channel": 0,
+    "program": 0,
+    "notes": 14,
+    "lo": 57,
+    "hi": 62
+   }
+  ]
+ },
+ {
+  "file": "mystery/Dj Tatana Vs The Mystery - Soul Cry (Sam Sharp Remix).mid",
+  "style": "mystery",
+  "md5": "a4b967b1b048af321a3e1d719f8b4d11",
+  "bytes": 1728,
+  "bpm": 131.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 7.92,
+  "seconds": 14.5,
+  "note_count": 201,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Main Melody",
+    "channel": 0,
+    "program": 62,
+    "notes": 201,
+    "lo": 47,
+    "hi": 78
+   }
+  ]
+ },
+ {
+  "file": "mystery/Kingdom Hearts_ Chain of Memories - Magical Mystery.mid",
+  "style": "mystery",
+  "md5": "63262644290b3cd4e384ca45461f9795",
+  "bytes": 1457,
+  "bpm": 60.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 8.57,
+  "seconds": 34.3,
+  "note_count": 171,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 0,
+    "program": 0,
+    "notes": 171,
+    "lo": 26,
+    "hi": 102
+   }
+  ]
+ },
+ {
+  "file": "mystery/Phoenix Wright Ace Attorney - Suspense.mid",
+  "style": "mystery",
+  "md5": "181541005cfd0ebf759b270a96bfe6f2",
+  "bytes": 5624,
+  "bpm": 140.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 20.0,
+  "seconds": 34.3,
+  "note_count": 640,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 1,
+    "notes": 640,
+    "lo": 36,
+    "hi": 53
+   }
+  ]
+ },
+ {
+  "file": "mystery/Suspense.mid",
+  "style": "mystery",
+  "md5": "a55b3c0dc986efd8205b5ce285028959",
+  "bytes": 4662,
+  "bpm": 275.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 43.0,
+  "seconds": 37.5,
+  "note_count": 427,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "",
+    "channel": 9,
+    "program": 0,
+    "notes": 86,
+    "lo": 42,
+    "hi": 42
+   },
+   {
+    "index": 2,
+    "name": "",
+    "channel": 0,
+    "program": 56,
+    "notes": 25,
+    "lo": 69,
+    "hi": 81
+   },
+   {
+    "index": 3,
+    "name": "",
+    "channel": 1,
+    "program": 64,
+    "notes": 25,
+    "lo": 70,
+    "hi": 76
+   },
+   {
+    "index": 4,
+    "name": "",
+    "channel": 3,
+    "program": 66,
+    "notes": 1,
+    "lo": 67,
+    "hi": 67
+   },
+   {
+    "index": 5,
+    "name": "",
+    "channel": 2,
+    "program": 65,
+    "notes": 25,
+    "lo": 62,
+    "hi": 74
+   },
+   {
+    "index": 6,
+    "name": "",
+    "channel": 4,
+    "program": 57,
+    "notes": 1,
+    "lo": 72,
+    "hi": 72
+   },
+   {
+    "index": 7,
+    "name": "",
+    "channel": 6,
+    "program": 35,
+    "notes": 84,
+    "lo": 50,
+    "hi": 53
+   },
+   {
+    "index": 8,
+    "name": "",
+    "channel": 5,
+    "program": 0,
+    "notes": 180,
+    "lo": 62,
+    "hi": 70
+   }
+  ]
+ },
+ {
+  "file": "neon/TECHNO-2.MID",
+  "style": "neon",
+  "md5": "b58ae1e65e3710d18dacea1f33088955",
+  "bytes": 42133,
+  "bpm": 130.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 90.5,
+  "seconds": 167.1,
+  "note_count": 4924,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 9,
+    "program": 95,
+    "notes": 4924,
+    "lo": 27,
+    "hi": 75
+   }
+  ]
+ },
+ {
+  "file": "neon/TECHNO-4.MID",
+  "style": "neon",
+  "md5": "22987a2b2a0a62071655c05ea00894f4",
+  "bytes": 17697,
+  "bpm": 170.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 59.0,
+  "seconds": 83.3,
+  "note_count": 2052,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "OVERDRIVE",
+    "channel": 1,
+    "program": 29,
+    "notes": 102,
+    "lo": 40,
+    "hi": 55
+   },
+   {
+    "index": 2,
+    "name": "SLAPBASS 1",
+    "channel": 2,
+    "program": 36,
+    "notes": 182,
+    "lo": 26,
+    "hi": 43
+   },
+   {
+    "index": 3,
+    "name": "MUTED GTR",
+    "channel": 3,
+    "program": 28,
+    "notes": 164,
+    "lo": 65,
+    "hi": 76
+   },
+   {
+    "index": 4,
+    "name": "BRASS 1",
+    "channel": 4,
+    "program": 61,
+    "notes": 120,
+    "lo": 50,
+    "hi": 71
+   },
+   {
+    "index": 5,
+    "name": "MUTED GTR",
+    "channel": 5,
+    "program": 40,
+    "notes": 182,
+    "lo": 26,
+    "hi": 43
+   },
+   {
+    "index": 6,
+    "name": "TIMPANI",
+    "channel": 6,
+    "program": 47,
+    "notes": 222,
+    "lo": 40,
+    "hi": 71
+   },
+   {
+    "index": 7,
+    "name": "MUTED GTR",
+    "channel": 7,
+    "program": 28,
+    "notes": 164,
+    "lo": 65,
+    "hi": 76
+   },
+   {
+    "index": 8,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": 0,
+    "notes": 916,
+    "lo": 36,
+    "hi": 49
+   }
+  ]
+ },
+ {
   "file": "newage/Accadia - Blind Visions (Accadia Ambient Mix).mid",
   "style": "newage",
   "md5": "02f732ea211fee7927819459fe0c45f2",
@@ -10486,6 +14155,738 @@
     "notes": 2502,
     "lo": 41,
     "hi": 89
+   }
+  ]
+ },
+ {
+  "file": "night/050620B (The Children of the Night).MID",
+  "style": "night",
+  "md5": "294b9af9e1b8a69218678d562a172d08",
+  "bytes": 61297,
+  "bpm": 120.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 117.0,
+  "seconds": 234.0,
+  "note_count": 9527,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Soprano",
+    "channel": 0,
+    "program": 85,
+    "notes": 400,
+    "lo": 61,
+    "hi": 78
+   },
+   {
+    "index": 2,
+    "name": "Alto",
+    "channel": 1,
+    "program": 88,
+    "notes": 312,
+    "lo": 57,
+    "hi": 74
+   },
+   {
+    "index": 3,
+    "name": "Tenor",
+    "channel": 2,
+    "program": 52,
+    "notes": 344,
+    "lo": 54,
+    "hi": 67
+   },
+   {
+    "index": 4,
+    "name": "Bass",
+    "channel": 3,
+    "program": 91,
+    "notes": 336,
+    "lo": 38,
+    "hi": 57
+   },
+   {
+    "index": 5,
+    "name": "Piano (hi)",
+    "channel": 4,
+    "program": 0,
+    "notes": 1726,
+    "lo": 54,
+    "hi": 86
+   },
+   {
+    "index": 6,
+    "name": "Piano (lo)",
+    "channel": 5,
+    "program": 0,
+    "notes": 414,
+    "lo": 26,
+    "hi": 55
+   },
+   {
+    "index": 7,
+    "name": "Fiddle",
+    "channel": 6,
+    "program": 110,
+    "notes": 486,
+    "lo": 61,
+    "hi": 90
+   },
+   {
+    "index": 8,
+    "name": "Guitar",
+    "channel": 7,
+    "program": 25,
+    "notes": 3404,
+    "lo": 38,
+    "hi": 78
+   },
+   {
+    "index": 9,
+    "name": "Acoustic Bass",
+    "channel": 8,
+    "program": 32,
+    "notes": 386,
+    "lo": 28,
+    "hi": 50
+   },
+   {
+    "index": 10,
+    "name": "GM Drums",
+    "channel": 9,
+    "program": 0,
+    "notes": 1719,
+    "lo": 35,
+    "hi": 56
+   }
+  ]
+ },
+ {
+  "file": "night/All-Night-Long-(Night-Long)-1.mid",
+  "style": "night",
+  "md5": "b7209f349e52d297e44e72e00229c534",
+  "bytes": 95484,
+  "bpm": 108.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 163.23,
+  "seconds": 362.7,
+  "note_count": 10978,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "E.PIANO 2",
+    "channel": 0,
+    "program": 5,
+    "notes": 922,
+    "lo": 47,
+    "hi": 95
+   },
+   {
+    "index": 2,
+    "name": "FINGERDBAS",
+    "channel": 1,
+    "program": 33,
+    "notes": 470,
+    "lo": 30,
+    "hi": 47
+   },
+   {
+    "index": 3,
+    "name": "SYN STR 1",
+    "channel": 2,
+    "program": 50,
+    "notes": 215,
+    "lo": 54,
+    "hi": 88
+   },
+   {
+    "index": 4,
+    "name": "A.PIANO 3",
+    "channel": 3,
+    "program": 2,
+    "notes": 465,
+    "lo": 57,
+    "hi": 71
+   },
+   {
+    "index": 5,
+    "name": "BRASS 1",
+    "channel": 4,
+    "program": 61,
+    "notes": 327,
+    "lo": 47,
+    "hi": 99
+   },
+   {
+    "index": 6,
+    "name": "STEELDRUMS",
+    "channel": 5,
+    "program": 114,
+    "notes": 164,
+    "lo": 57,
+    "hi": 68
+   },
+   {
+    "index": 7,
+    "name": "VOICE OOHS",
+    "channel": 6,
+    "program": 53,
+    "notes": 289,
+    "lo": 64,
+    "hi": 73
+   },
+   {
+    "index": 8,
+    "name": "MARIMBA",
+    "channel": 7,
+    "program": 12,
+    "notes": 1207,
+    "lo": 64,
+    "hi": 76
+   },
+   {
+    "index": 9,
+    "name": "STRINGS",
+    "channel": 8,
+    "program": 48,
+    "notes": 73,
+    "lo": 59,
+    "hi": 92
+   },
+   {
+    "index": 10,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": 1,
+    "notes": 5811,
+    "lo": 35,
+    "hi": 82
+   },
+   {
+    "index": 11,
+    "name": "WOODBLOCK",
+    "channel": 10,
+    "program": 115,
+    "notes": 637,
+    "lo": 86,
+    "hi": 99
+   },
+   {
+    "index": 12,
+    "name": "FR.HORN",
+    "channel": 11,
+    "program": 60,
+    "notes": 32,
+    "lo": 64,
+    "hi": 78
+   },
+   {
+    "index": 13,
+    "name": "BRASS 1",
+    "channel": 12,
+    "program": 61,
+    "notes": 327,
+    "lo": 35,
+    "hi": 87
+   },
+   {
+    "index": 14,
+    "name": "ICE RAIN",
+    "channel": 13,
+    "program": 96,
+    "notes": 39,
+    "lo": 63,
+    "hi": 75
+   }
+  ]
+ },
+ {
+  "file": "night/All-Night-Long-(Night-Long)-2.mid",
+  "style": "night",
+  "md5": "03ac9ba2a5e312470b2ca8476d6b16fd",
+  "bytes": 133783,
+  "bpm": 108.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 174.52,
+  "seconds": 387.8,
+  "note_count": 14336,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "ALL NIGHT LONG                  ;Words and music by Lionel Richie",
+    "channel": 9,
+    "program": 108,
+    "notes": 14336,
+    "lo": 27,
+    "hi": 99
+   }
+  ]
+ },
+ {
+  "file": "night/Beethoven-Moonlight-Sonata.mid",
+  "style": "night",
+  "md5": "3cb2f37a8f74f93a60d31c1b818ba43f",
+  "bytes": 9574,
+  "bpm": 25.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 69.0,
+  "seconds": 662.4,
+  "note_count": 1145,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "1st Mvmt Sonata No.14, Opus 27, No.2",
+    "channel": 0,
+    "program": 0,
+    "notes": 722,
+    "lo": 57,
+    "hi": 87
+   },
+   {
+    "index": 2,
+    "name": "Sonata Quasi Una Fantasia ",
+    "channel": 0,
+    "program": 0,
+    "notes": 423,
+    "lo": 29,
+    "hi": 56
+   }
+  ]
+ },
+ {
+  "file": "night/Children Of Bodom - Silent Night Bodom Night.mid",
+  "style": "night",
+  "md5": "cfa0338db395ffa8337791f3f55ce0e7",
+  "bytes": 59607,
+  "bpm": 240.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 188.0,
+  "seconds": 188.0,
+  "note_count": 6883,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Lead Guitar",
+    "channel": 0,
+    "program": 30,
+    "notes": 1112,
+    "lo": 38,
+    "hi": 86
+   },
+   {
+    "index": 2,
+    "name": "Rhytm Guitar",
+    "channel": 1,
+    "program": 30,
+    "notes": 1597,
+    "lo": 38,
+    "hi": 65
+   },
+   {
+    "index": 3,
+    "name": "Additional Guitars",
+    "channel": 2,
+    "program": 30,
+    "notes": 279,
+    "lo": 38,
+    "hi": 72
+   },
+   {
+    "index": 4,
+    "name": "Bass",
+    "channel": 3,
+    "program": 34,
+    "notes": 894,
+    "lo": 26,
+    "hi": 50
+   },
+   {
+    "index": 5,
+    "name": "Percussion",
+    "channel": 9,
+    "program": 0,
+    "notes": 2243,
+    "lo": 36,
+    "hi": 57
+   },
+   {
+    "index": 6,
+    "name": "Keyboards",
+    "channel": 5,
+    "program": 46,
+    "notes": 758,
+    "lo": 50,
+    "hi": 89
+   }
+  ]
+ },
+ {
+  "file": "night/Chrono Trigger - Moonlight Parade.mid",
+  "style": "night",
+  "md5": "6123609dd7402891de0ace0a0578307f",
+  "bytes": 10073,
+  "bpm": 115.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 69.99,
+  "seconds": 146.1,
+  "note_count": 1138,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Acoustic Grand Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 1138,
+    "lo": 31,
+    "hi": 93
+   }
+  ]
+ },
+ {
+  "file": "night/Dream-A-Little-Dream-Of-Me.mid",
+  "style": "night",
+  "md5": "e4b8fb43f74da5d83e6c6066131cf6e2",
+  "bytes": 28466,
+  "bpm": 88.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 77.97,
+  "seconds": 212.6,
+  "note_count": 3275,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Melody",
+    "channel": 0,
+    "program": 53,
+    "notes": 268,
+    "lo": 55,
+    "hi": 71
+   },
+   {
+    "index": 2,
+    "name": "Guitar",
+    "channel": 1,
+    "program": 24,
+    "notes": 832,
+    "lo": 41,
+    "hi": 77
+   },
+   {
+    "index": 3,
+    "name": "Fret Nois",
+    "channel": 2,
+    "program": 120,
+    "notes": 4,
+    "lo": 54,
+    "hi": 60
+   },
+   {
+    "index": 4,
+    "name": "Piano",
+    "channel": 3,
+    "program": 3,
+    "notes": 1065,
+    "lo": 36,
+    "hi": 96
+   },
+   {
+    "index": 5,
+    "name": "Choir",
+    "channel": 4,
+    "program": 52,
+    "notes": 74,
+    "lo": 57,
+    "hi": 72
+   },
+   {
+    "index": 6,
+    "name": "Ac.Bass",
+    "channel": 5,
+    "program": 32,
+    "notes": 248,
+    "lo": 35,
+    "hi": 52
+   },
+   {
+    "index": 7,
+    "name": "Drums",
+    "channel": 9,
+    "program": 32,
+    "notes": 784,
+    "lo": 36,
+    "hi": 54
+   }
+  ]
+ },
+ {
+  "file": "night/Dream-Baby-(How-Long-Must-I-Dream).mid",
+  "style": "night",
+  "md5": "33a90384298f516389549914e37d8bae",
+  "bytes": 42062,
+  "bpm": 163.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 109.48,
+  "seconds": 161.2,
+  "note_count": 4648,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "STEEL GTR",
+    "channel": 0,
+    "program": 25,
+    "notes": 1726,
+    "lo": 40,
+    "hi": 67
+   },
+   {
+    "index": 2,
+    "name": "ACOU BASS",
+    "channel": 1,
+    "program": 32,
+    "notes": 290,
+    "lo": 29,
+    "hi": 52
+   },
+   {
+    "index": 3,
+    "name": "STEEL GTR",
+    "channel": 2,
+    "program": 25,
+    "notes": 1160,
+    "lo": 40,
+    "hi": 67
+   },
+   {
+    "index": 4,
+    "name": "MELODY",
+    "channel": 3,
+    "program": 24,
+    "notes": 199,
+    "lo": 64,
+    "hi": 79
+   },
+   {
+    "index": 5,
+    "name": "SYNVOX",
+    "channel": 5,
+    "program": 54,
+    "notes": 150,
+    "lo": 63,
+    "hi": 79
+   },
+   {
+    "index": 6,
+    "name": "SLOWSTRING",
+    "channel": 6,
+    "program": 49,
+    "notes": 218,
+    "lo": 55,
+    "hi": 91
+   },
+   {
+    "index": 7,
+    "name": "STRINGS",
+    "channel": 7,
+    "program": 48,
+    "notes": 101,
+    "lo": 38,
+    "hi": 53
+   },
+   {
+    "index": 8,
+    "name": "BRASS 1",
+    "channel": 8,
+    "program": 61,
+    "notes": 144,
+    "lo": 64,
+    "hi": 81
+   },
+   {
+    "index": 9,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": null,
+    "notes": 613,
+    "lo": 35,
+    "hi": 55
+   },
+   {
+    "index": 10,
+    "name": "TROMBONE",
+    "channel": 10,
+    "program": 57,
+    "notes": 47,
+    "lo": 29,
+    "hi": 50
+   }
+  ]
+ },
+ {
+  "file": "night/Noisecontrollers - Night After Night.mid",
+  "style": "night",
+  "md5": "2286f7530d7d4a8acdc78fb1af5df2da",
+  "bytes": 828,
+  "bpm": 150.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 9.93,
+  "seconds": 15.9,
+  "note_count": 48,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Organs (MIDI)",
+    "channel": 0,
+    "program": 0,
+    "notes": 12,
+    "lo": 72,
+    "hi": 81
+   },
+   {
+    "index": 2,
+    "name": "Main Lead (MIDI)",
+    "channel": 1,
+    "program": 0,
+    "notes": 36,
+    "lo": 63,
+    "hi": 82
+   }
+  ]
+ },
+ {
+  "file": "night/Piano Sonata n14 op27  ''Moonlight''.mid",
+  "style": "night",
+  "md5": "7ab96ccb50be97c2903009fc60ae819d",
+  "bytes": 73348,
+  "bpm": 135.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 442.0,
+  "seconds": 785.8,
+  "note_count": 8613,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano Right Hand",
+    "channel": 1,
+    "program": 1,
+    "notes": 4256,
+    "lo": 43,
+    "hi": 88
+   },
+   {
+    "index": 2,
+    "name": "Piano Left Hand",
+    "channel": 2,
+    "program": 1,
+    "notes": 3722,
+    "lo": 18,
+    "hi": 76
+   },
+   {
+    "index": 3,
+    "name": "Right Hand Augmentation...",
+    "channel": 4,
+    "program": 2,
+    "notes": 635,
+    "lo": 49,
+    "hi": 87
+   }
+  ]
+ },
+ {
+  "file": "night/Piano Sonata n14 op27 1mov ''Moonlight''.mid",
+  "style": "night",
+  "md5": "edd78c2cfac2ed6401cafb8071b09023",
+  "bytes": 15588,
+  "bpm": 31.34,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 69.0,
+  "seconds": 528.4,
+  "note_count": 1144,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "PIano right second",
+    "channel": 0,
+    "program": 0,
+    "notes": 809,
+    "lo": 37,
+    "hi": 87
+   },
+   {
+    "index": 2,
+    "name": "Piano left",
+    "channel": 0,
+    "program": 0,
+    "notes": 218,
+    "lo": 29,
+    "hi": 57
+   },
+   {
+    "index": 3,
+    "name": "Piano right first",
+    "channel": 0,
+    "program": 0,
+    "notes": 117,
+    "lo": 44,
+    "hi": 76
+   }
+  ]
+ },
+ {
+  "file": "night/Sailor Moon - Moonlight Densetsu - Moonlight Legend.mid",
+  "style": "night",
+  "md5": "6aac4f4226bde82cc32fa5d8c135f3bd",
+  "bytes": 10709,
+  "bpm": 140.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 97.12,
+  "seconds": 166.5,
+  "note_count": 1233,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Acoustic Grand Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 1233,
+    "lo": 36,
+    "hi": 84
    }
   ]
  },
@@ -11953,6 +16354,354 @@
     "notes": 196,
     "lo": 43,
     "hi": 67
+   }
+  ]
+ },
+ {
+  "file": "retro/16 Bit Lolitas feat Jennifer Horne - Nobody Seems To Care.mid",
+  "style": "retro",
+  "md5": "3222a8e5357a1d4c4cf63d0abadb4c24",
+  "bytes": 1949,
+  "bpm": 128.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 8.0,
+  "seconds": 15.0,
+  "note_count": 58,
+  "tracks": [
+   {
+    "index": 5,
+    "name": "Bass (MIDI)",
+    "channel": 4,
+    "program": 0,
+    "notes": 8,
+    "lo": 48,
+    "hi": 55
+   },
+   {
+    "index": 6,
+    "name": "string (MIDI)",
+    "channel": 5,
+    "program": 0,
+    "notes": 28,
+    "lo": 67,
+    "hi": 82
+   },
+   {
+    "index": 7,
+    "name": "Piano (MIDI)",
+    "channel": 6,
+    "program": 0,
+    "notes": 22,
+    "lo": 70,
+    "hi": 94
+   }
+  ]
+ },
+ {
+  "file": "retro/A-Little-Bit-More-1.mid",
+  "style": "retro",
+  "md5": "53e6ba4004c298bfdaa8c617913282d7",
+  "bytes": 55529,
+  "bpm": 92.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 72.0,
+  "seconds": 187.8,
+  "note_count": 4581,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "E.PIANO 1",
+    "channel": 0,
+    "program": 4,
+    "notes": 1107,
+    "lo": 38,
+    "hi": 86
+   },
+   {
+    "index": 2,
+    "name": "FINGERDBAS",
+    "channel": 1,
+    "program": 33,
+    "notes": 330,
+    "lo": 28,
+    "hi": 43
+   },
+   {
+    "index": 3,
+    "name": "SLOWSTRING",
+    "channel": 2,
+    "program": 49,
+    "notes": 370,
+    "lo": 43,
+    "hi": 90
+   },
+   {
+    "index": 4,
+    "name": "MELODY",
+    "channel": 3,
+    "program": 35,
+    "notes": 305,
+    "lo": 47,
+    "hi": 65
+   },
+   {
+    "index": 5,
+    "name": "JAZZ GTR",
+    "channel": 4,
+    "program": 26,
+    "notes": 178,
+    "lo": 43,
+    "hi": 81
+   },
+   {
+    "index": 6,
+    "name": "JAZZ GTR",
+    "channel": 5,
+    "program": 26,
+    "notes": 1,
+    "lo": 67,
+    "hi": 67
+   },
+   {
+    "index": 7,
+    "name": "STEEL GTR",
+    "channel": 6,
+    "program": 25,
+    "notes": 965,
+    "lo": 40,
+    "hi": 69
+   },
+   {
+    "index": 8,
+    "name": "+ORCHESTRA",
+    "channel": 7,
+    "program": 48,
+    "notes": 20,
+    "lo": 71,
+    "hi": 86
+   },
+   {
+    "index": 9,
+    "name": "FLUTE",
+    "channel": 8,
+    "program": 73,
+    "notes": 40,
+    "lo": 62,
+    "hi": 84
+   },
+   {
+    "index": 10,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": 0,
+    "notes": 1265,
+    "lo": 36,
+    "hi": 64
+   }
+  ]
+ },
+ {
+  "file": "retro/A-Little-Bit-More-2.mid",
+  "style": "retro",
+  "md5": "202b6e4a9afab5fcae68e4391f2bcb59",
+  "bytes": 30185,
+  "bpm": 92.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 81.0,
+  "seconds": 211.3,
+  "note_count": 3288,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "0552MORE",
+    "channel": 5,
+    "program": 24,
+    "notes": 3288,
+    "lo": 28,
+    "hi": 90
+   }
+  ]
+ },
+ {
+  "file": "retro/Carl Louis & Martin Danielle - Little Bit.mid",
+  "style": "retro",
+  "md5": "8379438db1aa2f82220fd40d84a893de",
+  "bytes": 1507,
+  "bpm": 128.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 7.94,
+  "seconds": 14.9,
+  "note_count": 192,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "NS2K - John / djrenco\u0000",
+    "channel": 0,
+    "program": 0,
+    "notes": 192,
+    "lo": 35,
+    "hi": 76
+   }
+  ]
+ },
+ {
+  "file": "retro/GINA G.Ohh ahh ...just a little bit K.mid",
+  "style": "retro",
+  "md5": "93d98d8534d9d44044c67eba1ca7532b",
+  "bytes": 72705,
+  "bpm": 131.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 112.22,
+  "seconds": 205.6,
+  "note_count": 9521,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "PROGRAM",
+    "channel": 1,
+    "program": 0,
+    "notes": 9521,
+    "lo": 30,
+    "hi": 78
+   }
+  ]
+ },
+ {
+  "file": "retro/Give-A-Little-Bit-More.mid",
+  "style": "retro",
+  "md5": "f4c4588f85b49f62917353cdf62a8776",
+  "bytes": 113518,
+  "bpm": 92.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 94.81,
+  "seconds": 247.3,
+  "note_count": 13837,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "STEEL GTR",
+    "channel": 0,
+    "program": 25,
+    "notes": 3043,
+    "lo": 40,
+    "hi": 78
+   },
+   {
+    "index": 2,
+    "name": "FINGERDBAS",
+    "channel": 1,
+    "program": 33,
+    "notes": 321,
+    "lo": 28,
+    "hi": 55
+   },
+   {
+    "index": 3,
+    "name": "STEEL GTR",
+    "channel": 2,
+    "program": 25,
+    "notes": 3419,
+    "lo": 40,
+    "hi": 74
+   },
+   {
+    "index": 4,
+    "name": "MELODY",
+    "channel": 3,
+    "program": 46,
+    "notes": 306,
+    "lo": 66,
+    "hi": 84
+   },
+   {
+    "index": 5,
+    "name": "NYLON GTR",
+    "channel": 4,
+    "program": 24,
+    "notes": 78,
+    "lo": 57,
+    "hi": 71
+   },
+   {
+    "index": 6,
+    "name": "SYNVOX",
+    "channel": 5,
+    "program": 54,
+    "notes": 12,
+    "lo": 73,
+    "hi": 79
+   },
+   {
+    "index": 7,
+    "name": "A.PIANO 2",
+    "channel": 6,
+    "program": 1,
+    "notes": 138,
+    "lo": 43,
+    "hi": 64
+   },
+   {
+    "index": 8,
+    "name": "ORGAN 2",
+    "channel": 7,
+    "program": 17,
+    "notes": 253,
+    "lo": 62,
+    "hi": 86
+   },
+   {
+    "index": 9,
+    "name": "ALTO SAX",
+    "channel": 8,
+    "program": 65,
+    "notes": 108,
+    "lo": 54,
+    "hi": 81
+   },
+   {
+    "index": 10,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": null,
+    "notes": 2422,
+    "lo": 35,
+    "hi": 69
+   },
+   {
+    "index": 11,
+    "name": "STEEL GTR",
+    "channel": 10,
+    "program": 25,
+    "notes": 3551,
+    "lo": 40,
+    "hi": 73
+   },
+   {
+    "index": 12,
+    "name": "CLEAN GTR",
+    "channel": 11,
+    "program": 27,
+    "notes": 186,
+    "lo": 57,
+    "hi": 73
    }
   ]
  },
@@ -13545,6 +18294,1895 @@
     "notes": 646,
     "lo": 29,
     "hi": 67
+   }
+  ]
+ },
+ {
+  "file": "seaside/A-Day-At-The-Beach.mid",
+  "style": "seaside",
+  "md5": "1b12ec434abfea6d1b9814649ddb1bed",
+  "bytes": 6177,
+  "bpm": 137.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 39.98,
+  "seconds": 70.0,
+  "note_count": 992,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "JAZZ GUITAR",
+    "channel": 0,
+    "program": 26,
+    "notes": 992,
+    "lo": 45,
+    "hi": 86
+   }
+  ]
+ },
+ {
+  "file": "seaside/Airbase - Ocean Realm.mid",
+  "style": "seaside",
+  "md5": "e4240d56ef66abb9ad70062e9a3d482b",
+  "bytes": 2447,
+  "bpm": 138.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 8.0,
+  "seconds": 13.9,
+  "note_count": 208,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "lead synth",
+    "channel": 0,
+    "program": null,
+    "notes": 28,
+    "lo": 61,
+    "hi": 71
+   },
+   {
+    "index": 2,
+    "name": "2nd synth",
+    "channel": 0,
+    "program": null,
+    "notes": 73,
+    "lo": 56,
+    "hi": 90
+   },
+   {
+    "index": 3,
+    "name": "bassline",
+    "channel": 0,
+    "program": null,
+    "notes": 96,
+    "lo": 37,
+    "hi": 54
+   },
+   {
+    "index": 4,
+    "name": "strings",
+    "channel": 0,
+    "program": null,
+    "notes": 11,
+    "lo": 42,
+    "hi": 68
+   }
+  ]
+ },
+ {
+  "file": "seaside/Alex M.O.R.P.H. & Chriss Ortega - Ocean Drive.mid",
+  "style": "seaside",
+  "md5": "8e5980c5893655cd0fb8f35c7e171458",
+  "bytes": 2210,
+  "bpm": 132.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 16.0,
+  "seconds": 29.1,
+  "note_count": 189,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Pad",
+    "channel": 2,
+    "program": 89,
+    "notes": 29,
+    "lo": 29,
+    "hi": 65
+   },
+   {
+    "index": 2,
+    "name": "Theme",
+    "channel": 3,
+    "program": 84,
+    "notes": 64,
+    "lo": 63,
+    "hi": 72
+   },
+   {
+    "index": 3,
+    "name": "Bass",
+    "channel": 4,
+    "program": 29,
+    "notes": 96,
+    "lo": 41,
+    "hi": 46
+   }
+  ]
+ },
+ {
+  "file": "seaside/Andr - Ocean.mid",
+  "style": "seaside",
+  "md5": "1e54ab76160d83f33e8890f774fdd694",
+  "bytes": 4274,
+  "bpm": 138.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 15.99,
+  "seconds": 27.8,
+  "note_count": 407,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "synth (MIDI) (MIDI)",
+    "channel": 0,
+    "program": 0,
+    "notes": 7,
+    "lo": 69,
+    "hi": 78
+   },
+   {
+    "index": 2,
+    "name": "bass (MIDI) (MIDI)",
+    "channel": 1,
+    "program": 0,
+    "notes": 192,
+    "lo": 54,
+    "hi": 71
+   },
+   {
+    "index": 3,
+    "name": "melody (MIDI) (MIDI)",
+    "channel": 2,
+    "program": 0,
+    "notes": 192,
+    "lo": 54,
+    "hi": 86
+   },
+   {
+    "index": 4,
+    "name": "pad (MIDI) (MIDI)",
+    "channel": 3,
+    "program": 0,
+    "notes": 16,
+    "lo": 54,
+    "hi": 83
+   }
+  ]
+ },
+ {
+  "file": "seaside/Anton Firtich - Rain Over The Ocean.mid",
+  "style": "seaside",
+  "md5": "4da86f6c86f4ed56d2ed645fc93ff828",
+  "bytes": 1626,
+  "bpm": 131.79,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 8.0,
+  "seconds": 14.6,
+  "note_count": 122,
+  "tracks": [
+   {
+    "index": 4,
+    "name": "Synth Melody\u0000",
+    "channel": 1,
+    "program": 88,
+    "notes": 10,
+    "lo": 62,
+    "hi": 74
+   },
+   {
+    "index": 5,
+    "name": "Bassline\u0000",
+    "channel": 2,
+    "program": 38,
+    "notes": 32,
+    "lo": 43,
+    "hi": 47
+   },
+   {
+    "index": 6,
+    "name": "Percussion\u0000",
+    "channel": 9,
+    "program": 0,
+    "notes": 80,
+    "lo": 36,
+    "hi": 42
+   }
+  ]
+ },
+ {
+  "file": "seaside/Baten Kaitos_ Eternal Wings and the Lost Ocean - Soul Poetry.mid",
+  "style": "seaside",
+  "md5": "44cd5189890909cc2ae0cc94013e32ff",
+  "bytes": 2823,
+  "bpm": 55.0,
+  "timesig": [
+   6,
+   8
+  ],
+  "bars": 29.9,
+  "seconds": 97.9,
+  "note_count": 305,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "",
+    "channel": 0,
+    "program": 0,
+    "notes": 208,
+    "lo": 63,
+    "hi": 91
+   },
+   {
+    "index": 2,
+    "name": "",
+    "channel": 1,
+    "program": 0,
+    "notes": 97,
+    "lo": 48,
+    "hi": 70
+   }
+  ]
+ },
+ {
+  "file": "seaside/Beach Boys - California Girls.mid",
+  "style": "seaside",
+  "md5": "d5fe46874dd66257f79d279c54cd4823",
+  "bytes": 42272,
+  "bpm": 118.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 79.0,
+  "seconds": 160.7,
+  "note_count": 5910,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Melody",
+    "channel": 0,
+    "program": 64,
+    "notes": 295,
+    "lo": 54,
+    "hi": 75
+   },
+   {
+    "index": 2,
+    "name": "Organ 1",
+    "channel": 1,
+    "program": 16,
+    "notes": 1428,
+    "lo": 52,
+    "hi": 80
+   },
+   {
+    "index": 3,
+    "name": "Bass",
+    "channel": 2,
+    "program": 35,
+    "notes": 513,
+    "lo": 28,
+    "hi": 44
+   },
+   {
+    "index": 4,
+    "name": "Organ 2",
+    "channel": 3,
+    "program": 64,
+    "notes": 292,
+    "lo": 47,
+    "hi": 71
+   },
+   {
+    "index": 5,
+    "name": "Guitar 1",
+    "channel": 4,
+    "program": 27,
+    "notes": 747,
+    "lo": 45,
+    "hi": 68
+   },
+   {
+    "index": 6,
+    "name": "Guitar 2",
+    "channel": 5,
+    "program": 52,
+    "notes": 104,
+    "lo": 57,
+    "hi": 80
+   },
+   {
+    "index": 7,
+    "name": "Celesta",
+    "channel": 6,
+    "program": 8,
+    "notes": 158,
+    "lo": 90,
+    "hi": 99
+   },
+   {
+    "index": 8,
+    "name": "Sax 1",
+    "channel": 7,
+    "program": 67,
+    "notes": 2,
+    "lo": 45,
+    "hi": 59
+   },
+   {
+    "index": 9,
+    "name": "Sax 2",
+    "channel": 8,
+    "program": 66,
+    "notes": 3,
+    "lo": 59,
+    "hi": 64
+   },
+   {
+    "index": 10,
+    "name": "Drums",
+    "channel": 9,
+    "program": 0,
+    "notes": 1444,
+    "lo": 14,
+    "hi": 59
+   },
+   {
+    "index": 11,
+    "name": "Sax 3",
+    "channel": 10,
+    "program": 66,
+    "notes": 6,
+    "lo": 54,
+    "hi": 61
+   },
+   {
+    "index": 12,
+    "name": "Sax 4",
+    "channel": 11,
+    "program": 65,
+    "notes": 2,
+    "lo": 59,
+    "hi": 67
+   },
+   {
+    "index": 13,
+    "name": "Backing 1",
+    "channel": 12,
+    "program": 73,
+    "notes": 207,
+    "lo": 52,
+    "hi": 73
+   },
+   {
+    "index": 14,
+    "name": "Backing 2",
+    "channel": 13,
+    "program": 73,
+    "notes": 2,
+    "lo": 71,
+    "hi": 71
+   },
+   {
+    "index": 15,
+    "name": "Backing 3",
+    "channel": 14,
+    "program": 73,
+    "notes": 492,
+    "lo": 52,
+    "hi": 68
+   },
+   {
+    "index": 16,
+    "name": "Backing 4",
+    "channel": 15,
+    "program": 73,
+    "notes": 215,
+    "lo": 43,
+    "hi": 75
+   }
+  ]
+ },
+ {
+  "file": "seaside/Beach Boys - Fun Fun Fun.mid",
+  "style": "seaside",
+  "md5": "d674bab2e06f974f8e65c6661bc2e421",
+  "bytes": 62243,
+  "bpm": 157.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 81.83,
+  "seconds": 125.1,
+  "note_count": 7891,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "Fun, Fun, Fun",
+    "channel": 9,
+    "program": 0,
+    "notes": 7891,
+    "lo": 28,
+    "hi": 104
+   }
+  ]
+ },
+ {
+  "file": "seaside/Beach Boys - God Only Knows.mid",
+  "style": "seaside",
+  "md5": "fbdbc6923fb07fb81fe76df8774300f8",
+  "bytes": 20564,
+  "bpm": 119.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 81.87,
+  "seconds": 165.1,
+  "note_count": 2296,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Harpsichord",
+    "channel": 0,
+    "program": 6,
+    "notes": 675,
+    "lo": 40,
+    "hi": 73
+   },
+   {
+    "index": 2,
+    "name": "Bass Guitar",
+    "channel": 1,
+    "program": 32,
+    "notes": 278,
+    "lo": 23,
+    "hi": 59
+   },
+   {
+    "index": 3,
+    "name": "Bass Guitar Snaps",
+    "channel": 2,
+    "program": 28,
+    "notes": 276,
+    "lo": 23,
+    "hi": 59
+   },
+   {
+    "index": 4,
+    "name": "French Horn",
+    "channel": 3,
+    "program": 60,
+    "notes": 84,
+    "lo": 55,
+    "hi": 73
+   },
+   {
+    "index": 5,
+    "name": "Sleighbells",
+    "channel": 9,
+    "program": 0,
+    "notes": 200,
+    "lo": 83,
+    "hi": 83
+   },
+   {
+    "index": 6,
+    "name": "String Section",
+    "channel": 4,
+    "program": 48,
+    "notes": 196,
+    "lo": 42,
+    "hi": 69
+   },
+   {
+    "index": 7,
+    "name": "Clip Clop Percussion",
+    "channel": 8,
+    "program": 126,
+    "notes": 345,
+    "lo": 60,
+    "hi": 84
+   },
+   {
+    "index": 8,
+    "name": "Flutes",
+    "channel": 5,
+    "program": 73,
+    "notes": 28,
+    "lo": 69,
+    "hi": 85
+   },
+   {
+    "index": 9,
+    "name": "Bass Clarinet",
+    "channel": 6,
+    "program": 71,
+    "notes": 19,
+    "lo": 45,
+    "hi": 61
+   },
+   {
+    "index": 10,
+    "name": "Accordion",
+    "channel": 7,
+    "program": 21,
+    "notes": 51,
+    "lo": 54,
+    "hi": 68
+   },
+   {
+    "index": 11,
+    "name": "Snare Drum",
+    "channel": 9,
+    "program": 0,
+    "notes": 52,
+    "lo": 38,
+    "hi": 40
+   },
+   {
+    "index": 12,
+    "name": "Piano",
+    "channel": 10,
+    "program": 0,
+    "notes": 60,
+    "lo": 64,
+    "hi": 71
+   },
+   {
+    "index": 13,
+    "name": "Tabourine",
+    "channel": 9,
+    "program": 0,
+    "notes": 32,
+    "lo": 54,
+    "hi": 54
+   }
+  ]
+ },
+ {
+  "file": "seaside/Beach Boys - In My Room.mid",
+  "style": "seaside",
+  "md5": "8c86c6e469fd191e753ffd7639ce4ea4",
+  "bytes": 11673,
+  "bpm": 85.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 53.98,
+  "seconds": 152.4,
+  "note_count": 1550,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "IN MY ROOM - The Beach Boys",
+    "channel": 9,
+    "program": 99,
+    "notes": 1550,
+    "lo": 24,
+    "hi": 93
+   }
+  ]
+ },
+ {
+  "file": "seaside/Prinzessin-De-Bahia-Tropical.mid",
+  "style": "seaside",
+  "md5": "140d168afde8c5b7a9afe46fcbe4fc38",
+  "bytes": 89261,
+  "bpm": 115.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 89.62,
+  "seconds": 187.0,
+  "note_count": 10380,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "ACOU BASS",
+    "channel": 1,
+    "program": 32,
+    "notes": 329,
+    "lo": 28,
+    "hi": 40
+   },
+   {
+    "index": 2,
+    "name": "JAZZ GTR",
+    "channel": 2,
+    "program": 26,
+    "notes": 108,
+    "lo": 55,
+    "hi": 86
+   },
+   {
+    "index": 3,
+    "name": "SYNBRASS 1",
+    "channel": 3,
+    "program": 62,
+    "notes": 416,
+    "lo": 64,
+    "hi": 79
+   },
+   {
+    "index": 4,
+    "name": "CLEAN GTR",
+    "channel": 4,
+    "program": 27,
+    "notes": 108,
+    "lo": 55,
+    "hi": 86
+   },
+   {
+    "index": 5,
+    "name": "NYLON GTR",
+    "channel": 5,
+    "program": 24,
+    "notes": 4795,
+    "lo": 40,
+    "hi": 64
+   },
+   {
+    "index": 6,
+    "name": "STEEL GTR",
+    "channel": 6,
+    "program": 25,
+    "notes": 2599,
+    "lo": 40,
+    "hi": 64
+   },
+   {
+    "index": 7,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": 0,
+    "notes": 2025,
+    "lo": 36,
+    "hi": 62
+   }
+  ]
+ },
+ {
+  "file": "seaside/Sonic Lost World - Tropical Coast Zone 3 & Lava Mountain Zone 2 (Sea Bottom Segu.mid",
+  "style": "seaside",
+  "md5": "76953756741af7dc8994ed6b2417ac3f",
+  "bytes": 22518,
+  "bpm": 170.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 137.0,
+  "seconds": 193.4,
+  "note_count": 2568,
+  "tracks": [
+   {
+    "index": 3,
+    "name": "Piano 1 - Right (MIDI)",
+    "channel": 1,
+    "program": 0,
+    "notes": 802,
+    "lo": 52,
+    "hi": 84
+   },
+   {
+    "index": 4,
+    "name": "Piano 1 - Left (MIDI)",
+    "channel": 2,
+    "program": 0,
+    "notes": 224,
+    "lo": 24,
+    "hi": 72
+   },
+   {
+    "index": 5,
+    "name": "Piano 2 - Right (MIDI)",
+    "channel": 3,
+    "program": 0,
+    "notes": 238,
+    "lo": 47,
+    "hi": 88
+   },
+   {
+    "index": 6,
+    "name": "Piano 2 - Left (MIDI)",
+    "channel": 4,
+    "program": 0,
+    "notes": 919,
+    "lo": 28,
+    "hi": 48
+   },
+   {
+    "index": 7,
+    "name": "Piano 3 - Right (MIDI)",
+    "channel": 5,
+    "program": 0,
+    "notes": 239,
+    "lo": 67,
+    "hi": 96
+   },
+   {
+    "index": 8,
+    "name": "Piano 3 - Left (MIDI)",
+    "channel": 6,
+    "program": 0,
+    "notes": 146,
+    "lo": 52,
+    "hi": 65
+   }
+  ]
+ },
+ {
+  "file": "sorrow/999_ Nine Hours, Nine Persons, Nine Doors - Morphogenetic Sorrow.mid",
+  "style": "sorrow",
+  "md5": "a452b26d7db285f050eaed5593cb7ae3",
+  "bytes": 4925,
+  "bpm": 120.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 66.0,
+  "seconds": 132.0,
+  "note_count": 672,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 0,
+    "program": 0,
+    "notes": 304,
+    "lo": 65,
+    "hi": 93
+   },
+   {
+    "index": 1,
+    "name": "",
+    "channel": 0,
+    "program": null,
+    "notes": 368,
+    "lo": 21,
+    "hi": 69
+   }
+  ]
+ },
+ {
+  "file": "sorrow/Aion - Forgotten Sorrow.mid",
+  "style": "sorrow",
+  "md5": "4aa39eb0eeff451ac3fc367b011cb63c",
+  "bytes": 12160,
+  "bpm": 39.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 68.0,
+  "seconds": 418.5,
+  "note_count": 1263,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 1263,
+    "lo": 30,
+    "hi": 100
+   }
+  ]
+ },
+ {
+  "file": "sorrow/BanjoKazooie - Freezeezy Peak Boggys Igloo  Sad.mid",
+  "style": "sorrow",
+  "md5": "8361be1ab94b55057bd9c6c6fff47aac",
+  "bytes": 7796,
+  "bpm": 90.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 33.92,
+  "seconds": 90.5,
+  "note_count": 770,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "SmartMusic SoftSynth",
+    "channel": 0,
+    "program": 1,
+    "notes": 770,
+    "lo": 43,
+    "hi": 98
+   }
+  ]
+ },
+ {
+  "file": "sorrow/Card Captor Sakura - I Feel Sad.mid",
+  "style": "sorrow",
+  "md5": "a0cb51ede80f54496f569f6559049fcc",
+  "bytes": 2805,
+  "bpm": 66.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 18.91,
+  "seconds": 68.8,
+  "note_count": 248,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 248,
+    "lo": 31,
+    "hi": 83
+   }
+  ]
+ },
+ {
+  "file": "sorrow/Castlevania Aria of Sorrow - Chapel.mid",
+  "style": "sorrow",
+  "md5": "603e263eecd35ee83b732f130ef65244",
+  "bytes": 13728,
+  "bpm": 140.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 101.0,
+  "seconds": 173.2,
+  "note_count": 1480,
+  "tracks": [
+   {
+    "index": 2,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 1480,
+    "lo": 34,
+    "hi": 94
+   }
+  ]
+ },
+ {
+  "file": "sorrow/Castlevania Aria of Sorrow - Clocktower.mid",
+  "style": "sorrow",
+  "md5": "1c21fff106249391cff0b4fdedaf44a1",
+  "bytes": 9118,
+  "bpm": 110.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 42.75,
+  "seconds": 93.3,
+  "note_count": 967,
+  "tracks": [
+   {
+    "index": 2,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 967,
+    "lo": 31,
+    "hi": 94
+   }
+  ]
+ },
+ {
+  "file": "sorrow/Castlevania Aria of Sorrow - Inner Quarters.mid",
+  "style": "sorrow",
+  "md5": "5436c55def95cb04c47a0f35b1363b54",
+  "bytes": 11392,
+  "bpm": 105.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 82.01,
+  "seconds": 187.4,
+  "note_count": 954,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 954,
+    "lo": 52,
+    "hi": 93
+   }
+  ]
+ },
+ {
+  "file": "sorrow/Chrono Trigger - Sad Theme.mid",
+  "style": "sorrow",
+  "md5": "76f7781a6b24e062abeeb3df47bb6424",
+  "bytes": 2602,
+  "bpm": 80.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 25.0,
+  "seconds": 75.0,
+  "note_count": 239,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Acoustic Grand Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 239,
+    "lo": 36,
+    "hi": 84
+   }
+  ]
+ },
+ {
+  "file": "sorrow/Fairy Tail - Sad Theme (Piano).mid",
+  "style": "sorrow",
+  "md5": "3834f6fc126a6c98fdadfa351b946483",
+  "bytes": 3066,
+  "bpm": 75.75,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 41.0,
+  "seconds": 129.9,
+  "note_count": 423,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "",
+    "channel": 0,
+    "program": 0,
+    "notes": 231,
+    "lo": 67,
+    "hi": 91
+   },
+   {
+    "index": 1,
+    "name": "",
+    "channel": 0,
+    "program": null,
+    "notes": 192,
+    "lo": 36,
+    "hi": 76
+   }
+  ]
+ },
+ {
+  "file": "sorrow/Ten short piano pieces, No.4, Elegy.mid",
+  "style": "sorrow",
+  "md5": "81f7c13fe1c547f3e0b4e37040c08fd8",
+  "bytes": 1711,
+  "bpm": 35.0,
+  "timesig": [
+   5,
+   4
+  ],
+  "bars": 7.8,
+  "seconds": 66.9,
+  "note_count": 174,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 174,
+    "lo": 25,
+    "hi": 127
+   }
+  ]
+ },
+ {
+  "file": "sorrow/elegy.mid",
+  "style": "sorrow",
+  "md5": "265ba9ea92c9efa5919a9be36257e91a",
+  "bytes": 9324,
+  "bpm": 100.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 195.64,
+  "seconds": 469.5,
+  "note_count": 1083,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Slow Str.\u0000",
+    "channel": 0,
+    "program": 49,
+    "notes": 301,
+    "lo": 42,
+    "hi": 84
+   },
+   {
+    "index": 2,
+    "name": "Slow Str.\u0000",
+    "channel": 1,
+    "program": 49,
+    "notes": 752,
+    "lo": 31,
+    "hi": 72
+   },
+   {
+    "index": 3,
+    "name": "Slow Str.\u0000",
+    "channel": 2,
+    "program": 49,
+    "notes": 30,
+    "lo": 36,
+    "hi": 84
+   }
+  ]
+ },
+ {
+  "file": "tender/ATB - Gentle Melody.mid",
+  "style": "tender",
+  "md5": "924d2796fab036ec3291e5a1deb8a55d",
+  "bytes": 354,
+  "bpm": 140.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 7.75,
+  "seconds": 13.3,
+  "note_count": 28,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "unbenannt1",
+    "channel": 0,
+    "program": 0,
+    "notes": 20,
+    "lo": 69,
+    "hi": 85
+   },
+   {
+    "index": 2,
+    "name": "unbenannt2",
+    "channel": 1,
+    "program": 0,
+    "notes": 8,
+    "lo": 38,
+    "hi": 45
+   }
+  ]
+ },
+ {
+  "file": "tender/Activator - Lullaby.mid",
+  "style": "tender",
+  "md5": "9e0fc8ed33f3d3bb2ff897cc98bc3045",
+  "bytes": 377,
+  "bpm": 150.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 4.0,
+  "seconds": 6.4,
+  "note_count": 32,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Main Melody",
+    "channel": 0,
+    "program": null,
+    "notes": 32,
+    "lo": 55,
+    "hi": 72
+   }
+  ]
+ },
+ {
+  "file": "tender/Arty - Gentle Touch.mid",
+  "style": "tender",
+  "md5": "71b964b08f0a16e9d17942f602314f5d",
+  "bytes": 3850,
+  "bpm": 128.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 8.0,
+  "seconds": 15.0,
+  "note_count": 263,
+  "tracks": [
+   {
+    "index": 10,
+    "name": "Main lead",
+    "channel": 0,
+    "program": null,
+    "notes": 64,
+    "lo": 60,
+    "hi": 72
+   },
+   {
+    "index": 11,
+    "name": "bass",
+    "channel": 0,
+    "program": null,
+    "notes": 72,
+    "lo": 46,
+    "hi": 53
+   },
+   {
+    "index": 12,
+    "name": "pluck lead",
+    "channel": 0,
+    "program": null,
+    "notes": 16,
+    "lo": 70,
+    "hi": 70
+   },
+   {
+    "index": 13,
+    "name": "Sub lead",
+    "channel": 0,
+    "program": null,
+    "notes": 40,
+    "lo": 67,
+    "hi": 70
+   },
+   {
+    "index": 14,
+    "name": "sub lead 2",
+    "channel": 0,
+    "program": null,
+    "notes": 24,
+    "lo": 77,
+    "hi": 79
+   },
+   {
+    "index": 15,
+    "name": "Piano",
+    "channel": 0,
+    "program": null,
+    "notes": 29,
+    "lo": 65,
+    "hi": 79
+   },
+   {
+    "index": 16,
+    "name": "pad",
+    "channel": 0,
+    "program": null,
+    "notes": 18,
+    "lo": 48,
+    "hi": 77
+   }
+  ]
+ },
+ {
+  "file": "tender/Aspect-Of-Love-(Love-Changes-Everything).mid",
+  "style": "tender",
+  "md5": "328e796abd0fac128a23fe5ab11f70f8",
+  "bytes": 23878,
+  "bpm": 76.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 74.81,
+  "seconds": 236.2,
+  "note_count": 2771,
+  "tracks": [
+   {
+    "index": 0,
+    "name": "ASPECTSO",
+    "channel": 9,
+    "program": 0,
+    "notes": 2771,
+    "lo": 27,
+    "hi": 92
+   }
+  ]
+ },
+ {
+  "file": "tender/BOYZONE.I love the way you love me K.mid",
+  "style": "tender",
+  "md5": "ae3e5d3520f0bdbba938073853e26338",
+  "bytes": 59537,
+  "bpm": 59.12,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 80.32,
+  "seconds": 326.1,
+  "note_count": 7329,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "",
+    "channel": 9,
+    "program": null,
+    "notes": 998,
+    "lo": 36,
+    "hi": 57
+   },
+   {
+    "index": 2,
+    "name": "",
+    "channel": 9,
+    "program": null,
+    "notes": 1431,
+    "lo": 70,
+    "hi": 82
+   },
+   {
+    "index": 3,
+    "name": "",
+    "channel": 0,
+    "program": null,
+    "notes": 6,
+    "lo": 67,
+    "hi": 67
+   },
+   {
+    "index": 4,
+    "name": "",
+    "channel": 0,
+    "program": null,
+    "notes": 1,
+    "lo": 67,
+    "hi": 67
+   },
+   {
+    "index": 5,
+    "name": "",
+    "channel": 1,
+    "program": null,
+    "notes": 238,
+    "lo": 26,
+    "hi": 52
+   },
+   {
+    "index": 6,
+    "name": "",
+    "channel": 2,
+    "program": null,
+    "notes": 357,
+    "lo": 38,
+    "hi": 74
+   },
+   {
+    "index": 7,
+    "name": "",
+    "channel": 3,
+    "program": null,
+    "notes": 1162,
+    "lo": 45,
+    "hi": 69
+   },
+   {
+    "index": 8,
+    "name": "",
+    "channel": 4,
+    "program": null,
+    "notes": 130,
+    "lo": 47,
+    "hi": 66
+   },
+   {
+    "index": 9,
+    "name": "",
+    "channel": 4,
+    "program": null,
+    "notes": 431,
+    "lo": 45,
+    "hi": 69
+   },
+   {
+    "index": 10,
+    "name": "",
+    "channel": 5,
+    "program": null,
+    "notes": 58,
+    "lo": 52,
+    "hi": 76
+   },
+   {
+    "index": 11,
+    "name": "",
+    "channel": 6,
+    "program": null,
+    "notes": 415,
+    "lo": 52,
+    "hi": 73
+   },
+   {
+    "index": 12,
+    "name": "",
+    "channel": 7,
+    "program": null,
+    "notes": 694,
+    "lo": 38,
+    "hi": 90
+   },
+   {
+    "index": 13,
+    "name": "",
+    "channel": 8,
+    "program": null,
+    "notes": 351,
+    "lo": 38,
+    "hi": 76
+   },
+   {
+    "index": 14,
+    "name": "",
+    "channel": 10,
+    "program": null,
+    "notes": 185,
+    "lo": 56,
+    "hi": 69
+   },
+   {
+    "index": 15,
+    "name": "",
+    "channel": 11,
+    "program": null,
+    "notes": 10,
+    "lo": 64,
+    "hi": 76
+   },
+   {
+    "index": 16,
+    "name": "",
+    "channel": 12,
+    "program": null,
+    "notes": 291,
+    "lo": 52,
+    "hi": 93
+   },
+   {
+    "index": 17,
+    "name": "",
+    "channel": 13,
+    "program": null,
+    "notes": 26,
+    "lo": 50,
+    "hi": 74
+   },
+   {
+    "index": 18,
+    "name": "",
+    "channel": 14,
+    "program": null,
+    "notes": 248,
+    "lo": 52,
+    "hi": 74
+   },
+   {
+    "index": 19,
+    "name": "",
+    "channel": 15,
+    "program": null,
+    "notes": 297,
+    "lo": 61,
+    "hi": 78
+   }
+  ]
+ },
+ {
+  "file": "tender/D.SUMMER.Love to love you baby.mid",
+  "style": "tender",
+  "md5": "2a21d9ba6c3ad1b5ee3cf1457705b6eb",
+  "bytes": 45298,
+  "bpm": 99.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 78.98,
+  "seconds": 191.5,
+  "note_count": 5019,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "",
+    "channel": 1,
+    "program": 35,
+    "notes": 453,
+    "lo": 31,
+    "hi": 54
+   },
+   {
+    "index": 2,
+    "name": "",
+    "channel": 2,
+    "program": 27,
+    "notes": 1237,
+    "lo": 50,
+    "hi": 72
+   },
+   {
+    "index": 3,
+    "name": "",
+    "channel": 3,
+    "program": 73,
+    "notes": 288,
+    "lo": 59,
+    "hi": 75
+   },
+   {
+    "index": 4,
+    "name": "",
+    "channel": 4,
+    "program": 50,
+    "notes": 46,
+    "lo": 77,
+    "hi": 99
+   },
+   {
+    "index": 5,
+    "name": "",
+    "channel": 5,
+    "program": 7,
+    "notes": 250,
+    "lo": 31,
+    "hi": 66
+   },
+   {
+    "index": 6,
+    "name": "",
+    "channel": 6,
+    "program": 4,
+    "notes": 1058,
+    "lo": 31,
+    "hi": 72
+   },
+   {
+    "index": 7,
+    "name": "",
+    "channel": 7,
+    "program": 52,
+    "notes": 73,
+    "lo": 55,
+    "hi": 79
+   },
+   {
+    "index": 8,
+    "name": "",
+    "channel": 9,
+    "program": 32,
+    "notes": 1614,
+    "lo": 36,
+    "hi": 49
+   }
+  ]
+ },
+ {
+  "file": "tender/Do You Remember My Lullaby - Lullaby Music Box.mid",
+  "style": "tender",
+  "md5": "5a35e678af727ebffd5a4c57708de75e",
+  "bytes": 3653,
+  "bpm": 120.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 64.0,
+  "seconds": 96.0,
+  "note_count": 322,
+  "tracks": [
+   {
+    "index": 2,
+    "name": "SmartMusic SoftSynth 1",
+    "channel": 1,
+    "program": 1,
+    "notes": 322,
+    "lo": 56,
+    "hi": 87
+   }
+  ]
+ },
+ {
+  "file": "tender/Falling-In-Love-With-Love-(Jazz-Gitaar-Trio).mid",
+  "style": "tender",
+  "md5": "75f6cf57172b83e77112bcb4fb0f31a5",
+  "bytes": 23263,
+  "bpm": 136.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 103.25,
+  "seconds": 182.2,
+  "note_count": 2679,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "ACOU BASS",
+    "channel": 1,
+    "program": 32,
+    "notes": 431,
+    "lo": 28,
+    "hi": 53
+   },
+   {
+    "index": 2,
+    "name": "JAZZ GTR",
+    "channel": 2,
+    "program": 26,
+    "notes": 966,
+    "lo": 41,
+    "hi": 77
+   },
+   {
+    "index": 3,
+    "name": "DRUMS",
+    "channel": 9,
+    "program": 127,
+    "notes": 1282,
+    "lo": 35,
+    "hi": 51
+   }
+  ]
+ },
+ {
+  "file": "tender/Fire Emblem The Sacred Stones - Gentle Prince Medley Prince Lyons Themes.mid",
+  "style": "tender",
+  "md5": "47d5b8bf5c175f483c490b71d1d58b49",
+  "bytes": 16561,
+  "bpm": 54.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 186.94,
+  "seconds": 623.1,
+  "note_count": 1784,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Acoustic Grand Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 1784,
+    "lo": 26,
+    "hi": 87
+   }
+  ]
+ },
+ {
+  "file": "tender/Gentle-Song.mid",
+  "style": "tender",
+  "md5": "cd8f20987419fe3307ef9c687b1b34cb",
+  "bytes": 4910,
+  "bpm": 80.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 80.33,
+  "seconds": 180.8,
+  "note_count": 526,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano RH",
+    "channel": 0,
+    "program": 0,
+    "notes": 372,
+    "lo": 69,
+    "hi": 86
+   },
+   {
+    "index": 2,
+    "name": "Piano",
+    "channel": 1,
+    "program": 0,
+    "notes": 154,
+    "lo": 48,
+    "hi": 67
+   }
+  ]
+ },
+ {
+  "file": "tender/Gentle-and-cute.mid",
+  "style": "tender",
+  "md5": "84d213cba7de5686ecf6974bb9e88824",
+  "bytes": 4477,
+  "bpm": 110.0,
+  "timesig": [
+   2,
+   2
+  ],
+  "bars": 41.95,
+  "seconds": 91.5,
+  "note_count": 533,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 1,
+    "program": 0,
+    "notes": 533,
+    "lo": 43,
+    "hi": 88
+   }
+  ]
+ },
+ {
+  "file": "waltz/Blues-Waltz-One.mid",
+  "style": "waltz",
+  "md5": "c2991af0e09650fee7ac94076be62663",
+  "bytes": 33584,
+  "bpm": 124.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 149.29,
+  "seconds": 216.7,
+  "note_count": 3888,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Bass    ",
+    "channel": 1,
+    "program": 32,
+    "notes": 521,
+    "lo": 31,
+    "hi": 51
+   },
+   {
+    "index": 2,
+    "name": "Drums   ",
+    "channel": 9,
+    "program": 0,
+    "notes": 1662,
+    "lo": 35,
+    "hi": 51
+   },
+   {
+    "index": 3,
+    "name": "Piano Com",
+    "channel": 2,
+    "program": 0,
+    "notes": 1156,
+    "lo": 43,
+    "hi": 87
+   },
+   {
+    "index": 4,
+    "name": "Solo",
+    "channel": 4,
+    "program": 0,
+    "notes": 549,
+    "lo": 55,
+    "hi": 86
+   }
+  ]
+ },
+ {
+  "file": "waltz/K02 Minuet in F.mid",
+  "style": "waltz",
+  "md5": "2c3bbbbf6175ddd395986c621a248366",
+  "bytes": 1868,
+  "bpm": 154.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 47.93,
+  "seconds": 56.0,
+  "note_count": 260,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "",
+    "channel": 0,
+    "program": 0,
+    "notes": 170,
+    "lo": 60,
+    "hi": 81
+   },
+   {
+    "index": 2,
+    "name": "",
+    "channel": 0,
+    "program": null,
+    "notes": 90,
+    "lo": 41,
+    "hi": 62
+   }
+  ]
+ },
+ {
+  "file": "waltz/Mazurka op30 n2 Drchew.mid",
+  "style": "waltz",
+  "md5": "28c63510d1c9ca440abd6828badeeb45",
+  "bytes": 6065,
+  "bpm": 155.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 64.58,
+  "seconds": 75.0,
+  "note_count": 787,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Piano",
+    "channel": 0,
+    "program": 0,
+    "notes": 787,
+    "lo": 35,
+    "hi": 90
+   }
+  ]
+ },
+ {
+  "file": "waltz/Minuet .Piano pieces -Songs & Dances- Opus 33, No.11.mid",
+  "style": "waltz",
+  "md5": "f3ebceecfbe51327b4e0c93b00fff323",
+  "bytes": 7243,
+  "bpm": 140.4,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 85.94,
+  "seconds": 110.2,
+  "note_count": 1001,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Minuet composed by Adolf Jensen",
+    "channel": 0,
+    "program": 0,
+    "notes": 585,
+    "lo": 52,
+    "hi": 89
+   },
+   {
+    "index": 2,
+    "name": "Sequenced by Reginald Steven Ritchie copyright May 1999",
+    "channel": 1,
+    "program": 0,
+    "notes": 416,
+    "lo": 34,
+    "hi": 69
+   }
+  ]
+ },
+ {
+  "file": "waltz/Minuet in B flat.mid",
+  "style": "waltz",
+  "md5": "b6c7291b605a919e4187167500d5dd2a",
+  "bytes": 6418,
+  "bpm": 120.0,
+  "timesig": [
+   4,
+   4
+  ],
+  "bars": 60.25,
+  "seconds": 120.5,
+  "note_count": 703,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Minuet in B flat by Ferd Hiller",
+    "channel": 0,
+    "program": null,
+    "notes": 376,
+    "lo": 55,
+    "hi": 91
+   },
+   {
+    "index": 2,
+    "name": "Seq by Reg Ritchie",
+    "channel": 1,
+    "program": null,
+    "notes": 327,
+    "lo": 36,
+    "hi": 79
+   }
+  ]
+ },
+ {
+  "file": "waltz/Minuet in G.mid",
+  "style": "waltz",
+  "md5": "4e034b9d82e90982877b40bf27bdcc56",
+  "bytes": 4938,
+  "bpm": 22.93,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 32.0,
+  "seconds": 251.2,
+  "note_count": 207,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Right hand",
+    "channel": 0,
+    "program": 0,
+    "notes": 133,
+    "lo": 59,
+    "hi": 83
+   },
+   {
+    "index": 2,
+    "name": "Left hand",
+    "channel": 1,
+    "program": 0,
+    "notes": 74,
+    "lo": 43,
+    "hi": 64
+   }
+  ]
+ },
+ {
+  "file": "waltz/Minuet.mid",
+  "style": "waltz",
+  "md5": "9dbc1bdd2779defa6ca5387466a44f01",
+  "bytes": 1067,
+  "bpm": 126.0,
+  "timesig": [
+   3,
+   4
+  ],
+  "bars": 19.92,
+  "seconds": 28.5,
+  "note_count": 95,
+  "tracks": [
+   {
+    "index": 1,
+    "name": "Minuet in D",
+    "channel": 0,
+    "program": 1,
+    "notes": 72,
+    "lo": 62,
+    "hi": 83
+   },
+   {
+    "index": 2,
+    "name": "by Jeremiah Clarke",
+    "channel": 1,
+    "program": 1,
+    "notes": 23,
+    "lo": 38,
+    "hi": 57
    }
   ]
  }

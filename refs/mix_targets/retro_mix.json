@@ -1,33 +1,33 @@
 {
  "name": "retro_mix",
- "file": "aggregate(7 refs)",
+ "file": "aggregate(6 refs)",
  "aggregate": true,
  "theme": "retro",
- "bpm": 134.7,
- "rms_db": -17.9,
- "width": 0.678,
- "centroid": 2826,
- "duration": 124.2,
+ "bpm": 133.9,
+ "rms_db": -17.1,
+ "width": 0.66,
+ "centroid": 3284,
+ "duration": 143.2,
  "character": "instrumental",
  "bands": {
-  "10000-18000": -21.8,
-  "1250-2500": -5.9,
+  "10000-18000": -21.6,
+  "1250-2500": -8.0,
   "160-315": -2.2,
-  "20-40": -16.7,
-  "2500-5000": -12.2,
-  "315-630": -0.5,
-  "40-80": -6.7,
-  "5000-10000": -15.3,
-  "630-1250": -1.1,
-  "80-160": -4.7
+  "20-40": -14.3,
+  "2500-5000": -12.7,
+  "315-630": -2.2,
+  "40-80": -2.2,
+  "5000-10000": -16.0,
+  "630-1250": -3.8,
+  "80-160": -1.1
  },
  "structure": [
-  -19.0,
   -18.0,
-  -18.0
+  -18.0,
+  -17.0
  ],
- "rhythm_low": "★◇◇·◇·◇·◇·◇◇··◇◇",
- "rhythm_high": "◇◇◇◇◇··◇◇◇◇★◇◇··",
+ "rhythm_low": "★★◇·◇◇◇◇◇★◇★◇◇◇◇",
+ "rhythm_high": "◇◇·◇··◇◇★·★★◇◇·◇",
  "quiet_chroma": {
   "D#": 1.0,
   "F": 0.81,
@@ -36,11 +36,11 @@
   "C#": 0.51,
   "F#": 0.47
  },
- "periodicity": 0.37,
+ "periodicity": 0.245,
  "members": [
   {
    "ref": "BGM15c",
-   "score": 0.624,
+   "score": 0.719,
    "bpm": 132.4,
    "centroid": 3338,
    "rms_db": -19.3,
@@ -56,16 +56,35 @@
    }
   },
   {
-   "ref": "BGM16c",
-   "score": 0.611,
-   "bpm": 150.0,
-   "centroid": 3250,
-   "rms_db": -16.9,
-   "width": 0.51,
+   "ref": "fine_BGM09",
+   "score": 0.689,
+   "bpm": 123.0,
+   "centroid": 3695,
+   "rms_db": -17.1,
+   "width": 0.369,
+   "source": {
+    "kind": "game_bgm",
+    "detail": "仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）",
+    "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
+    "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
+    "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
+    "url_alt": [
+     "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
+    ],
+    "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
+   }
+  },
+  {
+   "ref": "bgm01c",
+   "score": 0.626,
+   "bpm": 128.0,
+   "centroid": 3284,
+   "rms_db": -14.3,
+   "width": 0.316,
    "source": {
     "kind": "project_audio",
     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM16c.ogg",
+    "file": "bgm01c.ogg",
     "origin_path": null,
     "url": null,
     "url_alt": [],
@@ -74,7 +93,7 @@
   },
   {
    "ref": "BGM18",
-   "score": 0.603,
+   "score": 0.614,
    "bpm": 134.7,
    "centroid": 2043,
    "rms_db": -22.2,
@@ -91,7 +110,7 @@
   },
   {
    "ref": "BGM18b",
-   "score": 0.603,
+   "score": 0.614,
    "bpm": 134.7,
    "centroid": 1971,
    "rms_db": -22.1,
@@ -107,56 +126,20 @@
    }
   },
   {
-   "ref": "BGM16b",
-   "score": 0.546,
-   "bpm": 139.8,
-   "centroid": 2472,
-   "rms_db": -17.9,
-   "width": 0.77,
+   "ref": "BGM06",
+   "score": 0.478,
+   "bpm": 133.9,
+   "centroid": 1533,
+   "rms_db": -16.9,
+   "width": 0.261,
    "source": {
     "kind": "project_audio",
     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM16b.ogg",
+    "file": "BGM06.ogg",
     "origin_path": null,
     "url": null,
     "url_alt": [],
     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-   }
-  },
-  {
-   "ref": "t2_BGM16",
-   "score": 0.515,
-   "bpm": 150.0,
-   "centroid": 2826,
-   "rms_db": -17.4,
-   "width": 0.678,
-   "source": {
-    "kind": "project_audio",
-    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM16.ogg",
-    "origin_path": "D:/test/galgame/ピュアソングガーデン！解包/Bgm/BGM16.ogg",
-    "url": null,
-    "url_alt": [],
-    "note": "早期画像没记 source（2026-09-21 补）：依据是画像自带 file 字段里的路径，与同批 46 份的来源一致。"
-   }
-  },
-  {
-   "ref": "fine_BGM09",
-   "score": 0.506,
-   "bpm": 123.0,
-   "centroid": 3695,
-   "rms_db": -17.1,
-   "width": 0.369,
-   "source": {
-    "kind": "game_bgm",
-    "detail": "仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）",
-    "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
-    "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
-    "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
-    "url_alt": [
-     "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
-    ],
-    "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
    }
   }
  ],

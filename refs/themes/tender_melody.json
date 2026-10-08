@@ -1,87 +1,92 @@
 {
- "notes": 2640,
+ "notes": 3347,
  "range": [
-  50,
-  98
+  41,
+  97
  ],
- "mean_pitch": 73.33,
- "notes_per_bar": 2.73,
- "stepwise_pct": 62.39,
- "onbeat_pct": 51.37,
- "diatonic_pct": 92.97,
+ "mean_pitch": 72.61,
+ "notes_per_bar": 2.77,
+ "stepwise_pct": 58.81,
+ "onbeat_pct": 53.09,
+ "diatonic_pct": 93.79,
  "interval_hist": {
-  "-17": 3,
+  "-24": 15,
+  "-20": 10,
+  "-19": 11,
+  "-17": 68,
   "-16": 3,
-  "-15": 3,
-  "-12": 165,
+  "-15": 27,
+  "-14": 5,
+  "-12": 330,
   "-11": 1,
-  "-10": 53,
-  "-9": 20,
-  "-8": 94,
-  "-7": 253,
-  "-6": 23,
-  "-5": 483,
-  "-4": 649,
-  "-3": 357,
-  "-2": 1713,
-  "-1": 1226,
-  "0": 1292,
-  "1": 1013,
-  "2": 1619,
-  "3": 322,
-  "4": 302,
-  "5": 653,
-  "6": 64,
-  "7": 373,
-  "8": 9,
-  "9": 19,
-  "10": 84,
+  "-10": 67,
+  "-9": 44,
+  "-8": 127,
+  "-7": 420,
+  "-6": 61,
+  "-5": 579,
+  "-4": 655,
+  "-3": 430,
+  "-2": 2139,
+  "-1": 1336,
+  "0": 1360,
+  "1": 1258,
+  "2": 2140,
+  "3": 337,
+  "4": 418,
+  "5": 880,
+  "6": 83,
+  "7": 590,
+  "8": 43,
+  "9": 24,
+  "10": 109,
   "11": 61,
-  "12": 126,
+  "12": 270,
   "13": 1,
   "14": 1,
   "15": 1,
-  "17": 7,
+  "17": 73,
   "19": 3,
-  "26": 4
+  "20": 5,
+  "26": 12
  },
  "dur16_hist": {
-  "0": 80,
-  "1": 2265,
-  "2": 5248,
-  "3": 437,
-  "4": 1427,
+  "0": 641,
+  "1": 3083,
+  "2": 4743,
+  "3": 647,
+  "4": 2912,
   "5": 176,
-  "6": 422,
+  "6": 320,
   "7": 14,
-  "8": 671,
+  "8": 969,
   "10": 67,
-  "11": 7,
-  "12": 64,
+  "11": 26,
+  "12": 122,
   "13": 5,
   "14": 15,
-  "15": 1,
-  "16": 99
+  "15": 10,
+  "16": 249
  },
  "onset16_hist": {
-  "0": 1601,
-  "1": 164,
-  "2": 911,
-  "3": 221,
-  "4": 1371,
-  "5": 188,
-  "6": 1088,
-  "7": 339,
-  "8": 1408,
-  "9": 123,
-  "10": 764,
-  "11": 189,
-  "12": 1271,
-  "13": 215,
-  "14": 958,
-  "15": 187
+  "0": 2049,
+  "1": 100,
+  "2": 978,
+  "3": 188,
+  "4": 1683,
+  "5": 165,
+  "6": 1412,
+  "7": 254,
+  "8": 1921,
+  "9": 77,
+  "10": 1176,
+  "11": 191,
+  "12": 1779,
+  "13": 313,
+  "14": 1414,
+  "15": 301
  },
- "phrases": 171,
+ "phrases": 187,
  "phrase_bars": [
   7.57,
   8.62,
@@ -116,6 +121,12 @@
   1.74,
   2.06,
   2.24,
+  13.0,
+  34.91,
+  1.25,
+  1.75,
+  3.06,
+  9.56,
   0.55,
   0.65,
   0.76,
@@ -136,36 +147,30 @@
   0.98,
   0.72,
   0.7,
-  4.84,
-  0.55,
-  0.65,
-  0.76,
-  0.55,
-  0.62,
-  2.02
+  4.84
  ],
- "bars": 87.8,
+ "bars": 86.2,
  "templates": [
   "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
-  "ballad/Ballad-Of-The-Jazz-Cafe.mid",
-  "ballad/Animal Crossing - KK Ballad Aircheck.mid",
   "ballad/BALLAD-2.MID",
   "ballad/Ballad-Of-A-Teenage-Queen.mid",
-  "ballad/A-Very-Special-Love-Song.mid",
+  "galgame/Kanon - The Day I Waited For The Wind.mid",
+  "galgame/Clannad - Harukana Toshitsuki -Piano-.mid",
+  "galgame/Kanon - Winter Fireworks.mid",
+  "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
   "pop/IGGY POP.Louie Louie.mid",
-  "pop/Pop-Vamp.mid",
-  "pop/Disco Citizens - Footprint.mid",
-  "pop/Astro Boy - Astro Boy March.mid",
   "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
   "pop/Disco-Fans.mid",
   "romantic/Liszt Bach Prelude Transcription.mid",
   "romantic/Tchaikovsky Lake Of The Swans Act 1 3mov.mid",
   "romantic/Tchaikovsky Lake Of The Swans Act 1 1mov.mid",
-  "romantic/brahms.mid"
+  "tender/BOYZONE.I love the way you love me K.mid",
+  "tender/Arty - Gentle Touch.mid",
+  "tender/Falling-In-Love-With-Love-(Jazz-Gitaar-Trio).mid"
  ],
  "name": "tender",
  "file": "theme:tender",
- "bpm": 120.0,
+ "bpm": 100.0,
  "tonic": "A",
  "mode": "minor",
  "source": "theme_pack.py",
@@ -179,16 +184,6 @@
     "bpm": 48.0
    },
    {
-    "file": "ballad/Ballad-Of-The-Jazz-Cafe.mid",
-    "source": "https://bitmidi.com/uploads/15419.mid",
-    "bpm": 78.0
-   },
-   {
-    "file": "ballad/Animal Crossing - KK Ballad Aircheck.mid",
-    "source": "https://bitmidi.com/uploads/6841.mid",
-    "bpm": 79.98
-   },
-   {
     "file": "ballad/BALLAD-2.MID",
     "source": "https://bitmidi.com/uploads/15417.mid",
     "bpm": 89.0
@@ -199,29 +194,29 @@
     "bpm": 95.0
    },
    {
-    "file": "ballad/A-Very-Special-Love-Song.mid",
-    "source": "https://bitmidi.com/uploads/3173.mid",
-    "bpm": 120.0
+    "file": "galgame/Kanon - The Day I Waited For The Wind.mid",
+    "source": "https://bitmidi.com/uploads/65304.mid",
+    "bpm": 70.0
+   },
+   {
+    "file": "galgame/Clannad - Harukana Toshitsuki -Piano-.mid",
+    "source": "https://bitmidi.com/uploads/24346.mid",
+    "bpm": 85.0
+   },
+   {
+    "file": "galgame/Kanon - Winter Fireworks.mid",
+    "source": "https://bitmidi.com/uploads/65305.mid",
+    "bpm": 100.0
+   },
+   {
+    "file": "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+    "source": "https://bitmidi.com/uploads/71358.mid",
+    "bpm": 174.0
    },
    {
     "file": "pop/IGGY POP.Louie Louie.mid",
     "source": "https://bitmidi.com/uploads/60059.mid",
     "bpm": 120.0
-   },
-   {
-    "file": "pop/Pop-Vamp.mid",
-    "source": "https://bitmidi.com/uploads/35242.mid",
-    "bpm": 125.0
-   },
-   {
-    "file": "pop/Disco Citizens - Footprint.mid",
-    "source": "https://bitmidi.com/uploads/39730.mid",
-    "bpm": 132.0
-   },
-   {
-    "file": "pop/Astro Boy - Astro Boy March.mid",
-    "source": "https://bitmidi.com/uploads/8029.mid",
-    "bpm": 135.0
    },
    {
     "file": "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
@@ -249,9 +244,19 @@
     "bpm": 110.0
    },
    {
-    "file": "romantic/brahms.mid",
-    "source": "https://bitmidi.com/uploads/19565.mid",
-    "bpm": 160.0
+    "file": "tender/BOYZONE.I love the way you love me K.mid",
+    "source": "https://bitmidi.com/uploads/19506.mid",
+    "bpm": 59.12
+   },
+   {
+    "file": "tender/Arty - Gentle Touch.mid",
+    "source": "https://bitmidi.com/uploads/7822.mid",
+    "bpm": 128.0
+   },
+   {
+    "file": "tender/Falling-In-Love-With-Love-(Jazz-Gitaar-Trio).mid",
+    "source": "https://bitmidi.com/uploads/45180.mid",
+    "bpm": 136.0
    }
   ],
   "note": "旋律语言画像 = 上面这些模板的**旋律轨聚合**（落点/时值/音程/句长方言）。它是**作曲依据层**（管\"旋律怎么说\"），与混音目标 （`refs/mix_targets/<主题>_mix.json`，管\"混成什么样\"）是两层，别混。"

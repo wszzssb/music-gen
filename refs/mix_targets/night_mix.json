@@ -3,112 +3,44 @@
  "file": "aggregate(8 refs)",
  "aggregate": true,
  "theme": "night",
- "bpm": 134.7,
- "rms_db": -17.4,
- "width": 0.678,
- "centroid": 2826,
- "duration": 148.0,
+ "bpm": 132.4,
+ "rms_db": -17.1,
+ "width": 0.656,
+ "centroid": 3068,
+ "duration": 143.2,
  "character": "instrumental",
  "bands": {
-  "10000-18000": -21.8,
-  "1250-2500": -5.9,
+  "10000-18000": -26.2,
+  "1250-2500": -8.0,
   "160-315": -2.2,
-  "20-40": -16.7,
-  "2500-5000": -12.7,
-  "315-630": -0.5,
+  "20-40": -14.3,
+  "2500-5000": -12.9,
+  "315-630": -3.9,
   "40-80": -2.2,
   "5000-10000": -16.0,
-  "630-1250": -1.1,
+  "630-1250": -3.8,
   "80-160": -2.2
  },
  "structure": [
-  -19.0,
+  -18.0,
   -18.0,
   -17.0
  ],
- "rhythm_low": "★★◇·◇◇◇·◇◇★◇◇◇◇◇",
- "rhythm_high": "◇◇★◇·◇◇◇◇◇★★◇◇◇◇",
+ "rhythm_low": "★★◇◇◇◇◇◇◇◇◇◇◇◇◇◇",
+ "rhythm_high": "◇◇◇◇·◇◇◇★◇★★◇◇·◇",
  "quiet_chroma": {
-  "F": 1.0,
-  "A#": 0.9,
-  "F#": 0.58,
-  "D": 0.45,
-  "D#": 0.45,
-  "G#": 0.37
+  "F#": 1.0,
+  "B": 0.69,
+  "E": 0.67,
+  "A": 0.67,
+  "D": 0.46,
+  "C#": 0.34
  },
  "periodicity": 0.245,
  "members": [
   {
-   "ref": "BGM06",
-   "score": 0.805,
-   "bpm": 133.9,
-   "centroid": 1533,
-   "rms_db": -16.9,
-   "width": 0.261,
-   "source": {
-    "kind": "project_audio",
-    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM06.ogg",
-    "origin_path": null,
-    "url": null,
-    "url_alt": [],
-    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-   }
-  },
-  {
-   "ref": "BGM16b",
-   "score": 0.802,
-   "bpm": 139.8,
-   "centroid": 2472,
-   "rms_db": -17.9,
-   "width": 0.77,
-   "source": {
-    "kind": "project_audio",
-    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM16b.ogg",
-    "origin_path": null,
-    "url": null,
-    "url_alt": [],
-    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-   }
-  },
-  {
-   "ref": "bgm01c",
-   "score": 0.764,
-   "bpm": 128.0,
-   "centroid": 3284,
-   "rms_db": -14.3,
-   "width": 0.316,
-   "source": {
-    "kind": "project_audio",
-    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "bgm01c.ogg",
-    "origin_path": null,
-    "url": null,
-    "url_alt": [],
-    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-   }
-  },
-  {
-   "ref": "BGM15c",
-   "score": 0.744,
-   "bpm": 132.4,
-   "centroid": 3338,
-   "rms_db": -19.3,
-   "width": 0.66,
-   "source": {
-    "kind": "project_audio",
-    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM15c.ogg",
-    "origin_path": null,
-    "url": null,
-    "url_alt": [],
-    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-   }
-  },
-  {
    "ref": "BGM18",
-   "score": 0.714,
+   "score": 0.839,
    "bpm": 134.7,
    "centroid": 2043,
    "rms_db": -22.2,
@@ -124,25 +56,44 @@
    }
   },
   {
-   "ref": "t2_BGM16",
-   "score": 0.691,
-   "bpm": 150.0,
-   "centroid": 2826,
-   "rms_db": -17.4,
-   "width": 0.678,
+   "ref": "fine_BGM09",
+   "score": 0.814,
+   "bpm": 123.0,
+   "centroid": 3695,
+   "rms_db": -17.1,
+   "width": 0.369,
+   "source": {
+    "kind": "game_bgm",
+    "detail": "仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）",
+    "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
+    "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
+    "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
+    "url_alt": [
+     "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
+    ],
+    "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
+   }
+  },
+  {
+   "ref": "bgm01c",
+   "score": 0.761,
+   "bpm": 128.0,
+   "centroid": 3284,
+   "rms_db": -14.3,
+   "width": 0.316,
    "source": {
     "kind": "project_audio",
     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM16.ogg",
-    "origin_path": "D:/test/galgame/ピュアソングガーデン！解包/Bgm/BGM16.ogg",
+    "file": "bgm01c.ogg",
+    "origin_path": null,
     "url": null,
     "url_alt": [],
-    "note": "早期画像没记 source（2026-09-21 补）：依据是画像自带 file 字段里的路径，与同批 46 份的来源一致。"
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
    }
   },
   {
    "ref": "BGM18b",
-   "score": 0.624,
+   "score": 0.749,
    "bpm": 134.7,
    "centroid": 1971,
    "rms_db": -22.1,
@@ -158,16 +109,67 @@
    }
   },
   {
-   "ref": "BGM16c",
-   "score": 0.596,
-   "bpm": 150.0,
-   "centroid": 3250,
+   "ref": "BGM06",
+   "score": 0.658,
+   "bpm": 133.9,
+   "centroid": 1533,
    "rms_db": -16.9,
-   "width": 0.51,
+   "width": 0.261,
    "source": {
     "kind": "project_audio",
     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-    "file": "BGM16c.ogg",
+    "file": "BGM06.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM15c",
+   "score": 0.653,
+   "bpm": 132.4,
+   "centroid": 3338,
+   "rms_db": -19.3,
+   "width": 0.66,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM15c.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM13",
+   "score": 0.61,
+   "bpm": 109.2,
+   "centroid": 3068,
+   "rms_db": -20.4,
+   "width": 0.656,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM13.ogg",
+    "origin_path": null,
+    "url": null,
+    "url_alt": [],
+    "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+   }
+  },
+  {
+   "ref": "BGM04",
+   "score": 0.543,
+   "bpm": 114.1,
+   "centroid": 2281,
+   "rms_db": -13.5,
+   "width": 0.233,
+   "source": {
+    "kind": "project_audio",
+    "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+    "file": "BGM04.ogg",
     "origin_path": null,
     "url": null,
     "url_alt": [],

@@ -255,10 +255,11 @@ def inject_pool(theme, dry=False, verbose=False):
             notes = tr.get('notes') or []
             if not notes or (tr.get('channel') or 0) == 9:
                 continue
-            arr = tp.ROLE_TO_ARR.get(tp.role_of_program(tr.get('program')))
-            if not arr:
-                continue
-            per[arr].append((int(tr.get('program') or 0), len(notes)))
+            # ⚠ 用 `tp.arr_roles()` 展开：`brass` 现在**同时服务 `strings` 与 `ep`**
+            #   （铜管既能当和声层、也能当主奏 —— 见 `theme_pack.ROLE_TO_ARR` 的说明）。
+            #   一个音色可以投多票（每个 arr 键各投一票）。
+            for arr in tp.arr_roles(tp.role_of_program(tr.get('program'))):
+                per[arr].append((int(tr.get('program') or 0), len(notes)))
         for arr, lst in per.items():
             ct[arr][sorted(lst, key=lambda x: -x[1])[0][0]] += 1
     pool = {k: [pr for pr, _n in c.most_common()] for k, c in ct.items()}

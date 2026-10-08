@@ -66,9 +66,18 @@ AUTHORITATIVE_HOSTS = ('bitmidi.com', 'vgmusic.com', 'mutopiaproject.org',
 
 # ---------------------------------------------------------------- 主题词表
 # styles = midi2 的风格目录；engine = song_engine.STYLES 里的编配预设（生成时打底）。
-# 一个主题给 3 个风格：既能凑够 ≥8 首模板，又不至于风格漂移（"同主题"要真的同主题）。
+# ⚠ **2026-10-07 起：每个主题的第一个风格是它的"专属素材池"**（`refs/midi2/<主题名>/`）。
+#   起因（用户："117_battle_ember 听起来不像战斗"→"其它曲子也这样看看"）：
+#   15 个主题共 **238** 个模板槽位、去重后只有 **121 首（复用率 49%）**，被 ≥2 个主题共用的
+#   有 **75 首（62%）**（`pop/Disco-Fans` 被 cheerful/daily/lounge/seaside/tender **5 个**主题共用）
+#   —— 这是"听着都像"的**最底层**根因（比 §17 的和弦进行更底层）。
+#   专属池由 `fetch_midi_lib.py` 按该主题的语义搜索词抓（词表见那边的 `STYLES`，含 galgame/
+#   视觉小说一类 —— 用户提示"网易云有很多 galgame 的 bgm"），**带来源 URL**（`_sources.json`）。
+#   后面的通用风格是**兜底**（专属池不足 8 首时补）；`min_tracks` = 编配完整性闸门
+#   （见 `MIN_ARRANGE_TRACKS`：钢琴独奏/室内乐正当的主题放宽到 1~2）。
 THEMES = {
-    'daily':    {'label': '日常', 'styles': ['pop', 'folk', 'anime'], 'engine': 'daily'},
+    'daily':    {'label': '日常', 'styles': ['daily', 'galgame', 'pop', 'folk', 'anime'],
+                 'engine': 'daily', 'min_tracks': 3},
     # ⚠ 2026-09-15：这里一度改成 `dance`（因为原配 daily 用**钢弦吉他**、拨弦泛音把旋律
     #   盖住 —— 用户听感"欢快的音乐都有一个音轨和其它不平衡"）。dance 确实修好了平衡
     #   （Hook 38.2→0.1dB、Melody 22.2→32.6dB），但电子味重、happy 0.438→0.323。
@@ -76,25 +85,56 @@ THEMES = {
     #   旋律音色是钢琴（偏暗）**，2.5–5k 只有 22dB 而打击有 33dB。
     #   最终取 dance（旋律亮、平衡好）并把它的主奏音色从合成主奏 81 换成颤音琴 11，
     #   见 song_engine.STYLES —— 兼顾"平衡"与"不电子"。
-    'cheerful': {'label': '欢快', 'styles': ['pop', 'latin', 'rock'], 'engine': 'dance'},
-    'tender':   {'label': '温柔抒情', 'styles': ['ballad', 'romantic', 'pop'], 'engine': 'ballad'},
-    'night':    {'label': '夜晚', 'styles': ['newage', 'jazz', 'electronic'], 'engine': 'daily'},
-    'seaside':  {'label': '海边', 'styles': ['newage', 'folk', 'pop'], 'engine': 'acoustic'},
-    'sorrow':   {'label': '悲伤', 'styles': ['ballad', 'romantic', 'classical'], 'engine': 'ballad'},
-    'battle':   {'label': '战斗', 'styles': ['rock', 'game16', 'game32'], 'engine': 'dance'},
-    'mystery':  {'label': '神秘', 'styles': ['film', 'newage', 'classical'], 'engine': 'gorgeous'},
-    'gorgeous': {'label': '华丽', 'styles': ['film', 'romantic', 'baroque'], 'engine': 'gorgeous'},
-    'neon':     {'label': '霓虹电子', 'styles': ['electronic', 'chiptune', 'game32'], 'engine': 'dance'},
-    'retro':    {'label': '复古游戏', 'styles': ['chiptune', 'game16', 'game32'], 'engine': 'dance'},
-    'lounge':   {'label': '酒馆爵士', 'styles': ['jazz', 'blues', 'pop'], 'engine': 'acoustic'},
-    'folk_tale': {'label': '民谣叙事', 'styles': ['folk', 'blues', 'ballad'], 'engine': 'ballad'},
+    'cheerful': {'label': '欢快', 'styles': ['cheerful', 'pop', 'latin', 'rock'],
+                 'engine': 'dance', 'min_tracks': 3},
+    'tender':   {'label': '温柔抒情', 'styles': ['tender', 'galgame', 'ballad', 'romantic', 'pop'],
+                 'engine': 'ballad', 'min_tracks': 2},
+    'night':    {'label': '夜晚', 'styles': ['night', 'galgame', 'newage', 'jazz', 'electronic'],
+                 'engine': 'daily', 'min_tracks': 2},
+    'seaside':  {'label': '海边', 'styles': ['seaside', 'folk', 'newage', 'pop'],
+                 'engine': 'acoustic', 'min_tracks': 2},
+    'sorrow':   {'label': '悲伤', 'styles': ['sorrow', 'galgame', 'ballad', 'romantic', 'classical'],
+                 'engine': 'ballad', 'min_tracks': 2},
+    # ⚠ **`keywords` = 语义白名单**（2026-10-07 加，目前只有 battle 用）：
+    #   起因（用户听感）："117_battle_ember 听起来不像战斗的曲子，以前的战斗曲也是不像"。
+    #   量出来的病根**不在引擎**（引擎忠实执行画像），而在**画像的模板来源** ——
+    #   battle 原来的 styles(rock/game16/game32) 里 16 首有 **6 首是城镇/菜单/洞窟/片尾**
+    #   （主奏排箫 GM75 / 长笛 73 / 颤音琴 11）⇒ 画像被稀释成"大调 + 木管"。
+    #   加上 `keywords` 后**模板文件名必须命中**才算候选（与 styles 是"且"的关系）。
+    #   ⚠ **只对命名有约定的语料有效**（游戏/影视曲）；古典/氛围类的文件名常不含语义词
+    #   （实测 mystery/seaside/daily/gorgeous 的命中率 **0/16**）—— 别给那些主题硬套，
+    #   它们的语义靠"专属素材池"解决（见上面那段）。
+    #   依据（网络核实这些曲目的真实身份，URL 见 `refs/midi2/_sources.json`）：
+    #     · `1943*` / `43pbos*` = 卡普空《1943 中途岛海战》关卡/BOSS 曲（纯战斗游戏）
+    #     · `7thsaga_bt*` = 《The 7th Saga》Battle 曲（`bt` = battle）· `2 Days`/`Xion` = KH358/2
+    #     · `T_?VGFighterMAX_*` = 《V.G. Fighter MAX》格斗 · `ace*` = 《Ace Combat》皇牌空战
+    #   ⚠ **真战斗曲里有两类照样进不来，一律不豁免**（不为凑数放宽闸门）：
+    #     ① `7sbattle1/2`、`7sboss`：bpm 记作 **271/291**（8 分拍记谱，`midi_ref.analyze`
+    #        复核一致）⇒ 撞 `candidates` 的 `40<=bpm<=220`；
+    #     ② `T_VGFighterMAX_Masako/JunTheme/ContinueOmake`：11k~17k 音的数据堆 ⇒ 撞密度/单轨闸门。
+    'battle':   {'label': '战斗', 'styles': ['battle', 'game16', 'game32', 'chiptune'],
+                 'keywords': r'43pbos|7thsaga_bt|2 Days|Xion|\b(?:1943|battle|boss|fighter|fight|war|combat|duel|ace)\b',
+                 'engine': 'dance', 'min_tracks': 3},
+    'mystery':  {'label': '神秘', 'styles': ['mystery', 'film', 'newage', 'classical'],
+                 'engine': 'gorgeous', 'min_tracks': 2},
+    'gorgeous': {'label': '华丽', 'styles': ['gorgeous', 'film', 'romantic', 'baroque'],
+                 'engine': 'gorgeous', 'min_tracks': 2},
+    'neon':     {'label': '霓虹电子', 'styles': ['neon', 'electronic', 'chiptune', 'game32'],
+                 'engine': 'dance', 'min_tracks': 3},
+    'retro':    {'label': '复古游戏', 'styles': ['retro', 'chiptune', 'game16', 'game32'],
+                 'engine': 'dance', 'min_tracks': 3},
+    'lounge':   {'label': '酒馆爵士', 'styles': ['lounge', 'jazz', 'blues', 'pop'],
+                 'engine': 'acoustic', 'min_tracks': 3},
+    'folk_tale': {'label': '民谣叙事', 'styles': ['folk_tale', 'folk', 'blues', 'ballad'],
+                  'engine': 'ballad', 'min_tracks': 3},
     'classic':  {'label': '古典庄重', 'styles': ['classical', 'baroque', 'public_domain'],
-                 'engine': 'gorgeous'},
+                 'engine': 'gorgeous', 'min_tracks': 2},
     # 3/4 的模板全库只有 26 首（古典/巴洛克/民谣/公有领域为主）→ 风格集合必须放宽，
-    # 否则凑不满 8 首（实测 classical/baroque/romantic 只有 7 首）
-    'waltz':    {'label': '三拍圆舞', 'styles': ['classical', 'baroque', 'romantic', 'folk',
+    # 否则凑不满 8 首（实测 classical/baroque/romantic 只有 7 首）。
+    # `min_tracks: 1` —— 圆舞曲的钢琴独奏版是正当体裁，不该被"编配完整性"闸门剔掉。
+    'waltz':    {'label': '三拍圆舞', 'styles': ['waltz', 'classical', 'baroque', 'romantic', 'folk',
                                                  'public_domain'],
-                 'engine': 'gorgeous', 'meter': [3, 4]},
+                 'engine': 'gorgeous', 'meter': [3, 4], 'min_tracks': 1},
 }
 
 # 和弦后缀归一：库里符号五花八门，先收敛到 `selftest.parse_chord` 认得的写法
@@ -117,9 +157,39 @@ ROLE_BY_PROGRAM = (
     (56, 63, 'brass'), (64, 71, 'reed'), (72, 79, 'pipe'),
     (80, 87, 'lead'), (88, 95, 'pad'), (96, 103, 'fx'), (104, 111, 'guitar'),
     (112, 119, 'perc'), (120, 127, 'fx'))
+# **GM 角色 → 引擎的编配键**（2026-10-07：`brass` 改成**一对多**）
+#   ⚠ 为什么铜管要同时进 `strings` 与 `ep`（用户 2026-10-07 定，依据是模板实测）：
+#     引擎的**主奏音色池 = `prog_pool['ep']`**（`new_song.lead_candidates` 明写"不引入池外
+#     音色"，由 PITFALL 303 与 `theme_fit` 钉着）。而铜管原来只映射到 `strings` ⇒ 真战斗曲的
+#     主奏实测是 **小号 56 / 铜管 61 / 长号 57**（`refs/midi2/battle/*`、`7thsaga_bt2_w`、
+#     `ace-map`）却**永远进不了主奏候选**，于是战斗曲的主奏只能从木管里挑（实测新曲 121：
+#     `ep = [73 长笛, 67 上低音萨克斯, 87, 80]` ⇒ 听感"不像战斗"）。
+#     改后 **一个音色服务两个角色**（铜管既是和声层也是主奏候选），池里每一项仍是
+#     **模板实测音色 + 带票数**，没有引入池外音色。
+#   ⚠ 消费方必须用 `arr_roles()` 展开，别再假设"角色 → 单个键"。
 ROLE_TO_ARR = {'bass': 'bass', 'piano': 'piano', 'guitar': 'uku', 'strings': 'strings',
-               'pad': 'pad', 'glock': 'glock', 'lead': 'ep', 'brass': 'strings',
+               'pad': 'pad', 'glock': 'glock', 'lead': 'ep', 'brass': ['strings', 'ep'],
                'reed': 'ep', 'pipe': 'ep', 'perc': 'perc'}
+
+
+def arr_roles(role):
+    """GM 角色 → 它服务的编配键列表（`ROLE_TO_ARR` 的**唯一展开口径**）。
+
+    写成函数是为了兼容"单个键"与"多键"两种写法 —— 别在调用处自己判断类型。
+    """
+    v = ROLE_TO_ARR.get(role)
+    if v is None:
+        return []
+    return [v] if isinstance(v, str) else list(v)
+# **编配完整性闸门**（2026-10-07 新增）：模板至少要有几条"发声轨"才算**有编配信息**。
+#   起因（用户："战斗曲不像战斗"）→ 量出来的更深一层：模板库里大量文件是**单轨/钢琴改编**
+#   MIDI（实测 `rock` 的轨数中位数 = **1**、`pop`/`newage`/`anime` 也是 1；`classical` 75% 的
+#   模板轨数 < 3）—— 而画像的 `arr_share` / `prog_pool` / 角色统计**全是从这些文件算出来的**，
+#   于是"这个主题用什么乐器"的依据本身就掺了假（`arr_share.perc` 普遍 ≤0.12、主奏池偏向
+#   钢琴/木管，都是这个原因）。实测：只加这一条闸门，**14/15 个主题仍够 8 首模板**。
+#   ⚠ **对"钢琴独奏/室内乐"正当的主题不适用**（古典/抒情/圆舞：钢琴独奏不是"缺编配"，
+#     是体裁本身）—— 那些主题在 `THEMES` 里显式给 `min_tracks`（见各主题的注释）。
+MIN_ARRANGE_TRACKS = 3
 # 风格 → 引擎打击/贝斯音型（模板的音符密度只用来兜底，风格名是更稳的先验）
 PERC_BY_STYLE = {'rock': 'dance', 'game16': 'dance', 'game32': 'dance',
                  'electronic': 'dance', 'chiptune': 'dance', 'latin': 'dance',
@@ -206,6 +276,17 @@ def candidates(theme, index=None):
             / max(1.0, bars)
         if tdens > 40:
             continue                      # 单轨就 40 音/小节 = 数据堆，不是编配
+        # **编配完整性**（2026-10-07，见 `MIN_ARRANGE_TRACKS` 的说明）：只有 1~2 条发声轨的
+        # 模板多是"钢琴/单轨改编"，它们没有配器信息，会把 `arr_share`/`prog_pool` 带偏。
+        # 主题可用 `min_tracks` 放宽（钢琴独奏/室内乐正当的主题）。
+        _mt = th.get('min_tracks', MIN_ARRANGE_TRACKS)
+        if len([t for t in (r.get('tracks') or []) if (t.get('notes') or 0) > 0]) < _mt:
+            continue
+        # **语义白名单**（2026-10-07，见 `THEMES['battle']` 的说明）：给了 `keywords` 的主题，
+        # 模板文件名必须命中（与 `styles` 是"且"的关系）。⚠ 只对**命名有约定的语料**有效
+        # （游戏/影视曲），古典/氛围类文件名常不含语义词，别给那些主题硬套。
+        if th.get('keywords') and not re.search(th['keywords'], r['file'], re.I):
+            continue
         key = r.get('md5') or r['file']
         if key in seen:
             continue
@@ -442,7 +523,18 @@ def analyze_template(row, path=None, sources=None):
     roles = collections.Counter()
     rng = collections.defaultdict(list)
     for t in res['tracks']:
-        if not t['notes'] or t['channel'] == 9:
+        if not t['notes']:
+            continue
+        if t['channel'] == 9:
+            # **鼓走 MIDI 的 channel 10（index 9）**（2026-10-07 修）：早先这里和别的轨一样
+            # `continue` 跳过 ⇒ `arr_share.perc` 只统计"program 112-119 的打击乐轨"，
+            # 而绝大多数 MIDI 把鼓放在 channel 9 ⇒ **per 系统性偏低**：实测 15 个主题的
+            # `arr_share.perc` 全都 ≤0.12（battle 0.12 / classic 0.00 / …），
+            # 可同一批素材里有鼓的比例是 chiptune 8/12、game32 12/12 —— 生成端拿这个字段
+            # 判断"该主题有没有打击层"，口径错了它就只能永远靠风格先验补。
+            # ⚠ **只计入角色计数，不进 `role_range`**：鼓是键位音高（35~51），
+            #   与"该声部的音域"不是同一个量，混进去会把 perc 的音域参考拉歪。
+            roles['perc'] += 1
             continue
         role = role_of_program(t['program'])
         roles[role] += 1
@@ -835,10 +927,20 @@ def aggregate(theme, rows, feats, min_n=MIN_TEMPLATES):
     for role in sorted({r for f in feats for r in f['roles']}):
         have = [f for f in feats if role in f['roles']]
         role_share[role] = round(len(have) / len(feats), 2)
-        los = sorted(f['role_range'][role][0] for f in have)
-        his = sorted(f['role_range'][role][1] for f in have)
-        role_rng[role] = [los[len(los) // 2], his[len(his) // 2]]
-    arr_share = {v: role_share.get(k, 0.0) for k, v in ROLE_TO_ARR.items()}
+        # ⚠ `role_range` 可能没有该角色：`perc` 是按**鼓轨（channel 9）**计数的，
+        #   而鼓轨**刻意不进音域统计**（它的音高是键位 35~51，不是"该声部的音域"）——
+        #   所以这里必须 `.get`，否则聚合时 `KeyError: 'perc'`（实测 2026-10-07 撞到）。
+        _rr = [f['role_range'][role] for f in have if role in f.get('role_range', {})]
+        if _rr:
+            los = sorted(x[0] for x in _rr)
+            his = sorted(x[1] for x in _rr)
+            role_rng[role] = [los[len(los) // 2], his[len(his) // 2]]
+    # ⚠ 用 `arr_roles()` 展开（`brass` 现在同时服务 `strings` 与 `ep`，见 `ROLE_TO_ARR`）：
+    #   同一个角色服务多个编配键时**每个键都算它有**（音色是可以兼两个声部的）。
+    arr_share = {}
+    for _role in ROLE_TO_ARR:
+        for _k in arr_roles(_role):
+            arr_share[_k] = round(max(arr_share.get(_k, 0.0), role_share.get(_role, 0.0)), 2)
     # 三档结论（生成时按档处理，别让"证据不足"变成"关掉"）：
     #   on    = ≥50% 模板有该乐器 → 开
     #   off   = **0%**（真的一首都没有）→ 关；中间档一律交给引擎风格预设

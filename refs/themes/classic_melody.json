@@ -155,11 +155,7 @@
  ],
  "bars": 122.3,
  "templates": [
-  "baroque/Handel in the Strand.mid",
   "baroque/Variations and Fugue on theme by Handel op24.mid",
-  "classical/Bach-1.mid",
-  "classical/chopin-sonata11.mid",
-  "classical/chopin-pol53.mid",
   "classical/Arty & Mat Zo - Mozart.mid",
   "classical/chopin-ballade1.mid",
   "public_domain/MentreDormi.mid",
@@ -174,38 +170,18 @@
  ],
  "name": "classic",
  "file": "theme:classic",
- "bpm": 110.0,
+ "bpm": 120.0,
  "tonic": "G",
  "mode": "major",
  "source": "theme_pack.py",
  "provenance": {
   "generated_by": "theme_pack.py",
-  "aggregate_of": 16,
+  "aggregate_of": 12,
   "templates": [
-   {
-    "file": "baroque/Handel in the Strand.mid",
-    "source": "https://bitmidi.com/uploads/28665.mid",
-    "bpm": 70.0
-   },
    {
     "file": "baroque/Variations and Fugue on theme by Handel op24.mid",
     "source": "https://bitmidi.com/uploads/28190.mid",
     "bpm": 120.0
-   },
-   {
-    "file": "classical/Bach-1.mid",
-    "source": "https://bitmidi.com/uploads/14984.mid",
-    "bpm": 102.0
-   },
-   {
-    "file": "classical/chopin-sonata11.mid",
-    "source": "https://bitmidi.com/uploads/23779.mid",
-    "bpm": 107.0
-   },
-   {
-    "file": "classical/chopin-pol53.mid",
-    "source": "https://bitmidi.com/uploads/23778.mid",
-    "bpm": 130.0
    },
    {
     "file": "classical/Arty & Mat Zo - Mozart.mid",

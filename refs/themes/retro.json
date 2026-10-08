@@ -3,6 +3,7 @@
  "label": "复古游戏",
  "desc": "复古游戏（主题模板包：16 首同主题模板聚合）",
  "styles": [
+  "retro",
   "chiptune",
   "game16",
   "game32"
@@ -15,8 +16,8 @@
  "min_templates": 8,
  "template_count": 16,
  "bpm": {
-  "median": 140.0,
-  "p25": 126.0,
+  "median": 130.0,
+  "p25": 125.0,
   "p75": 165.0
  },
  "key": {
@@ -25,18 +26,18 @@
   "mode": "minor",
   "confidence": 0.312,
   "scale_degree_weight": [
-   3306258.48,
-   76253.92,
-   860325.44,
-   753678.12,
-   297873.64,
-   973450.92,
-   82964.0,
-   1524636.52,
-   634891.0,
-   539934.24,
-   1114055.84,
-   489393.12
+   3735966.28,
+   144624.8,
+   1081394.24,
+   759884.84,
+   432748.84,
+   1060584.4,
+   116935.52,
+   1791895.24,
+   629027.8,
+   627467.36,
+   1123878.08,
+   507704.64
   ]
  },
  "templates": [
@@ -66,20 +67,6 @@
    "bars": 52,
    "seconds": 99.0,
    "source": "https://www.vgmusic.com/music/console/nintendo/nes/1943-Lev3Win.mid",
-   "kind": "vgmusic"
-  },
-  {
-   "file": "chiptune/1943-lev3.mid",
-   "style": "chiptune",
-   "md5": "e349066ec231745f931de06c175d623f",
-   "bpm": 126.0,
-   "timesig": [
-    4,
-    4
-   ],
-   "bars": 52,
-   "seconds": 99.0,
-   "source": "https://www.vgmusic.com/music/console/nintendo/nes/1943-lev3.mid",
    "kind": "vgmusic"
   },
   {
@@ -223,20 +210,6 @@
    "kind": "vgmusic"
   },
   {
-   "file": "game32/bonusstagecredits.mid",
-   "style": "game32",
-   "md5": "76426327a367e1a5b0b79fcf6033a589",
-   "bpm": 140.0,
-   "timesig": [
-    4,
-    4
-   ],
-   "bars": 73,
-   "seconds": 125.1,
-   "source": "https://www.vgmusic.com/music/console/sony/ps1/bonusstagecredits.mid",
-   "kind": "vgmusic"
-  },
-  {
    "file": "game32/T_AVGFighterMAX_YukaTheme.mid",
    "style": "game32",
    "md5": "0affbe06ea9b2f7cb82a0b5b06de9e19",
@@ -263,17 +236,46 @@
    "seconds": 131.1,
    "source": "https://www.vgmusic.com/music/console/sony/ps1/T_AVGFighterMAX_YukaThemeGM.mid",
    "kind": "vgmusic"
+  },
+  {
+   "file": "retro/A-Little-Bit-More-1.mid",
+   "style": "retro",
+   "md5": "53e6ba4004c298bfdaa8c617913282d7",
+   "bpm": 92.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 73,
+   "seconds": 187.8,
+   "source": "https://bitmidi.com/uploads/3117.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "retro/16 Bit Lolitas feat Jennifer Horne - Nobody Seems To Care.mid",
+   "style": "retro",
+   "md5": "3222a8e5357a1d4c4cf63d0abadb4c24",
+   "bpm": 128.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 8,
+   "seconds": 15.0,
+   "source": "https://bitmidi.com/uploads/430.mid",
+   "kind": "bitmidi"
   }
  ],
  "source_kinds": {
-  "vgmusic": 16
+  "vgmusic": 14,
+  "bitmidi": 2
  },
  "harmony": {
   "primary": [
    "Em7b5",
    "Em7",
-   "D7",
-   "Asus4"
+   "Em7b5",
+   "Em7"
   ],
   "primary_source": "chain",
   "progressions": [
@@ -387,27 +389,28 @@
    },
    {
     "degrees": [
-     10,
-     5,
+     0,
+     4,
      9,
-     7
+     2
     ],
     "romans": [
-     "bVII6",
-     "IV7",
-     "vi7",
-     "V6"
+     "idim",
+     "iii",
+     "vim7b5",
+     "ii"
     ],
-    "count": 14,
+    "count": 5,
     "templates": [
-     "game32/bonusstagecredits.mid"
+     "chiptune/1943-lev1.mid",
+     "retro/A-Little-Bit-More-1.mid"
     ],
-    "template_share": 0.06,
+    "template_share": 0.12,
     "symbols": [
-     "F6",
-     "C7",
-     "Em7",
-     "D6"
+     "Gdim",
+     "Bdim",
+     "Em7b5",
+     "Am7"
     ],
     "usable": true
    }
@@ -523,27 +526,28 @@
    },
    {
     "degrees": [
-     10,
-     5,
+     0,
+     4,
      9,
-     7
+     2
     ],
     "romans": [
-     "bVII6",
-     "IV7",
-     "vi7",
-     "V6"
+     "idim",
+     "iii",
+     "vim7b5",
+     "ii"
     ],
-    "count": 14,
+    "count": 5,
     "templates": [
-     "game32/bonusstagecredits.mid"
+     "chiptune/1943-lev1.mid",
+     "retro/A-Little-Bit-More-1.mid"
     ],
-    "template_share": 0.06,
+    "template_share": 0.12,
     "symbols": [
-     "F6",
-     "C7",
-     "Em7",
-     "D6"
+     "Gdim",
+     "Bdim",
+     "Em7b5",
+     "Am7"
     ],
     "usable": true
    }
@@ -566,7 +570,7 @@
      "game32/ClassicXG.mid",
      "game32/T_AVGFighterMAX_YukaTheme.mid",
      "game32/T_AVGFighterMAX_YukaThemeGM.mid",
-     "game32/bonusstagecredits.mid"
+     "retro/16 Bit Lolitas feat Jennifer Horne - Nobody Seems To Care.mid"
     ],
     "template_share": 0.44,
     "symbols": [
@@ -584,15 +588,14 @@
      "vim7b5",
      "IV7"
     ],
-    "count": 23,
+    "count": 18,
     "templates": [
      "chiptune/1943-Lev3Win.mid",
-     "chiptune/1943-lev3.mid",
      "chiptune/1943boss.mid",
      "game32/T_AVGFighterMAX_YukaTheme.mid",
      "game32/T_AVGFighterMAX_YukaThemeGM.mid"
     ],
-    "template_share": 0.31,
+    "template_share": 0.25,
     "symbols": [
      "Em7b5",
      "C7"
@@ -601,24 +604,47 @@
    },
    {
     "degrees": [
-     10,
-     5
+     7,
+     8
     ],
     "romans": [
-     "bVII6",
-     "IV7"
+     "Vsus4",
+     "bvidim"
     ],
-    "count": 18,
+    "count": 16,
     "templates": [
-     "chiptune/1943boss.mid",
-     "chiptune/1943won.mid",
+     "chiptune/1943boss1.mid",
      "game16/7thsaga_bt1.mid",
-     "game32/bonusstagecredits.mid"
+     "game16/7thsaga_town3-1.mid",
+     "game32/ClassicXG.mid"
     ],
     "template_share": 0.25,
     "symbols": [
-     "F6",
-     "C7"
+     "Dsus4",
+     "D#dim"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     2,
+     0
+    ],
+    "romans": [
+     "ii7",
+     "I6"
+    ],
+    "count": 15,
+    "templates": [
+     "chiptune/1943boss.mid",
+     "game16/7thsaga_town3-1.mid",
+     "game32/ace-map.mid",
+     "retro/A-Little-Bit-More-1.mid"
+    ],
+    "template_share": 0.25,
+    "symbols": [
+     "Am7",
+     "G6"
     ],
     "usable": true
    },
@@ -646,44 +672,22 @@
    },
    {
     "degrees": [
-     9,
-     7
-    ],
-    "romans": [
-     "vi7",
-     "V6"
-    ],
-    "count": 22,
-    "templates": [
-     "game32/T_AVGFighterMAX_YukaTheme.mid",
-     "game32/T_AVGFighterMAX_YukaThemeGM.mid",
-     "game32/bonusstagecredits.mid"
-    ],
-    "template_share": 0.19,
-    "symbols": [
-     "Em7",
-     "D6"
-    ],
-    "usable": true
-   },
-   {
-    "degrees": [
-     5,
+     8,
      9
     ],
     "romans": [
-     "IV7",
+     "bVI6",
      "vi7"
     ],
-    "count": 19,
+    "count": 18,
     "templates": [
-     "chiptune/1943-lev3.mid",
-     "game32/ClassicXG.mid",
-     "game32/bonusstagecredits.mid"
+     "chiptune/1943-Lev3Win.mid",
+     "game32/T_AVGFighterMAX_YukaTheme.mid",
+     "game32/T_AVGFighterMAX_YukaThemeGM.mid"
     ],
     "template_share": 0.19,
     "symbols": [
-     "C7",
+     "D#6",
      "Em7"
     ],
     "usable": true
@@ -692,36 +696,36 @@
   "pool_progression": [
    "Em7b5",
    "Em7",
-   "D7",
-   "Asus4"
+   "Em7b5",
+   "Em7"
   ],
   "pool_progression_romans": [
    "vim7b5",
    "vi7",
-   "V7",
-   "IIsus4"
+   "vim7b5",
+   "vi7"
   ],
   "chord_pool": [
    {
     "degree": 0,
     "roman": "I",
     "suffix": "sus4",
-    "count": 181,
+    "count": 207,
     "templates": 8
-   },
-   {
-    "degree": 9,
-    "roman": "VI",
-    "suffix": "m7",
-    "count": 154,
-    "templates": 9
    },
    {
     "degree": 7,
     "roman": "V",
     "suffix": "m7",
-    "count": 144,
+    "count": 126,
     "templates": 10
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m7b5",
+    "count": 124,
+    "templates": 8
    },
    {
     "degree": 8,
@@ -734,36 +738,36 @@
     "degree": 5,
     "roman": "IV",
     "suffix": "7",
-    "count": 98,
+    "count": 83,
     "templates": 12
    },
    {
     "degree": 3,
     "roman": "bIII",
     "suffix": "7",
-    "count": 77,
-    "templates": 5
+    "count": 79,
+    "templates": 6
    },
    {
     "degree": 4,
     "roman": "III",
     "suffix": "dim",
-    "count": 58,
+    "count": 59,
     "templates": 6
    },
    {
     "degree": 2,
     "roman": "II",
-    "suffix": "sus4",
-    "count": 46,
+    "suffix": "7",
+    "count": 54,
     "templates": 10
    },
    {
     "degree": 10,
     "roman": "bVII",
     "suffix": "6",
-    "count": 45,
-    "templates": 9
+    "count": 31,
+    "templates": 8
    },
    {
     "degree": 6,
@@ -775,87 +779,86 @@
    {
     "degree": 1,
     "roman": "bII",
-    "suffix": "6",
-    "count": 12,
-    "templates": 2
+    "suffix": "m7b5",
+    "count": 16,
+    "templates": 3
    },
    {
     "degree": 11,
     "roman": "VII",
     "suffix": "dim",
-    "count": 6,
-    "templates": 2
+    "count": 8,
+    "templates": 3
    }
   ],
-  "chord_per_bar": 0.87
+  "chord_per_bar": 0.88
  },
  "rhythm": {
   "low16": "★·★★★·★★★·★★★★★·",
-  "high16": "★·★·★·★★★★★·★·★·",
+  "high16": "★·★·★·★·★·★·★·★·",
   "low_slot_share": [
    1.0,
    0.38,
-   1.0,
-   0.62,
-   1.0,
+   0.94,
+   0.56,
+   0.94,
    0.31,
-   1.0,
-   0.62,
    0.94,
+   0.56,
+   0.88,
    0.38,
-   1.0,
-   0.69,
-   1.0,
+   0.94,
    0.62,
    0.94,
+   0.56,
+   0.88,
    0.5
   ],
   "high_slot_share": [
    0.94,
    0.38,
+   0.69,
+   0.38,
    0.75,
+   0.31,
+   0.75,
+   0.5,
+   0.81,
+   0.5,
+   0.81,
+   0.5,
+   0.81,
    0.44,
    0.81,
-   0.38,
-   0.81,
-   0.56,
-   0.88,
-   0.56,
-   0.81,
-   0.5,
-   0.81,
-   0.5,
-   0.88,
    0.5
   ],
-  "low_density": 25.38,
-  "high_density": 16.26,
-  "bass_density": 5.67,
-  "perc_density": 13.41,
+  "low_density": 24.76,
+  "high_density": 16.01,
+  "bass_density": 5.36,
+  "perc_density": 12.6,
   "slots": 16,
-  "bass_style": "eighth",
-  "perc_style": "dance",
-  "bass_style_prev": "sixteenth"
+  "bass_style": "sixteenth",
+  "perc_style": "dance"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.75,
-   "brass": 0.44,
+   "bass": 0.69,
+   "brass": 0.38,
    "fx": 0.06,
-   "glock": 0.12,
-   "guitar": 0.38,
-   "lead": 0.25,
-   "organ": 0.25,
+   "glock": 0.06,
+   "guitar": 0.44,
+   "lead": 0.19,
+   "organ": 0.19,
    "pad": 0.06,
-   "perc": 0.06,
-   "piano": 0.44,
-   "pipe": 0.38,
+   "perc": 0.94,
+   "piano": 0.5,
+   "pipe": 0.31,
    "reed": 0.06,
-   "strings": 0.75
+   "strings": 0.81
   },
   "role_range": {
    "bass": [
-    31,
+    30,
     53
    ],
    "brass": [
@@ -871,15 +874,15 @@
     72
    ],
    "guitar": [
-    46,
+    40,
     81
    ],
    "lead": [
-    60,
-    86
+    58,
+    84
    ],
    "organ": [
-    60,
+    57,
     78
    ],
    "pad": [
@@ -892,88 +895,92 @@
    ],
    "piano": [
     57,
-    76
+    77
    ],
    "pipe": [
-    79,
-    88
+    71,
+    86
    ],
    "reed": [
     48,
     77
    ],
    "strings": [
-    49,
+    45,
     80
    ]
   },
   "arr_share": {
-   "bass": 0.75,
-   "piano": 0.44,
-   "uku": 0.38,
-   "strings": 0.44,
+   "bass": 0.69,
+   "piano": 0.5,
+   "uku": 0.44,
+   "strings": 0.81,
    "pad": 0.06,
-   "glock": 0.12,
+   "glock": 0.06,
    "ep": 0.38,
-   "perc": 0.06
+   "perc": 0.94
   },
   "arr_on": [
-   "bass"
+   "bass",
+   "perc",
+   "piano",
+   "strings"
   ],
   "arr_off": [],
   "arr_maybe": [
    "ep",
    "glock",
    "pad",
-   "perc",
-   "piano",
-   "strings",
    "uku"
   ],
   "track_count": 8.5,
   "style_mix": {
-   "chiptune": 6,
+   "chiptune": 5,
    "game16": 5,
-   "game32": 5
+   "game32": 4,
+   "retro": 2
   },
   "prog_pool": {
    "strings": [
     50,
-    56,
     48,
+    56,
     62,
     61,
     47,
-    57
+    57,
+    49
+   ],
+   "ep": [
+    61,
+    73,
+    62,
+    56,
+    75,
+    72,
+    87,
+    80,
+    65
    ],
    "pad": [
     90
    ],
-   "ep": [
-    73,
-    80,
-    75,
-    72,
-    87,
-    65
-   ],
    "uku": [
     30,
-    29,
     25,
+    29,
     28
    ],
    "piano": [
     4,
     0,
-    2,
     1
    ],
    "bass": [
     35,
-    32,
     39,
     33,
+    32,
     38,
     34
    ],
@@ -991,7 +998,7 @@
   "plan": [
    {
     "name": "Intro",
-    "bars": 6,
+    "bars": 4,
     "prog": 0
    },
    {
@@ -1039,90 +1046,84 @@
     "bars": 4,
     "prog": 0
    }
-  ],
-  "intro_note": "首段按主题派生（2026-10-05）：Intro 6 小节 —— 修 `scripts/theme_pack.py` 的 plan 生成以免重建时被覆盖"
+  ]
  },
  "melody": {
-  "notes": 2211,
+  "notes": 1908,
   "range": [
-   65,
-   86
+   63,
+   82
   ],
-  "mean_pitch": 74.7,
-  "notes_per_bar": 2.24,
-  "stepwise_pct": 71.88,
-  "onbeat_pct": 57.31,
-  "diatonic_pct": 92.56,
+  "mean_pitch": 73.45,
+  "notes_per_bar": 2.05,
+  "stepwise_pct": 74.15,
+  "onbeat_pct": 54.12,
+  "diatonic_pct": 92.65,
   "interval_hist": {
    "-38": 10,
    "-20": 231,
    "-19": 7,
+   "-15": 53,
    "-12": 12,
    "-11": 9,
-   "-9": 113,
    "-8": 25,
-   "-7": 167,
+   "-7": 160,
    "-6": 35,
-   "-5": 471,
-   "-4": 765,
+   "-5": 401,
+   "-4": 575,
    "-3": 406,
-   "-2": 1827,
-   "-1": 1325,
-   "0": 3815,
-   "1": 1300,
-   "2": 3234,
-   "3": 360,
+   "-2": 1976,
+   "-1": 1385,
+   "0": 3436,
+   "1": 1615,
+   "2": 3452,
+   "3": 399,
    "4": 836,
-   "5": 339,
-   "7": 285,
-   "8": 4,
+   "5": 346,
+   "7": 158,
    "10": 100,
    "12": 302,
-   "17": 12,
+   "17": 59,
    "33": 10
   },
   "dur16_hist": {
-   "0": 277,
-   "1": 5455,
-   "2": 5189,
+   "0": 1077,
+   "1": 5399,
+   "2": 4761,
    "3": 177,
-   "4": 1234,
+   "4": 955,
    "5": 15,
    "6": 36,
    "7": 96,
-   "8": 330,
+   "8": 263,
    "9": 5,
    "10": 163,
-   "11": 168,
+   "11": 268,
    "12": 386,
    "14": 63,
-   "16": 2407
+   "16": 2337
   },
   "onset16_hist": {
-   "0": 3887,
+   "0": 3752,
    "1": 378,
-   "2": 499,
+   "2": 541,
    "3": 369,
-   "4": 1158,
+   "4": 981,
    "5": 382,
-   "6": 789,
+   "6": 662,
    "7": 422,
-   "8": 2201,
-   "9": 348,
-   "10": 999,
-   "11": 591,
-   "12": 1923,
-   "13": 462,
-   "14": 1195,
-   "15": 396
+   "8": 2210,
+   "9": 341,
+   "10": 905,
+   "11": 584,
+   "12": 1717,
+   "13": 621,
+   "14": 1479,
+   "15": 656
   },
-  "phrases": 192,
+  "phrases": 188,
   "phrase_bars": [
    8.25,
-   5.75,
-   1.25,
-   5.75,
-   1.25,
    5.75,
    1.25,
    5.75,
@@ -1177,25 +1178,29 @@
    17.0,
    1.0,
    1.0,
-   1.0
+   1.0,
+   9.0,
+   4.0,
+   1.86,
+   10.9
   ],
-  "bars": 61.8,
+  "bars": 58.1,
   "templates": 16
  },
  "notes": [
-  "共 16 首模板，来源：vgmusic×16",
+  "共 16 首模板，来源：vgmusic×14, bitmidi×2",
   "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/retro_tracks.json"
  ],
  "tool": "theme_pack.py",
  "mix_target": {
   "ref": "retro_mix",
-  "score": 0.624,
-  "why": "BPM 132.4（差 7.6，0.75）· 打击感 0.60 vs 目标 0.75（0.71）· 调式 major≠主题（0.00）",
+  "score": 0.719,
+  "why": "BPM 132.4（差 2.4，0.92）· 打击感 0.60 vs 目标 0.75（0.71）· 调式 major≠主题（0.00）",
   "aggregate": true,
   "members": [
    {
     "ref": "BGM15c",
-    "score": 0.624,
+    "score": 0.719,
     "bpm": 132.4,
     "centroid": 3338,
     "rms_db": -19.3,
@@ -1211,16 +1216,35 @@
     }
    },
    {
-    "ref": "BGM16c",
-    "score": 0.611,
-    "bpm": 150.0,
-    "centroid": 3250,
-    "rms_db": -16.9,
-    "width": 0.51,
+    "ref": "fine_BGM09",
+    "score": 0.689,
+    "bpm": 123.0,
+    "centroid": 3695,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "source": {
+     "kind": "game_bgm",
+     "detail": "仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）",
+     "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
+     "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
+     "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
+     "url_alt": [
+      "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
+     ],
+     "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
+    }
+   },
+   {
+    "ref": "bgm01c",
+    "score": 0.626,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
     "source": {
      "kind": "project_audio",
      "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16c.ogg",
+     "file": "bgm01c.ogg",
      "origin_path": null,
      "url": null,
      "url_alt": [],
@@ -1229,7 +1253,7 @@
    },
    {
     "ref": "BGM18",
-    "score": 0.603,
+    "score": 0.614,
     "bpm": 134.7,
     "centroid": 2043,
     "rms_db": -22.2,
@@ -1246,7 +1270,7 @@
    },
    {
     "ref": "BGM18b",
-    "score": 0.603,
+    "score": 0.614,
     "bpm": 134.7,
     "centroid": 1971,
     "rms_db": -22.1,
@@ -1262,56 +1286,20 @@
     }
    },
    {
-    "ref": "BGM16b",
-    "score": 0.546,
-    "bpm": 139.8,
-    "centroid": 2472,
-    "rms_db": -17.9,
-    "width": 0.77,
+    "ref": "BGM06",
+    "score": 0.478,
+    "bpm": 133.9,
+    "centroid": 1533,
+    "rms_db": -16.9,
+    "width": 0.261,
     "source": {
      "kind": "project_audio",
      "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16b.ogg",
+     "file": "BGM06.ogg",
      "origin_path": null,
      "url": null,
      "url_alt": [],
      "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "t2_BGM16",
-    "score": 0.515,
-    "bpm": 150.0,
-    "centroid": 2826,
-    "rms_db": -17.4,
-    "width": 0.678,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16.ogg",
-     "origin_path": "D:/test/galgame/ピュアソングガーデン！解包/Bgm/BGM16.ogg",
-     "url": null,
-     "url_alt": [],
-     "note": "早期画像没记 source（2026-09-21 补）：依据是画像自带 file 字段里的路径，与同批 46 份的来源一致。"
-    }
-   },
-   {
-    "ref": "fine_BGM09",
-    "score": 0.506,
-    "bpm": 123.0,
-    "centroid": 3695,
-    "rms_db": -17.1,
-    "width": 0.369,
-    "source": {
-     "kind": "game_bgm",
-     "detail": "仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）",
-     "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
-     "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
-     "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
-     "url_alt": [
-      "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
-     ],
-     "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
     }
    }
   ],
@@ -1324,21 +1312,20 @@
   "perc_style_target": 0.75,
   "energy_curve_db": [],
   "structure_db": [
-   -19.0,
    -18.0,
-   -18.0
+   -18.0,
+   -17.0
   ],
   "density_curve_db": [
-   -2.34,
+   -2.48,
    0.0,
-   0.96
+   1.43
   ],
   "density_meta": {
    "n": 14,
    "files": [
     "1943boss.mid",
     "1943-Lev3Win.mid",
-    "1943-lev3.mid",
     "1943boss1.mid",
     "1943-lev1.mid",
     "7thsaga_town3-1.mid",
@@ -1349,12 +1336,13 @@
     "ClassicXG.mid",
     "ace-map.mid",
     "T_AVGFighterMAX_YukaTheme.mid",
-    "T_AVGFighterMAX_YukaThemeGM.mid"
+    "T_AVGFighterMAX_YukaThemeGM.mid",
+    "A-Little-Bit-More-1.mid"
    ],
    "abs_curve": [
     35.12,
-    46.0,
-    51.38
+    46.75,
+    55.12
    ],
    "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
   },
@@ -1362,7 +1350,7 @@
   "candidates": [
    {
     "ref": "BGM15c",
-    "score": 0.624,
+    "score": 0.719,
     "bpm": 132.4,
     "rms_db": -19.3,
     "width": 0.66,
@@ -1380,63 +1368,64 @@
      -19
     ],
     "parts": {
-     "bpm": 0.747,
+     "bpm": 0.92,
      "perc": 0.71,
      "mode": 0.0
     },
-    "why": "BPM 132.4（差 7.6，0.75）· 打击感 0.60 vs 目标 0.75（0.71）· 调式 major≠主题（0.00）"
+    "why": "BPM 132.4（差 2.4，0.92）· 打击感 0.60 vs 目标 0.75（0.71）· 调式 major≠主题（0.00）"
    },
    {
-    "ref": "BGM16c",
-    "score": 0.611,
-    "bpm": 150.0,
-    "rms_db": -16.9,
-    "width": 0.51,
-    "centroid": 3250,
-    "perc": 0.657,
-    "mode": "major",
+    "ref": "fine_BGM09",
+    "score": 0.689,
+    "bpm": 123.0,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "centroid": 3695,
+    "perc": 0.446,
+    "mode": "minor",
     "structure": [
+     -18,
      -18,
      -17,
      -17,
      -16,
      -16,
-     -16,
-     -16,
-     -19
+     -16
     ],
     "parts": {
-     "bpm": 0.667,
-     "perc": 0.814,
-     "mode": 0.0
+     "bpm": 0.767,
+     "perc": 0.392,
+     "mode": 1.0
     },
-    "why": "BPM 150.0（差 10.0，0.67）· 打击感 0.66 vs 目标 0.75（0.81）· 调式 major≠主题（0.00）"
+    "why": "BPM 123.0（差 7.0，0.77）· 打击感 0.45 vs 目标 0.75（0.39）· 调式 minor（1.00）"
    },
    {
-    "ref": "BGM16c_v2",
-    "score": 0.611,
-    "bpm": 150.0,
-    "rms_db": -16.9,
-    "width": 0.51,
-    "centroid": 3250,
-    "perc": 0.657,
+    "ref": "bgm01c",
+    "score": 0.626,
+    "bpm": 128.0,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "centroid": 3284,
+    "perc": 0.437,
     "mode": "major",
     "structure": [
-     -18,
      -17,
-     -17,
-     -16,
-     -16,
-     -16,
-     -16,
-     -19
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -15,
+     -14
     ],
     "parts": {
-     "bpm": 0.667,
-     "perc": 0.814,
+     "bpm": 0.933,
+     "perc": 0.374,
      "mode": 0.0
     },
-    "why": "BPM 150.0（差 10.0，0.67）· 打击感 0.66 vs 目标 0.75（0.81）· 调式 major≠主题（0.00）"
+    "why": "BPM 128.0（差 2.0，0.93）· 打击感 0.44 vs 目标 0.75（0.37）· 调式 major≠主题（0.00）"
    }
   ],
   "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"

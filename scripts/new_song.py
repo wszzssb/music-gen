@@ -691,11 +691,48 @@ def theme_guitar_arp(pack):
     rr = (pack.get('arrangement') or {}).get('role_range') or {}
     rng = rr.get('guitar') or rr.get('lead') or rr.get('pipe') or rr.get('organ')
     span = (int(rng[1]) - int(rng[0])) if (rng and len(rng) == 2) else 30
+    # ⚠ **改成"按全部主题跨度的 p33/p67 分位"相对分档**（2026-10-07）：
+    #   原来按固定阈值 36 / 24 分宽/中/窄。换上专属素材池之后，15 个主题的吉他跨度**全落在
+    #   24~47**（实测：36~47 六个、24~35 九个、**一个 <24 的都没有**）⇒ "窄档"永远取不到
+    #   ⇒ 音型只剩 2 种，守卫 `guitar_variation`（要求 ≥3 种）当场 FAIL。
+    #   这函数的语义本来就是**相对**的 —— docstring 原文："跨度大 = 真实曲里吉他在跨八度地扫
+    #   （宽广琶音）；跨度小 = 挤在中音区（密集回旋）"。所以分档该由**分布**定义，而不是
+    #   拍出来的固定值：取全库跨度的 p33/p67，每档约 1/3 的主题（实测 5/4/6 → 3 种音型）。
+    #   拿不到全局分布（单包自测）时回退旧阈值。
+    _lo, _hi = _guitar_span_terciles()
+    if _hi > _lo:
+        if span >= _hi:
+            return [0, 2, 4, 5, 4, 2, 3]      # 宽琶音（本库跨度上 1/3）
+        if span >= _lo:
+            return [0, 2, 3, 4, 3, 2, 4]      # 中琶音（本库跨度中 1/3）
+        return [0, 1, 3, 2]                   # 窄音型（本库跨度下 1/3，密集邻音回旋）
     if span >= 36:
         return [0, 2, 4, 5, 4, 2, 3]          # 宽琶音（跨八度，含九度）
     if span >= 24:
         return [0, 2, 3, 4, 3, 2, 4]          # 中琶音（三度/五度阶梯；原默认档）
     return [0, 1, 3, 2]                       # 窄音型（密集邻音回旋，留在中音区）
+
+
+def _guitar_span_terciles():
+    """15 个主题包的吉他音域跨度 → (p33, p67) 两个分位（带缓存）。
+
+    供 `theme_guitar_arp` 做**相对**分档用（理由见那个函数）。包数 <3 或跨度取不到时返回
+    `(0, 0)` ⇒ 调用方回退固定阈值（单包自测/夹具仍可跑）。
+    """
+    if 'gspan' in _LEAD_CACHE:
+        return _LEAD_CACHE['gspan']
+    spans = []
+    for _t, _p in _theme_packs().items():
+        _rr = (_p.get('arrangement') or {}).get('role_range') or {}
+        _rng = (_rr.get('guitar') or _rr.get('lead') or _rr.get('pipe') or _rr.get('organ'))
+        if _rng and len(_rng) == 2:
+            spans.append(int(_rng[1]) - int(_rng[0]))
+    spans.sort()
+    out = (0, 0)
+    if len(spans) >= 3:
+        out = (spans[len(spans) // 3], spans[(2 * len(spans)) // 3])
+    _LEAD_CACHE['gspan'] = out
+    return out
 
 
 def seed_from_name(name):

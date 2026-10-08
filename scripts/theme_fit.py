@@ -244,7 +244,16 @@ def selftest():
     rows = theme_rows()
     assert len(rows) >= 8, '主题包太少（%d）' % len(rows)
     lead_g = lead_groups(rows)
-    assert len(lead_g) < len(rows), '所有主题的主奏音色都不同？区分度报告会空转'
+    # ⚠ **"所有主题主奏音色都不同"不是故障，是最好情况**（2026-10-07 改）：
+    #   原断言是 `len(lead_g) < len(rows)`（= 要求"至少两个主题共享同一主奏音色"），
+    #   那是为了让下面的"区分度报告"有东西可说。但 2026-10-07 这一轮把
+    #   ① 铜管纳入主奏池（`theme_pack.ROLE_TO_ARR['brass'] = ['strings','ep']`）
+    #   ② 15 个主题换成各自的专属素材池
+    #   之后，实测 **15 个主题的主奏音色各自独占**（`lead_g` 有 15 组）—— 这正是
+    #   `lead_assign()` 跨主题去重分配追求的目标，却被旧断言判成"空转"而 FAIL。
+    #   改成只防**彻底空转**（一个组都没有）：区分度报告在"全独占"时照样成立
+    #   （它会把"独占音色的主题"列出来）。
+    assert lead_g, '主奏音色分组为空 —— 区分度报告会空转'
     r = rows[0]
     base = {'name': 'fx', 'theme': {'name': r['theme']}, 'bpm': r['bpm'].get('median'),
             'meter': r['meter'], 'programs': {k: [v, se.CH[k]] for k, v in r['progs'].items()},

@@ -45,7 +45,7 @@
  "members": [
   {
    "ref": "BGM15c",
-   "score": 0.792,
+   "score": 0.774,
    "bpm": 132.4,
    "centroid": 3338,
    "rms_db": -19.3,
@@ -62,7 +62,7 @@
   },
   {
    "ref": "BGM16c",
-   "score": 0.743,
+   "score": 0.761,
    "bpm": 150.0,
    "centroid": 3250,
    "rms_db": -16.9,
@@ -79,7 +79,7 @@
   },
   {
    "ref": "BGM16b",
-   "score": 0.685,
+   "score": 0.696,
    "bpm": 139.8,
    "centroid": 2472,
    "rms_db": -17.9,
@@ -96,7 +96,7 @@
   },
   {
    "ref": "t2_BGM16",
-   "score": 0.647,
+   "score": 0.665,
    "bpm": 150.0,
    "centroid": 2826,
    "rms_db": -17.4,
@@ -113,7 +113,7 @@
   },
   {
    "ref": "bgm01c",
-   "score": 0.611,
+   "score": 0.592,
    "bpm": 128.0,
    "centroid": 3284,
    "rms_db": -14.3,
@@ -130,7 +130,7 @@
   },
   {
    "ref": "BGM06",
-   "score": 0.607,
+   "score": 0.588,
    "bpm": 133.9,
    "centroid": 1533,
    "rms_db": -16.9,

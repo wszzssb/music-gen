@@ -2,55 +2,71 @@
  "theme": "lounge",
  "label": "酒馆爵士",
  "desc": "酒馆爵士（主题模板包：16 首同主题模板聚合）",
- "styles": ["jazz", "blues", "pop"],
+ "styles": [
+  "lounge",
+  "jazz",
+  "blues",
+  "pop"
+ ],
  "engine_style": "acoustic",
- "meter": [4, 4],
+ "meter": [
+  4,
+  4
+ ],
  "min_templates": 8,
  "template_count": 16,
  "bpm": {
   "median": 132.0,
   "p25": 120.0,
-  "p75": 158.0
+  "p75": 156.0
  },
  "key": {
-  "tonic": "C",
-  "pc": 0,
-  "mode": "major",
-  "confidence": 0.25,
-  "scale_degree_weight": [3390260.11, 232539.52, 874928.96, 639669.89, 922871.76, 1751471.98, 198635.8, 2029848.05, 429296.23, 1060176.6, 764968.48, 513857.2]
+  "tonic": "A",
+  "pc": 9,
+  "mode": "minor",
+  "confidence": 0.312,
+  "scale_degree_weight": [
+   3163140.39,
+   256528.22,
+   831474.34,
+   643416.64,
+   903953.75,
+   1613548.62,
+   225468.0,
+   1647577.9,
+   555178.28,
+   960009.88,
+   839245.36,
+   532812.56
+  ]
  },
  "templates": [
   {
-   "file": "blues/After-Dinner-Blues.mid",
+   "file": "blues/Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid",
    "style": "blues",
-   "md5": "693c5a976445c5800aa4818ef09ce817",
-   "bpm": 60.0,
-   "timesig": [4, 4],
-   "bars": 79,
-   "seconds": 315.4,
-   "source": "https://bitmidi.com/uploads/4196.mid",
+   "md5": "c0f3af2bbd83627e3e43a06af661528d",
+   "bpm": 122.95,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 62,
+   "seconds": 120.3,
+   "source": "https://bitmidi.com/uploads/18592.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "blues/Backfield-Blues.mid",
+   "file": "blues/B.BLUE.A touch of blues.mid",
    "style": "blues",
-   "md5": "2b5f6e4744e8f80c92c8365e3e04bb3d",
-   "bpm": 110.0,
-   "timesig": [4, 4],
-   "bars": 100,
-   "seconds": 217.9,
-   "source": "https://bitmidi.com/uploads/15090.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "blues/Boogie-Woogie.mid",
-   "style": "blues",
-   "md5": "26e7f6a1ed27d8bd44cc30fb3cff571f",
-   "bpm": 130.0,
-   "timesig": [4, 4],
-   "bars": 113,
-   "seconds": 207.5,
-   "source": "https://bitmidi.com/uploads/19185.mid",
+   "md5": "858344f916a77c19582b7ec743999404",
+   "bpm": 132.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 54,
+   "seconds": 97.6,
+   "source": "https://bitmidi.com/uploads/14631.mid",
    "kind": "bitmidi"
   },
   {
@@ -58,32 +74,41 @@
    "style": "blues",
    "md5": "25deedf3173fb277ba307f28c62023d9",
    "bpm": 175.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 200,
    "seconds": 273.1,
    "source": "https://bitmidi.com/uploads/7006.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "blues/Boogie-Woogie-Demo.mid",
+   "file": "blues/Be-My-Boogie-Woogie-Baby.mid",
    "style": "blues",
-   "md5": "b8a04e33784194ba58a6cd2a14f66509",
+   "md5": "506a700f586224caa61fe58017f0bd3a",
    "bpm": 180.0,
-   "timesig": [4, 4],
-   "bars": 52,
-   "seconds": 68.8,
-   "source": "https://bitmidi.com/uploads/19184.mid",
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 141,
+   "seconds": 187.0,
+   "source": "https://bitmidi.com/uploads/16192.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "jazz/Cowboy Bebop - ELM.mid",
+   "file": "jazz/Bach-To-Swing.mid",
    "style": "jazz",
-   "md5": "5eec84e0621fc939d849a56208771004",
-   "bpm": 58.48,
-   "timesig": [4, 4],
-   "bars": 101,
-   "seconds": 413.2,
-   "source": "https://bitmidi.com/uploads/25904.mid",
+   "md5": "f341b85f77f24ca132bd87e9f3f3b0bf",
+   "bpm": 85.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 117,
+   "seconds": 329.1,
+   "source": "https://bitmidi.com/uploads/14990.mid",
    "kind": "bitmidi"
   },
   {
@@ -91,7 +116,10 @@
    "style": "jazz",
    "md5": "9a3cc9c3b1ff493e4513b6b23cb8da92",
    "bpm": 120.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 105,
    "seconds": 210.0,
    "source": "https://bitmidi.com/uploads/8049.mid",
@@ -102,10 +130,27 @@
    "style": "jazz",
    "md5": "a3fe9abebc824bb5b2f2e28f8cc7eb8a",
    "bpm": 132.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 114,
    "seconds": 205.7,
    "source": "https://bitmidi.com/uploads/3092.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "jazz/AMESSE.Swing a ling.mid",
+   "style": "jazz",
+   "md5": "67bca2555706ea4b1f0aa1165d2c172f",
+   "bpm": 138.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 208,
+   "seconds": 361.0,
+   "source": "https://bitmidi.com/uploads/6100.mid",
    "kind": "bitmidi"
   },
   {
@@ -113,7 +158,10 @@
    "style": "jazz",
    "md5": "a31a41a04f7d0015936e7747dc150b53",
    "bpm": 138.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 102,
    "seconds": 177.1,
    "source": "https://bitmidi.com/uploads/4879.mid",
@@ -124,21 +172,55 @@
    "style": "jazz",
    "md5": "71250138dd3b9294156ecf9165496c60",
    "bpm": 156.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 28,
    "seconds": 43.0,
    "source": "https://bitmidi.com/uploads/16551.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "jazz/Alexander's-Ragtime-Band.mid",
-   "style": "jazz",
-   "md5": "131c2d8431d6995820d66d7bbec1d98b",
-   "bpm": 162.0,
-   "timesig": [4, 4],
-   "bars": 104,
-   "seconds": 153.9,
-   "source": "https://bitmidi.com/uploads/4880.mid",
+   "file": "lounge/KOKUBU.Smooth struttin'.mid",
+   "style": "lounge",
+   "md5": "34b5bc85b258800213c956f3bb7dbe53",
+   "bpm": 89.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 95,
+   "seconds": 256.2,
+   "source": "https://bitmidi.com/uploads/66567.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "lounge/SANTANA.Smooth K.mid",
+   "style": "lounge",
+   "md5": "d90d52239a41a7e65a6d4581863dd669",
+   "bpm": 116.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 128,
+   "seconds": 264.1,
+   "source": "https://bitmidi.com/uploads/91510.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "lounge/Iio - Smooth (Airbase Remix).mid",
+   "style": "lounge",
+   "md5": "8acfcc5c5302d6c8cb2cb21f9df2caab",
+   "bpm": 140.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 16,
+   "seconds": 27.4,
+   "source": "https://bitmidi.com/uploads/60126.mid",
    "kind": "bitmidi"
   },
   {
@@ -146,21 +228,13 @@
    "style": "pop",
    "md5": "261cbf31ee92b73e4c11d37ff837511c",
    "bpm": 120.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 112,
    "seconds": 222.2,
    "source": "https://bitmidi.com/uploads/60059.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "pop/Pop-Vamp.mid",
-   "style": "pop",
-   "md5": "795cb1d8f3adf8f9647c5a17d6fe03b0",
-   "bpm": 125.0,
-   "timesig": [4, 4],
-   "bars": 82,
-   "seconds": 157.3,
-   "source": "https://bitmidi.com/uploads/35242.mid",
    "kind": "bitmidi"
   },
   {
@@ -168,21 +242,13 @@
    "style": "pop",
    "md5": "a15e4ec30d5281e6e10107525742861a",
    "bpm": 132.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 16,
    "seconds": 29.1,
    "source": "https://bitmidi.com/uploads/39730.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid",
-   "style": "pop",
-   "md5": "a90d8973d0c7d3bcb385913a0c2ffcad",
-   "bpm": 140.0,
-   "timesig": [4, 4],
-   "bars": 8,
-   "seconds": 13.7,
-   "source": "https://bitmidi.com/uploads/40059.mid",
    "kind": "bitmidi"
   },
   {
@@ -190,7 +256,10 @@
    "style": "pop",
    "md5": "476a8297bae896474f960a5b445fafb0",
    "bpm": 158.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 127,
    "seconds": 191.4,
    "source": "https://bitmidi.com/uploads/39732.mid",
@@ -201,319 +270,727 @@
   "bitmidi": 16
  },
  "harmony": {
-  "primary": ["C7", "F7", "C7", "F7"],
+  "primary": [
+   "E7",
+   "Am6",
+   "E7",
+   "Am6"
+  ],
   "primary_source": "window2",
   "progressions": [
    {
-    "degrees": [7, 5, 5, 0],
-    "romans": ["Vsus4", "IVmaj7", "IVmaj7", "I6"],
-    "count": 5,
-    "templates": ["blues/Boogie-Woogie.mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "pop/Pop-Vamp.mid"],
-    "template_share": 0.19,
-    "symbols": ["Gsus4", "Fmaj7", "Fmaj7", "C6"],
-    "usable": true
-   },
-   {
-    "degrees": [0, 7, 5, 0],
-    "romans": ["I", "V", "IV6", "I"],
-    "count": 6,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid"],
-    "template_share": 0.12,
-    "symbols": ["C7", "Gsus4", "F6", "C7"],
-    "usable": true
-   },
-   {
-    "degrees": [0, 0, 7, 5],
-    "romans": ["I", "I", "V", "IV6"],
-    "count": 5,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid"],
-    "template_share": 0.12,
-    "symbols": ["C7", "C7", "Gsus4", "F6"],
-    "usable": true
-   },
-   {
-    "degrees": [5, 0, 0, 7],
-    "romans": ["IV", "I", "I", "V"],
-    "count": 5,
-    "templates": ["blues/Backfield-Blues.mid", "pop/Pop-Vamp.mid"],
-    "template_share": 0.12,
-    "symbols": ["F7", "C7", "C7", "Gsus4"],
-    "usable": true
-   },
-   {
-    "degrees": [7, 5, 0, 0],
-    "romans": ["V", "IV6", "I", "I"],
+    "degrees": [
+     0,
+     7,
+     7,
+     9
+    ],
+    "romans": [
+     "i7",
+     "V7",
+     "v7",
+     "vi7"
+    ],
     "count": 4,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid"],
+    "templates": [
+     "blues/Another-Blues.mid",
+     "jazz/Bach-To-Swing.mid",
+     "lounge/KOKUBU.Smooth struttin'.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "Am7",
+     "E7",
+     "Em7",
+     "F#m7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     9,
+     7,
+     7
+    ],
+    "romans": [
+     "i6",
+     "VI7",
+     "Vsus4",
+     "V7"
+    ],
+    "count": 6,
+    "templates": [
+     "jazz/Bach-To-Swing.mid",
+     "lounge/SANTANA.Smooth K.mid"
+    ],
     "template_share": 0.12,
-    "symbols": ["Gsus4", "F6", "C7", "C7"],
+    "symbols": [
+     "Am6",
+     "F#7",
+     "Esus4",
+     "E7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     9,
+     7,
+     7,
+     0
+    ],
+    "romans": [
+     "vi7",
+     "V7",
+     "v7",
+     "I7"
+    ],
+    "count": 5,
+    "templates": [
+     "jazz/Bach-To-Swing.mid",
+     "lounge/SANTANA.Smooth K.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "F#m7",
+     "E7",
+     "Em7",
+     "A7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     10,
+     9,
+     7
+    ],
+    "romans": [
+     "i6",
+     "bVII7",
+     "VI7",
+     "V7"
+    ],
+    "count": 4,
+    "templates": [
+     "jazz/Bach-To-Swing.mid",
+     "lounge/SANTANA.Smooth K.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "Am6",
+     "G7",
+     "F#7",
+     "E7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     7,
+     0,
+     3
+    ],
+    "romans": [
+     "i7",
+     "vm7b5",
+     "i7",
+     "bIII7"
+    ],
+    "count": 9,
+    "templates": [
+     "lounge/KOKUBU.Smooth struttin'.mid"
+    ],
+    "template_share": 0.06,
+    "symbols": [
+     "Am7",
+     "Em7b5",
+     "Am7",
+     "C7"
+    ],
     "usable": true
    }
   ],
   "progressions_4": [
    {
-    "degrees": [7, 5, 5, 0],
-    "romans": ["Vsus4", "IVmaj7", "IVmaj7", "I6"],
-    "count": 5,
-    "templates": ["blues/Boogie-Woogie.mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "pop/Pop-Vamp.mid"],
-    "template_share": 0.19,
-    "symbols": ["Gsus4", "Fmaj7", "Fmaj7", "C6"],
-    "usable": true
-   },
-   {
-    "degrees": [0, 7, 5, 0],
-    "romans": ["I", "V", "IV6", "I"],
-    "count": 6,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid"],
-    "template_share": 0.12,
-    "symbols": ["C7", "Gsus4", "F6", "C7"],
-    "usable": true
-   },
-   {
-    "degrees": [0, 0, 7, 5],
-    "romans": ["I", "I", "V", "IV6"],
-    "count": 5,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid"],
-    "template_share": 0.12,
-    "symbols": ["C7", "C7", "Gsus4", "F6"],
-    "usable": true
-   },
-   {
-    "degrees": [5, 0, 0, 7],
-    "romans": ["IV", "I", "I", "V"],
-    "count": 5,
-    "templates": ["blues/Backfield-Blues.mid", "pop/Pop-Vamp.mid"],
-    "template_share": 0.12,
-    "symbols": ["F7", "C7", "C7", "Gsus4"],
-    "usable": true
-   },
-   {
-    "degrees": [7, 5, 0, 0],
-    "romans": ["V", "IV6", "I", "I"],
+    "degrees": [
+     0,
+     7,
+     7,
+     9
+    ],
+    "romans": [
+     "i7",
+     "V7",
+     "v7",
+     "vi7"
+    ],
     "count": 4,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid"],
+    "templates": [
+     "blues/Another-Blues.mid",
+     "jazz/Bach-To-Swing.mid",
+     "lounge/KOKUBU.Smooth struttin'.mid"
+    ],
+    "template_share": 0.19,
+    "symbols": [
+     "Am7",
+     "E7",
+     "Em7",
+     "F#m7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     9,
+     7,
+     7
+    ],
+    "romans": [
+     "i6",
+     "VI7",
+     "Vsus4",
+     "V7"
+    ],
+    "count": 6,
+    "templates": [
+     "jazz/Bach-To-Swing.mid",
+     "lounge/SANTANA.Smooth K.mid"
+    ],
     "template_share": 0.12,
-    "symbols": ["Gsus4", "F6", "C7", "C7"],
+    "symbols": [
+     "Am6",
+     "F#7",
+     "Esus4",
+     "E7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     9,
+     7,
+     7,
+     0
+    ],
+    "romans": [
+     "vi7",
+     "V7",
+     "v7",
+     "I7"
+    ],
+    "count": 5,
+    "templates": [
+     "jazz/Bach-To-Swing.mid",
+     "lounge/SANTANA.Smooth K.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "F#m7",
+     "E7",
+     "Em7",
+     "A7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     10,
+     9,
+     7
+    ],
+    "romans": [
+     "i6",
+     "bVII7",
+     "VI7",
+     "V7"
+    ],
+    "count": 4,
+    "templates": [
+     "jazz/Bach-To-Swing.mid",
+     "lounge/SANTANA.Smooth K.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "Am6",
+     "G7",
+     "F#7",
+     "E7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     7,
+     0,
+     3
+    ],
+    "romans": [
+     "i7",
+     "vm7b5",
+     "i7",
+     "bIII7"
+    ],
+    "count": 9,
+    "templates": [
+     "lounge/KOKUBU.Smooth struttin'.mid"
+    ],
+    "template_share": 0.06,
+    "symbols": [
+     "Am7",
+     "Em7b5",
+     "Am7",
+     "C7"
+    ],
     "usable": true
    }
   ],
   "progressions_2": [
    {
-    "degrees": [0, 5],
-    "romans": ["I7", "IV7"],
-    "count": 39,
-    "templates": ["blues/After-Dinner-Blues.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "jazz/Alexander's-Ragtime-Band.mid", "jazz/Cowboy Bebop - ELM.mid", "pop/Disco Citizens - Footprint.mid", "pop/Dj Pavo and Blutonium Boy - Floorfilla (Blutonium Boy vs Dj Neo Remix).mid", "pop/IGGY POP.Louie Louie.mid", "pop/Pop-Vamp.mid"],
-    "template_share": 0.56,
-    "symbols": ["C7", "F7"],
-    "usable": true
-   },
-   {
-    "degrees": [0, 7],
-    "romans": ["i6", "Vsus4"],
-    "count": 36,
-    "templates": ["blues/After-Dinner-Blues.mid", "blues/Another-Blues.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "jazz/Cowboy Bebop - ELM.mid", "pop/Disco-Fans.mid", "pop/Pop-Vamp.mid"],
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "V7",
+     "i6"
+    ],
+    "count": 48,
+    "templates": [
+     "blues/Another-Blues.mid",
+     "jazz/AMESSE.Swing a ling.mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "jazz/Bach-To-Swing.mid",
+     "lounge/Iio - Smooth (Airbase Remix).mid",
+     "lounge/KOKUBU.Smooth struttin'.mid",
+     "lounge/SANTANA.Smooth K.mid",
+     "pop/Disco-Fans.mid"
+    ],
     "template_share": 0.5,
-    "symbols": ["Cm6", "Gsus4"],
+    "symbols": [
+     "E7",
+     "Am6"
+    ],
     "usable": true
    },
    {
-    "degrees": [7, 0],
-    "romans": ["v6", "Isus4"],
-    "count": 30,
-    "templates": ["blues/After-Dinner-Blues.mid", "blues/Another-Blues.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "jazz/Cowboy Bebop - ELM.mid", "pop/Disco-Fans.mid", "pop/Pop-Vamp.mid"],
+    "degrees": [
+     7,
+     5
+    ],
+    "romans": [
+     "v7",
+     "IV6"
+    ],
+    "count": 25,
+    "templates": [
+     "blues/B.BLUE.A touch of blues.mid",
+     "blues/Be-My-Boogie-Woogie-Baby.mid",
+     "jazz/AMESSE.Swing a ling.mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "lounge/Iio - Smooth (Airbase Remix).mid",
+     "lounge/KOKUBU.Smooth struttin'.mid",
+     "lounge/SANTANA.Smooth K.mid",
+     "pop/Disco-Fans.mid"
+    ],
     "template_share": 0.5,
-    "symbols": ["Gm6", "Csus4"],
+    "symbols": [
+     "Em7",
+     "D6"
+    ],
     "usable": true
    },
    {
-    "degrees": [5, 0],
-    "romans": ["IV7", "I6"],
-    "count": 47,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "jazz/Cowboy Bebop - ELM.mid", "pop/IGGY POP.Louie Louie.mid", "pop/Pop-Vamp.mid"],
+    "degrees": [
+     0,
+     4
+    ],
+    "romans": [
+     "I",
+     "III7"
+    ],
+    "count": 43,
+    "templates": [
+     "blues/Another-Blues.mid",
+     "blues/B.BLUE.A touch of blues.mid",
+     "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid",
+     "jazz/Bach-To-Swing.mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
     "template_share": 0.44,
-    "symbols": ["F7", "C6"],
+    "symbols": [
+     "Asus4",
+     "C#7"
+    ],
     "usable": true
    },
    {
-    "degrees": [0, 4],
-    "romans": ["I", "III7"],
-    "count": 46,
-    "templates": ["blues/Another-Blues.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid", "pop/IGGY POP.Louie Louie.mid"],
+    "degrees": [
+     0,
+     7
+    ],
+    "romans": [
+     "i6",
+     "Vsus4"
+    ],
+    "count": 40,
+    "templates": [
+     "blues/Another-Blues.mid",
+     "blues/B.BLUE.A touch of blues.mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "jazz/Bach-To-Swing.mid",
+     "lounge/KOKUBU.Smooth struttin'.mid",
+     "lounge/SANTANA.Smooth K.mid",
+     "pop/Disco-Fans.mid"
+    ],
     "template_share": 0.44,
-    "symbols": ["C7", "E7"],
+    "symbols": [
+     "Am6",
+     "Esus4"
+    ],
     "usable": true
    },
    {
-    "degrees": [4, 0],
-    "romans": ["III7", "I"],
+    "degrees": [
+     0,
+     3
+    ],
+    "romans": [
+     "i7",
+     "bIII7"
+    ],
+    "count": 28,
+    "templates": [
+     "blues/Another-Blues.mid",
+     "blues/Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid",
+     "jazz/AMESSE.Swing a ling.mid",
+     "jazz/Bach-To-Swing.mid",
+     "lounge/KOKUBU.Smooth struttin'.mid",
+     "pop/Disco-Fans.mid"
+    ],
+    "template_share": 0.38,
+    "symbols": [
+     "Am7",
+     "C7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     4,
+     0
+    ],
+    "romans": [
+     "III7",
+     "I"
+    ],
     "count": 38,
-    "templates": ["blues/Another-Blues.mid", "blues/Boogie-Woogie.mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid", "pop/IGGY POP.Louie Louie.mid"],
+    "templates": [
+     "blues/Another-Blues.mid",
+     "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid",
+     "lounge/KOKUBU.Smooth struttin'.mid",
+     "pop/IGGY POP.Louie Louie.mid"
+    ],
     "template_share": 0.25,
-    "symbols": ["E7", "C7"],
+    "symbols": [
+     "C#7",
+     "Asus4"
+    ],
     "usable": true
    }
   ],
-  "pool_progression": ["C7", "Csus4", "C7", "C6"],
-  "pool_progression_romans": ["I", "Isus4", "I7", "I6"],
+  "pool_progression": [
+   "Amaj7",
+   "A6"
+  ],
+  "pool_progression_romans": [
+   "Imaj7",
+   "I6"
+  ],
   "chord_pool": [
-   {
-    "degree": 0,
-    "roman": "I",
-    "suffix": "7",
-    "count": 373,
-    "templates": 16
-   },
    {
     "degree": 7,
     "roman": "V",
+    "suffix": "7",
+    "count": 364,
+    "templates": 11
+   },
+   {
+    "degree": 0,
+    "roman": "I",
     "suffix": "sus4",
-    "count": 239,
+    "count": 316,
+    "templates": 15
+   },
+   {
+    "degree": 3,
+    "roman": "bIII",
+    "suffix": "6",
+    "count": 189,
     "templates": 11
    },
    {
     "degree": 5,
     "roman": "IV",
     "suffix": "7",
-    "count": 171,
-    "templates": 14
+    "count": 113,
+    "templates": 15
    },
    {
     "degree": 6,
     "roman": "bV",
     "suffix": "7",
-    "count": 115,
+    "count": 107,
     "templates": 8
-   },
-   {
-    "degree": 3,
-    "roman": "bIII",
-    "suffix": "6",
-    "count": 99,
-    "templates": 7
    },
    {
     "degree": 4,
     "roman": "III",
     "suffix": "7",
-    "count": 83,
-    "templates": 7
+    "count": 94,
+    "templates": 8
    },
    {
     "degree": 2,
     "roman": "II",
     "suffix": "7",
-    "count": 82,
-    "templates": 8
-   },
-   {
-    "degree": 10,
-    "roman": "bVII",
-    "suffix": "6",
-    "count": 55,
-    "templates": 6
-   },
-   {
-    "degree": 9,
-    "roman": "VI",
-    "suffix": "m7",
-    "count": 45,
-    "templates": 8
+    "count": 93,
+    "templates": 10
    },
    {
     "degree": 8,
     "roman": "bVI",
-    "suffix": "maj7",
-    "count": 43,
-    "templates": 4
+    "suffix": "6",
+    "count": 85,
+    "templates": 7
+   },
+   {
+    "degree": 10,
+    "roman": "bVII",
+    "suffix": "7",
+    "count": 64,
+    "templates": 5
    },
    {
     "degree": 1,
     "roman": "bII",
     "suffix": "dim",
-    "count": 34,
-    "templates": 6
+    "count": 49,
+    "templates": 10
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m7",
+    "count": 46,
+    "templates": 9
    },
    {
     "degree": 11,
     "roman": "VII",
-    "suffix": "m7",
-    "count": 24,
-    "templates": 5
+    "suffix": "maj7",
+    "count": 33,
+    "templates": 6
    }
   ],
-  "chord_per_bar": 0.89
+  "chord_per_bar": 0.94
  },
  "rhythm": {
-  "low16": "★···★··★★···★··★",
-  "high16": "★·★★★·★★★·★★★··★",
-  "low_slot_share": [0.94, 0.19, 0.31, 0.31, 0.81, 0.12, 0.44, 0.62, 0.81, 0.25, 0.38, 0.31, 0.81, 0.12, 0.31, 0.62],
-  "high_slot_share": [0.94, 0.38, 0.62, 0.62, 0.94, 0.25, 0.69, 0.62, 0.94, 0.31, 0.62, 0.62, 0.94, 0.25, 0.5, 0.62],
-  "low_density": 16.24,
-  "high_density": 13.18,
-  "bass_density": 2.13,
-  "perc_density": 6.94,
+  "low16": "★·★★★·★★★·★★★·★★",
+  "high16": "★·★·★·★★★·★★★·★★",
+  "low_slot_share": [
+   0.94,
+   0.44,
+   0.62,
+   0.62,
+   1.0,
+   0.31,
+   0.62,
+   0.88,
+   0.94,
+   0.5,
+   0.62,
+   0.62,
+   1.0,
+   0.38,
+   0.62,
+   0.88
+  ],
+  "high_slot_share": [
+   0.94,
+   0.19,
+   0.56,
+   0.5,
+   0.81,
+   0.12,
+   0.56,
+   0.56,
+   0.88,
+   0.31,
+   0.62,
+   0.56,
+   0.88,
+   0.25,
+   0.56,
+   0.56
+  ],
+  "low_density": 23.45,
+  "high_density": 13.97,
+  "bass_density": 4.25,
+  "perc_density": 13.14,
   "slots": 16,
-  "bass_style": "simple",
+  "bass_style": "sixteenth",
   "perc_style": "light"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.38,
-   "brass": 0.12,
+   "bass": 0.81,
+   "brass": 0.25,
    "fx": 0.06,
-   "guitar": 0.25,
-   "lead": 0.06,
-   "perc": 0.06,
+   "glock": 0.06,
+   "guitar": 0.62,
+   "lead": 0.12,
+   "organ": 0.19,
+   "perc": 0.81,
    "piano": 0.81,
-   "reed": 0.12,
-   "strings": 0.06
+   "pipe": 0.06,
+   "strings": 0.25
   },
   "role_range": {
-   "bass": [28, 54],
-   "brass": [64, 89],
-   "fx": [56, 56],
-   "guitar": [41, 79],
-   "lead": [53, 74],
-   "perc": [57, 57],
-   "piano": [38, 82],
-   "reed": [60, 82],
-   "strings": [60, 86]
+   "bass": [
+    28,
+    53
+   ],
+   "brass": [
+    62,
+    86
+   ],
+   "fx": [
+    56,
+    56
+   ],
+   "glock": [
+    54,
+    84
+   ],
+   "guitar": [
+    41,
+    78
+   ],
+   "lead": [
+    53,
+    85
+   ],
+   "organ": [
+    65,
+    86
+   ],
+   "perc": [
+    57,
+    57
+   ],
+   "piano": [
+    40,
+    81
+   ],
+   "pipe": [
+    64,
+    86
+   ],
+   "strings": [
+    57,
+    86
+   ]
   },
   "arr_share": {
-   "bass": 0.38,
+   "bass": 0.81,
    "piano": 0.81,
-   "uku": 0.25,
-   "strings": 0.12,
+   "uku": 0.62,
+   "strings": 0.25,
    "pad": 0.0,
-   "glock": 0.0,
-   "ep": 0.0,
-   "perc": 0.06
+   "glock": 0.06,
+   "ep": 0.25,
+   "perc": 0.81
   },
-  "arr_on": ["piano"],
-  "arr_off": ["ep", "glock", "pad"],
-  "arr_maybe": ["bass", "perc", "strings", "uku"],
-  "track_count": 3.2,
+  "arr_on": [
+   "bass",
+   "perc",
+   "piano",
+   "uku"
+  ],
+  "arr_off": [
+   "pad"
+  ],
+  "arr_maybe": [
+   "ep",
+   "glock",
+   "strings"
+  ],
+  "track_count": 6.9,
   "style_mix": {
-   "blues": 5,
+   "blues": 4,
    "jazz": 6,
-   "pop": 5
+   "lounge": 3,
+   "pop": 3
   },
   "prog_pool": {
-   "piano": [0, 1, 3, 2],
-   "bass": [32, 33, 38],
-   "ep": [65, 71, 80],
-   "strings": [61, 62, 48],
-   "uku": [26, 30],
-   "perc": [119]
+   "uku": [
+    26,
+    25,
+    24,
+    28,
+    29,
+    30
+   ],
+   "bass": [
+    32,
+    33,
+    36,
+    35,
+    38
+   ],
+   "piano": [
+    0,
+    4,
+    3,
+    2
+   ],
+   "strings": [
+    61,
+    48,
+    49,
+    62
+   ],
+   "ep": [
+    61,
+    81,
+    73,
+    62,
+    80
+   ],
+   "glock": [
+    11
+   ],
+   "perc": [
+    119
+   ]
   }
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 112,
+  "total_bars": 120,
   "plan": [
    {
-    "name": "A",
-    "bars": 6,
+    "name": "Intro",
+    "bars": 4,
     "prog": 0
    },
    {
@@ -582,54 +1059,64 @@
     "prog": 2
    },
    {
+    "name": "A4",
+    "bars": 8,
+    "prog": 0
+   },
+   {
     "name": "Outro",
     "bars": 4,
     "prog": 0
    }
-  ],
-  "intro_note": "首段按主题派生（2026-10-05）：无 Intro 6 小节 —— 修 `scripts/theme_pack.py` 的 plan 生成以免重建时被覆盖"
+  ]
  },
  "melody": {
-  "notes": 3526,
-  "range": [38, 77],
-  "mean_pitch": 62.55,
-  "notes_per_bar": 3.96,
-  "stepwise_pct": 58.03,
-  "onbeat_pct": 58.6,
-  "diatonic_pct": 90.26,
+  "notes": 4228,
+  "range": [
+   39,
+   81
+  ],
+  "mean_pitch": 67.0,
+  "notes_per_bar": 2.94,
+  "stepwise_pct": 56.49,
+  "onbeat_pct": 58.01,
+  "diatonic_pct": 87.67,
   "interval_hist": {
+   "-24": 6,
+   "-22": 10,
+   "-21": 10,
    "-18": 2,
    "-16": 8,
-   "-15": 7,
+   "-15": 11,
    "-14": 1,
-   "-13": 19,
-   "-12": 165,
+   "-13": 22,
+   "-12": 179,
    "-11": 5,
-   "-10": 15,
-   "-9": 23,
-   "-8": 111,
-   "-7": 297,
-   "-6": 32,
-   "-5": 605,
-   "-4": 390,
-   "-3": 345,
-   "-2": 1102,
-   "-1": 938,
-   "0": 1707,
-   "1": 1031,
-   "2": 1026,
-   "3": 419,
-   "4": 486,
-   "5": 634,
-   "6": 74,
-   "7": 312,
-   "8": 28,
-   "9": 13,
-   "10": 92,
+   "-10": 28,
+   "-9": 60,
+   "-8": 250,
+   "-7": 407,
+   "-6": 46,
+   "-5": 831,
+   "-4": 538,
+   "-3": 855,
+   "-2": 1708,
+   "-1": 1264,
+   "0": 2326,
+   "1": 1374,
+   "2": 1803,
+   "3": 845,
+   "4": 551,
+   "5": 836,
+   "6": 105,
+   "7": 527,
+   "8": 71,
+   "9": 29,
+   "10": 150,
    "11": 5,
-   "12": 91,
+   "12": 107,
    "13": 1,
-   "14": 2,
+   "14": 14,
    "15": 3,
    "16": 1,
    "17": 3,
@@ -638,106 +1125,121 @@
    "26": 4
   },
   "dur16_hist": {
-   "0": 97,
-   "1": 2116,
-   "2": 4353,
-   "3": 1319,
-   "4": 1296,
-   "5": 267,
-   "6": 100,
-   "7": 63,
-   "8": 321,
-   "9": 21,
-   "10": 10,
-   "11": 19,
-   "12": 7,
-   "16": 11
+   "0": 343,
+   "1": 4437,
+   "2": 3835,
+   "3": 1743,
+   "4": 1419,
+   "5": 395,
+   "6": 185,
+   "7": 71,
+   "8": 403,
+   "9": 68,
+   "10": 14,
+   "11": 33,
+   "12": 93,
+   "13": 16,
+   "14": 312,
+   "16": 1634
   },
   "onset16_hist": {
-   "0": 1652,
-   "1": 217,
-   "2": 727,
-   "3": 280,
-   "4": 1669,
-   "5": 83,
-   "6": 871,
-   "7": 219,
-   "8": 1311,
-   "9": 106,
-   "10": 488,
-   "11": 212,
-   "12": 1227,
-   "13": 100,
-   "14": 550,
-   "15": 286
+   "0": 3975,
+   "1": 424,
+   "2": 702,
+   "3": 520,
+   "4": 1891,
+   "5": 346,
+   "6": 890,
+   "7": 545,
+   "8": 1575,
+   "9": 265,
+   "10": 541,
+   "11": 520,
+   "12": 1261,
+   "13": 331,
+   "14": 686,
+   "15": 529
   },
-  "phrases": 180,
-  "phrase_bars": [0.4, 3.0, 2.75, 1.46, 1.94, 5.06, 3.46, 1.16, 1.41, 2.56, 5.29, 1.17, 6.83, 7.79, 2.87, 1.54, 1.2, 4.5, 4.43, 6.19, 8.68, 2.99, 3.66, 0.43, 2.42, 4.57, 2.9, 2.6, 1.37, 2.57, 3.18, 2.46, 4.26, 0.64, 1.67, 3.65, 2.24, 2.87, 11.56, 5.01, 7.73, 5.05, 1.78, 4.41, 0.75, 2.8, 5.39, 0.17, 1.94, 0.98, 4.87, 1.62, 9.61, 10.12, 6.49, 24.49, 7.33, 1.68, 0.46, 7.08],
-  "bars": 89.1,
-  "templates": 10
+  "phrases": 274,
+  "phrase_bars": [
+   1.48,
+   1.25,
+   4.03,
+   1.94,
+   3.45,
+   1.24,
+   1.0,
+   0.08,
+   0.12,
+   28.75,
+   0.4,
+   0.4,
+   3.0,
+   2.75,
+   1.46,
+   1.94,
+   5.06,
+   3.46,
+   1.16,
+   1.41,
+   2.56,
+   5.29,
+   1.17,
+   6.83,
+   7.79,
+   2.87,
+   1.54,
+   1.2,
+   4.5,
+   4.43,
+   6.19,
+   8.68,
+   2.99,
+   3.66,
+   0.43,
+   2.42,
+   4.57,
+   2.9,
+   2.6,
+   1.37,
+   2.57,
+   3.18,
+   2.46,
+   4.26,
+   0.64,
+   1.67,
+   3.65,
+   2.24,
+   2.87,
+   11.56,
+   5.01,
+   7.73,
+   5.05,
+   1.78,
+   4.41,
+   0.75,
+   2.8,
+   5.39,
+   0.17,
+   1.94
+  ],
+  "bars": 95.7,
+  "templates": 15
  },
- "notes": ["共 16 首模板，来源：bitmidi×16", "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/lounge_tracks.json"],
+ "notes": [
+  "共 16 首模板，来源：bitmidi×16",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/lounge_tracks.json"
+ ],
  "tool": "theme_pack.py",
  "mix_target": {
   "ref": "lounge_mix",
-  "score": 0.874,
-  "why": "BPM 128.0（差 4.0，0.87）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）",
+  "score": 0.876,
+  "why": "BPM 134.7（差 2.7，0.91）· 打击感 0.23 vs 目标 0.35（0.75）· 调式 minor（1.00）",
   "aggregate": true,
   "members": [
    {
-    "ref": "bgm01c",
-    "score": 0.874,
-    "bpm": 128.0,
-    "centroid": 3284,
-    "rms_db": -14.3,
-    "width": 0.316,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "bgm01c.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "BGM06",
-    "score": 0.845,
-    "bpm": 133.9,
-    "centroid": 1533,
-    "rms_db": -16.9,
-    "width": 0.261,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM06.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "BGM15c",
-    "score": 0.84,
-    "bpm": 132.4,
-    "centroid": 3338,
-    "rms_db": -19.3,
-    "width": 0.66,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM15c.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
     "ref": "BGM18",
-    "score": 0.726,
+    "score": 0.876,
     "bpm": 134.7,
     "centroid": 2043,
     "rms_db": -22.2,
@@ -753,42 +1255,8 @@
     }
    },
    {
-    "ref": "BGM16b",
-    "score": 0.692,
-    "bpm": 139.8,
-    "centroid": 2472,
-    "rms_db": -17.9,
-    "width": 0.77,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16b.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "BGM04",
-    "score": 0.657,
-    "bpm": 114.1,
-    "centroid": 2281,
-    "rms_db": -13.5,
-    "width": 0.233,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM04.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
     "ref": "BGM18b",
-    "score": 0.636,
+    "score": 0.786,
     "bpm": 134.7,
     "centroid": 1971,
     "rms_db": -22.1,
@@ -805,7 +1273,7 @@
    },
    {
     "ref": "fine_BGM09",
-    "score": 0.627,
+    "score": 0.777,
     "bpm": 123.0,
     "centroid": 3695,
     "rms_db": -17.1,
@@ -816,8 +1284,95 @@
      "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
      "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
      "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
-     "url_alt": ["https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"],
+     "url_alt": [
+      "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
+     ],
      "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
+    }
+   },
+   {
+    "ref": "bgm01c",
+    "score": 0.724,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "bgm01c.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM06",
+    "score": 0.695,
+    "bpm": 133.9,
+    "centroid": 1533,
+    "rms_db": -16.9,
+    "width": 0.261,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM06.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM15c",
+    "score": 0.69,
+    "bpm": 132.4,
+    "centroid": 3338,
+    "rms_db": -19.3,
+    "width": 0.66,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM15c.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM13",
+    "score": 0.573,
+    "bpm": 109.2,
+    "centroid": 3068,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM13.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM16b",
+    "score": 0.542,
+    "bpm": 139.8,
+    "centroid": 2472,
+    "rms_db": -17.9,
+    "width": 0.77,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM16b.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
    }
   ],
@@ -828,67 +1383,120 @@
    "mode": 0.15
   },
   "perc_style_target": 0.35,
-  "energy_curve_db": [],
-  "structure_db": [-18.0, -18.0, -17.0],
-  "density_curve_db": [-2.12, 0.34, 0.0],
+  "energy_curve_db": [
+   -1.0,
+   0.0,
+   1.0
+  ],
+  "structure_db": [
+   -19.0,
+   -18.0,
+   -17.0
+  ],
+  "density_curve_db": [
+   -4.31,
+   0.14,
+   0.0
+  ],
   "density_meta": {
-   "n": 14,
-   "files": ["After-Dinner-Blues.mid", "Backfield-Blues.mid", "Boogie-Woogie.mid", "Another-Blues.mid", "Boogie-Woogie-Demo.mid", "Cowboy Bebop - ELM.mid", "ASZNAVOUR.Elle a le swing au corps  K.mid", "A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid", "Alexander's-Ragtime-Band.mid", "IGGY POP.Louie Louie.mid", "Pop-Vamp.mid", "Disco Citizens - Footprint.mid", "Disco-Fans.mid"],
-   "abs_curve": [27.12, 36.0, 34.62],
+   "n": 13,
+   "files": [
+    "Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid",
+    "Another-Blues.mid",
+    "Be-My-Boogie-Woogie-Baby.mid",
+    "Bach-To-Swing.mid",
+    "ASZNAVOUR.Elle a le swing au corps  K.mid",
+    "A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
+    "AMESSE.Swing a ling.mid",
+    "Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid",
+    "KOKUBU.Smooth struttin'.mid",
+    "SANTANA.Smooth K.mid",
+    "IGGY POP.Louie Louie.mid",
+    "Disco Citizens - Footprint.mid",
+    "Disco-Fans.mid"
+   ],
+   "abs_curve": [
+    26.12,
+    43.56,
+    42.88
+   ],
    "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
   },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
-    "ref": "bgm01c",
-    "score": 0.874,
-    "bpm": 128.0,
-    "rms_db": -14.3,
-    "width": 0.316,
-    "centroid": 3284,
-    "perc": 0.437,
-    "mode": "major",
-    "structure": [-17, -14, -14, -14, -14, -14, -14, -14, -15, -14],
+    "ref": "BGM18",
+    "score": 0.876,
+    "bpm": 134.7,
+    "rms_db": -22.2,
+    "width": 0.818,
+    "centroid": 2043,
+    "perc": 0.225,
+    "mode": "minor",
+    "structure": [
+     -31,
+     -24,
+     -18,
+     -25,
+     -25,
+     -26,
+     -24,
+     -20,
+     -21,
+     -20
+    ],
     "parts": {
-     "bpm": 0.867,
-     "perc": 0.826,
+     "bpm": 0.91,
+     "perc": 0.75,
      "mode": 1.0
     },
-    "why": "BPM 128.0（差 4.0，0.87）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）"
+    "why": "BPM 134.7（差 2.7，0.91）· 打击感 0.23 vs 目标 0.35（0.75）· 调式 minor（1.00）"
    },
    {
-    "ref": "BGM06",
-    "score": 0.845,
-    "bpm": 133.9,
-    "rms_db": -16.9,
-    "width": 0.261,
-    "centroid": 1533,
-    "perc": 0.15,
-    "mode": "major",
-    "structure": [-16, -17, -17, -17, -17, -17, -17, -16, -16],
+    "ref": "BGM18b",
+    "score": 0.786,
+    "bpm": 134.7,
+    "rms_db": -22.1,
+    "width": 0.818,
+    "centroid": 1971,
+    "perc": 0.075,
+    "mode": "minor",
+    "structure": [
+     -31,
+     -24,
+     -18
+    ],
     "parts": {
-     "bpm": 0.937,
-     "perc": 0.6,
+     "bpm": 0.91,
+     "perc": 0.45,
      "mode": 1.0
     },
-    "why": "BPM 133.9（差 1.9，0.94）· 打击感 0.15 vs 目标 0.35（0.60）· 调式 major（1.00）"
+    "why": "BPM 134.7（差 2.7，0.91）· 打击感 0.07 vs 目标 0.35（0.45）· 调式 minor（1.00）"
    },
    {
-    "ref": "BGM15c",
-    "score": 0.84,
-    "bpm": 132.4,
-    "rms_db": -19.3,
-    "width": 0.66,
-    "centroid": 3338,
-    "perc": 0.605,
-    "mode": "major",
-    "structure": [-22, -19, -17, -20, -23, -18, -19, -19],
+    "ref": "fine_BGM09",
+    "score": 0.777,
+    "bpm": 123.0,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "centroid": 3695,
+    "perc": 0.446,
+    "mode": "minor",
+    "structure": [
+     -18,
+     -18,
+     -17,
+     -17,
+     -16,
+     -16,
+     -16
+    ],
     "parts": {
-     "bpm": 0.987,
-     "perc": 0.49,
+     "bpm": 0.7,
+     "perc": 0.808,
      "mode": 1.0
     },
-    "why": "BPM 132.4（差 0.4，0.99）· 打击感 0.60 vs 目标 0.35（0.49）· 调式 major（1.00）"
+    "why": "BPM 123.0（差 9.0，0.70）· 打击感 0.45 vs 目标 0.35（0.81）· 调式 minor（1.00）"
    }
   ],
   "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"

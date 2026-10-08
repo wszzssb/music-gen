@@ -1,23 +1,44 @@
 {
  "theme": "folk_tale",
  "label": "民谣叙事",
- "desc": "民谣叙事（主题模板包：16 首同主题模板聚合）",
- "styles": ["folk", "blues", "ballad"],
+ "desc": "民谣叙事（主题模板包：11 首同主题模板聚合）",
+ "styles": [
+  "folk_tale",
+  "folk",
+  "blues",
+  "ballad"
+ ],
  "engine_style": "ballad",
- "meter": [4, 4],
+ "meter": [
+  4,
+  4
+ ],
  "min_templates": 8,
- "template_count": 16,
+ "template_count": 11,
  "bpm": {
-  "median": 120.0,
+  "median": 122.95,
   "p25": 89.0,
-  "p75": 132.0
+  "p75": 161.0
  },
  "key": {
-  "tonic": "C",
-  "pc": 0,
+  "tonic": "G",
+  "pc": 7,
   "mode": "major",
-  "confidence": 0.312,
-  "scale_degree_weight": [3150316.36, 41496.28, 1210207.6, 316668.56, 1363691.6, 1218807.28, 138105.8, 2180269.16, 291382.12, 1096578.88, 632277.4, 626833.36]
+  "confidence": 0.273,
+  "scale_degree_weight": [
+   2952135.24,
+   51001.52,
+   1179634.16,
+   354850.24,
+   1221362.16,
+   1059115.2,
+   80872.92,
+   2112554.88,
+   297302.24,
+   970298.0,
+   707147.32,
+   568409.4
+  ]
  },
  "templates": [
   {
@@ -25,21 +46,13 @@
    "style": "ballad",
    "md5": "96ebe7106597cd36421d1c9f89b097c7",
    "bpm": 48.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 128,
    "seconds": 638.2,
    "source": "https://bitmidi.com/uploads/5932.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "ballad/Animal Crossing - KK Ballad Aircheck.mid",
-   "style": "ballad",
-   "md5": "29cd472df4b01c60dedb172c60c7abf1",
-   "bpm": 79.98,
-   "timesig": [4, 4],
-   "bars": 21,
-   "seconds": 63.0,
-   "source": "https://bitmidi.com/uploads/6841.mid",
    "kind": "bitmidi"
   },
   {
@@ -47,7 +60,10 @@
    "style": "ballad",
    "md5": "cfe1f7e0814b86080e15bc8d3a40664d",
    "bpm": 87.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 71,
    "seconds": 193.5,
    "source": "https://bitmidi.com/uploads/3122.mid",
@@ -58,54 +74,41 @@
    "style": "ballad",
    "md5": "d1e2b5720faf37bad03fc992e3e22bb0",
    "bpm": 89.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 49,
    "seconds": 132.1,
    "source": "https://bitmidi.com/uploads/15417.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "ballad/A-Very-Special-Love-Song.mid",
+   "file": "ballad/Ballad-Of-A-Teenage-Queen.mid",
    "style": "ballad",
-   "md5": "e863a3bcb92851c8cf23607cb6b596ab",
-   "bpm": 120.0,
-   "timesig": [4, 4],
-   "bars": 112,
-   "seconds": 223.1,
-   "source": "https://bitmidi.com/uploads/3173.mid",
+   "md5": "baba3868fde62967d22a48302be4bfa1",
+   "bpm": 95.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 54,
+   "seconds": 136.4,
+   "source": "https://bitmidi.com/uploads/15418.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "blues/After-Dinner-Blues.mid",
+   "file": "blues/Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid",
    "style": "blues",
-   "md5": "693c5a976445c5800aa4818ef09ce817",
-   "bpm": 60.0,
-   "timesig": [4, 4],
-   "bars": 79,
-   "seconds": 315.4,
-   "source": "https://bitmidi.com/uploads/4196.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "blues/Backfield-Blues.mid",
-   "style": "blues",
-   "md5": "2b5f6e4744e8f80c92c8365e3e04bb3d",
-   "bpm": 110.0,
-   "timesig": [4, 4],
-   "bars": 100,
-   "seconds": 217.9,
-   "source": "https://bitmidi.com/uploads/15090.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "blues/Boogie-Woogie.mid",
-   "style": "blues",
-   "md5": "26e7f6a1ed27d8bd44cc30fb3cff571f",
-   "bpm": 130.0,
-   "timesig": [4, 4],
-   "bars": 113,
-   "seconds": 207.5,
-   "source": "https://bitmidi.com/uploads/19185.mid",
+   "md5": "c0f3af2bbd83627e3e43a06af661528d",
+   "bpm": 122.95,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 62,
+   "seconds": 120.3,
+   "source": "https://bitmidi.com/uploads/18592.mid",
    "kind": "bitmidi"
   },
   {
@@ -113,7 +116,10 @@
    "style": "blues",
    "md5": "858344f916a77c19582b7ec743999404",
    "bpm": 132.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 54,
    "seconds": 97.6,
    "source": "https://bitmidi.com/uploads/14631.mid",
@@ -124,21 +130,27 @@
    "style": "blues",
    "md5": "25deedf3173fb277ba307f28c62023d9",
    "bpm": 175.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 200,
    "seconds": 273.1,
    "source": "https://bitmidi.com/uploads/7006.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "blues/Boogie-Woogie-Demo.mid",
+   "file": "blues/Be-My-Boogie-Woogie-Baby.mid",
    "style": "blues",
-   "md5": "b8a04e33784194ba58a6cd2a14f66509",
+   "md5": "506a700f586224caa61fe58017f0bd3a",
    "bpm": 180.0,
-   "timesig": [4, 4],
-   "bars": 52,
-   "seconds": 68.8,
-   "source": "https://bitmidi.com/uploads/19184.mid",
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 141,
+   "seconds": 187.0,
+   "source": "https://bitmidi.com/uploads/16192.mid",
    "kind": "bitmidi"
   },
   {
@@ -146,32 +158,13 @@
    "style": "folk",
    "md5": "1ceaa75f2ae81462948f215ebb8be0b6",
    "bpm": 103.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 94,
    "seconds": 216.7,
    "source": "https://bitmidi.com/uploads/59404.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "folk/Celtic-Skies.mid",
-   "style": "folk",
-   "md5": "6b96d369bf09a5638891ec42a633953f",
-   "bpm": 120.0,
-   "timesig": [4, 4],
-   "bars": 143,
-   "seconds": 284.9,
-   "source": "https://bitmidi.com/uploads/22796.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "folk/A.JACKSON.Gone country.mid",
-   "style": "folk",
-   "md5": "70a5389348d5d2bcad714245bd02c5e1",
-   "bpm": 125.0,
-   "timesig": [4, 4],
-   "bars": 126,
-   "seconds": 240.9,
-   "source": "https://bitmidi.com/uploads/3229.mid",
    "kind": "bitmidi"
   },
   {
@@ -179,7 +172,10 @@
    "style": "folk",
    "md5": "580a2b660f1148a5919d1603fb74a675",
    "bpm": 128.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 32,
    "seconds": 59.3,
    "source": "https://bitmidi.com/uploads/6053.mid",
@@ -190,7 +186,10 @@
    "style": "folk",
    "md5": "123e9efce8a0a062f8a88c6eff240f2d",
    "bpm": 161.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 214,
    "seconds": 318.3,
    "source": "https://bitmidi.com/uploads/3715.mid",
@@ -198,320 +197,522 @@
   }
  ],
  "source_kinds": {
-  "bitmidi": 16
+  "bitmidi": 11
  },
  "harmony": {
-  "primary": ["C6", "C6", "Gsus4", "F6"],
-  "primary_source": "window4",
+  "primary": [
+   "Dsus4",
+   "G6",
+   "Dsus4",
+   "G6"
+  ],
+  "primary_source": "window2",
   "progressions": [
    {
-    "degrees": [0, 0, 7, 5],
-    "romans": ["I", "I", "V", "IV6"],
-    "count": 7,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "folk/American-Folk-(Variation-2).mid", "folk/Celtic-Skies.mid"],
-    "template_share": 0.25,
-    "symbols": ["C6", "C6", "Gsus4", "F6"],
+    "degrees": [
+     4,
+     7,
+     7,
+     0
+    ],
+    "romans": [
+     "iii7",
+     "Vsus4",
+     "Vsus4",
+     "Isus4"
+    ],
+    "count": 2,
+    "templates": [
+     "ballad/BALLAD-2.MID",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
+    ],
+    "template_share": 0.18,
+    "symbols": [
+     "Bm7",
+     "Dsus4",
+     "Dsus4",
+     "Gsus4"
+    ],
     "usable": true
    },
    {
-    "degrees": [0, 0, 4, 5],
-    "romans": ["I6", "I6", "iii7", "IV6"],
-    "count": 6,
-    "templates": ["blues/B.BLUE.A touch of blues.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "folk/Celtic-Skies.mid"],
-    "template_share": 0.25,
-    "symbols": ["C6", "C6", "Em7", "F6"],
-    "usable": true
-   },
-   {
-    "degrees": [0, 7, 5, 0],
-    "romans": ["I", "V", "IV6", "I"],
-    "count": 6,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid"],
-    "template_share": 0.12,
-    "symbols": ["C6", "Gsus4", "F6", "C6"],
-    "usable": true
-   },
-   {
-    "degrees": [0, 5, 9, 9],
-    "romans": ["Imaj7", "iv6", "vi7", "vi7"],
-    "count": 6,
-    "templates": ["ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "folk/A.JACKSON.Gone country.mid"],
-    "template_share": 0.12,
-    "symbols": ["Cmaj7", "Fm6", "Am7", "Am7"],
-    "usable": true
-   },
-   {
-    "degrees": [5, 0, 5, 9],
-    "romans": ["IV6", "Imaj7", "iv6", "vi7"],
-    "count": 8,
-    "templates": ["folk/A.JACKSON.Gone country.mid"],
-    "template_share": 0.06,
-    "symbols": ["F6", "Cmaj7", "Fm6", "Am7"],
+    "degrees": [
+     7,
+     11,
+     11,
+     9
+    ],
+    "romans": [
+     "V7",
+     "vii6",
+     "vii7",
+     "vi6"
+    ],
+    "count": 5,
+    "templates": [
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
+    ],
+    "template_share": 0.09,
+    "symbols": [
+     "D7",
+     "F#m6",
+     "F#m7",
+     "Em6"
+    ],
     "usable": true
    }
   ],
   "progressions_4": [
    {
-    "degrees": [0, 0, 7, 5],
-    "romans": ["I", "I", "V", "IV6"],
-    "count": 7,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "folk/American-Folk-(Variation-2).mid", "folk/Celtic-Skies.mid"],
-    "template_share": 0.25,
-    "symbols": ["C6", "C6", "Gsus4", "F6"],
+    "degrees": [
+     4,
+     7,
+     7,
+     0
+    ],
+    "romans": [
+     "iii7",
+     "Vsus4",
+     "Vsus4",
+     "Isus4"
+    ],
+    "count": 2,
+    "templates": [
+     "ballad/BALLAD-2.MID",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
+    ],
+    "template_share": 0.18,
+    "symbols": [
+     "Bm7",
+     "Dsus4",
+     "Dsus4",
+     "Gsus4"
+    ],
     "usable": true
    },
    {
-    "degrees": [0, 0, 4, 5],
-    "romans": ["I6", "I6", "iii7", "IV6"],
-    "count": 6,
-    "templates": ["blues/B.BLUE.A touch of blues.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "folk/Celtic-Skies.mid"],
-    "template_share": 0.25,
-    "symbols": ["C6", "C6", "Em7", "F6"],
-    "usable": true
-   },
-   {
-    "degrees": [0, 7, 5, 0],
-    "romans": ["I", "V", "IV6", "I"],
-    "count": 6,
-    "templates": ["blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid"],
-    "template_share": 0.12,
-    "symbols": ["C6", "Gsus4", "F6", "C6"],
-    "usable": true
-   },
-   {
-    "degrees": [0, 5, 9, 9],
-    "romans": ["Imaj7", "iv6", "vi7", "vi7"],
-    "count": 6,
-    "templates": ["ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "folk/A.JACKSON.Gone country.mid"],
-    "template_share": 0.12,
-    "symbols": ["Cmaj7", "Fm6", "Am7", "Am7"],
-    "usable": true
-   },
-   {
-    "degrees": [5, 0, 5, 9],
-    "romans": ["IV6", "Imaj7", "iv6", "vi7"],
-    "count": 8,
-    "templates": ["folk/A.JACKSON.Gone country.mid"],
-    "template_share": 0.06,
-    "symbols": ["F6", "Cmaj7", "Fm6", "Am7"],
+    "degrees": [
+     7,
+     11,
+     11,
+     9
+    ],
+    "romans": [
+     "V7",
+     "vii6",
+     "vii7",
+     "vi6"
+    ],
+    "count": 5,
+    "templates": [
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
+    ],
+    "template_share": 0.09,
+    "symbols": [
+     "D7",
+     "F#m6",
+     "F#m7",
+     "Em6"
+    ],
     "usable": true
    }
   ],
   "progressions_2": [
    {
-    "degrees": [7, 0],
-    "romans": ["Vsus4", "I6"],
-    "count": 42,
-    "templates": ["ballad/A-Love-Song.mid", "ballad/A-Very-Special-Love-Song.mid", "ballad/Animal Crossing - KK Ballad Aircheck.mid", "ballad/BALLAD-2.MID", "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "blues/After-Dinner-Blues.mid", "blues/Another-Blues.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "folk/A.JACKSON.Gone country.mid", "folk/Celtic-Skies.mid", "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"],
-    "template_share": 0.75,
-    "symbols": ["Gsus4", "C6"],
-    "usable": true
-   },
-   {
-    "degrees": [0, 7],
-    "romans": ["Isus4", "V6"],
-    "count": 32,
-    "templates": ["ballad/A-Very-Special-Love-Song.mid", "ballad/BALLAD-2.MID", "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "blues/After-Dinner-Blues.mid", "blues/Another-Blues.mid", "blues/B.BLUE.A touch of blues.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "folk/A.JACKSON.Gone country.mid", "folk/American-Folk-(Variation-2).mid", "folk/Celtic-Skies.mid", "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"],
-    "template_share": 0.75,
-    "symbols": ["Csus4", "G6"],
-    "usable": true
-   },
-   {
-    "degrees": [7, 5],
-    "romans": ["V7", "IV6"],
+    "degrees": [
+     7,
+     5
+    ],
+    "romans": [
+     "v7",
+     "IV6"
+    ],
     "count": 23,
-    "templates": ["ballad/A-Very-Special-Love-Song.mid", "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "blues/After-Dinner-Blues.mid", "blues/B.BLUE.A touch of blues.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "folk/A.JACKSON.Gone country.mid", "folk/Acid-Folk.mid", "folk/American-Folk-(Variation-2).mid", "folk/Celtic-Skies.mid"],
-    "template_share": 0.62,
-    "symbols": ["G7", "F6"],
+    "templates": [
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "blues/B.BLUE.A touch of blues.mid",
+     "blues/Be-My-Boogie-Woogie-Baby.mid",
+     "folk/Acid-Folk.mid",
+     "folk/American-Folk-(Variation-2).mid"
+    ],
+    "template_share": 0.45,
+    "symbols": [
+     "Dm7",
+     "C6"
+    ],
     "usable": true
    },
    {
-    "degrees": [5, 0],
-    "romans": ["IV6", "Imaj7"],
-    "count": 92,
-    "templates": ["ballad/A-Love-Song.mid", "ballad/A-Very-Special-Love-Song.mid", "ballad/Animal Crossing - KK Ballad Aircheck.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "folk/A.JACKSON.Gone country.mid", "folk/Acid-Folk.mid", "folk/American-Folk-(Variation-2).mid", "folk/Celtic-Skies.mid"],
-    "template_share": 0.56,
-    "symbols": ["F6", "Cmaj7"],
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "Vsus4",
+     "I6"
+    ],
+    "count": 16,
+    "templates": [
+     "ballad/A-Love-Song.mid",
+     "ballad/BALLAD-2.MID",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "blues/Another-Blues.mid",
+     "folk/I-Was-Country-When-Country-Wasn't-Cool.mid"
+    ],
+    "template_share": 0.45,
+    "symbols": [
+     "Dsus4",
+     "G6"
+    ],
     "usable": true
    },
    {
-    "degrees": [0, 5],
-    "romans": ["Imaj7", "IV6"],
-    "count": 84,
-    "templates": ["ballad/A-Love-Song.mid", "ballad/Animal Crossing - KK Ballad Aircheck.mid", "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "blues/After-Dinner-Blues.mid", "blues/Backfield-Blues.mid", "blues/Boogie-Woogie.mid", "folk/A.JACKSON.Gone country.mid", "folk/Celtic-Skies.mid"],
-    "template_share": 0.5,
-    "symbols": ["Cmaj7", "F6"],
+    "degrees": [
+     0,
+     3
+    ],
+    "romans": [
+     "I7",
+     "bIII6"
+    ],
+    "count": 15,
+    "templates": [
+     "ballad/A-Love-Song.mid",
+     "ballad/Ballad-Of-A-Teenage-Queen.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "blues/Another-Blues.mid",
+     "blues/Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid"
+    ],
+    "template_share": 0.45,
+    "symbols": [
+     "G7",
+     "A#6"
+    ],
     "usable": true
    },
    {
-    "degrees": [5, 9],
-    "romans": ["IVmaj7", "vi7"],
-    "count": 24,
-    "templates": ["ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "blues/After-Dinner-Blues.mid", "blues/Backfield-Blues.mid", "folk/A.JACKSON.Gone country.mid"],
-    "template_share": 0.25,
-    "symbols": ["Fmaj7", "Am7"],
+    "degrees": [
+     5,
+     7
+    ],
+    "romans": [
+     "IV6",
+     "V7"
+    ],
+    "count": 19,
+    "templates": [
+     "ballad/A-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "blues/Be-My-Boogie-Woogie-Baby.mid"
+    ],
+    "template_share": 0.27,
+    "symbols": [
+     "C6",
+     "D7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     9,
+     5
+    ],
+    "romans": [
+     "vi7",
+     "IV6"
+    ],
+    "count": 19,
+    "templates": [
+     "ballad/A-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "blues/Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid"
+    ],
+    "template_share": 0.27,
+    "symbols": [
+     "Em7",
+     "C6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     3,
+     2
+    ],
+    "romans": [
+     "bIII6",
+     "iim7b5"
+    ],
+    "count": 16,
+    "templates": [
+     "ballad/A-Love-Song.mid",
+     "ballad/ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+     "blues/Another-Blues.mid"
+    ],
+    "template_share": 0.27,
+    "symbols": [
+     "A#6",
+     "Am7b5"
+    ],
     "usable": true
    }
   ],
-  "pool_progression": ["C6", "C6", "Cmaj7", "G6"],
-  "pool_progression_romans": ["I", "I6", "Imaj7", "V6"],
+  "pool_progression": [
+   "D7",
+   "D6"
+  ],
+  "pool_progression_romans": [
+   "V7",
+   "V6"
+  ],
   "chord_pool": [
-   {
-    "degree": 0,
-    "roman": "I",
-    "suffix": "6",
-    "count": 439,
-    "templates": 16
-   },
    {
     "degree": 7,
     "roman": "V",
-    "suffix": "sus4",
-    "count": 234,
-    "templates": 16
+    "suffix": "7",
+    "count": 244,
+    "templates": 9
    },
    {
     "degree": 8,
     "roman": "bVI",
     "suffix": "6",
-    "count": 231,
+    "count": 198,
     "templates": 5
    },
    {
-    "degree": 5,
-    "roman": "IV",
-    "suffix": "6",
-    "count": 213,
-    "templates": 13
-   },
-   {
-    "degree": 2,
-    "roman": "II",
-    "suffix": "m7",
-    "count": 86,
-    "templates": 9
+    "degree": 0,
+    "roman": "I",
+    "suffix": "7",
+    "count": 157,
+    "templates": 10
    },
    {
     "degree": 3,
     "roman": "bIII",
     "suffix": "6",
-    "count": 83,
-    "templates": 5
+    "count": 130,
+    "templates": 6
    },
    {
-    "degree": 9,
-    "roman": "VI",
-    "suffix": "m7",
-    "count": 79,
-    "templates": 11
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "7",
+    "count": 119,
+    "templates": 9
    },
    {
     "degree": 11,
     "roman": "VII",
     "suffix": "m7",
-    "count": 61,
-    "templates": 8
+    "count": 55,
+    "templates": 4
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "m7",
+    "count": 48,
+    "templates": 6
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m7",
+    "count": 47,
+    "templates": 5
    },
    {
     "degree": 10,
     "roman": "bVII",
     "suffix": "7",
-    "count": 46,
-    "templates": 10
+    "count": 34,
+    "templates": 4
    },
    {
     "degree": 4,
     "roman": "III",
     "suffix": "m7",
-    "count": 44,
-    "templates": 10
+    "count": 21,
+    "templates": 6
+   },
+   {
+    "degree": 1,
+    "roman": "bII",
+    "suffix": "7",
+    "count": 9,
+    "templates": 3
    },
    {
     "degree": 6,
     "roman": "bV",
     "suffix": "m7b5",
-    "count": 14,
-    "templates": 5
-   },
-   {
-    "degree": 1,
-    "roman": "bII",
-    "suffix": "6",
-    "count": 10,
-    "templates": 4
+    "count": 3,
+    "templates": 3
    }
   ],
   "chord_per_bar": 0.97
  },
  "rhythm": {
-  "low16": "★·★·★·★·★·★·★·★·",
-  "high16": "★·★★★·★★★·★★★·★★",
-  "low_slot_share": [0.81, 0.38, 0.56, 0.38, 0.75, 0.25, 0.69, 0.38, 0.81, 0.38, 0.62, 0.38, 0.75, 0.31, 0.62, 0.44],
-  "high_slot_share": [0.88, 0.38, 0.62, 0.69, 0.88, 0.25, 0.75, 0.56, 0.88, 0.31, 0.75, 0.56, 0.94, 0.38, 0.69, 0.62],
-  "low_density": 16.73,
-  "high_density": 13.62,
-  "bass_density": 1.41,
-  "perc_density": 6.46,
+  "low16": "★·★★★·★★★·★★★·★★",
+  "high16": "★··★★·★·★·★·★·★·",
+  "low_slot_share": [
+   0.91,
+   0.45,
+   0.64,
+   0.55,
+   0.91,
+   0.36,
+   0.73,
+   0.64,
+   0.91,
+   0.45,
+   0.64,
+   0.55,
+   0.91,
+   0.45,
+   0.73,
+   0.64
+  ],
+  "high_slot_share": [
+   0.91,
+   0.18,
+   0.45,
+   0.64,
+   0.82,
+   0.18,
+   0.64,
+   0.45,
+   0.91,
+   0.27,
+   0.73,
+   0.45,
+   0.91,
+   0.18,
+   0.55,
+   0.45
+  ],
+  "low_density": 22.6,
+  "high_density": 14.46,
+  "bass_density": 3.21,
+  "perc_density": 11.53,
   "slots": 16,
-  "bass_style": "simple",
+  "bass_style": "sixteenth",
   "perc_style": "light"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.38,
-   "guitar": 0.44,
-   "lead": 0.06,
-   "organ": 0.19,
-   "pad": 0.06,
-   "piano": 0.81,
-   "pipe": 0.12,
-   "strings": 0.06
+   "bass": 0.82,
+   "guitar": 0.82,
+   "lead": 0.18,
+   "organ": 0.45,
+   "pad": 0.09,
+   "perc": 0.91,
+   "piano": 0.73,
+   "pipe": 0.18,
+   "strings": 0.18
   },
   "role_range": {
-   "bass": [29, 51],
-   "guitar": [50, 79],
-   "lead": [31, 65],
-   "organ": [64, 83],
-   "pad": [53, 76],
-   "piano": [30, 93],
-   "pipe": [52, 91],
-   "strings": [44, 95]
+   "bass": [
+    29,
+    50
+   ],
+   "guitar": [
+    50,
+    79
+   ],
+   "lead": [
+    50,
+    85
+   ],
+   "organ": [
+    64,
+    83
+   ],
+   "pad": [
+    53,
+    76
+   ],
+   "piano": [
+    40,
+    87
+   ],
+   "pipe": [
+    52,
+    78
+   ],
+   "strings": [
+    50,
+    95
+   ]
   },
   "arr_share": {
-   "bass": 0.38,
-   "piano": 0.81,
-   "uku": 0.44,
-   "strings": 0.0,
-   "pad": 0.06,
+   "bass": 0.82,
+   "piano": 0.73,
+   "uku": 0.82,
+   "strings": 0.18,
+   "pad": 0.09,
    "glock": 0.0,
-   "ep": 0.12,
-   "perc": 0.0
+   "ep": 0.18,
+   "perc": 0.91
   },
-  "arr_on": ["piano"],
-  "arr_off": ["glock", "perc", "strings"],
-  "arr_maybe": ["bass", "ep", "pad", "uku"],
-  "track_count": 5.1,
+  "arr_on": [
+   "bass",
+   "perc",
+   "piano",
+   "uku"
+  ],
+  "arr_off": [
+   "glock"
+  ],
+  "arr_maybe": [
+   "ep",
+   "pad",
+   "strings"
+  ],
+  "track_count": 8.6,
   "style_mix": {
-   "ballad": 5,
-   "blues": 6,
-   "folk": 5
+   "ballad": 4,
+   "blues": 4,
+   "folk": 3
   },
   "prog_pool": {
-   "uku": [25, 26, 24, 105, 111],
-   "piano": [0, 1, 4],
-   "bass": [32, 35],
-   "strings": [48],
-   "ep": [73, 87],
-   "pad": [94]
+   "uku": [
+    25,
+    26,
+    24,
+    105,
+    111
+   ],
+   "piano": [
+    0,
+    4
+   ],
+   "bass": [
+    32,
+    35,
+    36
+   ],
+   "strings": [
+    48
+   ],
+   "ep": [
+    73,
+    81,
+    87
+   ],
+   "pad": [
+    94
+   ]
   }
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 104,
+  "total_bars": 80,
   "plan": [
    {
     "name": "Intro",
-    "bars": 8,
+    "bars": 4,
     "prog": 0
    },
    {
@@ -537,7 +738,7 @@
    {
     "name": "C",
     "bars": 8,
-    "prog": 2
+    "prog": 1
    },
    {
     "name": "A4",
@@ -560,36 +761,23 @@
     "prog": 0
    },
    {
-    "name": "A2",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "B",
-    "bars": 8,
-    "prog": 1
-   },
-   {
-    "name": "A3",
-    "bars": 8,
-    "prog": 0
-   },
-   {
     "name": "Outro",
     "bars": 4,
     "prog": 0
    }
-  ],
-  "intro_note": "首段按主题派生（2026-10-05）：Intro 8 小节 —— 修 `scripts/theme_pack.py` 的 plan 生成以免重建时被覆盖"
+  ]
  },
  "melody": {
-  "notes": 2857,
-  "range": [65, 84],
-  "mean_pitch": 75.6,
-  "notes_per_bar": 3.69,
-  "stepwise_pct": 63.46,
-  "onbeat_pct": 39.94,
-  "diatonic_pct": 87.33,
+  "notes": 3237,
+  "range": [
+   65,
+   83
+  ],
+  "mean_pitch": 75.43,
+  "notes_per_bar": 3.14,
+  "stepwise_pct": 60.75,
+  "onbeat_pct": 46.9,
+  "diatonic_pct": 89.48,
   "interval_hist": {
    "-22": 4,
    "-21": 4,
@@ -604,20 +792,20 @@
    "-8": 52,
    "-7": 123,
    "-6": 52,
-   "-5": 330,
-   "-4": 196,
-   "-3": 609,
-   "-2": 1142,
-   "-1": 496,
-   "0": 1982,
-   "1": 720,
-   "2": 737,
-   "3": 560,
-   "4": 129,
-   "5": 311,
-   "6": 20,
-   "7": 129,
-   "8": 94,
+   "-5": 441,
+   "-4": 463,
+   "-3": 963,
+   "-2": 1645,
+   "-1": 932,
+   "0": 2137,
+   "1": 884,
+   "2": 1084,
+   "3": 797,
+   "4": 230,
+   "5": 466,
+   "6": 24,
+   "7": 273,
+   "8": 116,
    "9": 5,
    "10": 59,
    "11": 57,
@@ -630,15 +818,15 @@
    "24": 1
   },
   "dur16_hist": {
-   "0": 1250,
-   "1": 1701,
-   "2": 2227,
-   "3": 768,
-   "4": 618,
-   "5": 118,
-   "6": 167,
+   "0": 1319,
+   "1": 2561,
+   "2": 2715,
+   "3": 1036,
+   "4": 1209,
+   "5": 297,
+   "6": 254,
    "7": 19,
-   "8": 412,
+   "8": 777,
    "9": 42,
    "10": 55,
    "11": 6,
@@ -646,59 +834,106 @@
    "13": 20,
    "14": 21,
    "15": 100,
-   "16": 423
+   "16": 515
   },
   "onset16_hist": {
-   "0": 1388,
-   "1": 348,
-   "2": 398,
-   "3": 359,
-   "4": 585,
-   "5": 195,
-   "6": 424,
-   "7": 430,
-   "8": 698,
-   "9": 208,
-   "10": 653,
-   "11": 459,
-   "12": 524,
-   "13": 279,
-   "14": 751,
-   "15": 302
+   "0": 2044,
+   "1": 440,
+   "2": 455,
+   "3": 417,
+   "4": 836,
+   "5": 276,
+   "6": 481,
+   "7": 499,
+   "8": 1335,
+   "9": 254,
+   "10": 834,
+   "11": 593,
+   "12": 944,
+   "13": 337,
+   "14": 843,
+   "15": 413
   },
-  "phrases": 91,
-  "phrase_bars": [7.57, 8.62, 9.08, 7.85, 8.45, 7.1, 1.7, 8.45, 7.1, 2.2, 1.58, 1.58, 1.58, 1.58, 1.58, 1.58, 4.01, 2.02, 3.36, 3.51, 11.5, 3.51, 9.12, 1.28, 0.12, 28.75, 0.4, 0.4, 3.0, 2.75, 1.46, 1.94, 5.06, 3.46, 1.16, 1.41, 2.56, 5.29, 1.17, 6.83, 7.79, 2.87, 1.54, 1.2, 4.5, 4.43, 6.19, 8.68, 2.99, 3.66, 0.43, 2.42, 4.57, 2.9, 2.6, 1.37, 2.57, 3.18, 2.46, 4.26],
-  "bars": 96.9,
-  "templates": 8
+  "phrases": 161,
+  "phrase_bars": [
+   7.57,
+   8.62,
+   9.08,
+   7.85,
+   8.45,
+   7.1,
+   1.7,
+   8.45,
+   7.1,
+   2.2,
+   1.58,
+   1.58,
+   1.58,
+   1.58,
+   1.58,
+   1.58,
+   4.01,
+   2.02,
+   3.36,
+   3.51,
+   11.5,
+   3.51,
+   9.12,
+   1.28,
+   1.74,
+   1.99,
+   1.74,
+   2.06,
+   1.74,
+   2.06,
+   1.74,
+   2.06,
+   1.74,
+   2.06,
+   2.24,
+   1.48,
+   1.25,
+   4.03,
+   1.94,
+   3.45,
+   1.24,
+   1.0,
+   0.08,
+   0.12,
+   28.75,
+   0.4,
+   0.4,
+   3.0,
+   2.75,
+   1.46,
+   1.94,
+   5.06,
+   3.46,
+   1.16,
+   1.41,
+   2.56,
+   5.29,
+   1.17,
+   6.83,
+   7.79
+  ],
+  "bars": 93.7,
+  "templates": 11
  },
- "notes": ["共 16 首模板，来源：bitmidi×16", "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/folk_tale_tracks.json"],
+ "notes": [
+  "共 11 首模板，来源：bitmidi×11",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/folk_tale_tracks.json"
+ ],
  "tool": "theme_pack.py",
  "mix_target": {
   "ref": "folk_tale_mix",
-  "score": 0.877,
-  "why": "BPM 114.1（差 5.9，0.80）· 打击感 0.33 vs 目标 0.35（0.95）· 调式 major（1.00）",
+  "score": 0.855,
+  "why": "BPM 128.0（差 5.0，0.83）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）",
   "aggregate": true,
   "members": [
    {
-    "ref": "BGM04",
-    "score": 0.877,
-    "bpm": 114.1,
-    "centroid": 2281,
-    "rms_db": -13.5,
-    "width": 0.233,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM04.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
     "ref": "bgm01c",
-    "score": 0.801,
+    "score": 0.855,
     "bpm": 128.0,
     "centroid": 3284,
     "rms_db": -14.3,
@@ -714,8 +949,25 @@
     }
    },
    {
+    "ref": "BGM04",
+    "score": 0.823,
+    "bpm": 114.1,
+    "centroid": 2281,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM04.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
     "ref": "fine_BGM09",
-    "score": 0.737,
+    "score": 0.791,
     "bpm": 123.0,
     "centroid": 3695,
     "rms_db": -17.1,
@@ -726,30 +978,15 @@
      "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
      "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
      "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
-     "url_alt": ["https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"],
+     "url_alt": [
+      "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
+     ],
      "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
     }
    },
    {
-    "ref": "BGM13",
-    "score": 0.643,
-    "bpm": 109.2,
-    "centroid": 3068,
-    "rms_db": -20.4,
-    "width": 0.656,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM13.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
     "ref": "BGM06",
-    "score": 0.625,
+    "score": 0.679,
     "bpm": 133.9,
     "centroid": 1533,
     "rms_db": -16.9,
@@ -766,7 +1003,7 @@
    },
    {
     "ref": "BGM15c",
-    "score": 0.62,
+    "score": 0.674,
     "bpm": 132.4,
     "centroid": 3338,
     "rms_db": -19.3,
@@ -782,8 +1019,42 @@
     }
    },
    {
+    "ref": "BGM13",
+    "score": 0.589,
+    "bpm": 109.2,
+    "centroid": 3068,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM13.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM18",
+    "score": 0.56,
+    "bpm": 134.7,
+    "centroid": 2043,
+    "rms_db": -22.2,
+    "width": 0.818,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM18.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
     "ref": "BGM20",
-    "score": 0.586,
+    "score": 0.532,
     "bpm": 101.5,
     "centroid": 2232,
     "rms_db": -16.9,
@@ -792,23 +1063,6 @@
      "kind": "project_audio",
      "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
      "file": "BGM20.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "BGM09",
-    "score": 0.536,
-    "bpm": 106.0,
-    "centroid": 2421,
-    "rms_db": -16.2,
-    "width": 0.523,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM09.ogg",
      "origin_path": null,
      "url": null,
      "url_alt": [],
@@ -823,67 +1077,130 @@
    "mode": 0.15
   },
   "perc_style_target": 0.35,
-  "energy_curve_db": [],
-  "structure_db": [-17.0, -17.0, -17.0, -16.0, -16.0],
-  "density_curve_db": [-5.01, 0.0, 0.74, 2.2, -1.18],
+  "energy_curve_db": [
+   -0.8,
+   -0.8,
+   0.2,
+   0.2,
+   1.2
+  ],
+  "structure_db": [
+   -18.0,
+   -18.0,
+   -17.0,
+   -17.0,
+   -16.0
+  ],
+  "density_curve_db": [
+   -8.4,
+   0.0,
+   0.8,
+   0.76,
+   -1.16
+  ],
   "density_meta": {
-   "n": 15,
-   "files": ["ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid", "Animal Crossing - KK Ballad Aircheck.mid", "A-Love-Song.mid", "BALLAD-2.MID", "A-Very-Special-Love-Song.mid", "After-Dinner-Blues.mid", "Backfield-Blues.mid", "Boogie-Woogie.mid", "Another-Blues.mid", "Boogie-Woogie-Demo.mid", "I-Was-Country-When-Country-Wasn't-Cool.mid", "Celtic-Skies.mid", "A.JACKSON.Gone country.mid", "American-Folk-(Variation-2).mid", "Acid-Folk.mid"],
-   "abs_curve": [20.12, 35.81, 39.0, 46.12, 31.25],
+   "n": 10,
+   "files": [
+    "ame ni uta u tanshikyoku - A Ballad Sung to Rain.mid",
+    "A-Love-Song.mid",
+    "BALLAD-2.MID",
+    "Ballad-Of-A-Teenage-Queen.mid",
+    "Blues-Breaker-(Blues-Rock-'n-Roll-Style).mid",
+    "Another-Blues.mid",
+    "Be-My-Boogie-Woogie-Baby.mid",
+    "I-Was-Country-When-Country-Wasn't-Cool.mid",
+    "American-Folk-(Variation-2).mid",
+    "Acid-Folk.mid"
+   ],
+   "abs_curve": [
+    18.62,
+    49.0,
+    53.75,
+    53.5,
+    42.88
+   ],
    "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
   },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
-    "ref": "BGM04",
-    "score": 0.877,
-    "bpm": 114.1,
-    "rms_db": -13.5,
-    "width": 0.233,
-    "centroid": 2281,
-    "perc": 0.325,
-    "mode": "major",
-    "structure": [-14, -14, -14, -13, -14, -13, -13, -13],
-    "parts": {
-     "bpm": 0.803,
-     "perc": 0.95,
-     "mode": 1.0
-    },
-    "why": "BPM 114.1（差 5.9，0.80）· 打击感 0.33 vs 目标 0.35（0.95）· 调式 major（1.00）"
-   },
-   {
     "ref": "bgm01c",
-    "score": 0.801,
+    "score": 0.855,
     "bpm": 128.0,
     "rms_db": -14.3,
     "width": 0.316,
     "centroid": 3284,
     "perc": 0.437,
     "mode": "major",
-    "structure": [-17, -14, -14, -14, -14, -14, -14, -14, -15, -14],
+    "structure": [
+     -17,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -15,
+     -14
+    ],
     "parts": {
-     "bpm": 0.733,
+     "bpm": 0.832,
      "perc": 0.826,
      "mode": 1.0
     },
-    "why": "BPM 128.0（差 8.0，0.73）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）"
+    "why": "BPM 128.0（差 5.0，0.83）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）"
+   },
+   {
+    "ref": "BGM04",
+    "score": 0.823,
+    "bpm": 114.1,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "centroid": 2281,
+    "perc": 0.325,
+    "mode": "major",
+    "structure": [
+     -14,
+     -14,
+     -14,
+     -13,
+     -14,
+     -13,
+     -13,
+     -13
+    ],
+    "parts": {
+     "bpm": 0.705,
+     "perc": 0.95,
+     "mode": 1.0
+    },
+    "why": "BPM 114.1（差 8.9，0.70）· 打击感 0.33 vs 目标 0.35（0.95）· 调式 major（1.00）"
    },
    {
     "ref": "fine_BGM09",
-    "score": 0.737,
+    "score": 0.791,
     "bpm": 123.0,
     "rms_db": -17.1,
     "width": 0.369,
     "centroid": 3695,
     "perc": 0.446,
     "mode": "minor",
-    "structure": [-18, -18, -17, -17, -16, -16, -16],
+    "structure": [
+     -18,
+     -18,
+     -17,
+     -17,
+     -16,
+     -16,
+     -16
+    ],
     "parts": {
-     "bpm": 0.9,
+     "bpm": 0.998,
      "perc": 0.808,
      "mode": 0.0
     },
-    "why": "BPM 123.0（差 3.0，0.90）· 打击感 0.45 vs 目标 0.35（0.81）· 调式 minor≠主题（0.00）"
+    "why": "BPM 123.0（差 0.0，1.00）· 打击感 0.45 vs 目标 0.35（0.81）· 调式 minor≠主题（0.00）"
    }
   ],
   "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"

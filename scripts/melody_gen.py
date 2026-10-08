@@ -1840,6 +1840,20 @@ def form_penalty(fs, ms, small=None, span=None):
     return pen
 
 
+def _hard_form_gates():
+    """形态**硬门**的单一真源（懒加载，避免与 `selftest` 循环导入）。
+
+    返回 `(FORM_DENS, small_iv_max_ratio)` —— 与守卫**同一份口径**：
+    `selftest.FORM_DENS`（密度区间，用户口径 2.0~2.6 + 余量）与
+    `probe_melody_health.SMALL_IV_MAX`（小步占比上限，百分数 → 这里换算成比例）。
+    为什么要有它：候选选择要按这些门**分档**（见 `main` 里 `_over` 的说明），
+    而门必须只有一处定义（PITFALLS 353：同一件事两处各算一份 ⇒ 必然漂移）。
+    """
+    import selftest as _st
+    import probe_melody_health as _pm
+    return tuple(_st.FORM_DENS), float(_pm.SMALL_IV_MAX) / 100.0
+
+
 # ────────────────────────── 转音细胞（2026-10-06 · HANDOFF-ORNAMENT §4） ──────────
 # 用户口径（2026-10-05）："以后其它地方有能识别到吗，推广一下让直接写音乐也能尝试写出来
 #   **不同的**转音" —— 已知实例是 BGM35 19.0–19.6s 那处（`A♯5→A5→F5→C5→A♯4→A4→F4`，
@@ -2244,6 +2258,7 @@ def main():
 
     cands = []                   # 逐候选收集：(score, over, mel, per, ci, nfix, clash, sw)
     _over_list = []              # 超门的候选（候选号, worst TVD, 打分），用于复盘打印
+    _FD, _SIV = _hard_form_gates()   # 形态硬门（密度区间 / 小步上限）—— 单一真源，见其 docstring
     for ci in range(max(1, ncand)):
         rng = random.Random(seed + ci * 1000)
         per = persona(prof, rng)
@@ -2306,7 +2321,8 @@ def main():
             ms = motif_stats(mel, d['sections'], chords, tonic) or {}
         except Exception:                                        # noqa: BLE001
             ms = {}
-        fp = form_penalty(fs, ms, small=small_step_pct(mel, d['sections']),
+        _sm = small_step_pct(mel, d['sections'])
+        fp = form_penalty(fs, ms, small=_sm,
                           span=(fs or {}).get('span'))
         dt = dur_tvd(mel, prof) * dur_bias
         # **最长同音串罚分**（见 `same_run_longest` 的 docstring）：超门部分按 1.0/音罚。
@@ -2344,7 +2360,21 @@ def main():
         #   轻易盖过 ⇒ 它被选中 ⇒ 成品 Outro 破门（全库扫描 235 段里**唯一**一段破门）。
         #   ⇒ 分档顺序：**门内候选一律优于门外候选**；门内一条都没有时才退回原打分
         #   （全破门的情况要打印出来，不能假装没事）。**门本身没动**，改的只是"挑哪条"。
-        _over = 1 if ot > ONSET_TVD_MAX else 0
+        # **形态硬门也纳入分档**（2026-10-07 扩展；机制同 §18 的"落点门分档"）：
+        #   `melody_health` 的小步门（≤35%）与 `melody_form_rules` 的密度门（`FORM_DENS`）
+        #   都是**硬门**，而 `form_penalty` 里小步只按"4 倍超门量"罚（超 1 个百分点 = 0.04 分，
+        #   随便被别的项盖过）、**密度根本没有罚分** ⇒ 实测选中了密度 **1.57** 的
+        #   `102_waltz_court` 与小步 **36%** 的 `121_battle_onslaught`（都是守卫会 FAIL 的硬伤）。
+        #   结论同 PITFALLS 352：**硬门必须分档**（门内候选一律优于门外候选），软罚不够。
+        #   口径全部取自单一真源：`fs['dens']`（`form_stats`，守卫同款）与
+        #   `_hard_form_gates()`（`selftest.FORM_DENS` / `probe_melody_health.SMALL_IV_MAX`）。
+        _dens = (fs or {}).get('dens')
+        _ov_form = 0
+        if _dens is not None and not (_FD[0] <= _dens <= _FD[1]):
+            _ov_form = 1
+        if _sm > _SIV:
+            _ov_form = 1
+        _over = 1 if (ot > ONSET_TVD_MAX or _ov_form) else 0
         cands.append((score, _over, mel, per, ci, nfix, clash, sw))
         if _over:
             _over_list.append((ci + 1, ot, score))
@@ -2381,8 +2411,10 @@ def main():
     # （不写进 song.json：那是"引擎的挑选过程"，不是曲目数据 —— 要查看生成日志）。
     if _over_list:
         _in_gate = max(1, ncand) - len(_over_list)
-        print('  %s 落点门（%.2f）：%d/%d 条候选在门内 ⇒ 选中候选%s（超门候选：%s）'
-              % ('!' if best_over else '·', ONSET_TVD_MAX, _in_gate, max(1, ncand),
+        print('  %s 硬门（落点 %.2f · 密度 %.1f~%.1f · 小步 ≤%.0f%%）：%d/%d 条候选在门内 ⇒ '
+              '选中候选%s（超门候选：%s）'
+              % ('!' if best_over else '·', ONSET_TVD_MAX, _FD[0], _FD[1], _SIV * 100,
+                 _in_gate, max(1, ncand),
                  '**全是超门的**' if best_over else '在门内',
                  ' · '.join('候选%d %.3f' % (a, b) for (a, b, _s) in _over_list)))
     # **生成元数据**：写进 song.json，让"这首该像哪份画像"变成可查的事实 ——

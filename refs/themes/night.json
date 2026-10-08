@@ -2,22 +2,44 @@
  "theme": "night",
  "label": "夜晚",
  "desc": "夜晚（主题模板包：16 首同主题模板聚合）",
- "styles": ["newage", "jazz", "electronic"],
+ "styles": [
+  "night",
+  "galgame",
+  "newage",
+  "jazz",
+  "electronic"
+ ],
  "engine_style": "daily",
- "meter": [4, 4],
+ "meter": [
+  4,
+  4
+ ],
  "min_templates": 8,
  "template_count": 16,
  "bpm": {
-  "median": 138.0,
-  "p25": 130.0,
-  "p75": 162.0
+  "median": 130.0,
+  "p25": 100.0,
+  "p75": 156.0
  },
  "key": {
-  "tonic": "F",
-  "pc": 5,
-  "mode": "major",
-  "confidence": 0.25,
-  "scale_degree_weight": [5228331.31, 207400.7, 1363780.25, 557337.92, 3945437.37, 1076971.67, 111697.4, 2830458.23, 360675.79, 1225807.44, 687911.68, 899559.03]
+  "tonic": "E",
+  "pc": 4,
+  "mode": "minor",
+  "confidence": 0.312,
+  "scale_degree_weight": [
+   3606413.68,
+   435673.58,
+   1149380.56,
+   1026739.56,
+   987129.18,
+   1385905.52,
+   330100.32,
+   2233262.82,
+   1192494.82,
+   964117.82,
+   837038.16,
+   715253.74
+  ]
  },
  "templates": [
   {
@@ -25,7 +47,10 @@
    "style": "electronic",
    "md5": "785233423e8027dcafc179f9e395b695",
    "bpm": 130.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 106,
    "seconds": 195.7,
    "source": "https://bitmidi.com/uploads/22756.mid",
@@ -36,43 +61,69 @@
    "style": "electronic",
    "md5": "83966acf20aea824e3161ad2dbacd661",
    "bpm": 137.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 48,
    "seconds": 84.1,
    "source": "https://bitmidi.com/uploads/4850.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "electronic/Arrow - Back In The House (U Can See It).mid",
+   "file": "electronic/Base Attack - Nobody Listen To Techno (Ritmika Dance 2009 remix).mid",
    "style": "electronic",
-   "md5": "20e05b0de1512131b6dccb1667df2356",
-   "bpm": 140.0,
-   "timesig": [4, 4],
-   "bars": 33,
-   "seconds": 56.6,
-   "source": "https://bitmidi.com/uploads/7787.mid",
+   "md5": "ebbe12d0af63ea6dad3b8b1ce92d7c2f",
+   "bpm": 146.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 40,
+   "seconds": 65.7,
+   "source": "https://bitmidi.com/uploads/15850.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "electronic/Base Attack - Techno Rocker (Rob Mayth Remix).mid",
-   "style": "electronic",
-   "md5": "5404813303e209c11fb14dfb177bfcdb",
-   "bpm": 140.0,
-   "timesig": [4, 4],
-   "bars": 16,
-   "seconds": 27.4,
-   "source": "https://bitmidi.com/uploads/15851.mid",
+   "file": "galgame/Kanon - The Day I Waited For The Wind.mid",
+   "style": "galgame",
+   "md5": "207b47cb07f4c5378919a8d0e68938b5",
+   "bpm": 70.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 44,
+   "seconds": 150.8,
+   "source": "https://bitmidi.com/uploads/65304.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "electronic/Benny Benassi - Techno Cocain.mid",
-   "style": "electronic",
-   "md5": "1bc4da5f59f78660b266ad899e9ba19f",
-   "bpm": 180.0,
-   "timesig": [4, 4],
-   "bars": 8,
-   "seconds": 10.7,
-   "source": "https://bitmidi.com/uploads/17088.mid",
+   "file": "galgame/Kanon - Last Regrets.mid",
+   "style": "galgame",
+   "md5": "621ada409fdcfe604e5d0493f1650d83",
+   "bpm": 93.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 56,
+   "seconds": 144.5,
+   "source": "https://bitmidi.com/uploads/65303.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+   "style": "galgame",
+   "md5": "80e0ed55efc18ee4974d2c4fb8499856",
+   "bpm": 174.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 185,
+   "seconds": 254.0,
+   "source": "https://bitmidi.com/uploads/71358.mid",
    "kind": "bitmidi"
   },
   {
@@ -80,7 +131,10 @@
    "style": "jazz",
    "md5": "5eec84e0621fc939d849a56208771004",
    "bpm": 58.48,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 101,
    "seconds": 413.2,
    "source": "https://bitmidi.com/uploads/25904.mid",
@@ -91,32 +145,27 @@
    "style": "jazz",
    "md5": "9a3cc9c3b1ff493e4513b6b23cb8da92",
    "bpm": 120.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 105,
    "seconds": 210.0,
    "source": "https://bitmidi.com/uploads/8049.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid",
+   "file": "jazz/AMESSE.Swing a ling.mid",
    "style": "jazz",
-   "md5": "a3fe9abebc824bb5b2f2e28f8cc7eb8a",
-   "bpm": 132.0,
-   "timesig": [4, 4],
-   "bars": 114,
-   "seconds": 205.7,
-   "source": "https://bitmidi.com/uploads/3092.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid",
-   "style": "jazz",
-   "md5": "a31a41a04f7d0015936e7747dc150b53",
+   "md5": "67bca2555706ea4b1f0aa1165d2c172f",
    "bpm": 138.0,
-   "timesig": [4, 4],
-   "bars": 102,
-   "seconds": 177.1,
-   "source": "https://bitmidi.com/uploads/4879.mid",
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 208,
+   "seconds": 361.0,
+   "source": "https://bitmidi.com/uploads/6100.mid",
    "kind": "bitmidi"
   },
   {
@@ -124,54 +173,41 @@
    "style": "jazz",
    "md5": "71250138dd3b9294156ecf9165496c60",
    "bpm": 156.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 28,
    "seconds": 43.0,
    "source": "https://bitmidi.com/uploads/16551.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "jazz/Alexander's-Ragtime-Band.mid",
-   "style": "jazz",
-   "md5": "131c2d8431d6995820d66d7bbec1d98b",
-   "bpm": 162.0,
-   "timesig": [4, 4],
-   "bars": 104,
-   "seconds": 153.9,
-   "source": "https://bitmidi.com/uploads/4880.mid",
+   "file": "newage/New-Age-Demo-1.mid",
+   "style": "newage",
+   "md5": "56923c3e34675479b7092766f0f30f54",
+   "bpm": 100.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 59,
+   "seconds": 141.3,
+   "source": "https://bitmidi.com/uploads/79930.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid",
+   "file": "newage/Nola, Novelty piano solo.mid",
    "style": "newage",
-   "md5": "e404d980042bf50d49fb8af353a06558",
-   "bpm": 96.0,
-   "timesig": [4, 4],
-   "bars": 114,
-   "seconds": 285.0,
-   "source": "https://bitmidi.com/uploads/22004.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "newage/Bob Sinclar - New New New (Avicii Remix).mid",
-   "style": "newage",
-   "md5": "50b194f6a6fa8b209f0c44ac07b2afdb",
-   "bpm": 120.0,
-   "timesig": [4, 4],
-   "bars": 16,
-   "seconds": 31.9,
-   "source": "https://bitmidi.com/uploads/18781.mid",
-   "kind": "bitmidi"
-  },
-  {
-   "file": "newage/Accadia - Blind Visions (Accadia Ambient Mix).mid",
-   "style": "newage",
-   "md5": "02f732ea211fee7927819459fe0c45f2",
+   "md5": "7f2955ed8dfac73c04a6119d1e7001da",
    "bpm": 130.0,
-   "timesig": [4, 4],
-   "bars": 16,
-   "seconds": 29.5,
-   "source": "https://bitmidi.com/uploads/3624.mid",
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 73,
+   "seconds": 134.8,
+   "source": "https://bitmidi.com/uploads/28310.mid",
    "kind": "bitmidi"
   },
   {
@@ -179,21 +215,55 @@
    "style": "newage",
    "md5": "42f7e3b4b5c48cd6b0fd93d0171b37b2",
    "bpm": 167.0,
-   "timesig": [4, 4],
+   "timesig": [
+    4,
+    4
+   ],
    "bars": 16,
    "seconds": 23.0,
    "source": "https://bitmidi.com/uploads/48557.mid",
    "kind": "bitmidi"
   },
   {
-   "file": "newage/EarthBound - New Age Retro Hippie.mid",
-   "style": "newage",
-   "md5": "1651901cc34e0ae0093e87480e9245e1",
-   "bpm": 180.0,
-   "timesig": [4, 4],
-   "bars": 52,
-   "seconds": 69.3,
-   "source": "https://bitmidi.com/uploads/42465.mid",
+   "file": "night/Dream-A-Little-Dream-Of-Me.mid",
+   "style": "night",
+   "md5": "e4b8fb43f74da5d83e6c6066131cf6e2",
+   "bpm": 88.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 78,
+   "seconds": 212.6,
+   "source": "https://bitmidi.com/uploads/41362.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "night/050620B (The Children of the Night).MID",
+   "style": "night",
+   "md5": "294b9af9e1b8a69218678d562a172d08",
+   "bpm": 120.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 117,
+   "seconds": 234.0,
+   "source": "https://bitmidi.com/uploads/4.mid",
+   "kind": "bitmidi"
+  },
+  {
+   "file": "night/Dream-Baby-(How-Long-Must-I-Dream).mid",
+   "style": "night",
+   "md5": "33a90384298f516389549914e37d8bae",
+   "bpm": 163.0,
+   "timesig": [
+    4,
+    4
+   ],
+   "bars": 110,
+   "seconds": 161.2,
+   "source": "https://bitmidi.com/uploads/41365.mid",
    "kind": "bitmidi"
   }
  ],
@@ -201,321 +271,735 @@
   "bitmidi": 16
  },
  "harmony": {
-  "primary": ["A#6", "F6", "A#6", "F6"],
+  "primary": [
+   "E6",
+   "B6",
+   "E6",
+   "B6"
+  ],
   "primary_source": "window2",
   "progressions": [
    {
-    "degrees": [4, 6, 5, 4],
-    "romans": ["IIIsus4", "bv7", "IV6", "iii7"],
-    "count": 4,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
+    "degrees": [
+     5,
+     0,
+     5,
+     7
+    ],
+    "romans": [
+     "IV6",
+     "I6",
+     "IV7",
+     "V7"
+    ],
+    "count": 7,
+    "templates": [
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "night/050620B (The Children of the Night).MID"
+    ],
     "template_share": 0.19,
-    "symbols": ["Asus4", "Bm7", "A#6", "Am7"],
+    "symbols": [
+     "A6",
+     "E6",
+     "A7",
+     "B7"
+    ],
     "usable": true
    },
    {
-    "degrees": [5, 4, 0, 5],
-    "romans": ["iv6", "iii7", "I6", "IVmaj7"],
+    "degrees": [
+     7,
+     9,
+     9,
+     2
+    ],
+    "romans": [
+     "V6",
+     "vi",
+     "VI",
+     "ii"
+    ],
+    "count": 8,
+    "templates": [
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "newage/Nola, Novelty piano solo.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "B6",
+     "C#m7",
+     "C#7",
+     "F#m6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     7,
+     5,
+     0
+    ],
+    "romans": [
+     "I6",
+     "V6",
+     "IVmaj7",
+     "I6"
+    ],
+    "count": 6,
+    "templates": [
+     "electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
+     "night/050620B (The Children of the Night).MID"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "E6",
+     "B6",
+     "Amaj7",
+     "E6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     7,
+     5,
+     0
+    ],
+    "romans": [
+     "V6",
+     "V6",
+     "IVmaj7",
+     "I6"
+    ],
     "count": 5,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"],
+    "templates": [
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "night/050620B (The Children of the Night).MID"
+    ],
     "template_share": 0.12,
-    "symbols": ["A#m6", "Am7", "F6", "A#maj7"],
+    "symbols": [
+     "B6",
+     "B6",
+     "Amaj7",
+     "E6"
+    ],
     "usable": true
    },
    {
-    "degrees": [0, 0, 7, 5],
-    "romans": ["I6", "I7", "V7", "IV7"],
-    "count": 4,
-    "templates": ["electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid", "newage/EarthBound - New Age Retro Hippie.mid"],
-    "template_share": 0.12,
-    "symbols": ["F6", "F7", "C7", "A#7"],
-    "usable": true
-   },
-   {
-    "degrees": [4, 4, 6, 5],
-    "romans": ["iii7", "IIIsus4", "bv7", "IV6"],
-    "count": 4,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
-    "template_share": 0.12,
-    "symbols": ["Am7", "Asus4", "Bm7", "A#6"],
-    "usable": true
-   },
-   {
-    "degrees": [5, 5, 4, 0],
-    "romans": ["IVmaj7", "iv6", "iii7", "I6"],
-    "count": 5,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid"],
+    "degrees": [
+     1,
+     0,
+     10,
+     0
+    ],
+    "romans": [
+     "bII6",
+     "i7",
+     "bvii7",
+     "i7"
+    ],
+    "count": 11,
+    "templates": [
+     "galgame/Kanon - The Day I Waited For The Wind.mid"
+    ],
     "template_share": 0.06,
-    "symbols": ["A#maj7", "A#m6", "Am7", "F6"],
+    "symbols": [
+     "F6",
+     "Em7",
+     "Dm7",
+     "Em7"
+    ],
     "usable": true
    }
   ],
   "progressions_4": [
    {
-    "degrees": [4, 6, 5, 4],
-    "romans": ["IIIsus4", "bv7", "IV6", "iii7"],
-    "count": 4,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
+    "degrees": [
+     5,
+     0,
+     5,
+     7
+    ],
+    "romans": [
+     "IV6",
+     "I6",
+     "IV7",
+     "V7"
+    ],
+    "count": 7,
+    "templates": [
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "night/050620B (The Children of the Night).MID"
+    ],
     "template_share": 0.19,
-    "symbols": ["Asus4", "Bm7", "A#6", "Am7"],
+    "symbols": [
+     "A6",
+     "E6",
+     "A7",
+     "B7"
+    ],
     "usable": true
    },
    {
-    "degrees": [5, 4, 0, 5],
-    "romans": ["iv6", "iii7", "I6", "IVmaj7"],
+    "degrees": [
+     7,
+     9,
+     9,
+     2
+    ],
+    "romans": [
+     "V6",
+     "vi",
+     "VI",
+     "ii"
+    ],
+    "count": 8,
+    "templates": [
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "newage/Nola, Novelty piano solo.mid"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "B6",
+     "C#m7",
+     "C#7",
+     "F#m6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     0,
+     7,
+     5,
+     0
+    ],
+    "romans": [
+     "I6",
+     "V6",
+     "IVmaj7",
+     "I6"
+    ],
+    "count": 6,
+    "templates": [
+     "electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
+     "night/050620B (The Children of the Night).MID"
+    ],
+    "template_share": 0.12,
+    "symbols": [
+     "E6",
+     "B6",
+     "Amaj7",
+     "E6"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     7,
+     7,
+     5,
+     0
+    ],
+    "romans": [
+     "V6",
+     "V6",
+     "IVmaj7",
+     "I6"
+    ],
     "count": 5,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"],
+    "templates": [
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "night/050620B (The Children of the Night).MID"
+    ],
     "template_share": 0.12,
-    "symbols": ["A#m6", "Am7", "F6", "A#maj7"],
+    "symbols": [
+     "B6",
+     "B6",
+     "Amaj7",
+     "E6"
+    ],
     "usable": true
    },
    {
-    "degrees": [0, 0, 7, 5],
-    "romans": ["I6", "I7", "V7", "IV7"],
-    "count": 4,
-    "templates": ["electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid", "newage/EarthBound - New Age Retro Hippie.mid"],
-    "template_share": 0.12,
-    "symbols": ["F6", "F7", "C7", "A#7"],
-    "usable": true
-   },
-   {
-    "degrees": [4, 4, 6, 5],
-    "romans": ["iii7", "IIIsus4", "bv7", "IV6"],
-    "count": 4,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
-    "template_share": 0.12,
-    "symbols": ["Am7", "Asus4", "Bm7", "A#6"],
-    "usable": true
-   },
-   {
-    "degrees": [5, 5, 4, 0],
-    "romans": ["IVmaj7", "iv6", "iii7", "I6"],
-    "count": 5,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid"],
+    "degrees": [
+     1,
+     0,
+     10,
+     0
+    ],
+    "romans": [
+     "bII6",
+     "i7",
+     "bvii7",
+     "i7"
+    ],
+    "count": 11,
+    "templates": [
+     "galgame/Kanon - The Day I Waited For The Wind.mid"
+    ],
     "template_share": 0.06,
-    "symbols": ["A#maj7", "A#m6", "Am7", "F6"],
+    "symbols": [
+     "F6",
+     "Em7",
+     "Dm7",
+     "Em7"
+    ],
     "usable": true
    }
   ],
   "progressions_2": [
    {
-    "degrees": [5, 0],
-    "romans": ["IV6", "I6"],
-    "count": 19,
-    "templates": ["electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "jazz/Cowboy Bebop - ELM.mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "newage/EarthBound - New Age Retro Hippie.mid", "newage/Gammer - Ambient Angels.mid"],
-    "template_share": 0.44,
-    "symbols": ["A#6", "F6"],
+    "degrees": [
+     0,
+     7
+    ],
+    "romans": [
+     "I6",
+     "V6"
+    ],
+    "count": 41,
+    "templates": [
+     "electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
+     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "jazz/Cowboy Bebop - ELM.mid",
+     "newage/New-Age-Demo-1.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "night/050620B (The Children of the Night).MID",
+     "night/Dream-Baby-(How-Long-Must-I-Dream).mid"
+    ],
+    "template_share": 0.56,
+    "symbols": [
+     "E6",
+     "B6"
+    ],
     "usable": true
    },
    {
-    "degrees": [0, 7],
-    "romans": ["i6", "Vsus4"],
-    "count": 22,
-    "templates": ["electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid", "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "jazz/Cowboy Bebop - ELM.mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "newage/EarthBound - New Age Retro Hippie.mid"],
-    "template_share": 0.38,
-    "symbols": ["Fm6", "Csus4"],
+    "degrees": [
+     7,
+     0
+    ],
+    "romans": [
+     "v6",
+     "Isus4"
+    ],
+    "count": 33,
+    "templates": [
+     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "jazz/AMESSE.Swing a ling.mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "jazz/Cowboy Bebop - ELM.mid",
+     "newage/New-Age-Demo-1.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "night/050620B (The Children of the Night).MID",
+     "night/Dream-Baby-(How-Long-Must-I-Dream).mid"
+    ],
+    "template_share": 0.56,
+    "symbols": [
+     "Bm6",
+     "Esus4"
+    ],
     "usable": true
    },
    {
-    "degrees": [7, 0],
-    "romans": ["v6", "Isus4"],
-    "count": 19,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid", "jazz/Cowboy Bebop - ELM.mid", "newage/Accadia - Blind Visions (Accadia Ambient Mix).mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "newage/EarthBound - New Age Retro Hippie.mid"],
-    "template_share": 0.38,
-    "symbols": ["Cm6", "Fsus4"],
+    "degrees": [
+     5,
+     0
+    ],
+    "romans": [
+     "IVmaj7",
+     "I6"
+    ],
+    "count": 31,
+    "templates": [
+     "electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "jazz/AMESSE.Swing a ling.mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "jazz/Cowboy Bebop - ELM.mid",
+     "newage/Gammer - Ambient Angels.mid",
+     "newage/New-Age-Demo-1.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "night/050620B (The Children of the Night).MID"
+    ],
+    "template_share": 0.56,
+    "symbols": [
+     "Amaj7",
+     "E6"
+    ],
     "usable": true
    },
    {
-    "degrees": [5, 4],
-    "romans": ["IVmaj7", "iii7"],
-    "count": 24,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid", "newage/Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid"],
+    "degrees": [
+     7,
+     5
+    ],
+    "romans": [
+     "V6",
+     "IVmaj7"
+    ],
+    "count": 31,
+    "templates": [
+     "electronic/Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
+     "electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid",
+     "galgame/Kanon - Last Regrets.mid",
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "jazz/AMESSE.Swing a ling.mid",
+     "jazz/ASZNAVOUR.Elle a le swing au corps  K.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "night/050620B (The Children of the Night).MID"
+    ],
+    "template_share": 0.5,
+    "symbols": [
+     "B6",
+     "Amaj7"
+    ],
+    "usable": true
+   },
+   {
+    "degrees": [
+     10,
+     0
+    ],
+    "romans": [
+     "bvii7",
+     "i7"
+    ],
+    "count": 32,
+    "templates": [
+     "galgame/Kanon - The Day I Waited For The Wind.mid",
+     "jazz/AMESSE.Swing a ling.mid",
+     "jazz/Cowboy Bebop - ELM.mid",
+     "night/Dream-Baby-(How-Long-Must-I-Dream).mid"
+    ],
     "template_share": 0.25,
-    "symbols": ["A#maj7", "Am7"],
+    "symbols": [
+     "Dm7",
+     "Em7"
+    ],
     "usable": true
    },
    {
-    "degrees": [6, 5],
-    "romans": ["bv7", "IVmaj7"],
-    "count": 20,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
-    "template_share": 0.19,
-    "symbols": ["Bm7", "A#maj7"],
-    "usable": true
-   },
-   {
-    "degrees": [4, 6],
-    "romans": ["iii6", "bV7"],
-    "count": 20,
-    "templates": ["electronic/Celine Dion - My Heart Will Go On (Techno Remix).mid", "jazz/A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "jazz/Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid"],
-    "template_share": 0.19,
-    "symbols": ["Am6", "B7"],
+    "degrees": [
+     5,
+     7
+    ],
+    "romans": [
+     "IV7",
+     "V7"
+    ],
+    "count": 31,
+    "templates": [
+     "galgame/Kanon - Last Regrets.mid",
+     "galgame/Magical Star Kanon 100% - Kanon 100%.mid",
+     "newage/Nola, Novelty piano solo.mid",
+     "night/050620B (The Children of the Night).MID"
+    ],
+    "template_share": 0.25,
+    "symbols": [
+     "A7",
+     "B7"
+    ],
     "usable": true
    }
   ],
-  "pool_progression": ["Fm7", "Fm6"],
-  "pool_progression_romans": ["i7", "i"],
+  "pool_progression": [
+   "Em7",
+   "E6",
+   "Esus4",
+   "Em7"
+  ],
+  "pool_progression_romans": [
+   "I",
+   "I6",
+   "Isus4",
+   "i7"
+  ],
   "chord_pool": [
    {
     "degree": 0,
     "roman": "I",
-    "suffix": "6",
-    "count": 171,
+    "suffix": "m7",
+    "count": 311,
     "templates": 14
-   },
-   {
-    "degree": 5,
-    "roman": "IV",
-    "suffix": "7",
-    "count": 139,
-    "templates": 11
-   },
-   {
-    "degree": 6,
-    "roman": "bV",
-    "suffix": "7",
-    "count": 133,
-    "templates": 6
    },
    {
     "degree": 7,
     "roman": "V",
     "suffix": "sus4",
-    "count": 108,
-    "templates": 9
+    "count": 271,
+    "templates": 11
    },
    {
-    "degree": 4,
-    "roman": "III",
-    "suffix": "m7",
-    "count": 83,
-    "templates": 8
+    "degree": 5,
+    "roman": "IV",
+    "suffix": "maj7",
+    "count": 152,
+    "templates": 12
    },
    {
     "degree": 3,
     "roman": "bIII",
     "suffix": "6",
-    "count": 47,
-    "templates": 7
-   },
-   {
-    "degree": 9,
-    "roman": "VI",
-    "suffix": "m7",
-    "count": 40,
-    "templates": 6
-   },
-   {
-    "degree": 2,
-    "roman": "II",
-    "suffix": "7",
-    "count": 38,
+    "count": 89,
     "templates": 8
    },
    {
     "degree": 10,
     "roman": "bVII",
     "suffix": "6",
-    "count": 38,
-    "templates": 3
+    "count": 76,
+    "templates": 8
+   },
+   {
+    "degree": 2,
+    "roman": "II",
+    "suffix": "m6",
+    "count": 75,
+    "templates": 11
+   },
+   {
+    "degree": 8,
+    "roman": "bVI",
+    "suffix": "6",
+    "count": 71,
+    "templates": 6
+   },
+   {
+    "degree": 9,
+    "roman": "VI",
+    "suffix": "7",
+    "count": 67,
+    "templates": 10
+   },
+   {
+    "degree": 4,
+    "roman": "III",
+    "suffix": "m7",
+    "count": 63,
+    "templates": 5
    },
    {
     "degree": 1,
     "roman": "bII",
     "suffix": "dim",
-    "count": 20,
-    "templates": 3
+    "count": 41,
+    "templates": 5
+   },
+   {
+    "degree": 6,
+    "roman": "bV",
+    "suffix": "m7",
+    "count": 40,
+    "templates": 5
    },
    {
     "degree": 11,
     "roman": "VII",
-    "suffix": "7",
-    "count": 19,
-    "templates": 2
-   },
-   {
-    "degree": 8,
-    "roman": "bVI",
-    "suffix": "maj7",
-    "count": 10,
-    "templates": 3
+    "suffix": "dim",
+    "count": 12,
+    "templates": 4
    }
   ],
-  "chord_per_bar": 0.74
+  "chord_per_bar": 0.87
  },
  "rhythm": {
   "low16": "★···★···★···★···",
-  "high16": "★···★·★·★·★·★·★·",
-  "low_slot_share": [0.81, 0.06, 0.44, 0.38, 0.56, 0.19, 0.5, 0.38, 0.69, 0.19, 0.44, 0.31, 0.69, 0.06, 0.5, 0.31],
-  "high_slot_share": [1.0, 0.25, 0.5, 0.44, 0.69, 0.25, 0.56, 0.38, 0.75, 0.25, 0.62, 0.38, 0.88, 0.19, 0.69, 0.31],
-  "low_density": 11.58,
-  "high_density": 12.78,
-  "bass_density": 3.01,
-  "perc_density": 3.82,
+  "high16": "★·★★★·★·★·★·★·★·",
+  "low_slot_share": [
+   0.94,
+   0.12,
+   0.44,
+   0.25,
+   0.75,
+   0.12,
+   0.44,
+   0.31,
+   0.75,
+   0.19,
+   0.5,
+   0.25,
+   0.75,
+   0.19,
+   0.5,
+   0.25
+  ],
+  "high_slot_share": [
+   1.0,
+   0.19,
+   0.62,
+   0.56,
+   0.75,
+   0.25,
+   0.75,
+   0.44,
+   0.94,
+   0.25,
+   0.75,
+   0.44,
+   0.88,
+   0.31,
+   0.75,
+   0.38
+  ],
+  "low_density": 14.81,
+  "high_density": 15.71,
+  "bass_density": 3.49,
+  "perc_density": 5.79,
   "slots": 16,
   "bass_style": "sixteenth",
   "perc_style": "light"
  },
  "arrangement": {
   "roles": {
-   "bass": 0.38,
-   "brass": 0.06,
-   "fx": 0.06,
-   "guitar": 0.31,
-   "lead": 0.12,
-   "pad": 0.19,
-   "piano": 0.56,
-   "pipe": 0.06,
-   "reed": 0.12,
-   "strings": 0.12
+   "bass": 0.5,
+   "brass": 0.12,
+   "fx": 0.12,
+   "glock": 0.06,
+   "guitar": 0.56,
+   "lead": 0.25,
+   "pad": 0.25,
+   "perc": 0.44,
+   "piano": 0.69,
+   "pipe": 0.12,
+   "reed": 0.06,
+   "strings": 0.44
   },
   "role_range": {
-   "bass": [35, 67],
-   "brass": [64, 76],
-   "fx": [70, 83],
-   "guitar": [41, 79],
-   "lead": [58, 74],
-   "pad": [48, 76],
-   "piano": [41, 84],
-   "pipe": [72, 89],
-   "reed": [60, 82],
-   "strings": [64, 86]
+   "bass": [
+    35,
+    55
+   ],
+   "brass": [
+    64,
+    81
+   ],
+   "fx": [
+    70,
+    83
+   ],
+   "glock": [
+    54,
+    84
+   ],
+   "guitar": [
+    40,
+    79
+   ],
+   "lead": [
+    61,
+    74
+   ],
+   "pad": [
+    69,
+    76
+   ],
+   "piano": [
+    38,
+    87
+   ],
+   "pipe": [
+    72,
+    89
+   ],
+   "reed": [
+    60,
+    79
+   ],
+   "strings": [
+    55,
+    86
+   ]
   },
   "arr_share": {
-   "bass": 0.38,
-   "piano": 0.56,
-   "uku": 0.31,
-   "strings": 0.06,
-   "pad": 0.19,
-   "glock": 0.0,
-   "ep": 0.06,
-   "perc": 0.0
+   "bass": 0.5,
+   "piano": 0.69,
+   "uku": 0.56,
+   "strings": 0.44,
+   "pad": 0.25,
+   "glock": 0.06,
+   "ep": 0.25,
+   "perc": 0.44
   },
-  "arr_on": ["piano"],
-  "arr_off": ["glock", "perc"],
-  "arr_maybe": ["bass", "ep", "pad", "strings", "uku"],
-  "track_count": 2.9,
+  "arr_on": [
+   "bass",
+   "piano",
+   "uku"
+  ],
+  "arr_off": [],
+  "arr_maybe": [
+   "ep",
+   "glock",
+   "pad",
+   "perc",
+   "strings"
+  ],
+  "track_count": 5.1,
   "style_mix": {
-   "electronic": 5,
-   "jazz": 6,
-   "newage": 5
+   "electronic": 3,
+   "galgame": 3,
+   "jazz": 4,
+   "newage": 3,
+   "night": 3
   },
   "prog_pool": {
-   "strings": [48, 52, 61],
-   "uku": [26, 27],
-   "pad": [89, 91],
-   "ep": [81, 65, 71],
-   "bass": [32, 38, 36],
-   "piano": [0, 3]
+   "strings": [
+    48,
+    49,
+    54,
+    61,
+    53,
+    52
+   ],
+   "uku": [
+    24,
+    26,
+    25,
+    27,
+    107
+   ],
+   "pad": [
+    89,
+    91
+   ],
+   "ep": [
+    81,
+    61,
+    65,
+    72,
+    85
+   ],
+   "bass": [
+    32,
+    36,
+    38,
+    33
+   ],
+   "piano": [
+    0,
+    3,
+    4
+   ],
+   "glock": [
+    11
+   ]
   }
  },
  "form": {
   "section_bars": 8,
-  "total_bars": 56,
+  "total_bars": 88,
   "plan": [
    {
-    "name": "A",
-    "bars": 8,
+    "name": "Intro",
+    "bars": 4,
     "prog": 0
    },
    {
@@ -549,175 +1033,192 @@
     "prog": 0
    },
    {
+    "name": "B2",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A5",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "A2",
+    "bars": 8,
+    "prog": 0
+   },
+   {
     "name": "Outro",
     "bars": 4,
     "prog": 0
    }
-  ],
-  "intro_note": "首段按主题派生（2026-10-05）：无 Intro 8 小节 —— 修 `scripts/theme_pack.py` 的 plan 生成以免重建时被覆盖"
+  ]
  },
  "melody": {
-  "notes": 2244,
-  "range": [34, 74],
-  "mean_pitch": 58.47,
-  "notes_per_bar": 3.53,
-  "stepwise_pct": 62.32,
-  "onbeat_pct": 56.15,
-  "diatonic_pct": 91.35,
+  "notes": 2735,
+  "range": [
+   63,
+   81
+  ],
+  "mean_pitch": 71.56,
+  "notes_per_bar": 2.61,
+  "stepwise_pct": 52.21,
+  "onbeat_pct": 50.45,
+  "diatonic_pct": 90.14,
   "interval_hist": {
-   "-18": 2,
-   "-16": 7,
-   "-15": 7,
-   "-13": 19,
-   "-12": 23,
-   "-11": 2,
-   "-10": 24,
-   "-9": 10,
-   "-8": 37,
-   "-7": 146,
-   "-6": 26,
-   "-5": 895,
-   "-4": 375,
-   "-3": 952,
-   "-2": 1032,
-   "-1": 861,
-   "0": 2666,
-   "1": 949,
-   "2": 1348,
-   "3": 294,
-   "4": 241,
-   "5": 487,
-   "6": 7,
-   "7": 140,
-   "8": 363,
-   "9": 7,
-   "10": 28,
-   "12": 29,
-   "14": 17,
-   "15": 2,
-   "18": 2
+   "-20": 6,
+   "-19": 8,
+   "-14": 29,
+   "-13": 36,
+   "-12": 428,
+   "-11": 37,
+   "-10": 49,
+   "-9": 93,
+   "-8": 46,
+   "-7": 219,
+   "-6": 16,
+   "-5": 762,
+   "-4": 554,
+   "-3": 1370,
+   "-2": 1400,
+   "-1": 935,
+   "0": 2202,
+   "1": 1141,
+   "2": 1633,
+   "3": 647,
+   "4": 543,
+   "5": 794,
+   "6": 31,
+   "7": 179,
+   "8": 245,
+   "9": 79,
+   "10": 45,
+   "12": 441,
+   "14": 20,
+   "17": 12
   },
   "dur16_hist": {
-   "0": 222,
-   "1": 1755,
-   "2": 3755,
-   "3": 1163,
-   "4": 1285,
-   "5": 242,
-   "6": 42,
-   "7": 60,
-   "8": 755,
-   "9": 19,
-   "10": 7,
-   "11": 12,
-   "12": 141,
-   "13": 12,
-   "14": 12,
-   "15": 37,
-   "16": 1480
+   "0": 582,
+   "1": 4666,
+   "2": 3497,
+   "3": 980,
+   "4": 882,
+   "5": 305,
+   "6": 290,
+   "7": 258,
+   "8": 801,
+   "9": 101,
+   "10": 55,
+   "11": 68,
+   "12": 207,
+   "13": 55,
+   "14": 42,
+   "15": 49,
+   "16": 1159
   },
   "onset16_hist": {
-   "0": 3027,
-   "1": 123,
-   "2": 826,
-   "3": 150,
-   "4": 879,
-   "5": 32,
-   "6": 934,
-   "7": 93,
-   "8": 1290,
-   "9": 30,
-   "10": 970,
-   "11": 152,
-   "12": 982,
-   "13": 43,
-   "14": 1152,
-   "15": 316
+   "0": 3201,
+   "1": 415,
+   "2": 619,
+   "3": 388,
+   "4": 1219,
+   "5": 344,
+   "6": 931,
+   "7": 558,
+   "8": 1489,
+   "9": 236,
+   "10": 998,
+   "11": 298,
+   "12": 1154,
+   "13": 363,
+   "14": 1043,
+   "15": 746
   },
-  "phrases": 85,
-  "phrase_bars": [5.11, 2.71, 1.0, 1.62, 5.11, 2.71, 4.12, 2.71, 0.12, 0.25, 0.37, 0.5, 0.87, 1.0, 0.25, 0.37, 0.5, 0.87, 1.0, 1.62, 1.75, 1.62, 1.75, 1.62, 1.75, 1.62, 1.56, 31.88, 15.88, 4.87, 1.62, 9.61, 10.12, 6.49, 24.49, 7.33, 1.68, 0.46, 7.08, 1.68, 0.46, 7.06, 7.21, 1.68, 0.46, 7.08, 1.68, 0.46, 7.08, 1.68, 0.46, 7.06, 7.21, 1.68, 0.46, 0.83, 1.62, 1.62, 0.71, 63.99],
-  "bars": 57.7,
-  "templates": 11
+  "phrases": 199,
+  "phrase_bars": [
+   5.11,
+   2.71,
+   1.0,
+   1.62,
+   5.11,
+   2.71,
+   4.12,
+   2.71,
+   0.12,
+   0.25,
+   0.37,
+   0.5,
+   0.87,
+   1.0,
+   0.25,
+   0.37,
+   0.5,
+   0.87,
+   1.0,
+   1.62,
+   1.75,
+   1.62,
+   1.75,
+   1.62,
+   1.75,
+   1.62,
+   1.56,
+   15.99,
+   1.25,
+   1.25,
+   3.62,
+   1.75,
+   1.75,
+   7.62,
+   0.62,
+   0.75,
+   1.44,
+   3.87,
+   0.75,
+   1.5,
+   4.87,
+   1.62,
+   9.61,
+   10.12,
+   6.49,
+   24.49,
+   7.33,
+   1.68,
+   0.46,
+   7.08,
+   1.68,
+   0.46,
+   7.06,
+   7.21,
+   1.68,
+   0.46,
+   7.08,
+   1.68,
+   0.46,
+   7.08
+  ],
+  "bars": 75.0,
+  "templates": 14
  },
- "notes": ["共 16 首模板，来源：bitmidi×16", "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/night_tracks.json"],
+ "notes": [
+  "共 16 首模板，来源：bitmidi×16",
+  "旋律轨为启发式挑选（音区最高 + 近似单声部），逐首记录见 refs/themes/night_tracks.json"
+ ],
  "tool": "theme_pack.py",
  "mix_target": {
   "ref": "night_mix",
-  "score": 0.805,
-  "why": "BPM 133.9（差 4.1，0.86）· 打击感 0.15 vs 目标 0.35（0.60）· 调式 major（1.00）",
+  "score": 0.839,
+  "why": "BPM 134.7（差 4.7，0.84）· 打击感 0.23 vs 目标 0.35（0.75）· 调式 minor（1.00）",
   "aggregate": true,
   "members": [
    {
-    "ref": "BGM06",
-    "score": 0.805,
-    "bpm": 133.9,
-    "centroid": 1533,
-    "rms_db": -16.9,
-    "width": 0.261,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM06.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "BGM16b",
-    "score": 0.802,
-    "bpm": 139.8,
-    "centroid": 2472,
-    "rms_db": -17.9,
-    "width": 0.77,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16b.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "bgm01c",
-    "score": 0.764,
-    "bpm": 128.0,
-    "centroid": 3284,
-    "rms_db": -14.3,
-    "width": 0.316,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "bgm01c.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
-    "ref": "BGM15c",
-    "score": 0.744,
-    "bpm": 132.4,
-    "centroid": 3338,
-    "rms_db": -19.3,
-    "width": 0.66,
-    "source": {
-     "kind": "project_audio",
-     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM15c.ogg",
-     "origin_path": null,
-     "url": null,
-     "url_alt": [],
-     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
-    }
-   },
-   {
     "ref": "BGM18",
-    "score": 0.714,
+    "score": 0.839,
     "bpm": 134.7,
     "centroid": 2043,
     "rms_db": -22.2,
@@ -733,25 +1234,44 @@
     }
    },
    {
-    "ref": "t2_BGM16",
-    "score": 0.691,
-    "bpm": 150.0,
-    "centroid": 2826,
-    "rms_db": -17.4,
-    "width": 0.678,
+    "ref": "fine_BGM09",
+    "score": 0.814,
+    "bpm": 123.0,
+    "centroid": 3695,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "source": {
+     "kind": "game_bgm",
+     "detail": "仰望夜空的星辰（FINE DAYS） 的 Bgm 目录（真实商业混音）",
+     "file": "<参考曲目录/仰望夜空星辰 FINE DAYS>/BGM09.ogg",
+     "origin_path": "<参考曲目录/仰望夜空星辰 FINE DAYS>",
+     "url": "https://zh.wikipedia.org/zh-cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0",
+     "url_alt": [
+      "https://mzh.moegirl.org.cn/%E4%BB%B0%E6%9C%9B%E5%A4%9C%E7%A9%BA%E7%9A%84%E6%98%9F%E8%BE%B0"
+     ],
+     "note": "真实商业混音；出处 = 作品名 + 原始路径 + 权威页面 URL。厂牌/发行日期以 `url` 页面为准（**本次未逐项核对，故不写死**）。"
+    }
+   },
+   {
+    "ref": "bgm01c",
+    "score": 0.761,
+    "bpm": 128.0,
+    "centroid": 3284,
+    "rms_db": -14.3,
+    "width": 0.316,
     "source": {
      "kind": "project_audio",
      "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16.ogg",
-     "origin_path": "D:/test/galgame/ピュアソングガーデン！解包/Bgm/BGM16.ogg",
+     "file": "bgm01c.ogg",
+     "origin_path": null,
      "url": null,
      "url_alt": [],
-     "note": "早期画像没记 source（2026-09-21 补）：依据是画像自带 file 字段里的路径，与同批 46 份的来源一致。"
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
     }
    },
    {
     "ref": "BGM18b",
-    "score": 0.624,
+    "score": 0.749,
     "bpm": 134.7,
     "centroid": 1971,
     "rms_db": -22.1,
@@ -767,16 +1287,67 @@
     }
    },
    {
-    "ref": "BGM16c",
-    "score": 0.596,
-    "bpm": 150.0,
-    "centroid": 3250,
+    "ref": "BGM06",
+    "score": 0.658,
+    "bpm": 133.9,
+    "centroid": 1533,
     "rms_db": -16.9,
-    "width": 0.51,
+    "width": 0.261,
     "source": {
      "kind": "project_audio",
      "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
-     "file": "BGM16c.ogg",
+     "file": "BGM06.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM15c",
+    "score": 0.653,
+    "bpm": 132.4,
+    "centroid": 3338,
+    "rms_db": -19.3,
+    "width": 0.66,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM15c.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM13",
+    "score": 0.61,
+    "bpm": 109.2,
+    "centroid": 3068,
+    "rms_db": -20.4,
+    "width": 0.656,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM13.ogg",
+     "origin_path": null,
+     "url": null,
+     "url_alt": [],
+     "note": "该文件在画像里**只记了文件名**、没有完整路径 —— 能溯源到\"哪个文件\"，但作品级出处未记录（同批的其它画像指向 galgame 商业 BGM）。"
+    }
+   },
+   {
+    "ref": "BGM04",
+    "score": 0.543,
+    "bpm": 114.1,
+    "centroid": 2281,
+    "rms_db": -13.5,
+    "width": 0.233,
+    "source": {
+     "kind": "project_audio",
+     "detail": "项目素材包 Bgm（同批提取的 galgame 商业 BGM）",
+     "file": "BGM04.ogg",
      "origin_path": null,
      "url": null,
      "url_alt": [],
@@ -791,67 +1362,121 @@
    "mode": 0.15
   },
   "perc_style_target": 0.35,
-  "energy_curve_db": [-1.0, 0.0, 1.0],
-  "structure_db": [-19.0, -18.0, -17.0],
-  "density_curve_db": [-3.53, 2.56, 0.0],
+  "energy_curve_db": [],
+  "structure_db": [
+   -18.0,
+   -18.0,
+   -17.0
+  ],
+  "density_curve_db": [
+   -8.0,
+   0.59,
+   0.0
+  ],
   "density_meta": {
    "n": 11,
-   "files": ["Celine Dion - My Heart Will Go On (Techno Remix).mid", "Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid", "Arrow - Back In The House (U Can See It).mid", "Base Attack - Techno Rocker (Rob Mayth Remix).mid", "Cowboy Bebop - ELM.mid", "ASZNAVOUR.Elle a le swing au corps  K.mid", "A-Foggy-Day-(Jazz-Gitaar-Trio).mid", "Alexander's-Ragtime-(Jazz-Gitaar-Trio).mid", "Alexander's-Ragtime-Band.mid", "Card Captor Sakura - Tooi Kono Machi De - from the Official Piano Solo Album.mid", "EarthBound - New Age Retro Hippie.mid"],
-   "abs_curve": [8.25, 16.63, 12.38],
+   "files": [
+    "Celine Dion - My Heart Will Go On (Techno Remix).mid",
+    "Alex M.O.R.P.H & Woody van Eyden - I Love Trance.mid",
+    "Magical Star Kanon 100% - Kanon 100%.mid",
+    "Cowboy Bebop - ELM.mid",
+    "ASZNAVOUR.Elle a le swing au corps  K.mid",
+    "AMESSE.Swing a ling.mid",
+    "New-Age-Demo-1.mid",
+    "Nola, Novelty piano solo.mid",
+    "Dream-A-Little-Dream-Of-Me.mid",
+    "050620B (The Children of the Night).MID",
+    "Dream-Baby-(How-Long-Must-I-Dream).mid"
+   ],
+   "abs_curve": [
+    10.25,
+    27.56,
+    25.75
+   ],
    "note": "每 8 小节的音符数曲线（相对中位数 dB，取自同主题多份模板的中位数）；消费端 `new_song` 映射成 `arr.density` 档"
   },
   "curve_note": "段间响度起伏（相对均值，每块 8 小节，取自**多份参考聚合后**的 structure 中位数）；空 = 目标本身平坦，别硬造对比",
   "candidates": [
    {
-    "ref": "BGM06",
-    "score": 0.805,
-    "bpm": 133.9,
-    "rms_db": -16.9,
-    "width": 0.261,
-    "centroid": 1533,
-    "perc": 0.15,
-    "mode": "major",
-    "structure": [-16, -17, -17, -17, -17, -17, -17, -16, -16],
+    "ref": "BGM18",
+    "score": 0.839,
+    "bpm": 134.7,
+    "rms_db": -22.2,
+    "width": 0.818,
+    "centroid": 2043,
+    "perc": 0.225,
+    "mode": "minor",
+    "structure": [
+     -31,
+     -24,
+     -18,
+     -25,
+     -25,
+     -26,
+     -24,
+     -20,
+     -21,
+     -20
+    ],
     "parts": {
-     "bpm": 0.863,
-     "perc": 0.6,
+     "bpm": 0.843,
+     "perc": 0.75,
      "mode": 1.0
     },
-    "why": "BPM 133.9（差 4.1，0.86）· 打击感 0.15 vs 目标 0.35（0.60）· 调式 major（1.00）"
+    "why": "BPM 134.7（差 4.7，0.84）· 打击感 0.23 vs 目标 0.35（0.75）· 调式 minor（1.00）"
    },
    {
-    "ref": "BGM16b",
-    "score": 0.802,
-    "bpm": 139.8,
-    "rms_db": -17.9,
-    "width": 0.77,
-    "centroid": 2472,
-    "perc": 0.075,
-    "mode": "major",
-    "structure": [-19, -18, -18, -19, -18, -17, -18, -19, -18, -17, -17, -16, -17],
+    "ref": "fine_BGM09",
+    "score": 0.814,
+    "bpm": 123.0,
+    "rms_db": -17.1,
+    "width": 0.369,
+    "centroid": 3695,
+    "perc": 0.446,
+    "mode": "minor",
+    "structure": [
+     -18,
+     -18,
+     -17,
+     -17,
+     -16,
+     -16,
+     -16
+    ],
     "parts": {
-     "bpm": 0.94,
-     "perc": 0.45,
+     "bpm": 0.767,
+     "perc": 0.808,
      "mode": 1.0
     },
-    "why": "BPM 139.8（差 1.8，0.94）· 打击感 0.07 vs 目标 0.35（0.45）· 调式 major（1.00）"
+    "why": "BPM 123.0（差 7.0，0.77）· 打击感 0.45 vs 目标 0.35（0.81）· 调式 minor（1.00）"
    },
    {
     "ref": "bgm01c",
-    "score": 0.764,
+    "score": 0.761,
     "bpm": 128.0,
     "rms_db": -14.3,
     "width": 0.316,
     "centroid": 3284,
     "perc": 0.437,
     "mode": "major",
-    "structure": [-17, -14, -14, -14, -14, -14, -14, -14, -15, -14],
+    "structure": [
+     -17,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -14,
+     -15,
+     -14
+    ],
     "parts": {
-     "bpm": 0.667,
+     "bpm": 0.933,
      "perc": 0.826,
-     "mode": 1.0
+     "mode": 0.0
     },
-    "why": "BPM 128.0（差 10.0，0.67）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major（1.00）"
+    "why": "BPM 128.0（差 2.0，0.93）· 打击感 0.44 vs 目标 0.35（0.83）· 调式 major≠主题（0.00）"
    }
   ],
   "not_templates": "频谱对齐目标（真实录音画像，**多份聚合**）；模板依据见 templates —— 两者分工不同，别混用"

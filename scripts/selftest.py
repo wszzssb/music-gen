@@ -8607,7 +8607,13 @@ def t_midi_file_editor_roundtrip():
     import midi_ops as mop
 
     lib = os.path.join(ROOT, 'refs', 'midi2')
-    files = sorted(glob.glob(os.path.join(lib, '*', '*.mid')))[:200:17][:MIDI_RT_MIN]
+    # ⚠ **必须跳过 `_broken/`**（2026-10-07）：`fetch_midi_lib.build_index` 会把
+    #   "头部声明 N 轨、后面没有 MTrk"这类残缺下载**移进 `_broken/` 隔离区**（保留证据、
+    #   不参与选曲，也不进索引）。而这里原来用 `glob('*/*.mid')` 会把它扫进来 ⇒
+    #   拿**已知损坏**的文件当往返夹具，这条检查必然红（实测 `Nirvana - Lounge Act.mid`
+    #   第 4 轨缺 MTrk 头 → 整套 selftest 挂在这一条上）。
+    files = sorted(p for p in glob.glob(os.path.join(lib, '*', '*.mid'))
+                   if os.path.basename(os.path.dirname(p)) != '_broken')[:200:17][:MIDI_RT_MIN]
     # clone 后 `refs/midi2/**/*.mid` 必然为空（外部 MIDI 版权，`.gitignore` 排除，见 INSTALL
     # 「仓库带什么」）→ 空夹具给**可读提示**并继续：后面的 format 0 段用的是**入库的**
     # `songs/*.mid`，照跑不误。**非空但不足**仍算 FAIL（那才是"库不完整"）。

@@ -44,22 +44,38 @@
 
 | 主题 | 风格集合 | 引擎预设 |
 |---|---|---|
-| `daily` 日常 | pop / folk / anime | daily |
-| `tender` 温柔抒情 | ballad / romantic / pop | ballad |
-| `night` 夜晚 | newage / jazz / electronic | daily |
-| `seaside` 海边 | newage / folk / pop | acoustic |
-| `battle` 战斗 | rock / game16 / game32 | dance |
-| `gorgeous` 华丽 | film / romantic / baroque | gorgeous |
-| `waltz` 三拍圆舞 | classical / baroque / romantic / folk / public_domain | gorgeous |
+| `daily` 日常 | **daily** / galgame / pop / folk / anime | daily |
+| `tender` 温柔抒情 | **tender** / galgame / ballad / romantic / pop | ballad |
+| `night` 夜晚 | **night** / galgame / newage / jazz / electronic | daily |
+| `seaside` 海边 | **seaside** / folk / newage / pop | acoustic |
+| `battle` 战斗 | **battle** / game16 / game32 / chiptune | dance |
+| `gorgeous` 华丽 | **gorgeous** / film / romantic / baroque | gorgeous |
+| `waltz` 三拍圆舞 | **waltz** / classical / baroque / romantic / folk / public_domain | gorgeous |
 
 （完整表在代码 `THEMES`；**风格集合必须够宽**才凑得满 8 首 —— 例：3/4 的模板全库只有 26 首，
-所以 `waltz` 放了 5 个风格目录。）
+所以 `waltz` 放了 6 个风格目录。）
+
+> ⚠ **2026-10-07 起：每个主题的<ins>第一个</ins>风格是它的「专属素材池」**（`refs/midi2/<主题名>/`），
+> 由 `fetch_midi_lib.py` 按该主题的语义搜索词抓来（词表见那边的 `STYLES`，含 galgame/视觉小说一类）。
+> **为什么必须加**：原先"主题 = 一组通用风格目录"⇒ 15 个主题共 **238** 个模板槽位，
+> 去重后**只有 121 首（复用率 49%）**、被 ≥2 个主题共用的有 **75 首（62%）**
+> （`pop/Disco-Fans` 被 5 个主题共用）—— 这是"听着都像"的**最底层**根因。
+> 后面的通用风格是**兜底**（专属池不足 8 首时补）。
 
 **选模板**（确定性，同库同参数 → 同结果）：
 1. 候选 = 该主题风格集合内、**拍号与主题一致**、BPM 40–220、≥8 小节、音密度合理的曲子
    （拍号不卡会把 [7,4]/[3,8] 混进 4/4 的统计 → 16 分格对不上，共识节奏型算成 0.1 音/小节）
-2. 配额：**每个风格至少 1 首**，余量按可用数轮转分配
-3. 风格内按 (bpm, 文件名) 排序后**均匀间隔取**（首尾都取到 → 覆盖速度带）
+2. **两种可选闸门**（都写在 `THEMES` 里，缺省不启用）：
+   · `min_tracks`（默认 3）= **编配完整性**：至少 3 条发声轨才算"有编配信息"。
+     模板库里大量文件是**单轨/钢琴改编** MIDI（实测 `rock`/`pop`/`newage`/`anime` 的轨数中位数
+     = **1**、`classical` 75% 的模板轨数 <3）—— 它们没有配器信息，会把 `arr_share`/`prog_pool` 带偏。
+     **钢琴独奏/室内乐正当的主题**放宽：`classic` 2 · `tender`/`night`/`seaside`/`sorrow`/`mystery`/
+     `gorgeous` 2 · `waltz` **1**（圆舞曲的钢琴独奏版是正当体裁）。
+   · `keywords` = **语义白名单**（与 `styles` 是"且"）：模板文件名必须命中。
+     ⚠ **只对命名有约定的语料有效**（游戏/影视曲，实测 `battle` 5/16）；古典/氛围类文件名常不含
+     语义词（`mystery`/`seaside`/`daily`/`gorgeous` 命中率 **0/16**）—— 别给那些主题硬套。
+3. 配额：**每个风格至少 1 首**，余量按可用数轮转分配
+4. 风格内按 (bpm, 文件名) 排序后**均匀间隔取**（首尾都取到 → 覆盖速度带）
 
 下限 **≥8 首**（`MIN_TEMPLATES`），默认取 10 首；不足直接报错，**不许凑数**（可 `--allow-fetch` 联网抓）。
 

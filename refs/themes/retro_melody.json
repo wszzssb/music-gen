@@ -1,84 +1,79 @@
 {
- "notes": 2211,
+ "notes": 1908,
  "range": [
-  65,
-  86
+  63,
+  82
  ],
- "mean_pitch": 74.7,
- "notes_per_bar": 2.24,
- "stepwise_pct": 71.88,
- "onbeat_pct": 57.31,
- "diatonic_pct": 92.56,
+ "mean_pitch": 73.45,
+ "notes_per_bar": 2.05,
+ "stepwise_pct": 74.15,
+ "onbeat_pct": 54.12,
+ "diatonic_pct": 92.65,
  "interval_hist": {
   "-38": 10,
   "-20": 231,
   "-19": 7,
+  "-15": 53,
   "-12": 12,
   "-11": 9,
-  "-9": 113,
   "-8": 25,
-  "-7": 167,
+  "-7": 160,
   "-6": 35,
-  "-5": 471,
-  "-4": 765,
+  "-5": 401,
+  "-4": 575,
   "-3": 406,
-  "-2": 1827,
-  "-1": 1325,
-  "0": 3815,
-  "1": 1300,
-  "2": 3234,
-  "3": 360,
+  "-2": 1976,
+  "-1": 1385,
+  "0": 3436,
+  "1": 1615,
+  "2": 3452,
+  "3": 399,
   "4": 836,
-  "5": 339,
-  "7": 285,
-  "8": 4,
+  "5": 346,
+  "7": 158,
   "10": 100,
   "12": 302,
-  "17": 12,
+  "17": 59,
   "33": 10
  },
  "dur16_hist": {
-  "0": 277,
-  "1": 5455,
-  "2": 5189,
+  "0": 1077,
+  "1": 5399,
+  "2": 4761,
   "3": 177,
-  "4": 1234,
+  "4": 955,
   "5": 15,
   "6": 36,
   "7": 96,
-  "8": 330,
+  "8": 263,
   "9": 5,
   "10": 163,
-  "11": 168,
+  "11": 268,
   "12": 386,
   "14": 63,
-  "16": 2407
+  "16": 2337
  },
  "onset16_hist": {
-  "0": 3887,
+  "0": 3752,
   "1": 378,
-  "2": 499,
+  "2": 541,
   "3": 369,
-  "4": 1158,
+  "4": 981,
   "5": 382,
-  "6": 789,
+  "6": 662,
   "7": 422,
-  "8": 2201,
-  "9": 348,
-  "10": 999,
-  "11": 591,
-  "12": 1923,
-  "13": 462,
-  "14": 1195,
-  "15": 396
+  "8": 2210,
+  "9": 341,
+  "10": 905,
+  "11": 584,
+  "12": 1717,
+  "13": 621,
+  "14": 1479,
+  "15": 656
  },
- "phrases": 192,
+ "phrases": 188,
  "phrase_bars": [
   8.25,
-  5.75,
-  1.25,
-  5.75,
-  1.25,
   5.75,
   1.25,
   5.75,
@@ -133,13 +128,16 @@
   17.0,
   1.0,
   1.0,
-  1.0
+  1.0,
+  9.0,
+  4.0,
+  1.86,
+  10.9
  ],
- "bars": 61.8,
+ "bars": 58.1,
  "templates": [
   "chiptune/1943boss.mid",
   "chiptune/1943-Lev3Win.mid",
-  "chiptune/1943-lev3.mid",
   "chiptune/1943boss1.mid",
   "chiptune/1943-lev1.mid",
   "chiptune/1943won.mid",
@@ -150,13 +148,14 @@
   "game16/7thsaga_bt2_w.mid",
   "game32/ClassicXG.mid",
   "game32/ace-map.mid",
-  "game32/bonusstagecredits.mid",
   "game32/T_AVGFighterMAX_YukaTheme.mid",
-  "game32/T_AVGFighterMAX_YukaThemeGM.mid"
+  "game32/T_AVGFighterMAX_YukaThemeGM.mid",
+  "retro/A-Little-Bit-More-1.mid",
+  "retro/16 Bit Lolitas feat Jennifer Horne - Nobody Seems To Care.mid"
  ],
  "name": "retro",
  "file": "theme:retro",
- "bpm": 140.0,
+ "bpm": 130.0,
  "tonic": "G",
  "mode": "minor",
  "source": "theme_pack.py",
@@ -172,11 +171,6 @@
    {
     "file": "chiptune/1943-Lev3Win.mid",
     "source": "https://www.vgmusic.com/music/console/nintendo/nes/1943-Lev3Win.mid",
-    "bpm": 126.0
-   },
-   {
-    "file": "chiptune/1943-lev3.mid",
-    "source": "https://www.vgmusic.com/music/console/nintendo/nes/1943-lev3.mid",
     "bpm": 126.0
    },
    {
@@ -230,11 +224,6 @@
     "bpm": 130.0
    },
    {
-    "file": "game32/bonusstagecredits.mid",
-    "source": "https://www.vgmusic.com/music/console/sony/ps1/bonusstagecredits.mid",
-    "bpm": 140.0
-   },
-   {
     "file": "game32/T_AVGFighterMAX_YukaTheme.mid",
     "source": "https://www.vgmusic.com/music/console/sony/ps1/T_AVGFighterMAX_YukaTheme.mid",
     "bpm": 165.0
@@ -243,6 +232,16 @@
     "file": "game32/T_AVGFighterMAX_YukaThemeGM.mid",
     "source": "https://www.vgmusic.com/music/console/sony/ps1/T_AVGFighterMAX_YukaThemeGM.mid",
     "bpm": 165.0
+   },
+   {
+    "file": "retro/A-Little-Bit-More-1.mid",
+    "source": "https://bitmidi.com/uploads/3117.mid",
+    "bpm": 92.0
+   },
+   {
+    "file": "retro/16 Bit Lolitas feat Jennifer Horne - Nobody Seems To Care.mid",
+    "source": "https://bitmidi.com/uploads/430.mid",
+    "bpm": 128.0
    }
   ],
   "note": "旋律语言画像 = 上面这些模板的**旋律轨聚合**（落点/时值/音程/句长方言）。它是**作曲依据层**（管\"旋律怎么说\"），与混音目标 （`refs/mix_targets/<主题>_mix.json`，管\"混成什么样\"）是两层，别混。"

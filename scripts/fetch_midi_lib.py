@@ -54,6 +54,32 @@ STYLES = {
     'film':      ['soundtrack', 'movie theme', 'orchestral'],
     'anime':     ['anime', 'jpop', 'game music'],
     'newage':    ['new age', 'ambient', 'piano solo'],
+    # —— 2026-10-07 新增：**主题专属素材池**（按主题语义抓，不再与别的主题共用素材）——
+    #   起因（用户听感"战斗曲不像战斗，其它曲子也这样看看"）：15 个主题共 238 个模板槽位、
+    #   去重后只有 **121 首（复用率 49%）**，被 ≥2 个主题共用的有 **75 首（62%）** ——
+    #   因为"主题 = 一组通用风格目录"这个定义**不看语义**：mystery 与 seaside 共用 6 首、
+    #   cheerful/daily/lounge/seaside/tender 共用同一批 pop 曲（实测 `pop/Disco-Fans` 5 个主题共用）。
+    #   抓法：每个主题一个专属目录（`refs/midi2/<主题>/`），词表按该主题的语义给。
+    'battle':    ['battle', 'boss battle', 'fight', 'combat'],
+    'mystery':   ['mystery', 'suspense', 'detective', 'dark'],
+    'seaside':   ['ocean', 'beach', 'tropical', 'island'],
+    'daily':     ['daily', 'town', 'relaxing', 'cafe'],
+    'gorgeous':  ['elegant', 'waltz', 'orchestral', 'royal'],
+    'night':     ['night', 'moonlight', 'dream', 'nocturne', 'clannad', 'kanon'],
+    'sorrow':    ['sad', 'sorrow', 'elegy', 'melancholy', 'clannad', 'kanon', 'air'],
+    'tender':    ['love', 'gentle', 'lullaby', 'romance', 'clannad', 'kanon', 'fate stay night'],
+    'cheerful':  ['happy', 'party', 'carnival', 'festival'],
+    'folk_tale': ['folk', 'celtic', 'medieval', 'tavern'],
+    'waltz':     ['waltz', 'minuet', 'mazurka'],
+    'lounge':    ['lounge', 'smooth jazz', 'bossa nova'],
+    'neon':      ['synthwave', 'cyberpunk', 'techno'],
+    'retro':     ['chiptune', '8-bit', 'arcade'],
+    # galgame / 视觉小说 BGM（用户 2026-10-07 提示："网易云有很多 galgame 的 bgm"）：
+    #   这类曲子的强项正是 `tender`/`sorrow`/`daily`/`night` 这几个主题的语义
+    #   （Clannad/Kanon/AIR/Fate 的钢琴·弦乐·氛围曲），BitMidi 上确实有（dry-run 已验证命中）。
+    #   ⚠ 命中 ≠ 语义正确：同名不同曲会混进来（`mystery/DJ Mystery`、`tender/ATB - Gentle Melody`
+    #   是 trance），要靠 `candidates` 的客观闸门 + 人工抽查挡。
+    'galgame':   ['clannad', 'kanon', 'air', 'fate stay night', 'visual novel', 'key'],
 }
 
 VGMUSIC_PAGES = {          # 游戏音乐按主机代际分（8-bit / 16-bit / 32-bit）

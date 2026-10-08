@@ -648,3 +648,107 @@ D:\software\skill\music-gen\.venv\Scripts\python.exe D:\software\skill\music-gen
 - 全量验收：`D:\test\_tmp\music-combo\final_check.sh`（selftest → mutation → token_audit，**串行**）
 - ⚠ **备份**：改动前的引擎在 `D:\test\_tmp\music-sameness\backup\song_engine.stage0.py`
   （SHA256 在 `stage0.sha256`）；`107` 改前的 `song.json` 在 `backup\107.song.before.json`。
+
+## 19. ✅ 第八轮（2026-10-07）：主题依据"换血"—— 从"不像战斗"追到全部 15 个主题
+
+### 19.1 用户口径（原话）
+
+> "117_battle_ember **听起来不像战斗的曲子**，以前的战斗曲也是不像" →
+> "**检查一下其它的模板，我觉得可能也有问题**" → "可以在网络上**搜索看看这些的风格**" →
+> "PDF 你不是可以**识别图片**吗"（→ 下载 PDF 抽文本拿判据）→
+> "**网易云有很多 galgame 的 bgm**"（→ 顺着这条抓 galgame 素材）→
+> "**其它曲子也这样看看**" ⇒ 选定 **C：全部推广 + 抓新素材换血** ⇒ 又选定
+> **A：主奏池纳入铜管**。
+
+### 19.2 根因链（三层，全部有读数；**没有一层在引擎**）
+
+| 层 | 读数（实测） |
+|---|---|
+| **① 主题之间共用素材** | 15 个主题共 **238** 个模板槽位 → 去重后**只有 121 首（复用率 49%）**；被 ≥2 个主题共用的 **75 首（62%）**；`pop/Disco-Fans`·`Pop-Vamp`·`Floorfilla`（硬核 techno）·`Louie Louie`·`Disco Citizens` 被 **5 个主题**共用；两两重叠 `neon×retro` **11 首** · `sorrow×tender` 10 · `daily×seaside` 10 · `battle×retro` 9 |
+| **② 模板库掺"单轨钢琴改编"** | 18 个风格目录的轨数中位数：`rock`/`pop`/`newage`/`anime` = **1**、`classical`/`public_domain` = 2；逐主题看 `classic` **75%** 的模板轨数 <3 ⇒ 画像的配器/音色依据是脏的 |
+| **③ `arr_share.perc` 统计口径 bug** | `analyze_template` 把**鼓轨（channel 10 = index 9）整个跳过** ⇒ 15 个主题 `arr_share.perc` 全 ≤0.12，而素材里 `chiptune` 8/12、`game32` **12/12** 有鼓 |
+| **④ battle 的模板语义不符** | 原 16 首里 **6 首是城镇/菜单/洞窟/片尾**（主奏排箫 75 / 长笛 73 / 颤音琴 11），而真战斗素材（`7sbattle1/2`、`7sboss`、`1943boss1`、`T_VGFighterMAX_*`）**一首没用** |
+| **⑤ 主奏池只有木管** | `ROLE_TO_ARR` 把 `brass→strings`、`guitar→uku`，而引擎主奏**只从 `ep` 取** ⇒ 真战斗曲的主奏（小号 56/铜管 61/长号 57）永远进不了主奏候选（实测 121 的 `ep = [73 长笛, 67 萨克斯, 87, 80]`） |
+
+### 19.3 改了七处（都有依据、都可复算）
+
+1. **`candidates()` 两道闸门**：`min_tracks`（默认 3 = 编配完整性；`waltz` 1 · `classic`/`tender`/
+   `night`/`seaside`/`sorrow`/`mystery`/`gorgeous` 2）＋ `keywords`（语义白名单，**只对命名有约定
+   的语料用** —— 古典/氛围类命中率 0/16，硬套会把素材掏空）。
+2. **抓主题专属素材池**：`fetch_midi_lib.py` 加 14 个语义风格 + **galgame 池**（用户提示），
+   共抓 ~160 首（带来源 URL）；15 个主题的 `styles` 第一个改成专属池，通用风格降为兜底。
+   实测各主题候选 **11~32 首**（全部 ≥8）。
+3. **`arr_share.perc` 口径修复**：鼓轨计入 `roles['perc']`，但**不进 `role_range`**（鼓是键位音高）。
+   battle 实测 **0.12 → 0.91**，`arr_on` 从 `['bass']` → `['bass','perc','strings']`。
+4. **`ROLE_TO_ARR['brass']` 改成一对多 `['strings','ep']`**（用户定 A）：铜管既是和声层也是主奏候选；
+   `arr_roles()` 是唯一展开口径。battle 的 `ep` 变成 **[小号 56（票 2）, 67, 铜管组 61, 87, 80]**。
+5. **`_broken/` 隔离**：新查出的 3 首结构损坏 MIDI（`ballad/Song-Within-A-Song` ·
+   `folk/A.JACKSON.Gone country` · `galgame/Fate Stay Night - Disillusion`）移入 `_broken/`
+   ＋ 重建索引（360 首）；`selftest` 的往返夹具**显式跳过 `_broken/`**。
+6. **`theme_guitar_arp` 改成按分布分档**：固定阈值 36/24 在新素材下"窄档"永远取不到（跨度全在
+   24~47）⇒ 音型只剩 2 种；改成按 15 个主题跨度的 **p33/p67** 分档（语义本来就是相对的）。
+7. **`theme_fit` 断言改正**："所有主题主奏音色都不同"从"故障"改成"正常"（那正是跨主题去重分配的目标）。
+
+### 19.4 验收读数
+
+| 项 | 读数 |
+|---|---|
+| 15 个主题画像 | 全部重算 + `prog_pool` 重新 inject；模板 **11~16 首/主题** |
+| `arr_share.perc` | battle **0.12 → 0.91**（全局口径修复）· retro 0.94 · cheerful 0.94 · classic 0.08（古典确实没鼓） |
+| 主奏池 | battle 拿到 **小号/铜管组** · waltz 拿到 **圆号** · lounge 拿到 **铜管组** · cheerful 拿到 **长号** |
+| 新曲 `121_battle_onslaught` | 逐段主奏 = **小号 → 铜管组 → 贝斯主音 → 萨克斯**；BPM 163 · `arr_on` = bass/perc/strings · 每段 harmony 档 2 |
+| `selftest --fast` | 见 §19.5（本轮收尾时的读数） |
+| `mutation_check` | **319/321**（漏项与改动前同为 2 条既有欠账） |
+
+### 19.5 还没验证什么（诚实清单）
+
+- **听感一次都没判**（红线：听感赢）。所有读数都是"素材/画像/音色池"层的结构性证据 ——
+  `121` 是否真的"像战斗"，只能人耳判。
+- **`selftest` 收尾 **219/222**：7 条红清了 4 条**（文档地图重生成 · 4 首"声明旧画像模板"的曲子重生成 ·
+  转音密度表重算 · `theme_guitar_arp` 改按分布分档 · `theme_fit` 断言改正），**剩 3 条同源红**
+  —— **详见 §19.7（下一轮第一优先级）**：`123_mystery_lantern` 密度 1.45 ＋ 段 B 落点 0.716 ·
+  `121_battle_onslaught` 成品小步 36%（**候选 3/4 在门内**）· `102_waltz_court` 密度 1.57
+  （**0/4 条候选在门内**，属"生成端做不到"那一类）。
+- **抓来的素材质量参差**：`battle` 池里混进《Battle of New Orleans》（爵士）、《After The Battle
+  Of Aughrim》（爱尔兰民谣）；`mystery` 混进 `DJ Mystery`（电子）；`tender` 混进 150BPM 的
+  `Activator - Lullaby`。**没做逐首人工清洗**（只靠客观闸门 + 关键词挡）。
+- **`keywords` 只覆盖 battle**：其余 14 个主题靠"专属素材池 + 客观闸门"，没有语义白名单。
+- **`7sbattle1/2`、`7sboss` 仍进不来**（BPM 记谱 271/291 撞 `40<=bpm<=220`）、
+  `T_VGFighterMAX_Masako/JunTheme` 是数据堆（11k~17k 音）—— **一律没豁免**。
+- **没有 A/B 音频对照**：这一轮没有做"旧画像 vs 新画像"的同 theme+seed 对照（§16.6 的法子）。
+
+### 19.6 素材与命令（绝对路径）
+
+- 主题审计（语义/拍号/调式/perc/主奏池）：`D:\test\_tmp\music-sameness\audit_themes.py` · `audit_themes2.py`
+- 复用率（最底层证据）：`D:\test\_tmp\music-sameness\overlap.py`
+- 候选数预演（三档闸门）：`plan_themes.py` · `plan_kit.py` · `plan_all.py`
+- 素材抓取：`fetch_dry.sh`（预演）· `fetch_real.sh`（14 池）· `fetch_galgame.sh`
+- 损坏文件扫描 + 隔离：`scan_broken2.py` · `fix_broken.sh`
+- 主题包批量重算：`repack_all.sh`（15 主题 + inject）
+- 收尾：`finalize_all.sh`（转音密度表 → 重生成 17 首 → 重渲染 17 首）
+- 主奏音色 A/B 素材：`ab121f.sh` → `songs\121_battle_onslaught\variants\{121_lead_trumpet,121_lead_sax_flute}.ogg`
+- ⚠ **备份**：改前的 15 个主题包在 `D:\test\_tmp\music-sameness\backup\themes_before\`
+
+### 19.7 🔴 下一轮第一优先级：清掉那 3 条"候选 vs 成品"同源红
+
+**现象**（全部有日志证据）：
+| 曲目 | 生成日志说 | 守卫量到 |
+|---|---|---|
+| `123_mystery_lantern` | **4 条候选全在硬门内** | 密度 **1.45**（门 1.8~2.9）· 段 B/B2 落点 **0.716**（门 0.65） |
+| `121_battle_onslaught` | **3/4 条候选在门内**（小步 ≤35%） | 成品小步 **36%** |
+| `102_waltz_court` | **0/4 条候选在门内** | 密度 **1.57** |
+
+**根因**（PITFALLS **358**）：候选打分量的门（密度/小步/落点 TVD）算在**候选旋律**上，
+守卫算在**落盘成品**上，中间隔着 `apply_ornaments`（转音**置换**弱格装饰音）·
+`_enforce_strong`（强拍吸附）· `_fit`（段界裁剪）· `_open` 短段变体折回 ——
+每一步都改音符序列 ⇒ 门会漂。
+
+**做法**（别只加重罚分 —— PITFALLS 352 已证明软罚守不住硬门）：
+1. **两阶段选择**：`melody_gen.main` 里保留**全部候选**的旋律（现在只留 `best`），挑出候选后
+   **先跑一遍后处理**，用**成品**重算硬门；超门就换次优候选（全超门才退回软分并打印）。
+   门的口径已经集中在 `_hard_form_gates()`（`FORM_DENS` + `SMALL_IV_MAX`）+ `ONSET_TVD_MAX`。
+2. 或者把门**内建进后处理**（转音置换只在门内做、强拍吸附带密度预算）。
+3. `102_waltz_court` 另有一层：**waltz 主题 4 条候选全不达标** ⇒ 要查"3/4 拍的旋律生成
+   是不是天生偏疏"（新画像的 `melody.notes_per_bar`），必要时在生成端按画像把密度**夹到门内**。
+
+**验收**：那 3 条红消失 + `selftest` 回到全绿；且**用成品量**（不是候选）复算一遍门。
