@@ -301,9 +301,27 @@ def main():
                 continue
             break
     if abs(mine['bpm'] - ref['bpm']) > 1.0:
-        tip = '' if bpm_arg else '（音频测速在连奏编配上会误判，知道真实速度就加 --bpm）'
-        print('!! 速度不一致：本曲 %.1f vs 参考 %.1f —— 先改作曲脚本的 BPM 再谈其它%s'
-              % (mine['bpm'], ref['bpm'], tip))
+        # **生成曲的速度由主题决定 —— 参考画像的 BPM 不是它的标准**（2026-10-08）。
+        # `ref` 是**频谱/混音对齐画像**（管 EQ / 响度 / 宽度 / 频段），它的 BPM 是**那首参考曲
+        # 自己的速度**，与"本曲该多快"无关。对**还原曲**这条判据成立（该跟原曲同速）；
+        # 对**生成曲**就是错口径 —— 实测 `ask_20261008_2216`（theme=tender，89 BPM）落在
+        # 主题真实范围内（p25 70 / 中位 100 / p75 136），却一路顶着"先改作曲脚本的 BPM"。
+        # 判据：同目录有 `song.json` 且带 `theme.name` ⇒ 生成曲（还原曲没有 theme）。
+        _sg = os.path.join(os.path.dirname(os.path.abspath(mine_path)), 'song.json')
+        _is_gen = False
+        try:
+            with open(_sg, encoding='utf-8') as _f:
+                _is_gen = bool((json.load(_f).get('theme') or {}).get('name'))
+        except Exception:                                          # noqa: BLE001
+            _is_gen = False
+        if _is_gen:
+            print('  · 速度：本曲 %.1f vs 参考 %.1f —— **生成曲的速度由主题的真实 BPM 范围'
+                  '决定**，参考只是频谱对齐画像（这条差异不算问题）'
+                  % (mine['bpm'], ref['bpm']))
+        else:
+            tip = '' if bpm_arg else '（音频测速在连奏编配上会误判，知道真实速度就加 --bpm）'
+            print('!! 速度不一致：本曲 %.1f vs 参考 %.1f —— 先改作曲脚本的 BPM 再谈其它%s'
+                  % (mine['bpm'], ref['bpm'], tip))
 
     print('== %s  vs  %s ==' % (mine['name'], ref['name']))
     print('%-14s %10s %10s %8s' % ('指标', '本曲', '参考', '差'))
