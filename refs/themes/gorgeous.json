@@ -921,15 +921,11 @@
    {
     "name": "Intro",
     "bars": 4,
-    "prog": 0
+    "prog": 0,
+    "pattern": "主副交替"
    },
    {
     "name": "A",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "A2",
     "bars": 8,
     "prog": 0
    },
@@ -939,44 +935,14 @@
     "prog": 1
    },
    {
-    "name": "A3",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "C",
-    "bars": 8,
-    "prog": 2
-   },
-   {
-    "name": "A4",
+    "name": "A2",
     "bars": 8,
     "prog": 0
    },
    {
     "name": "B2",
     "bars": 8,
-    "prog": 1
-   },
-   {
-    "name": "A5",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "A",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "A2",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "B",
-    "bars": 8,
-    "prog": 1
+    "prog": 2
    },
    {
     "name": "A3",
@@ -986,12 +952,47 @@
    {
     "name": "C",
     "bars": 8,
-    "prog": 2
+    "prog": 3
    },
    {
     "name": "A4",
     "bars": 8,
     "prog": 0
+   },
+   {
+    "name": "B3",
+    "bars": 8,
+    "prog": 4
+   },
+   {
+    "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B",
+    "bars": 8,
+    "prog": 1
+   },
+   {
+    "name": "A2",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "A3",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 3
    },
    {
     "name": "Outro",

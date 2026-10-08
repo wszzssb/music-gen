@@ -839,6 +839,48 @@ def bass_style_from_occ(bass_occ):
     return best[0] if best[1] > 0 else None
 
 
+# **曲式命名模式**（2026-10-07 新增）：段名序列原来是一张**硬编码 8 元素表**
+#   （`A/A2/B/A3/C/A4/B2/A5`）—— 15 个主题共用它，于是每首都是"引子 → A → A2 → B → A3 → C…"
+#   的同一套起承转合。用户听感（原话）："**音乐结构很相似，大概都是开头先提，中间在转，
+#   这类听起来好像**"。这里改成从 4 种**通行曲式**里按主题名派生选一种（同族纪律
+#   `PITFALLS` **304**：驱动差异的种子必须由主题/曲名派生，否则多首会撞同一个），
+#   并让非 A 段的**进行序号在该主题自己的进行条数内轮换**（原来固定 A→0 / B→1 / C→2）。
+#   ⚠ 只动"段名与进行分配"，**不动段数与段长** —— 段数已随模板小节中位变（实测 15 个主题
+#     有 8 种段数），而"段界在哪"目前**没有过关的尺子**（`PITFALLS` **300** 记着三次失败），
+#     所以不能假装知道真实曲式。
+FORM_PATTERNS = (
+    ('起承转合', ['A', 'A2', 'B', 'A3', 'C', 'A4', 'B2', 'A5']),
+    ('主副交替', ['A', 'B', 'A2', 'B2', 'A3', 'C', 'A4', 'B3']),
+    ('渐进展开', ['A', 'A2', 'A3', 'B', 'A4', 'A5', 'B2', 'C']),
+    ('回旋轮转', ['A', 'B', 'C', 'A2', 'B2', 'A3', 'C2', 'A4']),
+)
+
+
+def build_plan(theme, nsec, sec_bars, n_progs, intro_bars=4):
+    """主题 → 段落计划 `form.plan`（段名模式按主题派生 · 非 A 段进行轮换）。见 `FORM_PATTERNS`。
+
+    抽成**模块级**是为了能被"只重算 plan、不重跑模板分析"的轻量脚本复用
+    （`scripts/replan_themes.py`）—— 段名模式是**单一真源**，两处各写一份必然漂移
+    （PITFALLS 353）。
+    """
+    import zlib
+    label, pat = FORM_PATTERNS[zlib.crc32(theme.encode('utf-8')) % len(FORM_PATTERNS)]
+    out = [{'name': 'Intro', 'bars': intro_bars, 'prog': 0}]
+    n_non_a = 0
+    for i in range(nsec):
+        nm = pat[i % len(pat)]
+        if nm.startswith('A'):
+            prog_i = 0                      # A 段锁主进行 = 主题身份（`new_song` 也靠这条）
+        else:
+            prog_i = (1 + (n_non_a % max(1, n_progs - 1))) if n_progs > 1 else 0
+            n_non_a += 1
+        out.append({'name': nm, 'bars': sec_bars,
+                    'prog': min(prog_i, max(0, n_progs - 1))})
+    out.append({'name': 'Outro', 'bars': intro_bars, 'prog': 0})
+    out[0]['pattern'] = label               # 留痕：这个主题用的是哪种曲式
+    return out
+
+
 def aggregate(theme, rows, feats, min_n=MIN_TEMPLATES):
     """模板清单 + 逐首特征 → **主题模板包**（生成时整体依据它）"""
     th = THEMES[theme]
@@ -1017,13 +1059,7 @@ def aggregate(theme, rows, feats, min_n=MIN_TEMPLATES):
     # `arr.perc_in`（引子渐入）一直没有触发场景。这里按真值补上，各 4 小节。
     INTRO_BARS = 4
     total = sec_bars * nsec + INTRO_BARS * 2   # 总小节 = 段数 × 段长 + 引子/尾声
-    plan = [{'name': 'Intro', 'bars': INTRO_BARS, 'prog': 0}]
-    for i in range(nsec):
-        nm = ['A', 'A2', 'B', 'A3', 'C', 'A4', 'B2', 'A5'][i % 8]
-        prog_i = 0 if nm.startswith('A') else (1 if nm.startswith('B') else 2)
-        plan.append({'name': nm, 'bars': sec_bars,
-                     'prog': min(prog_i, max(0, len(progs) - 1))})
-    plan.append({'name': 'Outro', 'bars': INTRO_BARS, 'prog': 0})
+    plan = build_plan(theme, nsec, sec_bars, len(progs))
 
     pack = {
         'theme': theme, 'label': th['label'], 'desc': '%s（主题模板包：%d 首同主题模板聚合）'

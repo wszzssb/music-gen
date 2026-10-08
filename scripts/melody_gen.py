@@ -1742,6 +1742,13 @@ def select_candidate(scored):
 
 
 # **落点分布的门**（守卫 `t_melody_onset_spread` 用的就是它 —— 单一真源，别在两处各写一份）
+# ⚠ **依据补上了**（2026-10-07，用户质疑"这条限制是不是本来就错了"）：量 **199 首真实模板**
+#   （模板 vs 它所属主题的画像，口径与守卫同一份：`onset_tvd` + `refs/themes/<主题>_melody.json`）：
+#     P10 **0.180** · P25 0.241 · 中位 **0.339** · P75 0.476 · P90 **0.591** · P95 **0.663** · 最大 0.890
+#   ⇒ 原门 0.65 ≈ 真实分布的 **P94**（判死 **6.0%** 的真实模板）—— 符合"门取真实分布越界侧
+#   分位"的纪律（同 `MOTIF_MIN_CADENCE` 取 10% 分位那条）。**门值不动，只补依据**：
+#   `123_mystery_lantern` 的 0.716 确实比 94% 的真实模板都集中，是真不达标。
+#   ⚠ 量法与逐主题读数：`D:\test\_tmp\music-sameness\probe_tvd_basis.py`
 ONSET_TVD_MAX = 0.65
 
 
@@ -1819,7 +1826,34 @@ def small_step_pct(melody, sections, bar_beats=SPB):
     return sum(1 for x in ivs if x <= 1) / len(ivs)
 
 
-def form_penalty(fs, ms, small=None, span=None):
+def chord_fit_pct(melody, sections, chords, meter=None, bar_beats=SPB):
+    """**强拍和弦贴合率**（0~1）：强拍上的旋律音落在"当小节和弦音集"里的比例。
+
+    ⚠ 为什么补它（2026-10-07）：守卫 `melody_health` 会报"强拍 X%"（`probe_melody_health`
+    的 `fit` 维度），而 `form_penalty` 里**根本没有这一维** ⇒ 候选选择看不见它。实测把小步
+    罚加重之后，`121_battle_onslaught` 立刻选出"小步达标、但强拍只有 85%"的候选 ——
+    同一族问题（PITFALLS 352/353：门在守卫那边，挑选端看不见）。
+    口径与 `probe_melody_health` **同一份**：`strong_beats(meter)` + `chords[name][1]` 的 pc。
+    """
+    import song_engine as _se
+    strong = _se.strong_beats(meter)
+    tot = fitt = 0
+    for sec in sections:
+        for (b, bt, _du, p) in (melody.get(sec.get('melody')) or []):
+            if not (0 <= b < len(sec.get('chords') or [])):
+                continue
+            if round(bt, 2) not in strong:
+                continue
+            entry = chords.get(sec['chords'][b])
+            if not entry:
+                continue
+            tot += 1
+            if int(p) % 12 in [int(t) % 12 for t in entry[1]]:
+                fitt += 1
+    return (fitt / float(tot)) if tot else None
+
+
+def form_penalty(fs, ms, small=None, span=None, fit=None):
     """形态罚分（0 = 全达标）。阈值与守卫同源：`FORM_MIN_LAST8 / FORM_MAX_GAP_MED /
     FORM_MAX_G0`（见 `selftest`）、跳后反向门 0.50（`melody_motif_rules`）、
     小步门 `SMALL_IV_MAX=0.35`、音域门 `FORM_SPAN_MIN=8`（`probe_melody_health` / `form_stats`）。"""
@@ -1842,6 +1876,10 @@ def form_penalty(fs, ms, small=None, span=None):
         #   软罚守不住硬门。×40 后"超 1pt = 0.4 分"，与形态层其它罚项同量级，
         #   足以在同批候选之间把小步更低的那条顶上来。
         pen += max(0.0, small - 0.35) * 40.0
+    if fit is not None:                                           # 强拍不贴和弦
+        # 与"小步"同一条纪律：`melody_health` 的 `fit` 维度是门，挑选端必须看得见它。
+        # 权重取自量级对齐：贴合率掉 10 个百分点罚 0.8 分（与小步超 1pt 罚 0.4 同量级）。
+        pen += max(0.0, 1.0 - fit) * 8.0
     return pen
 
 
@@ -1859,7 +1897,7 @@ def _hard_form_gates():
     return tuple(_st.FORM_DENS), float(_pm.SMALL_IV_MAX) / 100.0
 
 
-def final_form_gate(mel, sections, prof):
+def final_form_gate(mel, sections, prof, chords=None, meter=None):
     """**成品口径**的形态硬门（落点 / 密度 / 小步）→ `(是否超门, 说明)`。
 
     为什么提成**模块级**、且必须由调用方在"最后一步之后"再调一次：`melody_gen` 选出候选时
@@ -1885,6 +1923,14 @@ def final_form_gate(mel, sections, prof):
     _t = max(onset_tvd(mel, prof), onset_tvd_worst(mel, sections, prof))
     if _t > ONSET_TVD_MAX:
         _bad.append('落点%.3f' % _t)
+    # **强拍和弦贴合**（2026-10-07 补）：守卫 `melody_health` 报的"强拍 X%"就是它，
+    # 门是 **100%**（`probe_melody_health.issues` 里 `fit < 100` 即报）。这一维**只能在成品上查**：
+    # `fix_melody_register` 会把"飘太高/跨度越界"的音**逐个**折八度 → 音高变了 → 强拍音可能
+    # 落到和弦外（实测 `121_battle_onslaught`：melody_gen 写入前 **96%** → fix 之后 **85%**）。
+    if chords:
+        _f = chord_fit_pct(mel, sections, chords, meter)
+        if _f is not None and _f < 0.999:
+            _bad.append('强拍%.0f%%' % (_f * 100))
     return (1 if _bad else 0), ','.join(_bad)
 
 
@@ -2360,7 +2406,13 @@ def main():
         except Exception:                                        # noqa: BLE001
             ms = {}
         _sm = small_step_pct(mel, d['sections'])
-        fp = form_penalty(fs, ms, small=_sm,
+        # **强拍和弦贴合**（2026-10-07 补）：守卫 `melody_health` 报的"强拍 X%"就是它，
+        # 原先候选打分没有这一维 ⇒ 加重小步罚之后立刻选出"强拍 85%"的候选（同族 PITFALLS 352）。
+        # ⚠ 变量名**不能叫 `_fit`** —— 同一作用域里那个名字是"按段裁剪旋律"的闭包函数，
+        #   覆盖它会让后面 `_fit(m, bars)` 抛 `TypeError: 'float' object is not callable`
+        #   （实测 2026-10-07 把三首曲子的旋律写成占位音）。
+        _fitv = chord_fit_pct(mel, d['sections'], chords, d.get('meter'))
+        fp = form_penalty(fs, ms, small=_sm, fit=_fitv,
                           span=(fs or {}).get('span'))
         dt = dur_tvd(mel, prof) * dur_bias
         # **最长同音串罚分**（见 `same_run_longest` 的 docstring）：超门部分按 1.0/音罚。

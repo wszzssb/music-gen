@@ -782,10 +782,16 @@
    {
     "name": "Intro",
     "bars": 4,
-    "prog": 0
+    "prog": 0,
+    "pattern": "主副交替"
    },
    {
     "name": "A",
+    "bars": 8,
+    "prog": 0
+   },
+   {
+    "name": "B",
     "bars": 8,
     "prog": 0
    },
@@ -795,7 +801,7 @@
     "prog": 0
    },
    {
-    "name": "B",
+    "name": "B2",
     "bars": 8,
     "prog": 0
    },
@@ -811,11 +817,6 @@
    },
    {
     "name": "A4",
-    "bars": 8,
-    "prog": 0
-   },
-   {
-    "name": "B2",
     "bars": 8,
     "prog": 0
    },

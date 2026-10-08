@@ -969,7 +969,8 @@
    {
     "name": "Intro",
     "bars": 4,
-    "prog": 0
+    "prog": 0,
+    "pattern": "渐进展开"
    },
    {
     "name": "A",
@@ -982,19 +983,14 @@
     "prog": 0
    },
    {
-    "name": "B",
-    "bars": 8,
-    "prog": 1
-   },
-   {
     "name": "A3",
     "bars": 8,
     "prog": 0
    },
    {
-    "name": "C",
+    "name": "B",
     "bars": 8,
-    "prog": 2
+    "prog": 1
    },
    {
     "name": "A4",
@@ -1002,14 +998,19 @@
     "prog": 0
    },
    {
-    "name": "B2",
-    "bars": 8,
-    "prog": 1
-   },
-   {
     "name": "A5",
     "bars": 8,
     "prog": 0
+   },
+   {
+    "name": "B2",
+    "bars": 8,
+    "prog": 2
+   },
+   {
+    "name": "C",
+    "bars": 8,
+    "prog": 3
    },
    {
     "name": "A",

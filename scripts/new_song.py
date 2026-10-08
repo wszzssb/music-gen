@@ -1850,6 +1850,7 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
     except (OSError, ValueError):
         _prof = None
     _picked, _worst = None, ''
+    _cand_log = []                # [(超门项数, ds, k, why)] —— 全超门时用来挑"最不坏"的那条
     # 两轮：第二轮把**密度目标**抬高（`dens×1.35`）—— 成品密度偏低的曲子（实测
     # `123_mystery_lantern` 四条候选全在 1.45~1.62，门 1.8）只有这样才够得着；
     # 生成端的目标密度本来就取了画像上界，而"短段复用长旋律"会丢音（`form_stats` 按段展开后
@@ -1868,19 +1869,31 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
             _lm = legato_melody(data)
             if _lm:
                 print('  旋律连奏：%d 个音的音长接到下一个音（空隙按真值补齐，起音一个不动）' % _lm)
-            _ov, _why = (_MG.final_form_gate(data['melody'], data['sections'], _prof)
+            _ov, _why = (_MG.final_form_gate(data['melody'], data['sections'], _prof,
+                                             data.get('chords'), data.get('meter'))
                          if _prof else (0, ''))
             print('  · 成品形态门（密度×%.2f · --pick %d）：%s'
-                  % (_ds, _k, _why or '门内（落点/密度/小步）'))
+                  % (_ds, _k, _why or '门内（落点/密度/小步/强拍）'))
             if not _ov:
                 _picked = (_ds, _k)
                 break
             _worst = _why or _worst
+            _cand_log.append((len(_why.split(',')) if _why else 0, _ds, _k, _why or ''))
         if _picked is not None:
             break
     if _picked is None:
-        print('  !! 成品形态门：两轮 × %d 条候选**全部超门**（最后一条：%s）'
-              '—— 保留最后一条，别当成"已修好"' % (max(1, int(ncand)), _worst))
+        # ⚠ **全部超门时不能留"最后试的那条"** —— 循环按 (门内优先, 打分) 排序，最后一条通常
+        #   **最差**：实测 `123_mystery_lantern` 留了 `pick 5`（落点 0.700 ＋ 强拍 60%），
+        #   一下把红灯从 2 条变成 **4 条**（`melody_chord_fit` / `melody_health` /
+        #   `melody_onset_spread` 同时报）。改成回退到**超门项最少**的那条（同项数时取先试的）。
+        _cand_log.sort()
+        _, _bds, _bk, _bwhy = _cand_log[0]
+        print('  !! 成品形态门：全部 %d 条候选超门 ⇒ 回退到**超门项最少**的那条'
+              '（密度×%.2f · --pick %d：%s）' % (max(1, int(ncand)), _bds, _bk, _bwhy))
+        run_melody_gen(song_json, pack, theme, seed, ncand, pick=_bk, dens_scale=_bds)
+        data = json.load(open(song_json, encoding='utf-8'))
+        fix_melody_register(data)
+        legato_melody(data)
     data['theme'] = data.get('theme') or {}
     data['theme']['melody_profile'] = 'refs/themes/%s_melody.json' % theme
     data['theme']['seed'] = seed

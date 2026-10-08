@@ -3542,7 +3542,13 @@ def t_melody_chord_fit():
 
     判据：**强拍**（位置由拍号定，`song_engine.strong_beats`：4/4 → 第 1、3 拍；
     3/4 → 只有第 1 拍；6/8 → 第 1 拍与第 4 个八分）和弦音占比 ≥ 70%；
-    根音上方半音（♭9，最刺耳）≤ 2 处。弱拍不做限制 —— 经过音/倚音本来就该在弱拍。"""
+    根音上方半音（♭9，最刺耳）≤ 2 处。弱拍不做限制 —— 经过音/倚音本来就该在弱拍。
+    ⚠ **70% 这个门的单一真源是 `probe_melody_health.MIN_FIT_PCT`**（2026-10-07 统一）：
+    它那边原来写的是 `fit < 100` 就报，而 `melody_health` 把 `issues()` 的每一项都算 FAIL
+    ⇒ 这条 70% 的合理门被 100% 的严口径覆盖（实测把 85% / 76% 的曲子判红）。
+    ⚠ 音乐理论上 100% 也不成立：**倚音/延留音恰恰要求落在强拍**（经过音/辅助音才放弱拍）。
+    """
+    import probe_melody_health as PM
     rows, skipped = [], []
     for d in songs_or_fail():
         name = os.path.basename(d)
@@ -3577,7 +3583,7 @@ def t_melody_chord_fit():
         print('        %-20s 强拍%3d 个：弦内音 %3.0f%%  ♭9 冲突 %d' % (n, t, r, c))
     if skipped:
         print('        （样本不足 <8 跳过 %d 首：%s）' % (len(skipped), '、'.join(skipped)))
-    bad = ['%s 只 %.0f%%' % (n, r) for n, _t, r, _c in rows if r < 70.0]
+    bad = ['%s 只 %.0f%%' % (n, r) for n, _t, r, _c in rows if r < PM.MIN_FIT_PCT]
     assert not bad, ('旋律强拍没落在和弦音上（经过音该放弱拍）: ' + ', '.join(bad)
                      + ' —— 改 song.json 的 melody：每小节强拍用该小节和弦的音')
     bad9 = ['%s %d 处' % (n, c) for n, _t, _r, c in rows if c > 2]

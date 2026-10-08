@@ -48,6 +48,18 @@ MAX_CHOP = 8.0       # 碎音（≤0.25 拍）比例上限
 # 门槛依据（全库 32 首实测）：**31 首正常曲目的强拍样本 ≥14**（最小 14，中位 40+），
 # 唯一样本不足的就是那首还原曲（=1）→ 取 8 既能拦住噪声，又仍给未来稀疏曲留余量。
 MIN_FIT_N = 8
+# **强拍和弦贴合的门**（2026-10-07 统一口径）：`issues()` 原来写的是 **`fit < 100` 就报** ——
+# 而守卫 `t_melody_chord_fit` 的门是 **≥70%**（其 docstring 原文："弱拍不做限制 ——
+# 经过音/倚音本来就该在弱拍"；门来自实测：`11_dn75_neon v1` 只有 54% → 用户听感"不好听"，
+# 而同一时期的正常曲目 78~87%）。**两条守卫口径分叉**（PITFALLS 353 同族）：
+# `melody_health` 把 `issues()` 的**每一项**都算 FAIL ⇒ 70% 的合理门被 100% 的严口径覆盖，
+# 实测把 `121_battle_onslaught`（85%）、`123_mystery_lantern`（76%）**都判红**（用户质疑
+# "强拍有没有过度限制" ← 确实有）。
+# ⚠ 音乐理论上 100% 也站不住：**倚音（appoggiatura）与延留音（suspension）恰恰要求落在强拍**
+#   （Wikipedia *Appoggiatura*：https://en.wikipedia.org/wiki/Appoggiatura ）——
+#   "强拍必须是和弦音"只对**经过音/辅助音**成立。
+# 这里统一取 70%，与 `t_melody_chord_fit` **同源**（那一条改成直接 import 这个常量）。
+MIN_FIT_PCT = 70.0
 # **整曲同音率上限**（2026-09-20 加，实测踩出来的）：`maxrun` 抓不到"被段落切碎的压平"。
 # 现场：用脚本把某段旋律 16 个音批量写成同一个音高，它们散在 8 小节里 → 串长只有 2~3，
 # 而**同音率 100%**；当时 `melody_health` 只报"强拍 85%"，压平是回看 JSON 才发现的。
@@ -142,7 +154,7 @@ def issues(r, strict=False):
         lim = max(lim, min(30.0, sh * 2.0))      # 画像就有这么多 → 方言；2 倍以内算正常波动
     if r['chop'] > lim:
         out.append('碎音%.0f%%' % r['chop'])
-    if 0 <= r['fit'] < 100 and r.get('fit_n', 0) >= MIN_FIT_N:
+    if 0 <= r['fit'] < MIN_FIT_PCT and r.get('fit_n', 0) >= MIN_FIT_N:
         out.append('强拍%.0f%%' % r['fit'])
     return out
 
