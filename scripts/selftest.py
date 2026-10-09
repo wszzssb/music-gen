@@ -291,6 +291,53 @@ def t_render_json_schema():
 
 
 @check
+def t_norm_warning_needs_baseline():
+    """"渲染口径变了会变响"那句提示，**只对真有上一版产物的曲子**才成立。
+
+    背景（2026-10-09，用户实测撞上）：`new_song.py` 写初始 `render.json` 时只写渲染参数
+    （`auto_render_params()` 产出 rms/width/shelf/hp/low/drive），`norm` 是 `make_song`
+    **调参之后**才补的键 ⇒ 每一首**从没渲染过**的新歌都被判成"旧双声道口径"，
+    面板任务日志里于是出现「别用 --no-tune 做 A/B，让它跑自动调参重新收敛」。
+    用户的原话是"真的没看到吗" —— 他看到了，而那句提示的理由是错的（新歌没有旧产物可"变响"）。
+
+    判据**直呼被测函数**（`make_song.norm_warning_fires`）——
+    不按源码字符串查、也不 exec 源码片段：变异用例实测过，那两种写法一条"漏"一条"崩"。
+      ① 新建的配置（无产物 + 无 norm）⇒ **不该**提示
+      ② 旧配置（有产物 + 无 norm）  ⇒ **该**提示
+      ③ 当前口径（有产物 + norm=mono）⇒ 不该提示
+    """
+    import tempfile
+    import render_midi as _rm
+    import make_song as _ms
+    import new_song as _ns
+
+    def fires(norm, has_baseline):
+        with tempfile.TemporaryDirectory() as td:
+            out = os.path.join(td, 'x_sf')
+            if has_baseline:
+                open(out + '.wav', 'wb').write(b'x' * 16)
+            cfg = {} if norm is None else {'norm': norm}
+            return bool(_ms.norm_warning_fires(cfg, out))
+
+    assert not fires(None, False), \
+        '新建的曲子（还没有任何产物）不该被判成"旧口径" —— 那正是用户看到的误导提示'
+    assert fires(None, True), \
+        '真有旧产物、又没带口径标记的曲子，必须仍然提示（否则"旧配置会变响"就没人知道了）'
+    assert not fires(_rm.NORM, True), \
+        '已是当前口径的曲子不该提示（提示会变成噪声，失去信誉）'
+
+    # 建曲端也要如实标记：初始 render.json 就该带 norm，别把"缺标记"留给下一环去猜。
+    # ⚠ **必须真调它**（2026-10-09 变异实测）：原来这条是查源码字符串，
+    #   变异用例改的是运行期行为（把 norm 从写盘内容里摘掉）⇒ 字符串还在、守卫却"漏了"。
+    cfg_new = _ns.initial_render_cfg('probe_song', ref_name='cheerful_mix')
+    assert cfg_new.get('norm') == _rm.NORM, \
+        ('new_song 写的初始 render.json 必须带当前口径的 norm（实得 %r）——'
+         '缺了它，每一首新歌都会被 make_song 误报成"旧双声道口径"' % cfg_new.get('norm'))
+    assert cfg_new.get('tuned') is False, \
+        '新建曲目的 tuned 必须是 False（还没跑过调参），实得 %r' % cfg_new.get('tuned')
+
+
+@check
 def t_restore_ref_is_own_song():
     """还原曲的混音对标必须是本曲（PITFALLS 348）：做了调参却对标别的曲子 ⇒ FAIL。
 
@@ -7415,6 +7462,52 @@ def load_studio_server():
     sys.modules['studio_server'] = mod
     spec.loader.exec_module(mod)
     return mod
+
+
+@check
+def t_panel_ref_is_theme_target():
+    """面板建曲的**对标画像**必须是"该主题自己的聚合混音目标"。
+
+    背景（2026-10-09，我先用鼠标键盘在面板里生成了一首，再回头量出来的）：
+    `studio/server.py` 的 `/api/new` 原来写 `ref = body.get('ref') or first_ref()`，
+    而 `first_ref()` 是"`refs/` 里字母序第一个 `BGM*`" —— 实测 = **`BGM01`**，
+    并且被**显式** `--ref BGM01` 传给 `new_song.py`，正好**覆盖**掉 `new_song` 自己
+    "按主题包 `mix_target` 选画像"的正确逻辑 ⇒ 每一首面板生成的曲子都照 BGM01 调参。
+    实证（本次生成的 `ask_20261009_2029`）：实测九带与 `cheerful_mix` 的 MAE **1.53dB**、
+    与 `BGM01` **2.37dB** —— 而 `render.json` 里写的是 `BGM01`。
+
+    判据（逐主题）：
+      ① 画像文件必须真的存在（`scorecard.ref_path` 同一条查找路径）；
+      ② 引用的画像 **就是该主题包自己 `mix_target.ref` 指的那份**（不许另挑一首别人的曲子）；
+      ③ 主题名认不出来时**返回空串**（= 不传 `--ref`，让 `new_song` 按主题包自己选）。
+    """
+    import scorecard as _sc
+    srv = load_studio_server()
+    assert srv is not None, '读不到 studio/server.py'
+    assert hasattr(srv, 'ref_for_theme'), \
+        'studio/server.py 没有 ref_for_theme —— 面板建曲又会退回"随便挑第一个画像"'
+    d = os.path.join(ROOT, 'refs', 'themes')
+    names = sorted(f[:-5] for f in os.listdir(d)
+                   if f.endswith('.json') and not f.endswith('_melody.json')
+                   and not f.startswith('_'))
+    assert len(names) >= 8, '主题画像太少（%d 个），判据可能空转' % len(names)
+    bad = []
+    for t in names:
+        got = srv.ref_for_theme(t)
+        if not got:
+            bad.append('%s: 解析出空引用' % t)
+            continue
+        if not os.path.isfile(_sc.ref_path(got)):
+            bad.append('%s: 引用的画像不存在（%s）' % (t, got))
+            continue
+        with open(os.path.join(d, t + '.json'), encoding='utf-8') as f:
+            mt = (json.load(f).get('mix_target') or {}).get('ref')
+        if mt and got != mt:
+            bad.append('%s: 面板选 %r，主题包自己指 %r' % (t, got, mt))
+    assert not bad, ('面板建曲的对标画像与主题不一致（会让成品照别的曲子调参）：\n      '
+                     + '\n      '.join(bad[:6]))
+    assert srv.ref_for_theme('__没有这个主题__') == '', \
+        '认不出的主题名必须返回空串（不传 --ref），不许拿某个画像去顶'
 
 
 @check

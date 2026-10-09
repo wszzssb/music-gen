@@ -2169,8 +2169,8 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
         f.write(COMPOSE_STUB % {'name': short})
     # render.json：**频谱对齐画像 = 主题包的混音目标层**（不是模板依据 —— 模板只来自
     # midi2/权威网络数据；这里决定"混成什么样、对齐到哪个真实混音"）。`--ref` 可覆盖。
-    cfg = {'composer': 'compose.py', 'mid': short + '.mid', 'out': short + '_sf'}
-    ref = None
+    ref = None                              # 由下面的画像查找填入（初始配置先不含 ref）
+    cfg = initial_render_cfg(short)
     mt = pack.get('mix_target') or {}
     ref_use = ref_name or mt.get('ref') or 'bgm01c'
     # **聚合混音画像**落在 `refs/mix_targets/<主题>.json`（多方参考的中位数），
@@ -2200,12 +2200,40 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
     else:
         print('  警告：找不到频谱画像 %s（render.json 未写 ref，成绩单会报"参考画像不存在"）'
               % p)
-    cfg.update(auto_render_params(ref) if ref else {})
+    # ⚠ `ref` 是在配置**建好之后**才解析出来的（找不到画像时就不写 ref）⇒ 这里补一次；
+    #   其余键（含 `norm` / `tuned`）由 `initial_render_cfg` 负责，别再各写一份（会漂）。
+    if ref:
+        cfg['ref'] = ref['name']
     with open(os.path.join(dst, 'render.json'), 'w', encoding='utf-8') as f:
         json.dump(cfg, f, ensure_ascii=False, indent=1)
     write_notes(dst, new, data, pack, ref)
     print('  下一步: python scripts\\make_song.py %s --check' % new)
     return 0
+
+
+def initial_render_cfg(short, ref=None, ref_name=None, ref_obj=None):
+    """新建曲目的**初始** `render.json`。
+
+    抽成函数是为了两件事（2026-10-09）：
+      ① 两条建曲路径（主题包 / 老 `--from`）写的是**同一份**配置，别各写一份（会漂）；
+      ② 自检 `t_norm_warning_needs_baseline` 要能**直接调它**验证 "norm 标记从一开始就写对"
+         —— 按源码字符串查证不了运行期注入（变异用例实测：字符串还在、行为已被改掉）。
+
+    ⚠ **`norm` 必须在这里就写对**：它原来只有 `make_song` 调参之后才补，于是
+      "初始配置缺 norm" 会被 `make_song` 判成**旧双声道口径**，对**每一首全新生成的曲子**
+      打印那句"重渲染会变响"的提示（用户在面板任务日志里实测撞上、以为出了错）。
+      `tuned=False` 同时表明这份配置**还没调过参**。
+    """
+    import render_midi as _rm
+    cfg = {'composer': 'compose.py', 'mid': short + '.mid', 'out': short + '_sf'}
+    if ref_name is not None:
+        cfg['ref'] = ref_name
+    if ref_obj:
+        cfg['ref'] = ref_obj['name']
+    cfg.update(auto_render_params(ref_obj) if ref_obj else {})
+    cfg.setdefault('norm', _rm.NORM)
+    cfg.setdefault('tuned', False)
+    return cfg
 
 
 def write_notes(dst, new, data, pack, ref):
@@ -2517,10 +2545,9 @@ def main():
               newline='') as f:
         f.write(COMPOSE_STUB % {'name': short})
 
-    # --- render.json（自动推算参数）
-    cfg = {'composer': 'compose.py', 'mid': short + '.mid', 'out': short + '_sf',
-           'ref': ref['name'] if ref else (ref_name or '')}
-    cfg.update(auto_render_params(ref) if ref else {})
+    # --- render.json（自动推算参数）—— 与主题路径**共用**同一份构造（别再各写一份）
+    cfg = initial_render_cfg(short, ref_name=(ref['name'] if ref else (ref_name or '')),
+                             ref_obj=ref)
     with open(os.path.join(dst, 'render.json'), 'w', encoding='utf-8') as f:
         json.dump(cfg, f, ensure_ascii=False, indent=1)
 

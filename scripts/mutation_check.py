@@ -9,10 +9,13 @@
 """
 import glob
 import io
+import inspect
 import json
 import os
+import re
 import sys
 import tempfile
+import textwrap
 import atexit
 from contextlib import redirect_stdout
 
@@ -3080,6 +3083,52 @@ def main():
                    lambda folder, name: ('exists', os.path.join(folder, 'compose.py')))
     results.append(case('接续链不写引擎入口（首次渲染静默跳过作曲）', 'restore_writes_compose',
                         _restore_skips_compose))
+
+    # 74d. **"旧渲染口径"提示必须只在真有上一版产物时出现**（2026-10-09 用户实测撞上）：
+    #      两个退化面都要抓 ——
+    #        a) 判据退回"只看 norm 有没有"（新歌也告警 ⇒ 面板里每次生成都刷那句误导提示）
+    #        b) 建曲端不再如实标记 norm（初始 render.json 缺标记，下一环只能靠猜）
+    def _warn_without_baseline():
+        """注入：判据退回"只看 norm 有没有"（新歌也提示 ⇒ 面板每次生成都刷误导提示）。
+
+        ⚠ **换函数、不换 `main`**（2026-10-09 实测）：第一版用正则改 `main` 的源码再 exec 替换，
+          替换后的函数 `inspect.getsource` 读不到 ⇒ 守卫当场崩、用例记成"跳过"。
+          判据抽成 `norm_warning_fires` 之后，这里直接换它即可（同一条路径）。
+        """
+        import make_song as _ms
+        return Mut(_ms, 'norm_warning_fires',
+                   lambda cfg, out_base: cfg.get('norm') != _ms.render_midi.NORM)
+    results.append(case('口径提示不看产物（新歌每次生成都误报）',
+                        'norm_warning_needs_baseline', _warn_without_baseline))
+
+    def _newsong_writes_no_norm():
+        """注入：建曲时把 norm/tuned 从初始 render.json 里摘掉（=修复前的行为）。
+
+        ⚠ 守卫**真调** `new_song.initial_render_cfg` ⇒ 这里直接改它的返回值即可
+        （2026-10-09 第一版是改 `json.dump`，而守卫当时只查源码字符串 ⇒ 判"漏了"）。
+        """
+        import new_song as _ns
+        orig = _ns.initial_render_cfg
+
+        def stripped(*a, **kw):
+            c = dict(orig(*a, **kw))
+            c.pop('norm', None)
+            c.pop('tuned', None)
+            return c
+        return Mut(_ns, 'initial_render_cfg', stripped)
+    results.append(case('建曲不写 norm 标记（初始配置把口径留给下一环猜）',
+                        'norm_warning_needs_baseline', _newsong_writes_no_norm))
+
+    # 74d'. **面板建曲的对标画像必须按主题解析**（2026-10-09：我用 GUI 生成一首后量出来的）：
+    #      注入 = 退回 `first_ref()`（= `refs/` 里字母序第一个 `BGM*`，实测 `BGM01`）
+    #      ⇒ 每一首面板生成的曲子都照**别人的曲子**频谱调参，而界面/日志完全看不出来。
+    def _panel_ref_falls_back():
+        srv = st.load_studio_server()
+        if srv is None:
+            raise SkipCase('没有 studio/server.py')
+        return Mut(srv, 'ref_for_theme', lambda theme: srv.first_ref())
+    results.append(case('面板建曲退回"随便挑第一个画像"（照别的曲子调参）',
+                        'panel_ref_is_theme_target', _panel_ref_falls_back))
 
     # 74e. **转音体检**（2026-10-05 新工具）的两条退化面：
     #      a) 谐波筛失效（把"f/2 有峰"的判断关掉）⇒ 低音+谐波的合成件会被当成"独立基音串"，

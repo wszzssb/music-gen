@@ -378,13 +378,36 @@ def stem_manifest(sid):
 
 
 def first_ref():
-    """refs/*.json 里的第一个画像名（新建曲目时当默认参考）"""
+    """`refs/*.json` 里第一个 `BGM*` 画像名 —— **只当无主题时的兜底**。"""
     d = os.path.join(ROOT, 'refs')
     names = [f[:-5] for f in sorted(os.listdir(d))] if os.path.isdir(d) else []
     for n in names:
         if n.startswith('BGM'):
             return n
     return names[0] if names else 'BGM16c'
+
+
+def ref_for_theme(theme):
+    """建曲时该对标哪份画像：**该主题自己的聚合混音目标**（`refs/mix_targets/<主题>_mix.json`）。
+
+    为什么不再用 `first_ref()`（2026-10-09 用户实测抓到）：面板建曲时**不带** `ref` 字段，
+    于是 `first_ref()` 返回 `refs/` 里字母序第一个 `BGM*` 画像（实测 = `BGM01`），
+    而它被**显式** `--ref BGM01` 传给 `new_song.py` ⇒ 覆盖掉 `new_song` 自己
+    "按主题包 `mix_target` 选画像"的正确逻辑 ⇒ **每一首面板生成的曲子都照 BGM01 的频谱调参**。
+    实证（同一首 `ask_20261009_2029`）：实测九带与 `cheerful_mix` 的 MAE **1.53dB**、
+    与 `BGM01` **2.37dB** —— 本该对标前者，而 `render.json` 里写的是 `BGM01`。
+
+    同主题 13 首模板聚合出的中位数，比"随便挑一首别人的曲子"更贴主题；画像文件不存在时
+    返回 `''`（= **不传** `--ref`，让 `new_song` 按主题包自己选 —— 别用一个名字把它顶坏）。
+    """
+    t = str(theme or '').strip()
+    if not t:
+        return first_ref()
+    for stem in (t + '_mix', t):
+        p = os.path.join(TOOLCHAIN, 'refs', 'mix_targets', stem + '.json')
+        if os.path.isfile(p):
+            return stem
+    return ''
 
 
 def songs_list():
@@ -1330,10 +1353,13 @@ class Handler(BaseHTTPRequestHandler):
                 nid, _nmerr = check_song_name(body.get('id'))
                 if _nmerr:
                     return self._err('%s（%s）' % (_nmerr, SONG_NAME_HINT))
-                ref = body.get('ref') or first_ref()
                 # **模板依据走主题模板包**（用户口径：一次生成依据同主题 ≥8 首白名单模板）。
                 # 老 `--from <现成曲目>` 仍可用，但它会被 check_song 判为"依据不合规"。
                 theme = (body.get('theme') or '').strip()
+                # 对标画像：**该主题自己的聚合混音目标**优先（2026-10-09 修，见 `ref_for_theme`
+                # 的 docstring：`first_ref()` 会让每首面板生成的曲子都照 BGM01 调参）。
+                # ⚠ 前端想指定就显式传 `ref`，否则一律按主题解析 —— 别再"随便挑第一首"。
+                ref = (body.get('ref') or '').strip() or ref_for_theme(theme)
                 src = (body.get('from') or '').strip()
                 # **重生成（覆盖）**：`--force`，2026-09-18 补。没有它时 `new_song` 碰到同名
                 # 目录只打印一句"已存在"就退出，而面板照样回 `ok:true` —— 用户以为重新生成
@@ -1394,7 +1420,10 @@ class Handler(BaseHTTPRequestHandler):
                     args += ['--energy-gain', '%.3f' % eg]
                 if force:
                     args.append('--force')
-                args += ['--ref', ref]
+                # ⚠ **ref 为空就不传**：传一个空串会把 `new_song` 的"按主题包选画像"顶掉，
+                #   成绩单随后报"参考画像不存在"（`ref_for_theme` 找不到画像时返回 ''）。
+                if ref:
+                    args += ['--ref', ref]
                 rc, out = run_py(args, timeout=300)
                 # 同名目录会让 `new_song` 拒绝（只打印"已存在"）。面板的生成场景几乎总是
                 # "改完引擎再来一版"，所以**自动补一次 `--force` 重试**，并把 `force: true`

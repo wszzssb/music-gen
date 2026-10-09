@@ -47,6 +47,23 @@ BAND_HINT = [
 ]
 
 
+def norm_warning_fires(cfg, out_base):
+    """"旧渲染口径"提示该不该出现 —— **抽成函数是为了判据能被直呼、也能被变异打到**。
+
+    背景（2026-10-09，用户在面板任务日志里实测撞上）：`new_song.py` 写初始 `render.json` 时
+    **没有 `norm` 键**（它只有 `auto_render_params()` 产出的渲染参数），`norm` 是 `make_song`
+    调参之后才补的 ⇒ 每一首**从没渲染过**的新歌都被判成"旧双声道口径"，
+    于是每次生成都刷一句"重渲染会变响、别用 --no-tune 做 A/B" —— 而新歌**根本没有旧产物可"变响"**。
+
+    判据：**先说有没有上一版产物**（没有 = 没有基线 = 不提示），再比口径标记。
+    ⚠ 抽成函数还有个硬理由：写在 `main()` 里时，变异用例只能去改 `main` 的源码字符串，
+      而替换后的函数 `inspect.getsource` 读不到 ⇒ 守卫当场崩、用例报"跳过"（实测）。
+    """
+    has_baseline = (os.path.isfile(out_base + '.wav')
+                    or os.path.isfile(out_base + '.ogg'))
+    return bool(has_baseline and cfg.get('norm') != render_midi.NORM)
+
+
 def _tip_group(band):
     """频段 → 该动哪一组（单频段提示用；按名字映射，别用区间判断——315-400 会重叠）"""
     return {'20-40': 20, '40-80': 20, '80-160': 20,
@@ -511,7 +528,14 @@ def main():
     # **口径标记**：`norm` 记录这份 render.json 是哪个响度口径下调出来的。
     # 旧配置（无标记 = 双声道 RMS 时代）重渲染会**变响**（更贴近参考，最多 ~2.1dB），
     # 让自动调参重新收敛即可；但 `--no-tune` 的 A/B 探针会被这 +2dB 误导，所以先提示。
-    if cfg.get('norm') != render_midi.NORM:
+    #
+    # ⚠ **2026-10-09 修：新建的曲子不该命中这句**（用户在面板里看到它、以为出问题了）。
+    #   实测根因：`new_song.py` 写初始 `render.json` 时**只写渲染参数**（`auto_render_params()`
+    #   产出 rms/width/shelf/hp/low/drive），`norm` 是**本次调参之后**才补的键 ⇒
+    #   每一首**从没渲染过**的新歌都被判成"旧口径"，而它根本没有旧口径的产物可"变响"。
+    #   判据补上"**有没有上一版渲染的产物**"：没有 ⇒ 没有基线 ⇒ 不提示（提示会误导人）。
+    #   只有"确实渲过（wav/ogg 在）但没带口径标记/标记不同"的曲子才是真该提示的对象。
+    if norm_warning_fires(cfg, out):
         print('  ! render.json 的响度口径 = %s（当前 %s）：重渲染会变响（更贴近参考，'
               '最多 ~2.1dB）—— 别用 --no-tune 做 A/B，让它跑自动调参重新收敛。'
               % (cfg.get('norm') or '未标记（旧：双声道 RMS）', render_midi.NORM))
