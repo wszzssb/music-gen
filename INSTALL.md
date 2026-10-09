@@ -28,13 +28,25 @@ winget install --id Microsoft.EdgeWebView2Runtime                              #
 ## 验证环境可用
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\selftest.py      # 全绿 = 可用（**约 4~5 分钟 / 233 项**；素材类会打印"跳过…不随仓库分发"）
+.\.venv\Scripts\python.exe scripts\selftest.py      # 空库时会有几条红，读措辞（见下）；**约 4~5 分钟 / 233 项**
 .\.venv\Scripts\python.exe scripts\rehearsal.py     # 彩排：5 套风格端到端（约 4 分钟；要自备参考曲，没备就跳过那步）
 ```
 
 > **clone 后第一次自检**：素材类项目（外部 MIDI、参考曲音频、wav 母版）**不随仓库分发**，
 > 所以那几条检查会打印"跳过…（素材不随仓库分发）"而不是报错 —— 这是正常的，**不是环境坏了**。
 > 自备素材（或跑一次 `make_song.py`）后它们自动生效。
+>
+> ⚠ **空曲库（`songs/` 是刚 clone 的空目录）还会让 8 条左右报红**，措辞都是
+> **"这条检查会空转"**（`velocity_measured` / `perc_declared_for_restore` / `melody_distinct` /
+> `section_transition` / `midi_probe_all` …）—— 那是判据**有意拒绝**在空库上给绿灯，不是坏了。
+> **2026-10-09 实测**：全新 clone + 装齐依赖 + 生成一首 ⇒ `122 PASS / 8 FAIL`，8 条全是这一类。
+>
+> ⚠ 其中 `doc_map_fresh` 那条**会跟着曲库走**：`docs/DOC-MAP.md` 里有一节「按曲笔记」
+> （统计 `songs/<曲>/notes.md`）⇒ **每生成一首歌就把它顶旧一次**。生成完跑一下
+> `.\.venv\Scripts\python.exe scripts\doc_map.py` 再自检就绿了（生成物，别手改）。
+>
+> ⚠ 自检会往**仓库根**留几个临时目录（`lta_selftest_*` / `mg_*` / `tmp*`）—— 不进版本库，
+> 但会出现在 `git status` 里；嫌乱就删（它们是中间产物）。
 
 ## 写歌技能（可选，推荐）
 
