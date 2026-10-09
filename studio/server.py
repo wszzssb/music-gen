@@ -1001,6 +1001,18 @@ class Handler(BaseHTTPRequestHandler):
     def _err(self, msg, code=400):
         self._json({'ok': False, 'error': str(msg)}, code)
 
+    def _no_content(self, hdr=None, val=None):
+        """**204 无内容**。用在"这条资源**预期内**就是没有"的场合（例如参考曲音频不随仓库分发）——
+        回 404 会让浏览器控制台多一条"加载失败"，而仓库自带的
+        `studio/tools/browser_check_create.js` 把**任何** console/network error 判成 FAIL
+        ⇒ 全新 clone 上必然假红（2026-10-09 实测：四页全 200，只因 `/api/ref-audio` 的 404 判 FAIL）。
+        前端 `engine.js#loadRef` → `decode()` 失败本来就返回 null，所以 204 对它是"静默无音频"。"""
+        self.send_response(204)
+        self.send_header('Content-Length', '0')
+        if hdr:
+            self.send_header(hdr, val or '')
+        self.end_headers()
+
     def _stop_job(self, jid):
         """停掉一个后台任务（杀进程树）。GET/POST 都能进（面板用 POST）。"""
         j = JOBS.get(jid)
@@ -1181,6 +1193,15 @@ class Handler(BaseHTTPRequestHandler):
                 # 当路径用 → 这个按钮对所有主题曲目恒 404（2026-09-19 实测）。
                 f = _sc.ref_audio(r.get('ref') or 'BGM16c')
                 if not f:
+                    # ⚠ **两种"没有"要分开**（2026-10-09）：
+                    #   · 画像**在**、只是参考曲音频没自备（**素材不随仓库分发**，版权原因）
+                    #     ⇒ 这是**预期内**的缺失，回 **204**（不是 404）—— 否则浏览器控制台多一条
+                    #     "加载失败"，而 `browser_check_create.js` 把任何 console/network error
+                    #     判成 FAIL ⇒ 全新 clone 上必然假红（实测：四页全 200，只这一条判 FAIL）。
+                    #   · 画像**本身**都找不到 ⇒ 那才是真配置错（ref 名字写错），仍旧 404 并说清怎么办。
+                    _ref = r.get('ref') or 'BGM16c'
+                    if os.path.isfile(_sc.ref_path(_ref)):
+                        return self._no_content('X-BGM-Ref-Audio', 'unavailable')
                     return self._err(
                         '参考曲音频不可用：画像只记了文件名，素材不随仓库分发 —— '
                         '设环境变量 BGM_REF_DIR，或在 studio/.refdir 里写一行素材目录'

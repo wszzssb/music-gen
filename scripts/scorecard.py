@@ -64,7 +64,14 @@ def ref_audio(spec):
     """
     try:
         img = spec if isinstance(spec, dict) else load_ref(spec)
-    except Exception:                                        # noqa: BLE001
+    except (Exception, SystemExit):
+        # ⚠ **必须连 `SystemExit` 一起接**（2026-10-09 实测抓到的真 bug）：
+        #   `load_ref()` 对"画像文件不存在"是 `raise SystemExit(...)`（那是给 **CLI** 的友好退出，
+        #   守卫 `t_scorecard_missing_ref` 明确要求它这么做），而 `SystemExit` 继承的是
+        #   **`BaseException` 不是 `Exception`** ⇒ 只写 `except Exception` **接不住** ⇒
+        #   进程照样退出。后果：面板 `/api/ref-audio` 的请求线程直接死，浏览器看到
+        #   **"Empty reply from server"**（不是 404，也没有任何报错日志），
+        #   而本函数的 docstring 明明写着"找不到返回 None，调用方**必须**降级"。
         return None
     if not img:
         return None

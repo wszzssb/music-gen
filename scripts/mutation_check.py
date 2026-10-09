@@ -3805,6 +3805,29 @@ def main():
     results.append(case('新人入口点名了不出库的示例（下载者找不到）', 'install_entrypoints',
                         lambda: _SetupCmdMut()))
 
+    # 98. **`ref_audio` 接不住 `SystemExit`**（2026-10-09 实测的真 bug）：`load_ref` 对"画像文件
+    #     不存在"是 `raise SystemExit`（给 CLI 的**友好退出**，守卫 `t_scorecard_missing_ref` 要求
+    #     它这么做），而 `ref_audio` 只写 `except Exception` —— `SystemExit` 继承 **BaseException**、
+    #     不是 `Exception` ⇒ **接不住** ⇒ 进程退出 ⇒ 面板 `/api/ref-audio` 的请求线程直接死，
+    #     浏览器看到 **"Empty reply from server"**（不是 404、也没有任何日志）。
+    #     注入：把 except 改回 `except Exception`。
+    class _RefAudioMut:
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'scripts', 'scorecard.py')
+            self.text = open(self.p, encoding='utf-8').read()
+            new = self.text.replace('except (Exception, SystemExit):',
+                                    'except Exception:  # noqa: BLE001', 1)
+            assert new != self.text, '注入锚点不在了（scorecard.ref_audio 的 except 改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('参考曲：ref_audio 接不住 SystemExit（进程退出 ⇒ 面板空响应）',
+                        'scorecard_missing_ref', lambda: _RefAudioMut()))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

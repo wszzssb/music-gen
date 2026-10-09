@@ -1148,13 +1148,29 @@ def t_metrics_bpm_and_schema():
 
 @check
 def t_scorecard_missing_ref():
-    """参考画像缺失时必须友好退出"""
+    """参考画像缺失时必须友好退出**（`load_ref`）**，而 `ref_audio` 必须**降级**（不退出）。"""
     try:
         scorecard.load_ref('绝对不存在的画像名')
     except SystemExit as e:
         assert 'profile_ref' in str(e), '报错信息没告诉怎么建画像'
-        return
-    raise AssertionError('缺画像时没有报错')
+    else:
+        raise AssertionError('缺画像时没有报错')
+    # ② **`ref_audio` 找不到时必须返回 None，不许退出进程**（2026-10-09 实测的真 bug）：
+    #    它的 docstring 写着"找不到返回 None，调用方必须降级"，但实现用的是 `except Exception`
+    #    —— 而 `load_ref` 抛的是 `SystemExit`，它继承 **BaseException**、**不是 Exception**
+    #    ⇒ 接不住 ⇒ 面板 `/api/ref-audio` 的请求线程直接死（浏览器看到 "Empty reply from server"，
+    #    既不是 404 也没有日志）。⚠ 判据**放子进程里跑**：真退出的话本进程就没了，守卫会静默消失。
+    import subprocess
+    code = ('import sys; sys.path.insert(0, %r); import scorecard as sc;'
+            'v = sc.ref_audio("绝对不存在的画像名");'
+            'print("REF_AUDIO_OK" if v is None else "REF_AUDIO_BAD:" + str(v))' % HERE)
+    r = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True,
+                       encoding='utf-8', errors='replace', cwd=TMP)
+    assert r.returncode == 0, \
+        ('`ref_audio` 对缺画像**退出了进程**（该返回 None 让调用方降级）—— '
+         'rc=%s · err=%r' % (r.returncode, (r.stderr or '')[-160:]))
+    assert 'REF_AUDIO_OK' in (r.stdout or ''), \
+        '`ref_audio` 既没退出也没返回 None：out=%r' % (r.stdout or '')
 
 
 # ---------------------------------------------------------------- 4. 端到端
