@@ -94,9 +94,11 @@
 
   <section class="panel" id="center">
     <h2>钢琴卷帘
-      <span class="dim">（拖=移动 · 右缘拖=改时值 · 空白拖=新建 · 右键=删除 · 滚轮=缩放 · Alt+拖=力度）</span>
+      <span class="dim">（空白拖=建音并拉时值 · 拖=移动 · Alt+拖=移调 · 右缘拖=改时值 ·
+        右键=删 · 双击=删/建 · 滚轮=横向滚动 · Ctrl+滚轮=缩放 · Shift+滚轮=纵向缩放 ·
+        方向键=微调）</span>
     </h2>
-    <canvas id="roll"></canvas>
+    <canvas id="roll" tabindex="0" title="空白处按下并往右拖 = 建一个音并拉长；拖音符 = 移动（默认不改音高）；Alt+拖 = 移调；右缘 7px 内 = 改时值；右键 = 删除；滚轮 = 横向滚动；Ctrl+滚轮 = 缩放"></canvas>
     <div id="velWrap"><canvas id="velLane" title="力度通道：拖竖直条改力度，与卷帘同步"></canvas></div>
   </section>
 
@@ -113,7 +115,7 @@
 </main>
 
 <footer id="logWrap" class="panel"><pre id="log"></pre></footer>
-<audio id="player" preload="auto"></audio><script src="/ed.js?v=9"></script>
+<audio id="player" preload="auto"></audio><script src="/ed.js?v=10"></script>
 <script src="/i18n.js?v=3"></script>
 </body>
 </html>

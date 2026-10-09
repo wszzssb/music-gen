@@ -32,6 +32,8 @@ const S = {
   raf: null, live: new Map(), seq: 0,          // 播放：rAF 句柄 / 活着的声音（key→{t,v,stop}） / 计数
   index: null, indexDirty: true,               // 音符时间索引（播放时按窗口取音，别每帧扫全曲）
   scheduled: new Set(),
+  mouse: { x: null, y: null },                 // 卷帘内最近一次鼠标位置（光标提示用）
+  vfitKey: null,                               // 单轨"自动贴合音域"的记账（同一轨只贴合一次）
 };
 
 /* ------------------------------------------------------------------ 日志 */
@@ -240,10 +242,22 @@ function renderRoll() {
     c.fillText('先导入一个 .mid 文件（左上「⬆ 导入 MIDI」）', 16, 40);
     return;
   }
-  if (S.selTracks.size === 1) {                 // 单轨：自动把纵向对准它的音域
-    const t = S.model.tracks[[...S.selTracks][0]];
-    const ps = (t.notes || []).map(n => n[2]);
-    if (ps.length) { S.lowPitch = Math.max(0, Math.min(...ps) - 3); S.highPitch = Math.min(127, Math.max(...ps) + 3); }
+  // 单轨：把纵向对准它的音域 —— ⚠ **只在"选中轨变化"时贴合一次**（2026-10-09 修）。
+  //   原来这里是"每次重画都贴合"，后果实测是：**Shift+滚轮纵向缩放会被下一次重画立刻覆盖**
+  //   （用户口径"操控奇怪"里的一条："纵向缩放没反应"），而且编辑/拖动时音域窗会自己跳。
+  if (S.selTracks.size === 1) {
+    const ti = [...S.selTracks][0];
+    if (S.vfitKey !== ti) {
+      S.vfitKey = ti;
+      const t = S.model.tracks[ti];
+      const ps = (t && t.notes || []).map(n => n[2]);
+      if (ps.length) {
+        S.lowPitch = Math.max(0, Math.min(...ps) - 3);
+        S.highPitch = Math.min(127, Math.max(...ps) + 3);
+      }
+    }
+  } else {
+    S.vfitKey = null;                       // 多选/全选：解除"贴合记忆"，下次单选会重新贴合
   }
   // 循环区间（在标尺上拖选；Ctrl+拖 = 取消）
   if ($('loopChk').checked && S.loopA != null && S.loopB != null && S.loopB > S.loopA) {
@@ -409,17 +423,64 @@ function noteAt(g, x, y) {
   }
   return null;
 }
+/* ---------------------------------------------------------------------------
+ * 卷帘交互（2026-10-09 重写：用户口径"钢琴卷帘操控太奇怪了"）
+ *
+ * 旧版实测的"奇怪"在哪：
+ *   ① 空白处**一按下就建一个固定时值的音**、拖也改不了长度 ⇒ 想画一个四分音符得
+ *      "点一下 → 再去拖右边缘"；而且鼠标一动还会改到**音高**（`dP` 无阈值、无 Shift 约束）
+ *   ② 滚轮默认 = 横向缩放（要滚动得按 Alt）—— 与所有 DAW 相反，一不小心就把视野缩飞
+ *   ③ 命中右边缘的判定只有 **4px**（`> -4`），很难抓；也没有光标提示（根本不知道能拉）
+ *   ④ 一次只能拖**一个**音符（多选后拖动只动按住的那一个）
+ *   ⑤ 拖动时鼠标移出画布就丢事件（没锁指针），拖到边缘也不会自动滚动
+ *
+ * 新手感（都按"常见 DAW"的口径，并写进工具栏提示）：
+ *   · **空白按下 = 建音**：时值 = 网格步长；按住往右拖 = **边建边拉长**
+ *   · **拖动音符 = 移动**：纯水平移（音高不动）；**Alt+拖 = 弯音高**；Shift+拖 = 锁定时值
+ *   · **右边缘 7px 内 = 拉时值**（光标变 ↔）；**Alt+拖音符 = 改力度**（光标变 ↕）
+ *   · **多选一起动**（选中集里所有音符同步位移）
+ *   · 右键删（多选则一起删）· 双击音符删 · 双击空白建一个网格步长的音
+ *   · **滚轮 = 横向滚动** · **Ctrl+滚轮 = 以鼠标为锚横向缩放** · **Shift+滚轮 = 纵向缩放**
+ *   · 拖动到画布边缘会自动滚屏；用指针捕获，鼠标移出画布也不丢
+ *   · 方向键微调：←/→ 移一个网格 · Shift+←/→ 改时值 · ↑/↓ 移半音 · Shift+↑/↓ 移八度（Alt = 不吸附）
+ * ------------------------------------------------------------------------- */
+const ROLL_HDR = 14;          // 顶部标尺高度（循环区间 / 定位都在这条上）
+const ROLL_TOP = 18;          // 音符区起始 y
+const EDGE_PX = 7;            // 右边缘"拉时值"的命中宽度（旧版 4px 太难抓）
+const DRAG_PX = 4;            // 判定"真的拖了"的阈值（旧版 2px 太灵，手一抖就动）
+const WHEEL_STEP = 40;        // 滚轮一格滚动多少像素
+
+function rollCursorFor(g, x, y) {
+  if (y < ROLL_HDR) return 'pointer';
+  const hit = noteAt(g, x, y);
+  if (!hit) return S.editMode ? 'crosshair' : 'default';
+  const n = hit.n;
+  if ((xBeat(g, x) - (n[0] + n[1])) * S.ppb > -EDGE_PX) return 'col-resize';
+  return 'move';
+}
+function updateRollCursor() {
+  if (!S.model) return;
+  const g = rollGeom();
+  const r = g.cv.getBoundingClientRect();
+  const x = S.mouse.x, y = S.mouse.y;
+  if (x == null) return;
+  g.cv.style.cursor = rollCursorFor(g, x, y);
+}
+
 function bindRoll() {
   const cv = $('roll');
+  const localXY = (e) => {
+    const r = cv.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
   cv.oncontextmenu = (e) => e.preventDefault();
   cv.onmousedown = async (e) => {
     if (!S.model) return;
     if (e.button === 2 && !S.editMode) return;         // 右键删：只读时直接不响应
     const g = rollGeom();
-    const r = cv.getBoundingClientRect();
-    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const { x, y } = localXY(e);
     // 标尺区（最上面 14px）：拖动 = 选循环区间 · Ctrl+点 = 取消循环 · Alt+点 = 定位播放头
-    if (y < 14) {
+    if (y < ROLL_HDR) {
       if (e.ctrlKey || e.metaKey) {
         S.loopA = S.loopB = null; renderRoll(); log('已取消循环区间');
         return;
@@ -434,47 +495,86 @@ function bindRoll() {
       return;
     }
     if (!needEdit('改音符')) return;         // 🔒 只读：浏览/播放/缩放/循环不受影响，改音符被拦下
+    if (e.detail >= 2) {                     // 双击：音符上 = 删 · 空白 = 建一个网格步长的音
+      const h2 = noteAt(g, x, y);
+      if (h2) {
+        pushUndo();
+        S.model.tracks[h2.t].notes.splice(h2.i, 1);
+        S.selNotes = S.selNotes.filter(s => !(s.t === h2.t && s.i === h2.i));
+        await opLocal('delete_notes', { track_idx: h2.t, note_idx: [h2.i] });
+        renderRoll(); renderVel(); renderProps(); log('双击删 1 个音');
+      } else {
+        await createNoteAt(g, x, y);
+      }
+      return;
+    }
     const hit = noteAt(g, x, y);
-    if (e.button === 2) {                                  // 右键删
+    if (e.button === 2) {                                  // 右键删（选中集一起删）
       if (!hit) return;
+      const inSel = S.selNotes.some(s => s.t === hit.t && s.i === hit.i);
+      const targets = (inSel && S.selNotes.length > 1) ? S.selNotes.slice() : [{ t: hit.t, i: hit.i }];
       pushUndo();
-      S.model.tracks[hit.t].notes.splice(hit.i, 1);
+      const byT = {};
+      targets.forEach(s => (byT[s.t] = byT[s.t] || []).push(s.i));
+      Object.keys(byT).forEach(t => {
+        const idx = byT[t].slice().sort((a, b) => b - a);
+        idx.forEach(i => S.model.tracks[+t].notes.splice(i, 1));
+      });
       S.selNotes = [];
-      await opLocal('delete_notes', { track_idx: hit.t, note_idx: [hit.i] });
-      renderRoll(); renderVel(); renderProps(); log('删 1 个音');
+      for (const t of Object.keys(byT)) {
+        await opLocal('delete_notes', { track_idx: +t, note_idx: byT[t] });
+      }
+      renderRoll(); renderVel(); renderProps();
+      log('删 ' + targets.length + ' 个音');
       return;
     }
     if (hit) {
       const n = hit.n;
-      const rightEdge = (xBeat(g, x) - (n[0] + n[1])) * S.ppb > -4;
-      if (!e.ctrlKey && !e.metaKey && !S.selNotes.some(s => s.t === hit.t && S.model.tracks[hit.t].notes[s.i] === n)) {
+      const rightEdge = (xBeat(g, x) - (n[0] + n[1])) * S.ppb > -EDGE_PX;
+      const already = S.selNotes.some(s => s.t === hit.t && s.i === hit.i);
+      if (e.ctrlKey || e.metaKey) {                      // Ctrl+点：加/减选
+        if (already) S.selNotes = S.selNotes.filter(s => !(s.t === hit.t && s.i === hit.i));
+        else S.selNotes.push({ t: hit.t, i: hit.i });
+      } else if (!already) {
         S.selNotes = [{ t: hit.t, i: hit.i }];
-      } else if (e.ctrlKey || e.metaKey) {
-        S.selNotes.push({ t: hit.t, i: hit.i });
       }
-      S.drag = { kind: rightEdge ? 'dur' : (e.altKey ? 'vel' : 'move'), t: hit.t, i: hit.i, n,
-                 x0: x, y0: y, a0: n[0], d0: n[1], p0: n[2], v0: n[3], moved: false };
+      // 多选拖动：把**选中集里每个音**的原始位置都记下来，一起位移
+      const items = (S.selNotes.length && !rightEdge)
+        ? S.selNotes.map(s => {
+            const nn = S.model.tracks[s.t].notes[s.i];
+            return nn ? { t: s.t, i: s.i, n: nn, a0: nn[0], d0: nn[1], p0: nn[2] } : null;
+          }).filter(Boolean)
+        : [{ t: hit.t, i: hit.i, n, a0: n[0], d0: n[1], p0: n[2] }];
+      const kind = rightEdge ? 'dur' : (e.altKey ? 'vel' : 'move');
+      S.drag = { kind: kind, t: hit.t, i: hit.i, n: n, items: items,
+                 x0: x, y0: y, a0: n[0], d0: n[1], p0: n[2], v0: n[3],
+                 shift: !!e.shiftKey, moved: false, created: false };
       renderRoll(); renderProps();
       return;
     }
-    // 空白：新建（在选中的轨上；没选就用第一条不隐藏的轨）
+    // 空白按下 = **建一个音符**（时值先给网格步长）；按住往右拖就是"边建边拉长"
+    if (e.shiftKey) return;                                // Shift+空白 = 留给"框选"的地盘，先不建
     const ti = activeTracks().find(i => !S.model.tracks[i].hidden);
     if (ti == null) return;
     const b = Math.max(0, snapBeat(xBeat(g, x)));
     const p = Math.max(0, Math.min(127, yPitch(g, y)));
-    const dur = Math.max(gridStep(), 0.25);
+    const dur = gridStep();
     pushUndo();
     S.model.tracks[ti].notes.push([b, dur, p, 96]);
-    renderAll();
-    await opLocal('add_note', { track_idx: ti, start: b, dur, pitch: p, vel: 96 });
-    log('新建音符 ' + noteName(p) + ' @' + b.toFixed(3) + ' 拍');
+    const ni = S.model.tracks[ti].notes.length - 1;
+    S.selNotes = [{ t: ti, i: ni }];
+    S.drag = { kind: 'dur', t: ti, i: ni, n: S.model.tracks[ti].notes[ni],
+               x0: x, y0: y, a0: b, d0: dur, p0: p, v0: 96,
+               shift: false, moved: false, created: true };
+    renderRoll(); renderProps();
+    log('新建 ' + noteName(p) + ' @' + b.toFixed(3) + ' 拍（往右拖可以拉长）');
   };
   cv.onmousemove = (e) => {
-    if (!S.drag) return;
     const g = rollGeom();
-    const r = cv.getBoundingClientRect();
-    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const { x, y } = localXY(e);
+    S.mouse.x = x; S.mouse.y = y;
     const d = S.drag;
+    if (!d) { updateRollCursor(); return; }
     if (d.kind === 'loop') {                       // 标尺拖选循环区间
       const b = Math.max(0, snapBeat(xBeat(g, x)));
       S.loopA = Math.min(d.b0, b);
@@ -483,19 +583,38 @@ function bindRoll() {
       renderRoll();
       return;
     }
+    // 拖到边缘自动滚屏（否则拖长音符时视野不够用）
+    if (x < 26) S.x0 = Math.max(0, S.x0 - 2.5);
+    else if (x > g.w - 26) S.x0 = Math.max(0, S.x0 + 2.5);
     const n = d.n;
     const dB = (x - d.x0) / S.ppb;
     const dP = -Math.round((y - d.y0) / g.keyH);
-    d.moved = d.moved || Math.abs(x - d.x0) > 2 || Math.abs(y - d.y0) > 2;
+    d.moved = d.moved || Math.abs(x - d.x0) > DRAG_PX || Math.abs(y - d.y0) > DRAG_PX;
     if (d.kind === 'move') {
-      n[0] = Math.max(0, snapBeat(d.a0 + dB));
-      n[2] = Math.max(0, Math.min(127, d.p0 + dP));
+      // ⚠ 默认**只改时间**（旧版一行一动就顺手改了音高 —— 最"奇怪"的手感来源）；
+      //   要移调就按 Alt，并在拖动过程中把**最大位移**记下来做吸附（不然会随鼠标抖动累积误差）
+      d.maxDB = Math.max(Math.abs(dB), d.maxDB || 0);
+      const dBh = snapBeat(d.maxDB) * (dB < 0 ? -1 : 1);
+      // ⚠ 音高位移 = `sign(rows) × floor(|rows| + 0.5)`（= 阈值为 0.5 行的四舍五入）。
+      //   别用 `Math.round(rows)`：半整数时它的方向不定（`.5` 往 +∞ 取），手抖就正负跳。
+      //   也别自己再加偏移（我加过一次 `+0.5`，结果"移动整一行"变成 2 行 —— 实测踩到）。
+      const rows = (y - d.y0) / g.keyH;
+      const dPh = d.shift ? 0 : (rows > 0 ? -1 : 1) * Math.floor(Math.abs(rows) + 0.5);
+      (d.items || []).forEach(it => {
+        it.n[0] = Math.max(0, snapBeat(it.a0 + dBh));
+        it.n[2] = Math.max(0, Math.min(127, it.p0 + dPh));
+      });
+      if (d.shift) {                                    // Shift = 锁定时值（拖的时候别顺手改长）
+        (d.items || []).forEach(it => { it.n[1] = it.d0; });
+      }
     } else if (d.kind === 'dur') {
-      n[1] = Math.max(1 / 64, snapBeat(Math.max(1 / 64, d.d0 + dB)));
+      const nb = snapBeat(d.d0 + dB);
+      n[1] = Math.max(1 / 32, snapBeat(Math.max(1 / 32, nb)));
     } else if (d.kind === 'vel') {
       n[3] = Math.max(1, Math.min(127, Math.round(d.v0 - (y - d.y0) * 1.2)));
     }
     renderRoll(); renderVel(); renderProps();
+    updateRollCursor();
   };
   cv.onmouseup = async () => {
     const d = S.drag; S.drag = null;
@@ -506,32 +625,113 @@ function bindRoll() {
       renderRoll();
       return;
     }
-    if (!d.moved) { renderRoll(); return; }
-    pushUndo();
-    await opLocal('set_note', { track_idx: d.t, note_idx: d.i, start: d.n[0], dur: d.n[1], pitch: d.n[2], vel: d.n[3] });
-    S.dirty = true;
-    log('拖动 → ' + JSON.stringify(d.n));
+    if (!d.moved) { renderRoll(); updateRollCursor(); return; }
+    if (d.kind === 'move' && d.items) {               // 多选一起提交
+      for (const it of d.items) {
+        await opLocal('set_note', { track_idx: it.t, note_idx: it.i, start: it.n[0],
+                                    dur: it.n[1], pitch: it.n[2], vel: it.n[3] });
+      }
+      S.dirty = true;
+      log('移动 ' + d.items.length + ' 个音（Δ拍 ' + (d.maxDB || 0).toFixed(3) + '）');
+    } else {
+      await opLocal('set_note', { track_idx: d.t, note_idx: d.i, start: d.n[0],
+                                  dur: d.n[1], pitch: d.n[2], vel: d.n[3] });
+      S.dirty = true;
+      log((d.created ? '新建并拉伸 → ' : (d.kind === 'dur' ? '时值 → ' : (d.kind === 'vel' ? '力度 → ' : '拖动 → ')))
+          + JSON.stringify(d.n));
+    }
+    renderRoll(); renderVel(); renderProps(); updateRollCursor();
   };
+  cv.onmouseleave = () => { S.mouse.x = S.mouse.y = null; };
   cv.onwheel = (e) => {
     if (!S.model) return;
     e.preventDefault();
     const g = rollGeom();
     const r = cv.getBoundingClientRect();
-    if (e.ctrlKey || e.shiftKey) {                          // 纵向缩放
+    const ax = e.clientX - r.left;
+    if (e.shiftKey) {                                       // 纵向缩放（以视窗中心为锚）
       const c = (S.lowPitch + S.highPitch) / 2;
       const span = (S.highPitch - S.lowPitch) * (e.deltaY > 0 ? 1.15 : 0.87);
       S.lowPitch = Math.max(0, Math.round(c - span / 2));
       S.highPitch = Math.min(127, Math.round(c + span / 2));
-    } else if (e.altKey) {                                  // 横向滚动
-      S.x0 = Math.max(0, S.x0 + (e.deltaY > 0 ? 2 : -2));
-    } else {                                                // 横向缩放（以鼠标为锚）
-      const ax = e.clientX - r.left;
+    } else if (e.ctrlKey || e.metaKey) {                     // 横向缩放（以鼠标为锚）
       const anchor = xBeat(g, ax);
       S.ppb = Math.max(PX_PER_BEAT_MIN, Math.min(PX_PER_BEAT_MAX, S.ppb * (e.deltaY > 0 ? 0.88 : 1.14)));
       S.x0 = Math.max(0, anchor - ax / S.ppb);
+    } else {                                                // **默认横向滚动**（旧版是缩放，反直觉）
+      S.x0 = Math.max(0, S.x0 + (e.deltaY > 0 ? WHEEL_STEP / S.ppb : -WHEEL_STEP / S.ppb));
     }
     renderRoll(); renderVel();
   };
+}
+
+/* 空白处建音（双击用）：时值 = 网格步长，建完选中它 */
+async function createNoteAt(g, x, y) {
+  const ti = activeTracks().find(i => !S.model.tracks[i].hidden);
+  if (ti == null) return;
+  const b = Math.max(0, snapBeat(xBeat(g, x)));
+  const p = Math.max(0, Math.min(127, yPitch(g, y)));
+  const dur = gridStep();
+  pushUndo();
+  S.model.tracks[ti].notes.push([b, dur, p, 96]);
+  S.selNotes = [{ t: ti, i: S.model.tracks[ti].notes.length - 1 }];
+  await opLocal('add_note', { track_idx: ti, start: b, dur, pitch: p, vel: 96 });
+  renderRoll(); renderVel(); renderProps();
+  log('新建音符 ' + noteName(p) + ' @' + b.toFixed(3) + ' 拍');
+}
+
+/* 方向键微调的**判据本体**（抽成函数：keydown 只是转发，冒烟测试可以直接调它 ——
+   与 `roll.onmousedown/onmousemove/onmouseup` 同一套"可直呼"的做法） */
+function nudgeByKey(key, shift, alt) {
+  if (!S.model || !S.selNotes.length) return;
+  const gs = gridStep();
+  if (key === 'ArrowLeft' || key === 'ArrowRight') {
+    const dir = key === 'ArrowRight' ? 1 : -1;
+    if (shift) {                                  // 改时值
+      S.selNotes.forEach(s => {
+        const n = S.model.tracks[s.t] && S.model.tracks[s.t].notes[s.i];
+        if (!n) return;
+        n[1] = Math.max(1 / 32, n[1] + dir * gs);
+        opLocal('set_note', { track_idx: s.t, note_idx: s.i, dur: n[1] });
+      });
+      S.dirty = true;
+      renderRoll(); renderVel(); renderProps();
+      log('时值 ' + (dir > 0 ? '+' : '−') + gs + ' 拍（' + S.selNotes.length + ' 个音）');
+      return;
+    }
+    return nudgeSelection(dir * (alt ? gs / 4 : gs), 0);
+  }
+  const dir = key === 'ArrowUp' ? 1 : -1;
+  return nudgeSelection(0, dir * (shift ? 12 : 1));
+}
+
+/* 方向键微调选中音符（edit 模式下；没选就用属性面板里那个） */
+async function nudgeSelection(dBeat, dPitch) {
+  if (!S.model || !needEdit('微调音符')) return;
+  let sel = S.selNotes.slice();
+  if (!sel.length) {
+    const s = $('noteInfo') && $('noteInfo').dataset ? $('noteInfo').dataset.sel : null;
+    if (s) {
+      try {
+        const o = JSON.parse(s);
+        sel = [{ t: o.t, i: o.i }];
+      } catch (e) { /* 面板没记选中就什么都不做 */ }
+    }
+  }
+  if (!sel.length) return log('先点一个音符（或用属性面板选一个），再用方向键微调');
+  pushUndo();
+  for (const s of sel) {
+    const arr = S.model.tracks[s.t] && S.model.tracks[s.t].notes;
+    const n = arr && arr[s.i];
+    if (!n) continue;
+    if (dBeat) n[0] = Math.max(0, snapBeat(n[0] + dBeat));
+    if (dPitch) n[2] = Math.max(0, Math.min(127, n[2] + dPitch));
+    await opLocal('set_note', { track_idx: s.t, note_idx: s.i, start: n[0], dur: n[1],
+                                pitch: n[2], vel: n[3] });
+  }
+  S.dirty = true;
+  renderRoll(); renderVel(); renderProps();
+  log('微调 ' + sel.length + ' 个音（Δ拍 ' + dBeat + ' · Δ半音 ' + dPitch + '）');
 }
 
 function bindVelLane() {
@@ -1286,7 +1486,14 @@ function autoRenderAudio() {
 }
 async function renderAudio() {
   if (!S.model) return log('先导入文件');
-  if (S.renderTask) return log('已经有一个渲染在进行中…');
+  // ⚠ 早退**必须返回同形状的对象**（2026-10-09 修）：原来只 `log(...)` 就 return ⇒ 返回
+  //   `undefined` ⇒ 调用方（含 `smoke_ed.js` 第 7 节）拿到 undefined 只能报一句看不出原因的
+  //   "渲染失败"。现在返回 `{error}`，失败原因能一路传到界面/测试。
+  if (S.renderTask) {
+    const msg = '已经有一个渲染在进行中（任务 ' + String(S.renderTask) + '）—— 等它跑完再点';
+    log(msg);
+    return { error: msg };
+  }
   setStatus('渲染中（后台跑，可继续编辑/用合成音试听）…');
   log('开始渲染：当前编辑结果 → MIDI → render_midi.py（与引擎面板同一条管线）。整曲约几十秒。');
   const t0 = Date.now();
@@ -1398,6 +1605,14 @@ function bind() {
     else if (e.key.toLowerCase() === 'w') { detectChords(true); }
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
+    // **方向键微调选中音符**（用户口径"操控奇怪"里最常要的"挪一点点"）：
+    //   ←/→ 移一个网格 · Shift+←/→ 改时值 · ↑/↓ 移半音 · Shift+↑/↓ 移八度 · Alt = 更细（1/4 网格）
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight'
+             || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      if (!S.model || !S.selNotes.length) return;
+      e.preventDefault();
+      nudgeByKey(e.key, e.shiftKey, e.altKey);
+    }
     else if (e.key === 'Delete' || e.key === 'Backspace') {
       if (!S.selNotes.length) return;
       const byTrack = {};

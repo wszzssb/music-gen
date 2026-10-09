@@ -209,8 +209,12 @@ const S = vm.runInContext('S', sandbox);
 
 (async () => {
   // 合成鼠标事件（第 3 节起要用；放在这里避免 TDZ）
-  const fakeEv = (x, y, btn, ctrl, alt) => ({ clientX: x, clientY: y, button: btn || 0,
-    ctrlKey: !!ctrl, altKey: !!alt, preventDefault() {} });
+  // ⚠ 轮子事件要带 `deltaY`（2026-10-09 实锤）：`fakeEv` 原来只造鼠标事件、没有 deltaY ⇒
+  //   `onwheel` 里 `e.deltaY > 0` 恒为假（undefined > 0 === false）⇒ 永远走"往回滚"分支，
+  //   断言"往前滚"必红，而真浏览器里是好的（假红）。所以给 4/5/6 个参数都补上 deltaY。
+  const fakeEv = (x, y, btn, ctrl, alt, deltaY) => ({ clientX: x, clientY: y, button: btn || 0,
+    ctrlKey: !!ctrl, altKey: !!alt, deltaY: (deltaY === undefined ? 0 : deltaY),
+    preventDefault() {} });
 
   console.log('\n=== 0. 服务可用性 ===');
   const list = await (await realFetch('/api/ed/list')).json();
@@ -283,20 +287,157 @@ const S = vm.runInContext('S', sandbox);
     els.get('roll').onmouseup();
   }
 
-  console.log('\n=== 4. 卷帘交互（合成鼠标事件）===');
-  const nCount = S.model.tracks[0].notes.length;
-  const g = vm.runInContext('rollGeom()', sandbox);
-  const first = S.model.tracks[0].notes[0];
-  const px = (first[0] - S.x0) * S.ppb + 3;
-  const py = 18 + (S.highPitch - first[2]) * g.keyH + 2;
-  els.get('roll').onmousedown(fakeEv(px, py));
-  chk(!!S.drag, '按下命中音符（drag=' + (S.drag && S.drag.kind) + '）');
-  els.get('roll').onmousemove(fakeEv(px + 24, py));
-  els.get('roll').onmouseup();
-  await new Promise(r => setTimeout(r, 300));
-  chk(S.model.tracks[0].notes.length >= nCount, '拖动后音符数不丢（' + S.model.tracks[0].notes.length + '）');
-  const e2 = S.model.tracks[0].notes.find(n => n === first) || S.model.tracks[0].notes[0];
-  chk(Math.abs(e2[0] - first[0]) > 1e-6 || first[0] === e2[0], '拖动改了起始拍（' + first[0] + ' → ' + e2[0] + '）');
+  console.log('\n=== 4. 卷帘手感（2026-10-09 重写：空白建音+拉长 / 只移时间 / Alt 移调 / 多选 / 滚轮 / 光标）===');
+  {
+    const roll = els.get('roll');
+    const g = vm.runInContext('rollGeom()', sandbox);
+    const keyH = g.keyH;
+    const S_ = S;
+    const ns = S.model.tracks[0].notes;
+    const count0 = ns.length;
+
+    // ① 空白按下 = 建音，往右拖 = 边建边拉长
+    {
+      const x = 700, y = 120;
+      const p = vm.runInContext('yPitch(' + JSON.stringify(g) + ',' + y + ')', sandbox);
+      roll.onmousedown(fakeEv(x, y));
+      chk(!!S.drag && S.drag.created === true, '空白按下就建了一个音（drag.created=' + (S.drag && S.drag.created) + '）');
+      chk(ns.length === count0 + 1, '音符数 +1（' + count0 + ' → ' + ns.length + '）');
+      const fresh = ns[ns.length - 1];
+      chk(fresh[2] === p, '建在按下那一行的音高（' + fresh[2] + '）');
+      const d0 = fresh[1];
+      roll.onmousemove(fakeEv(x + 96, y));
+      roll.onmouseup();
+      await new Promise(r => setTimeout(r, 200));
+      chk(fresh[1] > d0 + 1e-6, '往右拖把新音的时值拉长了（' + d0 + ' → ' + fresh[1] + '）');
+      const step = vm.runInContext('gridStep()', sandbox);
+      chk(Math.abs(fresh[0] / step - Math.round(fresh[0] / step)) < 1e-6, '新音起点吸附在网格上（' + fresh[0] + '）');
+    }
+
+    // ② 拖音符 = 只改时间（旧版一行一动就顺手改音高 —— 最"奇怪"的手感来源）
+    //    ⚠ 断言口径：**小幅纵向抖动（< 半行）不该改音高**；拖满一整行**应该**改一个半音
+    //    （DAW 也是这样）。第一版把"拖一整行"当成"不该改音高"，是我预期错了（实测踩到）。
+    {
+      const n = ns[ns.length - 1];
+      const x = (n[0] - S.x0) * S.ppb + 4, y = 18 + (S.highPitch - n[2]) * keyH + 2;
+      const b0 = n[0], p0 = n[2];
+      roll.onmousedown(fakeEv(x, y));
+      chk(!!S.drag && S.drag.kind === 'move', '按住音符进入"移动"（kind=' + (S.drag && S.drag.kind) + '）');
+      roll.onmousemove(fakeEv(x + 48, y - keyH * 0.3));   // 抖动 0.3 行（< 半行）
+      chk(n[2] === p0, '**小幅纵向抖动不改音高**（' + p0 + ' → ' + n[2] + '）');
+      chk(Math.abs(n[0] - b0) > 1e-6, '同一次拖动里水平位移照常生效（' + b0 + ' → ' + n[0] + '）');
+      const b1 = n[0];
+      roll.onmousemove(fakeEv(x + 48, y - keyH));         // 拖满一整行 → 应升半音
+      chk(n[2] === p0 + 1, '拖满一整行升一个半音（' + p0 + ' → ' + n[2] + '）');
+      roll.onmouseup();
+      await new Promise(r => setTimeout(r, 200));
+      chk(Math.abs(n[0] - b1) < 1e-9 || n[0] >= b1, '松手后起点没有被回退（' + n[0] + '）');
+    }
+
+    // ③ Alt+拖 = 移调
+    {
+      const n = ns[ns.length - 1];
+      const x = (n[0] - S.x0) * S.ppb + 4, y = 18 + (S.highPitch - n[2]) * keyH + 2;
+      const p0 = n[2];
+      roll.onmousedown(fakeEv(x, y, 0, false, true));   // altKey
+      chk(!!S.drag && S.drag.kind === 'vel', 'Alt+按音符 = 力度档（kind=' + (S.drag && S.drag.kind) + '）');
+      roll.onmouseup();
+      await new Promise(r => setTimeout(r, 150));
+      chk(n[2] === p0, 'Alt 档没有偷偷改音高（' + p0 + '）');
+    }
+
+    // ④ 右缘 7px 内 = 拉时值 + 光标提示
+    {
+      const n = ns[ns.length - 1];
+      const xr = (n[0] + n[1] - S.x0) * S.ppb - 2;
+      const y = 18 + (S.highPitch - n[2]) * keyH + 2;
+      roll.onmousemove(fakeEv(xr, y));
+      chk(roll.style.cursor === 'col-resize', '悬停右缘光标 = col-resize（实得 ' + roll.style.cursor + '）');
+      const d0 = n[1];
+      roll.onmousedown(fakeEv(xr, y));
+      chk(!!S.drag && S.drag.kind === 'dur', '右缘按下进入"改时值"（kind=' + (S.drag && S.drag.kind) + '）');
+      roll.onmousemove(fakeEv(xr + 72, y));
+      roll.onmouseup();
+      await new Promise(r => setTimeout(r, 200));
+      chk(n[1] > d0 + 1e-6, '时值被拉长（' + d0 + ' → ' + n[1] + '）');
+    }
+
+    // ⑤ 多选一起动
+    {
+      const a = ns[0], b = ns[1];
+      if (a && b && a !== b) {
+        S.selNotes = [{ t: 0, i: 0 }, { t: 0, i: 1 }];
+        const a0 = a[0], b0 = b[0];
+        const x = (b[0] - S.x0) * S.ppb + 4, y = 18 + (S.highPitch - b[2]) * keyH + 2;
+        roll.onmousedown(fakeEv(x, y));
+        chk(S.drag && S.drag.items && S.drag.items.length === 2,
+            '多选拖动把 ' + (S.drag && S.drag.items && S.drag.items.length) + ' 个音都记下了');
+        roll.onmousemove(fakeEv(x + 96, y));
+        roll.onmouseup();
+        await new Promise(r => setTimeout(r, 300));
+        chk(Math.abs(a[0] - a0) > 1e-6 && Math.abs(b[0] - b0) > 1e-6,
+            '两个音一起位移（' + a0 + '→' + a[0] + ' · ' + b0 + '→' + b[0] + '）');
+      }
+    }
+
+    // ⑥ 滚轮 = 横向滚动（旧版是缩放，反直觉）；Ctrl+滚轮 = 缩放
+    {
+      // ⚠ 断言**不能写"x0 必然变大"**：x0 本来就被夹在 ≥0，前面几步（播放/定位）可能已把它
+      //   带到 0 附近 ⇒ 方向正确也会判红（实测踩到）。这里先把 x0 放到中间，再比**位移量**。
+      const ppb0 = S.ppb;
+      S.x0 = 4;
+      roll.onwheel(fakeEv(500, 100, 0, false, false, 120));    // 向下滚（deltaY > 0）
+      chk(Math.abs(S.ppb - ppb0) < 1e-9, '裸滚轮不动缩放（ppb ' + ppb0 + ' → ' + S.ppb + '）');
+      const wantDx = vm.runInContext('WHEEL_STEP / S.ppb', sandbox);
+      // ⚠ 方向口径（**统一成一条**，别再两边各写一套）：
+      //   `deltaY > 0`（向下滚）= **往右/往前**。
+      //   · 横向：时间轴向前 ⇒ **x0 增大**（内容往左移，看到更晚的小节）
+      //   · 纵向：`span × 1.15` ⇒ **跨度增大**（= 显示得更小）；反向滚则跨度减小（= 放大）
+      //   实测在"断言方向"和"缺 deltaY"上连红三次 —— 都在测试侧，不是 ed.js 的错。
+      chk(Math.abs((S.x0 - 4) - wantDx) < 1e-6 && S.x0 > 4,
+          '裸滚轮向下滚 = 时间轴往前（x0 4 → ' + S.x0.toFixed(3) + '，期望 +' + wantDx.toFixed(3) + '）');
+      S.x0 = 4;
+      roll.onwheel(fakeEv(500, 100, 0, false, false, -120));   // 向上滚
+      chk(Math.abs((4 - S.x0) - wantDx) < 1e-6,
+          '反向滚轮往回翻（x0 4 → ' + S.x0.toFixed(3) + '）');
+      S.x0 = 4;
+      const ppb1 = S.ppb;
+      roll.onwheel({ clientX: 500, clientY: 100, deltaY: -120, ctrlKey: true,
+                     shiftKey: false, altKey: false, preventDefault() {} });
+      chk(S.ppb > ppb1, 'Ctrl+滚轮向上滚 = 放大（ppb ' + ppb1 + ' → ' + S.ppb + '）');
+      chk(S.x0 >= 0, '缩放后起点不为负（x0=' + S.x0.toFixed(2) + '）');
+      const lo = S.lowPitch, hi = S.highPitch;
+      // ⚠ 纵向缩放要**先把音域窗放到中间**再断言：贴在 0/127 边界上时跨度会被夹住，
+      //   断言必假红（实测踩到 —— 跨度 22 卡在边界上纹丝不动）。
+      S.lowPitch = 55; S.highPitch = 77;
+      roll.onwheel({ clientX: 500, clientY: 100, deltaY: 120, ctrlKey: false,
+                     shiftKey: true, altKey: false, preventDefault() {} });
+      chk(S.highPitch - S.lowPitch > 22,
+          'Shift+向下滚 = 跨度变大（跨度 22 → ' + (S.highPitch - S.lowPitch) + '）');
+      S.lowPitch = 55; S.highPitch = 77;
+      roll.onwheel({ clientX: 500, clientY: 100, deltaY: -120, ctrlKey: false,
+                     shiftKey: true, altKey: false, preventDefault() {} });
+      chk(S.highPitch - S.lowPitch < 22,
+          'Shift+向上滚 = 跨度变小（放大显示，跨度 22 → ' + (S.highPitch - S.lowPitch) + '）');
+      S.lowPitch = lo; S.highPitch = hi;
+    }
+
+    // ⑦ 方向键微调（走判据本体，keydown 只是转发）
+    {
+      const n = ns[ns.length - 1];
+      S.selNotes = [{ t: 0, i: ns.length - 1 }];
+      const b0 = n[0], p0 = n[2];
+      vm.runInContext('nudgeByKey("ArrowRight", false, false)', sandbox);
+      await new Promise(r => setTimeout(r, 150));
+      chk(n[0] > b0, '→ 右移一个网格（' + b0 + ' → ' + n[0] + '）');
+      vm.runInContext('nudgeByKey("ArrowUp", false, false)', sandbox);
+      await new Promise(r => setTimeout(r, 150));
+      chk(n[2] === p0 + 1, '↑ 升半音（' + p0 + ' → ' + n[2] + '）');
+      vm.runInContext('nudgeByKey("ArrowUp", true, false)', sandbox);
+      await new Promise(r => setTimeout(r, 150));
+      chk(n[2] === p0 + 13, 'Shift+↑ 升八度（' + p0 + ' → ' + n[2] + '）');
+    }
+  }
 
   console.log('\n=== 4. 和弦检测 + 和弦轨（目标点名的功能）===');
   await sandbox.detectChords(false);
@@ -483,11 +624,10 @@ const S = vm.runInContext('S', sandbox);
 
   console.log('\n=== 7. 真音源渲染（与引擎面板同一条管线，后台任务）===');
   {
-    // 先直接打一次底层 API（诊断：把服务端的原始响应打出来，别猜）
-    const raw = await (await realFetch('/api/ed/render-audio?eid=' + encodeURIComponent(S.eid),
-      { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: S.model }) })).json();
-    console.log('       [api] ' + JSON.stringify(raw).slice(0, 200));
+    // ⚠ 这里原来**先手打一次** `/api/ed/render-audio`，紧接着又调 `renderAudio()` ——
+    //   第二次必然撞上"已有渲染在进行中"，而那时 `renderAudio` 早退返回 `undefined`
+    //   ⇒ 断言只报一句"渲染失败，耗时 0.0s"，看不出原因（2026-10-09 实测）。
+    //   现在只调一次前端入口（它内部就是打这个接口），把诊断信息从它的返回值/页面日志里读。
     const t0 = Date.now();
     let r = await sandbox.renderAudio();
     console.log('       [renderAudio 返回] ' + JSON.stringify(r && (r.error || r.task ||
