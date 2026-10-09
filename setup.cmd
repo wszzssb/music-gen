@@ -29,7 +29,7 @@ if exist ".venv\Scripts\python.exe" (
 
 echo [2/5] 依赖 numpy / soundfile / imageio-ffmpeg
 ".venv\Scripts\python.exe" -m pip install -q --upgrade pip
-".venv\Scripts\python.exe" -m pip install -q numpy soundfile imageio-ffmpeg pywebview
+".venv\Scripts\python.exe" -m pip install -q numpy soundfile imageio-ffmpeg librosa pywebview
 if errorlevel 1 goto fail
 
 echo [3/5] 音源 GeneralUser GS + fluidsynth（约 32MB）
@@ -56,8 +56,8 @@ echo [5/5] 自检：78 项全绿就说明环境可用
 echo.
 echo ============================================================
 echo   装好了。
-echo   想听现成的示例:  songs\23_d150_skip_along\d150_skip_along_sf.ogg
-echo   想写第一首歌:    看 INSTALL.md 的「五分钟出第一首」
+echo   下一步:          见 INSTALL.md（验证环境 → 写第一首 → 开面板）
+echo   提醒:            曲库与素材不随仓库分发，songs\ 是空的；示例曲要自己生成
 echo ============================================================
 pause
 exit /b 0

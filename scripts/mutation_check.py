@@ -3782,6 +3782,29 @@ def main():
     results.append(case('提取收尾：perc_exempt 退化成空话（没实测数字）', 'extract_finish_contracts',
                         lambda: Mut(_EF, 'declaration_text', lambda *a, **k: '原曲有鼓')))
 
+    # 97. **新人入口点名了"不出库"的示例**（2026-10-09 实测）：`setup.cmd` 原来让新人去开
+    #     `songs\23_d150_skip_along\…ogg`，而 `songs/` 被 .gitignore ⇒ 下载 Release 的人
+    #     **必然找不到**；而当时没有任何守卫盯这两个入口文件。
+    #     注入：往 `setup.cmd`（**GBK + CRLF** —— 别用 UTF-8 写，cmd.exe 下会报 "x is not recognized"）
+    #     塞一行"点名 songs 路径且无说明"。
+    class _SetupCmdMut:
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'setup.cmd')
+            self.raw = open(self.p, 'rb').read()
+            txt = self.raw.decode('gbk')
+            _badline = 'echo   想听现成的示例:  songs\\' + 'zz_probe\\a_sf.ogg\r\n'
+            new = txt.replace('exit /b 0', _badline + 'exit /b 0', 1)
+            assert new != txt, '注入锚点不在了（setup.cmd 结尾改过？）'
+            with open(self.p, 'wb') as fh:
+                fh.write(new.encode('gbk'))
+
+        def __exit__(self, *a):
+            with open(self.p, 'wb') as fh:
+                fh.write(self.raw)
+
+    results.append(case('新人入口点名了不出库的示例（下载者找不到）', 'install_entrypoints',
+                        lambda: _SetupCmdMut()))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

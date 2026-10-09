@@ -13073,6 +13073,54 @@ def t_mutation_harness_safe():
 
 
 @check
+def t_install_entrypoints():
+    r"""**新人入口**的实物与点名路径都要在（2026-10-09 实测踩到）。
+
+    现场：`setup.cmd` 装完最后一行让新人"想听现成的示例"去开
+    `songs\23_d150_skip_along\d150_skip_along_sf.ogg` —— 那首**本机都不在**，
+    而 `songs/` 根本**不出库**（`.gitignore`）⇒ 下载 Release 的人**必然找不到**。
+    当时**没有任何守卫盯这两个入口**（`setup.cmd` / `INSTALL.md`），所以它能一直错着。
+
+    判据：
+      ① **三个入口实物必须在**：`INSTALL.md` · `setup.cmd` · `scripts/setup_soundfont.py`；
+      ② `setup.cmd` 里点 **`songs\…`**（= 不出库的曲库）当"现成的/示例/成品"时，
+         同行（或相邻行）必须显式带说明（不随仓库分发 / 自己生成 / 是空的）；
+      ③ **编码别被改坏**：`setup.cmd` 必须能按 **GBK** 解码且保留 **CRLF**
+         （文件头注释写了原因：改成 UTF-8 会在 cmd.exe 下报 "x is not recognized"）。
+    判据自证：合成的"点名 songs\\x\\y.ogg 却没有说明"必须被 ② 抓出来。
+    """
+    for f in ('INSTALL.md', 'setup.cmd', os.path.join('scripts', 'setup_soundfont.py')):
+        assert os.path.isfile(os.path.join(ROOT, f)), \
+            '新人入口不见了：%s（下载者会没有可照做的一步）' % f
+
+    raw = open(os.path.join(ROOT, 'setup.cmd'), 'rb').read()
+    assert b'\r\n' in raw, 'setup.cmd 的 CRLF 没了（cmd.exe 能忍，但仓库口径是有意 CRLF）'
+    try:
+        txt = raw.decode('gbk')
+    except UnicodeDecodeError as e:
+        raise AssertionError('setup.cmd 不是 GBK 了（%s）—— 改成 UTF-8 会在 cmd.exe 下报 '
+                             '"x is not recognized"，文件头注释写了这条' % e.reason)
+
+    _bad = []
+    _lines = txt.splitlines()
+    for i, ln in enumerate(_lines):
+        if not re.search(r'songs[\\/]', ln):
+            continue
+        _ctx = ' '.join(_lines[i:i + 2]) if i + 1 < len(_lines) else ln
+        if not any(k in _ctx for k in ('不随仓库分发', '自己生成', '是空的', '不出库')):
+            _bad.append((i + 1, ln.strip()[:80]))
+    assert not _bad, ('setup.cmd 把"不出库的 songs\\ 路径"当现成示例点名，却没说明 —— '
+                      '下载者必然找不到（%s）' % _bad)
+
+    # 判据自证：合成一行"点名 songs 路径且无说明"必须被抓
+    _probe = ['echo   想听现成的示例:  songs\\23_d150_skip_along\\x_sf.ogg']
+    _hit = [ln for ln in _probe
+            if re.search(r'songs[\\/]', ln)
+            and not any(k in ln for k in ('不随仓库分发', '自己生成', '是空的', '不出库'))]
+    assert _hit, '判据自证失败：合成的不当点名没被这条判据抓到（那 ② 守不住任何东西）'
+
+
+@check
 def t_pitfall_index():
     """**坑台账的索引不许漂**（`PITFALLS.md` 第 1 行区间 / 主题索引 / 正文三者一致）。
 

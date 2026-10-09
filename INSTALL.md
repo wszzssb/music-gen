@@ -9,7 +9,11 @@
 
 ```powershell
 python -m venv .venv                                                          # ① 环境（Python 3.10+）
-.\.venv\Scripts\python.exe -m pip install numpy soundfile imageio-ffmpeg      # ② 依赖
+.\.venv\Scripts\python.exe -m pip install numpy soundfile imageio-ffmpeg librosa   # ② 依赖
+#   ⚠ **`librosa` 别省**：主工具链里有 **20 个脚本**在用（`bpm_fit` · `merge_sustain` ·
+#   `preflight` · `add_sub_layer` · `pick_timbre` · `extract_health` …，其中 `merge_sustain`
+#   就在「完整还原」六阶段里）。2026-10-09 实测：全新 clone 只装前三个 ⇒ 自检
+#   `add_sub_layer_contracts` 直接 ERR（`ModuleNotFoundError: No module named 'librosa'`）。
 .\.venv\Scripts\python.exe -m pip install pywebview                           # ②b 桌面窗口壳（创作台双击入口用；不要它就用 studio\创作台-浏览器窗口版.cmd）
 winget install --id Microsoft.EdgeWebView2Runtime                              # ②c 原生窗口的渲染内核（**要管理员**；缺了会白屏，见 studio\README.md）
 .\.venv\Scripts\python.exe scripts\setup_soundfont.py                         # ③ 音源
@@ -19,13 +23,13 @@ winget install --id Microsoft.EdgeWebView2Runtime                              #
 
 ③ 从多个镜像下载 `fluidsynth.exe` 与 `GeneralUser GS v1.471.sf2` 到 `vendor\`；
 网络不通时按脚本提示手动放进 `vendor\` 即可。**没装音源也不会一片红** —— 自检会明确报
-`找不到 fluidsynth.exe，先跑 scripts/setup_soundfont.py`，其余 73 项照常通过。
+`找不到 fluidsynth.exe，先跑 scripts/setup_soundfont.py`，其余各项照常通过。
 
 ## 验证环境可用
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\selftest.py      # 全绿 = 可用（约 30 秒；项数见输出，别照抄数字）
-.\.venv\Scripts\python.exe scripts\rehearsal.py     # 彩排：5 套风格端到端（约 4 分钟）
+.\.venv\Scripts\python.exe scripts\selftest.py      # 全绿 = 可用（**约 4~5 分钟 / 233 项**；素材类会打印"跳过…不随仓库分发"）
+.\.venv\Scripts\python.exe scripts\rehearsal.py     # 彩排：5 套风格端到端（约 4 分钟；要自备参考曲，没备就跳过那步）
 ```
 
 > **clone 后第一次自检**：素材类项目（外部 MIDI、参考曲音频、wav 母版）**不随仓库分发**，
