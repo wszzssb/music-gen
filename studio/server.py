@@ -1469,7 +1469,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({'ok': True, 'parsed': parsed, 'log': (out or '')[-1500:]})
             if u.path == '/api/upload':
                 # 参考音频上传：桌面壳里前端拿不到本机绝对路径，只能把文件读成 base64 发过来
-                import base64
+                # ⚠ **这里不许再写一次 `import base64`**（2026-10-09 实测的 bug）：模块顶部已有
+                #   `import base64`，在这里再 import 一次会让 `base64` 变成**整个 do_POST 的局部
+                #   变量** ⇒ 同一方法里**靠后**的 `/api/ed/import`（MIDI 编辑器导入文件那条路）
+                #   直接 `UnboundLocalError: cannot access local variable 'base64'` ⇒ HTTP 500。
+                #   症状极隐蔽：**按服务端路径导入正常**（不走 base64），只有"⬆ 导入 MIDI"选文件必炸。
                 body = self._body()
                 # ⚠ 这里原来是 `re.sub(r'[^0-9A-Za-z_-]+','_')` —— **静默改写**而不是拒绝：
                 #   中文名会被整串改成 `_` ⇒ strip 后为空 ⇒ 报"先给这首曲子起个名"，

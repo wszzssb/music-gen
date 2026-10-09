@@ -3130,6 +3130,53 @@ def main():
     results.append(case('面板建曲退回"随便挑第一个画像"（照别的曲子调参）',
                         'panel_ref_is_theme_target', _panel_ref_falls_back))
 
+    # 74d''. **MIDI 编辑器的两条导入路**（2026-10-09 实测：文件那条 500 —— `do_POST` 里
+    #       `/api/upload` 分支内又写了一次 `import base64`，让 base64 变成**整个方法**的局部
+    #       变量 ⇒ 靠后的 `/api/ed/import` 用 `base64.b64decode` 直接 UnboundLocalError）。
+    #       两个退化面各配一条：
+    #         a) 导入解析本身坏掉（`edit_import_bytes` 抛）⇒ 文件路必红；
+    #         b) **源码级注入那个真 bug**（分支内 import + 分支外使用）⇒ 影子守卫必须抓到。
+    def _ed_import_broken():
+        srv = st.load_studio_server()
+        if srv is None:
+            raise SkipCase('没有 studio/server.py')
+
+        def boom(name, data):
+            raise ValueError('注入：导入解析坏了')
+        return Mut(srv, 'edit_import_bytes', boom)
+    results.append(case('MIDI 编辑器导入解析坏掉（选文件必失败）',
+                        'midi_editor_import_works', _ed_import_broken))
+
+    def _shadow_injected_file():
+        """造一个含真 bug 的最小文件，塞进影子守卫的扫描清单。
+
+        ⚠ 必须建在**项目自己的临时目录**里（`st.TMP`）：守卫要对它算
+        `os.path.relpath(p, ROOT)`，跨盘会 `ValueError: path is on mount 'C:'`（实测踩到）。
+        ⚠ `shutil` 在本文件**没有顶层 import**（别以为有）—— 在这里显式 import。
+        """
+        import shutil as _sh
+        d = tempfile.mkdtemp(dir=st.TMP, prefix='shadow_mut_')
+        p = os.path.join(d, 'injected_shadow.py')
+        with open(p, 'w', encoding='utf-8') as f:
+            f.write('import base64\n\n\n'
+                    'def handle(path):\n'
+                    '    if path == "/upload":\n'
+                    '        import base64\n'
+                    '        return base64.b64encode(b"x")\n'
+                    '    return base64.b64decode(b"eA==")   # 分支外还读它\n')
+        real = st.shadowcheck_sources
+
+        class _M:
+            def __enter__(self):
+                st.shadowcheck_sources = lambda: real() + [p]
+
+            def __exit__(self, *a):
+                st.shadowcheck_sources = real
+                _sh.rmtree(d, ignore_errors=True)
+        return _M()
+    results.append(case('分支内 import 同名模块、分支外还用它（真 bug 形态）',
+                        'no_local_import_shadowing', _shadow_injected_file))
+
     # 74e. **转音体检**（2026-10-05 新工具）的两条退化面：
     #      a) 谐波筛失效（把"f/2 有峰"的判断关掉）⇒ 低音+谐波的合成件会被当成"独立基音串"，
     #         谐波陷阱夹具必须红；

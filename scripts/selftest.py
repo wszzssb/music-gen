@@ -7510,6 +7510,175 @@ def t_panel_ref_is_theme_target():
         '认不出的主题名必须返回空串（不传 --ref），不许拿某个画像去顶'
 
 
+def shadowcheck_sources():
+    """`t_no_local_import_shadowing` 扫哪些文件。
+
+    抽成函数是为了**变异用例能直接打它**（把一个含注入 bug 的临时文件塞进来，
+    守卫必须当场红）—— 否则那条守卫只能靠"改真源码"来验，风险太大。
+    """
+    return [os.path.join(ROOT, rel) for rel in (
+        'studio/server.py', 'scripts/make_song.py', 'scripts/new_song.py',
+        'scripts/selftest.py', 'scripts/scorecard.py', 'scripts/render_midi.py',
+        'scripts/song_engine.py', 'scripts/theme_pack.py', 'scripts/check_song.py',
+        'scripts/mutation_check.py')]
+
+
+@check
+def t_no_local_import_shadowing():
+    """函数体里**再 import 一次**模块级已 import 的名字 ⇒ 该名字在整个函数里变局部变量。
+
+    依据（2026-10-09 实测真 bug）：`studio/server.py` 的 `do_POST` 里写过一次
+    `import base64`（在 `/api/upload` 分支内），于是**同一方法里靠后**的
+    `/api/ed/import` 用 `base64.b64decode(...)` 直接
+    `UnboundLocalError: cannot access local variable 'base64'` ⇒ MIDI 编辑器
+    **"⬆ 导入 MIDI"选文件必炸（HTTP 500）**，而"按服务端路径导入"正常 ——
+    这种"两条路只坏一条"的形态极难从症状反推。
+    判据（**只报真雷**，2026-10-09 三次收紧后定稿）：扫仓库里**主脚本**的顶层 import 名，
+    若某函数在**某个 `if` 分支内**又 import 同名，而**该分支之外**还读这个名字 ⇒ 报出来。
+    ⚠ 为什么只认"分支内"的：无条件写在函数体里的 `import numpy as np` 虽然也让名字变局部，
+    但**没有绕过它的路径** ⇒ 不会 NameError（实测全库有 50 处这种写法，全报会让守卫失去信誉）；
+    真雷只有"分支里 import、分支外使用"——`/api/upload` 分支内那次正是如此。
+    规则的真阳性已验证：拿**修复前**的 `HEAD:studio/server.py` 跑，恰好命中 1 处
+    （`do_POST() 分支内 import base64（if 第 1470 行）→ 分支外第 1563 行还读`）。
+    """
+    import ast
+    bad = []
+    for p in shadowcheck_sources():
+        try:
+            rel = os.path.relpath(p, ROOT).replace('\\', '/')
+        except ValueError:
+            rel = p          # 跨盘（夹具在别的盘）时 relpath 会抛，退回绝对路径即可
+        if not os.path.isfile(p):
+            continue
+        try:
+            tree = ast.parse(open(p, encoding='utf-8').read())
+        except SyntaxError as e:
+            bad.append('%s: 语法错 %s' % (rel, e))
+            continue
+        pm = {}
+        for node in ast.walk(tree):
+            for ch in ast.iter_child_nodes(node):
+                pm[ch] = node
+        top = set()
+        for node in tree.body:
+            if isinstance(node, ast.Import):
+                for a in node.names:
+                    top.add((a.asname or a.name).split('.')[0])
+            elif isinstance(node, ast.ImportFrom):
+                for a in node.names:
+                    if a.name != '*':
+                        top.add(a.asname or a.name)
+        for fn in [n for n in ast.walk(tree)
+                   if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
+            local = {}
+            for sub in ast.walk(fn):
+                if sub is fn:
+                    continue
+                if isinstance(sub, (ast.Import, ast.ImportFrom)):
+                    for a in sub.names:
+                        nm = (a.asname or a.name).split('.')[0]
+                        if a.name == '*' or nm not in top:
+                            continue
+                        anc, guard = pm.get(sub), None
+                        while anc is not None and anc is not fn:
+                            if isinstance(anc, ast.If):
+                                guard = anc
+                                break
+                            anc = pm.get(anc)
+                        if guard is not None:
+                            local.setdefault(nm, (sub.lineno, guard))
+            for nm, (ln, guard) in local.items():
+                guarded = {id(n) for n in ast.walk(guard)}
+                uses = sorted({n.lineno for n in ast.walk(fn)
+                               if isinstance(n, ast.Name) and n.id == nm
+                               and id(n) not in guarded})
+                if uses:
+                    bad.append('%s:%d %s() 在分支内（if 第 %d 行）又 import %s，而分支外第 %s 行'
+                               '还读它 ⇒ 那条路会 UnboundLocalError（2026-10-09 的 MIDI 导入 '
+                               '500 就是这样）' % (rel, ln, fn.name, guard.lineno, nm, uses[:3]))
+    assert not bad, '局部 import 遮蔽了模块级 import（真雷）：\n      ' + '\n      '.join(bad[:6])
+
+
+@check
+def t_midi_editor_import_works():
+    """MIDI 编辑器**两条导入路**都必须能用（2026-10-09 实测：文件那条 500）。
+
+    真起一个服务在临时端口上打 HTTP，不靠"读代码觉得没问题"：
+      ① 文件路（`data_b64`，前端「⬆ 导入 MIDI」）必须 200 + 报出轨数/音符数；
+      ② 路径路（`path`，主面板「📂 打开」）必须 200；
+      ③ 不是 MIDI 的字节必须 400 且说清原因（别 500、别静默成功）。
+    """
+    import base64 as _b64
+    import json as _json
+    import shutil
+    import struct as _struct
+    import threading
+    import urllib.error
+    import urllib.request
+    srv = load_studio_server()
+    if srv is None:
+        print('        （没有 studio/server.py，跳过）')
+        return
+
+    # 一个最小的合法 SMF（1 轨，2 个音，960 division）
+    trk = (b'\x00\x90\x3c\x40' + b'\x83\x60\x80\x3c\x00' +
+           b'\x00\x90\x3e\x40' + b'\x83\x60\x80\x3e\x00' + b'\x00\xff\x2f\x00')
+    mid = (b'MThd' + _struct.pack('>IHHH', 6, 0, 1, 960) +
+           b'MTrk' + _struct.pack('>I', len(trk)) + trk)
+
+    httpd = srv.ThreadingHTTPServer(('127.0.0.1', 0), srv.Handler)
+    port = httpd.server_address[1]
+    th = threading.Thread(target=httpd.serve_forever, daemon=True)
+    th.start()
+    tmp = tempfile.mkdtemp(dir=TMP, prefix='ed_import_')
+    path = os.path.join(tmp, 'selftest_min.mid')
+    with open(path, 'wb') as f:
+        f.write(mid)
+    # ⚠ 路径路只允许导入**工具链目录或当前曲库内**的文件 ⇒ 夹具必须复制到仓库里
+    #   （原来放 tempfile 里，路径路必然 500 —— 实测踩到）。用完删掉，别留在仓库里。
+    inside = os.path.join(ROOT, '.selftest_min.mid')
+    with open(inside, 'wb') as f:
+        f.write(mid)
+
+    def post(payload):
+        req = urllib.request.Request(
+            'http://127.0.0.1:%d/api/ed/import' % port,
+            data=_json.dumps(payload).encode('utf-8'), method='POST',
+            headers={'Content-Type': 'application/json'})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.status, _json.loads(r.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            body = (e.read() or b'').decode('utf-8', 'replace')
+            try:
+                return e.code, _json.loads(body)
+            except ValueError:
+                return e.code, {'raw': body[:200]}
+
+    try:
+        st1, j1 = post({'name': 'selftest_min.mid',
+                        'data_b64': _b64.b64encode(mid).decode('ascii')})
+        assert st1 == 200 and j1.get('ok'), \
+            '文件路导入失败（HTTP %s：%s）—— 前端「⬆ 导入 MIDI」就是走这条' % (st1, j1)
+        assert (j1.get('summary') or {}).get('stats', {}).get('notes') == 2, \
+            '导入成功但音符数不对：%s' % (j1.get('summary') or {}).get('stats')
+        st2, j2 = post({'path': inside})
+        assert st2 == 200 and j2.get('ok'), '路径路导入失败（HTTP %s：%s）' % (st2, j2)
+        st3, j3 = post({'name': 'bad.mid',
+                        'data_b64': _b64.b64encode(b'not a midi').decode('ascii')})
+        assert st3 == 400 and not j3.get('ok'), \
+            '坏文件没被挡下（HTTP %s：%s）' % (st3, j3)
+        print('        导入：文件路 200（2 音符）· 路径路 200 · 坏文件 400')
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        shutil.rmtree(tmp, ignore_errors=True)
+        try:
+            os.remove(inside)
+        except OSError:
+            pass
+
+
 @check
 def t_studio_cache_prune():
     """**面板音频缓存必须有界**：`studio` 每次试听/搜索/配平/分轨都往
