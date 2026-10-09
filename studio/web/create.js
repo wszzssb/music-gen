@@ -23,6 +23,50 @@
     toast._t = setTimeout(function () { t.className = 'toast' + (isErr ? ' err' : ''); }, 4200);
   }
 
+  /* ------------------------------------------------- 曲目名规则（JS 镜像）
+   * 与 `scripts/name_rules.py` **同源**：曲目名同时是目录名/文件名前缀/argv/URL 参数，
+   * 所以禁的是**路径元字符**那一半（`/ \ : * ? " < > |`、`..`、Windows 保留名、
+   * 以 `-`/`.` 开头、结尾点或空格、长度），**中文与空格都允许**（2026-10-09 放开）。
+   * ⚠ 改这里必须同步改 `name_rules.py` —— 守卫 `t_song_name_rules` 会逐项比对，
+   *   其中 `SONG_NAME_HINT` 要求**逐字相同**。 */
+  var SN_MAX = 48;
+  // ⚠ 这一整句必须与 `scripts/name_rules.SONG_NAME_HINT` **逐字相同**（守卫比对；
+  //   所以写成**单个字面量**，别用 `+` 拼接 —— 拼接后文件里就没有那句话了）。
+  var SN_HINT = '曲目名可以用中文/字母/数字/空格 · - _ . ——不能含 / \\ : * ? " < > |，不能以 - 或 . 开头，最多 48 字';
+  var SN_BAD = '/\\:*?"<>|';
+  var SN_RESERVED = ['CON', 'PRN', 'AUX', 'NUL'];
+  (function () {
+    for (var i = 1; i <= 9; i++) { SN_RESERVED.push('COM' + i, 'LPT' + i); }
+  })();
+  function nameErr(raw) {
+    var s = String(raw == null ? '' : raw).normalize('NFC').replace(/^\s+|\s+$/g, '');
+    if (!s) { return '曲目名不能为空'; }
+    if (Array.from(s).length > SN_MAX) {
+      return '曲目名太长：最多 ' + SN_MAX + ' 个字符（当前 ' + Array.from(s).length + '）';
+    }
+    var bad = [];
+    for (var i = 0; i < s.length; i++) {
+      var c = s[i];
+      if (SN_BAD.indexOf(c) >= 0 || c.charCodeAt(0) < 32) {
+        if (bad.indexOf(c) < 0) { bad.push(c); }
+      }
+    }
+    if (bad.length) {
+      return '曲目名不能含这些字符：' + bad.join(' ') + ' —— 它们是路径/文件名元字符（曲目名同时是目录名）';
+    }
+    if (s === '.' || s === '..' || s.indexOf('..') >= 0) { return '曲目名不能含 ".."（防路径穿越）'; }
+    if (s[0] === '-' || s[0] === '.') {
+      return '曲目名不能以 "-" 或 "." 开头（前者会被命令行当选项，后者会被当隐藏项）';
+    }
+    if (s.slice(-1) === '.' || s.slice(-1) === ' ') {
+      return '曲目名结尾不能是点或空格（Windows 会把它们吃掉）';
+    }
+    if (SN_RESERVED.indexOf(s.split('.')[0].toUpperCase()) >= 0) {
+      return '曲目名不能是 Windows 保留名（' + s.split('.')[0].toUpperCase() + '）';
+    }
+    return '';
+  }
+
   async function api(path, opt) {
     var r = await fetch(path, opt);
     var txt = await r.text();
@@ -97,26 +141,29 @@
     if (!t.total_bars || !sec) { return null; }
     return t.total_bars * barBeats(t.meter) * 60 / sec;
   }
-  /** **"想要的时长（秒）"输入框 → BPM**（2026-10-08 用户："为什么写歌调时间会影响 bpm"）。
-   *  时长与 BPM 本来就是同一个量的两种写法：`秒 = 小节数 × 每小节四分 × 60 ÷ BPM`
-   *  （小节数由主题结构定死，所以"要 N 秒"只能去动 BPM）。
-   *  与"提要求"那条路**同一口径**：换算值落在主题实测区间内才填；超界只提示、不硬填。 */
+  /** **"想要的时长（秒）"输入框 → 交给生成端联合解**（2026-10-08 改口径）。
+   *  时长与 BPM 本来就是同一个量的两种写法（`秒 = 小节数 × 每小节四分 × 60 ÷ BPM`），
+   *  而**小节数由段数定死** —— 所以"要 N 秒"现在不是在这里换算 BPM，而是把秒数发给
+   *  `/api/new`（`--seconds`），由 `new_song.duration_plan` **联合解「段数 + BPM」**：
+   *  先找"让所需 BPM 落在主题实测区间内"的段数；找不到才夹到区间端点，并如实报出差值。
+   *  这里只做**预判提示**（区间内能不能做到、大概几段），真正的解在生成端（单一真源）。 */
   function applySecs() {
     var sec = Number($('genSecs').value) || 0;
     var t = curTheme();
     if (!sec || !t.total_bars) { $('secHint').textContent = ''; return; }
     var bpm = t.total_bars * barBeats(t.meter) * 60 / sec;
     var lo = t.bpm_p25, hi = t.bpm_p75;
+    var per = Number(t.section_bars || 8);
+    var nsec = Math.round((t.total_bars - 8) / per);        // 主题包原段数
     if (lo && hi && bpm >= lo && bpm <= hi) {
-      $('genBpm').value = Math.round(bpm * 10) / 10;
-      ST.bpmTouched = true;
-      $('secHint').textContent = ' → 已设为 ' + $('genBpm').value + ' BPM';
+      $('secHint').textContent = ' → 生成时按「段数 + BPM」联合解（速度留在 '
+        + lo + '~' + hi + ' 内，原段数 ' + nsec + '）';
     } else {
       var edge = (lo && bpm < lo) ? lo : hi;
-      var real = (edge && t.total_bars) ? (t.total_bars * barBeats(t.meter) * 60 / edge) : null;
-      $('secHint').textContent = ' 要 ' + sec + ' 秒需 ' + (Math.round(bpm * 10) / 10)
-        + ' BPM，超出主题区间 ' + lo + '~' + hi + (real ? '；按 ' + edge + ' BPM 实际约 '
-        + Math.round(real) + ' 秒' : '') + '（没有硬填）';
+      var real = edge ? (t.total_bars * barBeats(t.meter) * 60 / edge) : null;
+      $('secHint').textContent = ' 原段数下要 ' + (Math.round(bpm * 10) / 10) + ' BPM，'
+        + '超出主题区间 ' + lo + '~' + hi + (real ? '（那样约 ' + Math.round(real) + ' 秒）' : '')
+        + ' → 生成端会**改段数**去凑：做得到就精确命中，做不到会提示差值';
     }
     renderThemeMeta();
   }
@@ -196,18 +243,20 @@
       (p.unknown || []).forEach(function (u) {
         chips.push('<span class="chip warn">没读懂：' + esc(u) + '</span>');
       });
-      // 时长：**用 BPM 去接近**（总拍数 ÷ BPM = 秒数），不动段落结构。
+      // 时长：**交给生成端联合解「段数 + BPM」**（2026-10-08 改口径）。
+      // 旧行为是"只把秒数换成 BPM 去接近"（不动段落结构）—— 那时 90 秒这类目标根本做不到
+      // （实测要 320 BPM，远超主题区间），提示语也写着"本版不改段落结构，只能接近"。
+      // 现在 `new_song --seconds` 会先找一个"让所需 BPM 落在主题实测区间内"的段数，
+      // 所以这里**填进「想要的时长」框**（生成时随 `seconds` 一并发给 `/api/new`），
+      // 不再去动 BPM 框（两个都给时生成端以 `seconds` 为准，还会多打一行警告）。
       if (p.seconds) {
-        var need = suggestBpm(p.seconds);
-        if (need && need >= 50 && need <= 220) {
-          $('genBpm').value = Math.round(need);
-          ST.bpmTouched = true;
-          chips.push('<span class="chip theme">要 ' + p.seconds + ' 秒 → 建议 BPM ' +
-            Math.round(need) + '（已填进「速度 BPM」）</span>');
-        } else if (need) {
-          chips.push('<span class="chip warn">要 ' + p.seconds + ' 秒 → 需约 ' +
-            Math.round(need) + ' BPM，超出常用区间；本版不改段落结构，只能接近</span>');
-        }
+        $('genSecs').value = p.seconds;
+        $('genBpm').value = '';            // BPM 回到"跟随主题"，由生成端按秒数解
+        ST.bpmTouched = false;
+        applySecs();                       // 顺手按新口径刷新"能不能做到"的预判提示
+        chips.push('<span class="chip theme">要 ' + p.seconds +
+          ' 秒 → 生成时按「段数 + BPM」联合解（速度尽量留在主题实测区间内；' +
+          '做不到会提示差值）</span>');
       }
       // ⚠ **不自动勾「独奏化」**：说"钢琴曲"是想要那种风格，不等于要"整首只用钢琴"。
       //   第一版直接把它填进下拉 → 用户一句"欢快的钢琴曲"就悄悄变成了**独奏改造版**，
@@ -238,8 +287,9 @@
   /* ------------------------------------------------------------ 生成 */
   async function generate() {
     var id = $('genId').value.trim();
-    if (!/^[0-9A-Za-z_][0-9A-Za-z_-]{0,40}$/.test(id)) {
-      toast('曲目名只能用字母/数字/下划线', true); return;
+    var idErr = nameErr(id);
+    if (idErr) {
+      toast(idErr + '（' + SN_HINT + '）', true); return;
     }
     // 乐器勾选：用途决定它怎么用（自动编配时忽略）
     var _keys = picked('instChips', 'data-inst');
@@ -258,13 +308,20 @@
         arr_only: (ST.use === 'arr') ? (_keys.join(',') || 'none') : null,
         // **主奏音色**（`--lead <GM 号>`）：null = 跟随主题（不传该参数）
         lead: (ST.lead == null) ? null : String(ST.lead),
+        // **想要的时长（秒）**（`--seconds`）：生成端**联合解**「段数 + BPM」，速度尽量留在
+        // 该主题模板的实测区间内（`new_song.duration_plan`）。给了它就不再走下面
+        // "生成后回写 bpm"那条路 —— 那条只改速度、不改结构。
+        seconds: Number($('genSecs').value) || null,
         render: false
       });
       // 速度：与主题画像的默认值不同才写回 song.json —— 引擎就是拿 `bpm` 做 拍→秒 换算的，
       // 所以"想在多少秒内听完"这件事，改 BPM 是真的会生效（不是只显示）。
+      // ⚠ **用了「想要的时长」就不写回**（2026-10-08）：那条路是把秒数换成 BPM 硬写，
+      //   而 `--seconds` 已经在生成端解好了段数 + BPM（速度还在主题区间内）。
       var _t = curTheme();
       var want = Number($('genBpm').value) || 0;
-      if (want && Math.abs(want - (_t.bpm || 0)) > 0.5) {
+      var _secsWanted = Number($('genSecs').value) || 0;
+      if (!_secsWanted && want && Math.abs(want - (_t.bpm || 0)) > 0.5) {
         b.textContent = '正在写入速度…';
         var cur = await api('/api/song?id=' + encodeURIComponent(id));
         if (cur && cur.song) {
@@ -317,8 +374,9 @@
 
   async function extract() {
     var id = $('extId').value.trim();
-    if (!/^[0-9A-Za-z_][0-9A-Za-z_-]{0,40}$/.test(id)) {
-      toast('曲目名只能用字母/数字/下划线', true); return;
+    var idErr = nameErr(id);
+    if (idErr) {
+      toast(idErr + '（' + SN_HINT + '）', true); return;
     }
     if (!ST.picked) { toast('先选一个音频文件', true); return; }
     var b = $('btnExtract');

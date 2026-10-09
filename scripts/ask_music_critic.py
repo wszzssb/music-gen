@@ -102,17 +102,24 @@ def bounds(total, n=None, start=0.0, dur=None, max_sec=MAX_SEC):
     return aac.segment_bounds(total, n or 1, max_sec=max_sec)
 
 
-def ab_bounds(total_ref, total_mine, n=None, dur=None, max_sec=MAX_SEC):
+def ab_bounds(total_ref, total_mine, n=None, start=0.0, dur=None, max_sec=MAX_SEC):
     """A/B 逐段切分：两版**用同一组区间**（同段同问才有可比性），每段 ≤ `max_sec`。
 
     ⚠ 抽成独立函数是因为**踩过一次**（2026-10-02）：`--compare` 分支一开始自己算
     `step = min(时长)/n`，**绕过了 `bounds()` 的夹紧** → `--segments 2` 时每段
     **165.9 秒**，模型当场超上下文（同 PITFALLS 227 那类静默截断）。
     现在两条路径共用同一把尺子，自检 `t_music_critic_contracts` 逐条断言。
+
+    ⚠ **2026-10-09 又修一条同族**：本函数原来**没有 `start` 形参**，单段分支写死 `0.0`
+    ⇒ `--compare --start 186 --dur 28` **静默跑 0–28s** —— 我据此做"跨窗复核"时，
+    两个窗其实是**同一个窗跑两遍**，差一点就写成"两窗一致"的结论。
+    **与 `ask_audio_critic.single_bounds` 2026-09-21 修的那条一模一样**
+    （"参数收下了但没用"）⇒ 同类错第二次，故三处一起加固：形参 · 调用点 · 守卫断言
+    （含**源码断言**：调用点必须把 `start=` 传下来）。
     """
     total = min(float(total_ref), float(total_mine))
     if dur:
-        return aac.single_bounds(total, 0.0, min(float(dur), max_sec), max_sec=max_sec)
+        return aac.single_bounds(total, start, min(float(dur), max_sec), max_sec=max_sec)
     return aac.segment_bounds(total, max(1, int(n or 1)), max_sec=max_sec)
 
 
@@ -218,7 +225,10 @@ def main():
     out = {'model': c.model_id, 'question': a.ask, 'rows': {}}
     if a.compare:
         ref, mine = a.compare
-        bnd = ab_bounds(sf.info(ref).duration, sf.info(mine).duration, a.segments, a.dur)
+        # ⚠ `start=a.start` **必须传**（2026-10-09）：漏了它 `--start` 就又变成"收下了没用"
+        #   —— 守卫 `t_music_critic_contracts` 对**这一行**有源码断言（不只断言函数行为）。
+        bnd = ab_bounds(sf.info(ref).duration, sf.info(mine).duration,
+                        a.segments, start=a.start, dur=a.dur)
         print('\n=== A/B 同段同问（%d 段，每段 ≤ %.0f 秒）==='
               % (len(bnd), MAX_SEC), flush=True)
         out['rows']['ref'] = scan(c, ref, bnd, a.ask, a.repeat, a.sample, a.max_new_tokens)

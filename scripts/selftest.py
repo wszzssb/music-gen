@@ -169,6 +169,23 @@ def quiet(fn, *a, **kw):
     return r, buf.getvalue()
 
 
+def engine_ready(d, name):
+    """把内存里的 song dict 过一遍**落盘 → `song_engine.load`**，返回引擎口径的数据。
+
+    为什么必须这一步（2026-10-08 实测）：`new_song.build_from_theme` 的返回值只带
+    **主题证据里出现过的那几轨**（实测 cheerful：`Bass/Glock/Hook/Melody/Pad/Piano/Strings`，
+    **没有 `Perc`/`Arp`/`Drums`**），而 `build_events` 按 `d['programs']` 建桶
+    （`song_engine.py:2112`）⇒ 直接喂它会 `KeyError: 'Perc'`（我第一次写守卫就是这么崩的）。
+    补齐发生在 `song_engine.load`（`DEFAULT_PROGRAMS` 打底，`song_engine.py:764`），
+    而**落盘再 load 正是生产路径**（`new_song.theme_mode` 就是 `json_io.save` → 后续都走 load）。
+    ⚠ 口径只写这一处：守卫想端到端量产物，就别自己再拼一份 programs。
+    """
+    import json_io
+    p = os.path.join(TMP, '%s.json' % re.sub(r'\W+', '_', str(name)))
+    json_io.save(p, d)
+    return song_engine.load(p)
+
+
 # ---------------------------------------------------------------- 1. 静态
 @check
 def t_import_all():
@@ -2330,25 +2347,18 @@ def t_perc_declared_for_restore():
         if mid is None:
             cs = [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith('.mid')]
             mid = cs[0] if cs else None
-        if mid:
-            try:
-                import midi_file
-                m = midi_file.import_midi(mid)
-                tot = perc = 0
-                for tr in m.get('tracks') or []:
-                    n = len(tr.get('notes') or [])
-                    tot += n
-                    is_perc = (tr.get('channel') == 9
-                               or any(k in (tr.get('name') or '') for k in ('Perc', 'Drum', 'Kit')))
-                    if is_perc:
-                        perc += n
-                if tot and perc / tot > PERC_FRAC:
-                    bad.append('%s：Perc %d 音 / 全曲 %d 音 = %.1f%%（门 %.0f%%）'
-                               % (nm, perc, tot, perc / tot * 100, PERC_FRAC * 100))
-                else:
-                    okcnt += 1
-            except Exception as e:                                 # noqa: BLE001
-                unverified.append('%s（渲染 MIDI 读不了：%s）' % (nm, str(e)[:40]))
+        # ⚠ **口径一处**（2026-10-09）：Perc 占比由 `extract_finish.perc_share()` 给 ——
+        #   面板的收尾工具 `extract_finish.py` 也调它（"改了没升号/各写一份判据"是同族坑，
+        #   见 PITFALLS 353）。这里不再自己读一遍 MIDI。
+        import extract_finish as EF
+        ps = EF.perc_share(d)
+        if ps is not None:
+            perc, tot, frac, _mid = ps
+            if tot and frac > EF.PERC_FRAC:
+                bad.append('%s：Perc %d 音 / 全曲 %d 音 = %.1f%%（门 %.0f%%）'
+                           % (nm, perc, tot, frac * 100, EF.PERC_FRAC * 100))
+            else:
+                okcnt += 1
             continue
         # 没有渲染 MIDI：退回 song.json 看有没有开鼓
         secs = j.get('sections') or []
@@ -5962,6 +5972,24 @@ def t_music_critic_contracts():
     assert M.ab_bounds(100.0, 400.0, 1)[0][1] <= M.MAX_SEC, \
         '两版时长不同时该取**短的那个**：%s' % (M.ab_bounds(100.0, 400.0, 1),)
 
+    # ①c **`--compare` 也必须认 `--start`**（2026-10-09 真踩过）：`ab_bounds` 原来**没有
+    #     `start` 形参**、单段分支把起点写死 `0.0` ⇒ `--compare --start 186 --dur 28`
+    #     **静默跑 0–28s**。"跨窗复核"于是变成**同一个窗跑两遍**，差一点写成"两窗一致"。
+    #     ⚠ **与 `ask_audio_critic.single_bounds` 2026-09-21 修的那条同族**（参数收下了没用）
+    #     —— 同类错第二次，所以这里断三层：函数行为 · 夹紧语义 · **调用点源码**。
+    _ab2 = M.ab_bounds(300.0, 300.0, start=186.0, dur=28)
+    assert _ab2 == [(186.0, 28.0)], \
+        '--compare 没认 --start（该从 186 秒起，实得 %s）—— 这就是"参数收下了没用"' % (_ab2,)
+    _ab3 = M.ab_bounds(100.0, 120.0, start=95.0, dur=28)
+    assert _ab3[0][0] == 95.0 and _ab3[0][1] <= 5.0 + 1e-6, \
+        '--compare 靠近末尾时没把段长夹到剩余时长：%s' % (_ab3,)
+    _mc_src = open(os.path.join(HERE, 'ask_music_critic.py'), encoding='utf-8').read()
+    _pat = r'ab_bounds\([^)]*start='
+    assert re.search(_pat, _mc_src, re.S), \
+        '`--compare` 的调用点没把 `start=` 传给 `ab_bounds`（形参加了、调用点忘了 = bug 原样复活）'
+    assert not re.search(_pat, 'bnd = ab_bounds(x.duration, y.duration, a.segments, a.dur)', re.S), \
+        '判据自证失败：源码断言对"没传 start"的写法也判真（那它守不住任何东西）'
+
     # ② 音频塔必须在卡上（meta device 那个坑）
     assert not any('audio_tower' in str(_k) for _k in M.DEVICE_MAP), \
         ('device_map 里出现了 audio_tower=%r —— accelerate 会把它留在 meta device：'
@@ -9460,7 +9488,7 @@ def t_theme_melody_reuse():
 #   这些**不是"两条路径混用"**，是**依据演进**：曲子没错、也没人手改结构。
 #   对它们要求 `imitate:` 前缀等于逼人写假留痕 —— 所以判据认第二种前缀，
 #   且 `structure_source` 的值里带上"当时是几段"，溯源时一眼能看出依据是哪一版。
-IMITATE_SRC_RE = re.compile(r'^(?:imitate:|theme_pack-plan:)\S+$')
+IMITATE_SRC_RE = re.compile(r'^(?:imitate:|theme_pack-plan:|duration:)\S+$')
 
 
 def _imitate_unmarked(n_sec, n_plan, src):
@@ -12253,6 +12281,795 @@ def t_extract_notes_contracts():
     assert '没验证什么' in t2, \
         'notes.md 里没有「没验证什么」那一段 —— 交付时"没验证什么"必须逐条说明（不许拿分数冒充）'
     print('        提取记录：9 条关键行 + 力度来源"有则写、无则不写"✓')
+
+
+@check
+def t_arr_only_whitelist():
+    """**编配白名单（`--arr-only`）说的话必须等于产物**（2026-10-08 补 · CONVENTION §4-A 欠账）。
+
+    为什么守它：这是用户**指名**的编制（原话"每个音乐都不是要用上所有乐器，可以独奏和只选
+    几个乐器"）。清单外的层响了、或清单里的层没响，命令都 **exit 0**、日志都印"只开 X、Y"，
+    用户要到**听**的时候才发现少了一件乐器 —— 典型静默降级（红线 5）。
+
+    判据（就地 `build_from_theme`，不落盘不渲染）：
+      ① `ARR_INSTR_KEYS` 里每一层：`arr` 真值 == "在清单里"（**逐段**都要对，含**呼吸口**那段）
+      ② `perc`：清单点了 `perc` 才为真；**没点 ⇒ Perc 轨一个音都不许有**（端到端走
+         `build_events` —— 光看 `arr.perc=0` 不够：`perc_in` 这类**控制键**是另一条会漏的路）
+      ③ 反向对照：`none` ⇒ 所有乐器层为假（"空 = none = 只剩主奏"是用户定的语义）
+
+    **判据自证**：把 `new_song.breath_point_arr` 换回"逐层关掉再抬回 `bass/piano/pad`"的旧实现
+    （`mutation_check` 用 `Mut` 注入）⇒ ① 必须失败 —— 实测 `--arr-only piano,strings` 跑
+    15 个主题会关掉 **15 段**（每主题正好 1 段）的 `strings`，`PITFALLS` **364**。
+    """
+    import new_song as ns
+    import solo_instrument as si
+    import song_engine as se
+    import theme_pack as tp
+    # 两个白名单域必须同源：`--arr-only`（生成时）与 `--instruments`（独奏化）各写了一份
+    # 同样的 9 层清单 —— 抄一份就是埋一处漂移（CONVENTION §1）。这里钉相等，
+    # 加层/删层只改一处会被当场抓住（域的比较也放在本项，两条路都从它派生）。
+    assert set(ns.ARR_INSTR_KEYS) == set(si._MULTI_LAYERS), \
+        '两个编配白名单域脱节：new_song.ARR_INSTR_KEYS=%s vs solo_instrument._MULTI_LAYERS=%s' \
+        % (sorted(ns.ARR_INSTR_KEYS), sorted(si._MULTI_LAYERS))
+    specs = ('piano,strings', 'none', 'perc')
+    bad, checked, nperc_log = [], 0, []
+    for th in sorted(tp.THEMES)[:3]:
+        pack = tp.load_pack(th)
+        if not pack:
+            continue
+        for spec in specs:
+            want = {x for x in str(spec).split(',') if x.strip() and x.strip() != 'none'}
+            try:
+                d, _o = quiet(ns.build_from_theme, pack, 'arr_only_probe', seed=1, ncand=1,
+                              arr_only=spec)
+            except SystemExit as e:
+                bad.append('%s / --arr-only %s 抛错：%s' % (th, spec, e))
+                continue
+            # 端到端要走**引擎口径**的数据（`programs` 补齐后才 `build_events`，见 `engine_ready`）
+            d = engine_ready(d, 'arr_only_%s_%s' % (th, spec))
+            on = 0
+            for i, s in enumerate(d['sections']):
+                a = s.get('arr') or {}
+                for k in ns.ARR_INSTR_KEYS:
+                    if bool(a.get(k)) != (k in want):
+                        bad.append('%s 第%d段 %s=%s（清单 %s）' % (th, i, k, a.get(k), spec))
+                # `perc` 有一处**设计上的例外**：留白段（`density: 0`，引擎自己的留白标记）
+                # 本来就不敲 —— `breath_point_arr` 把 perc/density 归零。白名单管的是
+                # "用哪几件乐器"，留白段管的是"这一段留白"，两者交叉点由它裁决。
+                # 所以留白段**豁免 perc 这一项**（但仍然要求它真的是 0，见下）；
+                # 非留白段必须严格等于"清单点了 perc"。
+                if int(a.get('density') or 0) == 0:
+                    if int(a.get('perc') or 0) != 0:
+                        bad.append('%s 第%d段是留白段（density 0）却还有 perc=%s'
+                                   % (th, i, a.get('perc')))
+                    continue
+                if bool(int(a.get('perc') or 0)) != ('perc' in want):
+                    bad.append('%s 第%d段 perc=%s（清单 %s）' % (th, i, a.get('perc'), spec))
+                elif 'perc' in want:
+                    on += 1
+            if 'perc' in want and not on:
+                bad.append('%s / --arr-only %s：**没有一段真的开着 perc**（判据空转）' % (th, spec))
+            ev, _nb = se.build_events(d)
+            n = len(ev.get('Perc') or [])
+            nperc_log.append((th, spec, n))
+            if 'perc' not in want and n:
+                bad.append('%s / --arr-only %s：清单里没点 perc，Perc 轨却有 %d 个音（静默加层）'
+                           % (th, spec, n))
+            checked += 1
+    assert checked >= 6, '夹具不足：只跑了 %d 组（主题包缺失？）' % checked
+    assert not bad, ('编配白名单与产物不符（%d 条）：\n      %s'
+                     % (len(bad), '\n      '.join(bad[:8])))
+    print('        编配白名单：%d 组 × %d 层逐段相符 · perc 端到端 ✓（Perc 计数 %s）'
+          % (checked, len(ns.ARR_INSTR_KEYS),
+             ' '.join('%s/%s:%d' % t for t in nperc_log)))
+
+
+@check
+def t_lead_override_contracts():
+    """**点名主奏音色（`--lead`）必须真的按点名的来**（2026-10-08 补 · CONVENTION §4-A 欠账）。
+
+    为什么守它：这是用户问"为什么直接生成没有萨克斯"之后加的口子（15 个主题的主奏池里
+    只有 2 个含萨克斯）。它有两条静默失败路径：
+      ① 一件 = 全曲一致 · 多件 = **按段轮换** —— 轮换写坏（比如每段都取第 1 件）听感就退回
+         "全曲一个音色"，而那正是要修的毛病（用户 2026-10-07："节奏和开头引出方式都好像"）；
+      ② 名字/清单的**报错路径**退化成"默认钢琴"或"悄悄不生效" —— 用户以为点名生效了。
+
+    判据（就地 `build_from_theme`，不落盘）：
+      ① `--lead 65,40` ⇒ 逐段 `arr.melody_prog` == `[65,40,65,40,…]`（**字面量**期望值，
+         不复用被测函数 —— 复用的话把函数改坏就抓不到了）
+      ② `--lead sax` ⇒ 逐段全等于萨克斯 GM 号
+      ③ 不认识的别名 / 越界号 / **空清单** ⇒ 必须抛 `SystemExit`（不许静默）
+    """
+    import new_song as ns
+    import solo_instrument as si
+    import theme_pack as tp
+    sax = si.parse_instrument('sax')[0]
+    bad, checked = [], 0
+    for th in sorted(tp.THEMES)[:2]:
+        pack = tp.load_pack(th)
+        if not pack:
+            continue
+        for spec, want in (('65,40', [65, 40]), ('sax', [sax]), ('0', [0])):
+            d, _o = quiet(ns.build_from_theme, pack, 'lead_probe', seed=1, ncand=1, lead=spec)
+            seq = [(s.get('arr') or {}).get('melody_prog') for s in d['sections']]
+            exp = [want[i % len(want)] for i in range(len(seq))]
+            if seq != exp:
+                bad.append('%s / --lead %s：melody_prog=%s，应为 %s'
+                           % (th, spec, seq[:8], exp[:8]))
+            checked += 1
+    assert checked >= 4, '夹具不足：只跑了 %d 组' % checked
+    assert not bad, '点名的主奏音色没落到产物上：\n      %s' % '\n      '.join(bad[:6])
+    # **反向对照**：坏清单必须报错（`--lead ","` 曾经是"一句不打印、悄悄退回主题池"）
+    first = tp.load_pack(sorted(tp.THEMES)[0])
+    silent = []
+    for bad_spec in ('not_an_instrument', '999', '-3', ','):
+        try:
+            quiet(ns.build_from_theme, first, 'lead_probe', seed=1, ncand=1, lead=bad_spec)
+            silent.append(repr(bad_spec))
+        except SystemExit:
+            pass
+    assert not silent, ('这些 --lead 值没报错、被静默忽略了：%s —— 点名类参数不许静默'
+                        '（红线 5；与 `--instruments` 的空清单报错对齐）' % '、'.join(silent))
+    print('        点名主奏：%d 组逐段相符 · 单件/多件/数字号都对 · 4 种坏清单都报错 ✓' % checked)
+
+
+@check
+def t_multi_instruments_contracts():
+    """**多乐器独奏化（`--instruments`）按角色分配 + 关掉清单外的层**（2026-10-08 补）。
+
+    为什么守它：它与单件 `--instrument` 是**两条路**（`docs/STANDARD.md §5` 写着差别）——
+    多件**保留声部、不合并、不冻结**。静默失败有两种：
+      ① 低音分到亮音色（`Bass` 本该拿清单里的**低音区**那件）→ 听感"贝斯糊在高音区"；
+      ② 「清单外一律关」没生效 → 产物里还在响没点的乐器（用户以为只用了这几件）。
+    `t_solo_instrument` 守的是**单件**那条路，本项守多件这条。
+
+    判据（纯函数，不落盘）：
+      ① 每一轨的 `program` 都必须是**清单里的音色之一**（不许塞清单外的）
+      ② `Melody` = 清单第 1 件；`Bass` = 清单里的**低音音色**（`LOW_KNOWN` 是**手写的已知答案**，
+         **故意不复用 `si.LOW_GM`** —— 复用的话把常量改坏就抓不到了）
+      ③ 逐段：`_MULTI_LAYERS` 真值 == "在清单里" · `perc` 同 · 没点 perc ⇒ Perc 轨为空
+      ④ 报错路径：空清单 / 不认识的名字 / 越界号 必须抛 `SystemExit`
+    """
+    import new_song as ns
+    import solo_instrument as si
+    import song_engine as se
+    import theme_pack as tp
+    # 已知答案（= `LOW_GM` 的语义：GM 32–39 贝斯族 + 42/43 大提琴/低音提琴 + 57/58 长号/大号）
+    LOW_KNOWN = set(range(32, 40)) | {42, 43, 57, 58}
+    packs = [tp.load_pack(t) for t in sorted(tp.THEMES)[:2]]
+    pack = next((p for p in packs if p), None)
+    assert pack is not None, '主题包全缺，夹具不成立'
+    d0, _o = quiet(ns.build_from_theme, pack, 'multi_probe', seed=1, ncand=1)
+    bad, checked = [], 0
+    for specs in (['piano', 'strings', 'bass'], ['piano', 'strings'], ['bass']):
+        want_layers = {s for s in specs if s in si._MULTI_LAYERS}
+        d, rep = si.to_multi(d0, specs, None)
+        # `to_multi` 的产物同样是"只改 programs/arr 的 dict" ⇒ 端到端也要过引擎口径
+        d = engine_ready(d, 'multi_%s' % '_'.join(specs))
+        progs = {t: int(v[0]) for t, v in (d.get('programs') or {}).items()
+                 if v and v[0] is not None}      # `Perc`/`Drums` 是 (None, 9)：不参与音色判据
+        allowed = [si.parse_instrument(s)[0] for s in specs]
+        for t, p in progs.items():
+            if p not in allowed:
+                bad.append('%s：轨 %s 的 program=%d 不在清单 %s 里' % (specs, t, p, allowed))
+        if progs.get('Melody') != allowed[0]:
+            bad.append('%s：Melody 应拿清单第 1 件 %d，实得 %s'
+                       % (specs, allowed[0], progs.get('Melody')))
+        if 'bass' in specs:
+            if progs.get('Bass') not in LOW_KNOWN:
+                bad.append('%s：Bass 拿了非低音音色 %s（低音区那件才该给它）'
+                           % (specs, progs.get('Bass')))
+        for i, s in enumerate(d['sections']):
+            a = s.get('arr') or {}
+            for k in si._MULTI_LAYERS:
+                if bool(a.get(k)) != (k in want_layers):
+                    bad.append('%s 第%d段 %s=%s（清单外的层必须关）' % (specs, i, k, a.get(k)))
+            if int(a.get('perc') or 0) != 0:
+                bad.append('%s 第%d段 perc=%s（清单没点 perc）' % (specs, i, a.get('perc')))
+        ev, _nb = se.build_events(d)
+        if ev.get('Perc'):
+            bad.append('%s：清单没点 perc，Perc 轨却有 %d 个音' % (specs, len(ev['Perc'])))
+        checked += 1
+    assert not bad, '多乐器独奏化违约（%d 条）：\n      %s' % (len(bad), '\n      '.join(bad[:8]))
+    silent = []
+    for bad_spec in ([], ['not_an_instrument'], ['999']):
+        try:
+            si.to_multi(d0, bad_spec, None)
+            silent.append(str(bad_spec))
+        except SystemExit:
+            pass
+    assert not silent, '这些 --instruments 值没报错：%s' % '、'.join(silent)
+    print('        多乐器：%d 组（角色分配 + 逐段关层 + Perc 空）· 3 种坏清单都报错 ✓' % checked)
+
+
+@check
+def t_soft_lead_pool_by_theme():
+    """**柔主题的主奏池里不许有"实测偏亮"的音色**（2026-10-08 第二轮①）。
+
+    为什么守它：用户口径是"抒情曲**太高**"（`STANDARD` §6-4），而主奏音色的亮度在本仓库
+    是**实测量**（`new_song.HF_LEVEL` = 各 GM 音色 2.5–5kHz 电平；方波 39.1 / 合成铜管 40.0）。
+    这条判据坏了有两种表现，都是静默的：① 筛子失效 → 抒情曲又出现方波/合成铜管主奏；
+    ② 筛子过宽 → 把**非名单主题**（cheerful/neon 这些本来就该亮的）也筛了 —— 那等于把
+    主题身份抹平（2026-10-01"听着都像"那条线的反面）。
+
+    判据（**期望值用手写字面量**，不复用被测常量 —— 复用的话把常量改坏就抓不到了）：
+      ① 名单主题（`new_song.SOFT_THEMES`）：段级池里**没有**实测 >34.2dB 的候选；
+         池至少 2 个候选（保底生效）；被筛掉的必须是**有实测量且确实超限**的
+      ② 非名单主题：池与 `lead_candidates` 的区分度序**逐位相同**（一个都不许被误筛）
+      ③ 名单里每个主题都**必须带理由**（空理由 = 没写 = 不许进名单）
+    **判据自证**：把 `SOFT_LEAD_CAP` 抬到 999（= 筛子失灵）⇒ ① 必须失败（tender 的池里
+    会回到方波 80 / 合成铜管 71）。
+    """
+    import new_song as NS
+    LIT_CAP = 34.2           # 手写已知答案（同 `SOFT_LEAD_CAP` 的锚点：GM 26 的实测值）
+    assert NS.SOFT_THEMES, \
+        '柔主题名单是空的 —— 筛子成空转（要么写名单并给理由，要么把这个功能删干净）'
+    HF = NS.HF_LEVEL
+    packs = NS._theme_packs()
+    assert packs, '主题包一个都没读到'
+    bad, checked, drops = [], 0, []
+    for th, pk in sorted(packs.items()):
+        base = NS.lead_candidates(pk)
+        d = NS.lead_assign().get(th)
+        shares = NS.theme_lead_shares()
+        rest = sorted([q for q in base if q != d],
+                      key=lambda q: (shares.get(q, 99), base.index(q)))
+        want_order = ([d] if d in base else []) + rest
+        pool = NS.lead_pool_for_theme(pk)
+        checked += 1
+        if th in NS.SOFT_THEMES:
+            assert NS.SOFT_THEMES[th].strip(), \
+                '柔主题 %s 在名单里但理由空白 —— 空理由 = 没写 = 不许进名单' % th
+            hot = [q for q in pool if HF.get(q, -99) > LIT_CAP]
+            if hot:
+                bad.append('%s（柔主题）池里仍有实测偏亮的候选 %s —— 筛子失效'
+                           % (th, '、'.join('GM %d=%.1f' % (q, HF[q]) for q in hot)))
+            if len(pool) < NS.SOFT_LEAD_MIN:
+                bad.append('%s（柔主题）池只剩 %d 个候选（保底应 ≥%d）：%s'
+                           % (th, len(pool), NS.SOFT_LEAD_MIN, pool))
+            # 被筛掉的：必须真有实测量、且确实超限（不许拿"没量过"当理由筛）
+            for q in want_order:
+                if q in pool:
+                    continue
+                if q not in HF:
+                    bad.append('%s：候选 GM %s **没实测亮度**却被筛掉（不许拿未实测量当判据）'
+                               % (th, q))
+                elif HF[q] <= LIT_CAP:
+                    bad.append('%s：候选 GM %s=%.1fdB 没超限（%.1f）却被筛掉'
+                               % (th, q, HF[q], LIT_CAP))
+                else:
+                    drops.append('%s:GM %d(%.1f)' % (th, q, HF[q]))
+        else:
+            if pool != want_order:
+                bad.append('%s 不是柔主题，池却被改了：%s → %s' % (th, want_order, pool))
+    assert checked >= 10, '主题包太少（%d），这条检查会空转' % checked
+    assert not bad, '主奏亮度筛违约（%d 条）：\n      %s' % (len(bad), '\n      '.join(bad[:8]))
+    print('        主奏亮度筛：%d 个主题逐一对账（名单 %d 个）· 挡掉 %s · 其余主题池一字未动'
+          % (checked, len(NS.SOFT_THEMES), '、'.join(drops) or '（无）'))
+
+
+# 承诺型文档 = **对用户/接手人的承诺**（能力边界 · 命令 · 地图）。行号在这类文档里会漂，
+# 2026-10-08 实测：`STANDARD.md` 三个指针里**两个已经漂了**（`new_song.py:1197` 真值 1196、
+# `selftest.py:9482` 真值 9492）、`STUDIO-WORKFLOW.md` 那个 `server.py:209` 指着 `run_py`
+# 而正文说的是 `probe_lib`（真值 263）。所以这里**禁行号、只许写 `文件#符号`**。
+# ⚠ **不纳入守卫的**（理由写清，别当漏网）：`PITFALLS*.md` / `HISTORY*.md` / `docs/HANDOFF*.md` /
+# `deliveries/*/notes.md` 是**台账与历史记录**，行号是"当时的现场"（改了它就不是记录了）；
+# `ML.md` 引的是**第三方源码**（`amt/...`，不在本仓）—— 符号锚点对它不适用。
+POINTER_DOCS = ('docs/STANDARD.md', 'docs/CONVENTION.md', 'docs/STUDIO-WORKFLOW.md',
+                'CHEATSHEET.md')
+POINTER_LINE_RE = re.compile(r'`([\w./\\-]+\.(?:py|js)):(\d+)(?:-\d+)?`')
+POINTER_SYM_RE = re.compile(r'`([\w./\\-]+\.(?:py|js))#(\w+)`')
+
+
+def _resolve_code_path(rel):
+    """文档里写的 `xxx.py` → 仓库里的真路径（按常见子目录找；找不到返回 None）。"""
+    rel = rel.replace('\\', '/')
+    for c in (rel, 'scripts/' + rel, 'studio/' + rel, 'studio/web/' + rel,
+              'tools/' + rel, 'tools/git-push/' + rel):
+        p = os.path.join(ROOT, c)
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def _py_symbols(path):
+    """Python 文件里的顶层/任意层**可引用符号名**（函数 · 类 · 赋值 · 注解赋值）。"""
+    import ast
+    out = set()
+    try:
+        tree = ast.parse(open(path, encoding='utf-8').read())
+    except (OSError, SyntaxError):
+        return out
+    for n in ast.walk(tree):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            out.add(n.name)
+        elif isinstance(n, ast.Assign):
+            for t in n.targets:
+                if isinstance(t, ast.Name):
+                    out.add(t.id)
+        elif isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
+            out.add(n.target.id)
+    return out
+
+
+def _js_symbols(path):
+    """JS 文件里的函数/变量名（够用即可：`function x` / `const|let|var x` / `x: function`）。"""
+    try:
+        src = open(path, encoding='utf-8').read()
+    except OSError:
+        return set()
+    out = set(re.findall(r'function\s+(\w+)', src))
+    out |= set(re.findall(r'(?:const|let|var)\s+(\w+)', src))
+    return out
+
+
+@check
+def t_doc_code_pointers():
+    """**承诺型文档只许写 `文件#符号`，不许写行号**（2026-10-08 第二轮②）。
+
+    为什么守它：`STANDARD` §5 的"依据"列是**给音乐家的承诺**（"这条能力在哪实现的"）。
+    2026-10-08 实测三个指针里**两个已经漂了**（`new_song.py:1197` 真值 1196、
+    `selftest.py:9482` 真值 9492 —— 后者还是被同一轮插入的 `engine_ready` 推走的），
+    `STUDIO-WORKFLOW.md` 的 `server.py:209` 指着 `run_py` 而正文说的是 `probe_lib`（真值 263）。
+    行号漂了没人会知道（`docs_paths` 只查文件在不在、不查行号），而**符号锚点**（`fiberplane/drift`
+    的做法：`path#Symbol` + AST）改个名就会当场红。
+
+    判据：
+      ① 名单里的文档**不许**出现 `` `xxx.py:123` ``（行号指针）—— 一律改成 `xxx.py#符号`；
+      ② 每个 `` `xxx.py#符号` `` 必须能**解析到文件**（找不到 → FAIL）且**符号真的存在**
+         （Python 走 `ast`，JS 走正则；改名/删掉就红）；
+      ③ 名单里至少要有若干指针（都删光了这条检查就空转 → FAIL）
+    **判据自证**：合成样本（一个行号指针 + 一个真符号 + 一个假符号）必须分别被判出来。
+    """
+    host_skill = os.path.join(os.path.expanduser('~'), '.dsh', 'skills', 'bgm-studio', 'SKILL.md')
+    files = [os.path.join(ROOT, r) for r in POINTER_DOCS]
+    files.append(host_skill)
+    bad, n_line, n_sym = [], 0, 0
+    for p in files:
+        if not os.path.exists(p):
+            continue          # 宿主级文件不在（换台机器）→ 跳过，不崩（同 docs_host_classification）
+        rel = os.path.relpath(p, ROOT) if p.startswith(ROOT) else p
+        txt = open(p, encoding='utf-8').read()
+        for m in POINTER_LINE_RE.finditer(txt):
+            n_line += 1
+            bad.append('%s：`%s:%s` 是**行号指针**（会漂）→ 改成 `%s#<符号名>`'
+                       % (rel, m.group(1), m.group(2), m.group(1)))
+        for m in POINTER_SYM_RE.finditer(txt):
+            n_sym += 1
+            fp = _resolve_code_path(m.group(1))
+            if fp is None:
+                bad.append('%s：`%s#%s` 的**文件找不到**' % (rel, m.group(1), m.group(2)))
+                continue
+            syms = _py_symbols(fp) if fp.endswith('.py') else _js_symbols(fp)
+            if m.group(2) not in syms:
+                bad.append('%s：`%s#%s` 的**符号不存在**（改过名 / 删了？）'
+                           % (rel, m.group(1), m.group(2)))
+    # 判据自证：合成样本必须被同样两条路径抓出来
+    probe = '`scripts/new_song.py:1197` + `scripts/new_song.py#build_from_theme` + ' \
+            '`scripts/new_song.py#no_such_symbol_xyz`'
+    assert [m.group(0) for m in POINTER_LINE_RE.finditer(probe)] == ['`scripts/new_song.py:1197`'], \
+        '判据自证失败：行号指针的正则抓不到合成样本'
+    assert len(POINTER_SYM_RE.findall(probe)) == 2, '判据自证失败：符号指针正则抓不到合成样本'
+    _p = os.path.join(ROOT, 'scripts', 'new_song.py')
+    assert 'build_from_theme' in _py_symbols(_p) and 'no_such_symbol_xyz' not in _py_symbols(_p), \
+        '判据自证失败：ast 认符号这一步不对（真符号没认出/假符号认出来了）'
+    assert n_line + n_sym >= 3, \
+        '名单里的代码指针只剩 %d 个 —— 都删光了这条检查就空转（要么补指针，要么删掉这条检查）' \
+        % (n_line + n_sym)
+    assert not bad, ('承诺型文档里还有会漂的指针（%d 条）：\n      %s'
+                     % (len(bad), '\n      '.join(bad[:8])))
+    print('        代码指针：%d 个符号锚点全部解析得到 · 行号指针 0 个（%s）'
+          % (n_sym, '、'.join(POINTER_DOCS)))
+
+
+@check
+def t_meter_five_four_rules():
+    """**5/4 拍号：强拍 3+2、格数 20、落点不许越界**（2026-10-08 第二轮③）。
+
+    为什么守它：`melody_gen` 里"一小节 16 格"原先**写死在约 10 处**，而 5/4 一小节是
+    **20 格** ⇒ `% 16` 会把第 5 拍上的音**别名**回第 1 拍（落点直方图、"末落点铺满"判据全错），
+    `_cell_candidates` 还会枚举出小节外的格、把音撒到下一小节。这类错**不报错**，
+    只是旋律突然"没有第 5 拍"（红线 5）。
+
+    依据（可查）：5/4 的通行分法是 **3+2**（*Take Five*：Ebm7 走 3 拍、Bbm7 走 2 拍，
+    重音落在 **第 1 与第 4 拍** —— [More odd times · Mixdown](https://mixdownmag.com.au/features/columns/more-odd-times/)）。
+    ⚠ 库里**没有 5/4 主题包**，所以 5/4 只服务手写/扒带曲，且**只走规则层**：
+    画像的 `onset16_hist`/`dur16_hist` 是 4/4 的 16 格方言，套到 20 格上没有依据。
+
+    钉五件（**期望值全用字面量**，不复用被测常量）：
+      ① `song_engine.strong_beats`：`[5,4]`→`[0,3]` · `[4,4]`→`[0,2]` · `[3,4]`→`[0]`（后两条不许漂）
+      ② `set_meter`：`[5,4]`→SPB 5.0 且 **SLOTS 20**；`[4,4]`/`[3,4]`→**仍 16**（旧口径不许动）
+      ③ **别名反例**：格 19（第 5 拍的最后一个十六分格）在 `%20` 下仍是 19，
+         而 `%16` 会给出 3 —— 这就是修掉的那个 bug（判据自证）
+      ④ `_cell_candidates(1, 3)` 在 5/4 下**所有格 < 20**（不许枚举出小节外）
+      ⑤ **端到端**：造一首 5/4 的 song.json（两段 × 8 小节）真跑一次 `melody_gen.py`
+         ⇒ 每个音的拍号内偏移都 <5.0 · 强拍和弦音占比 ≥70% · 密度 1.2~2.6
+    """
+    import json as _json
+    import shutil as _shutil
+    import subprocess as _sub
+    import tempfile as _temp
+    import melody_gen as MG
+    import song_engine as SE
+    # ① 强拍（真源）
+    assert SE.strong_beats([5, 4]) == [0.0, 3.0], \
+        '5/4 的强拍应为第 1、4 拍（3+2 分组），实得 %s' % SE.strong_beats([5, 4])
+    assert SE.strong_beats([4, 4]) == [0.0, 2.0] and SE.strong_beats([3, 4]) == [0.0], \
+        '4/4 与 3/4 的强拍口径被动了（不许漂）'
+    # ② 格数
+    MG.set_meter([5, 4])
+    assert MG.SPB == 5.0 and MG.SLOTS == 20, \
+        '5/4 应是一小节 5 拍 20 格，实得 SPB=%s SLOTS=%s' % (MG.SPB, MG.SLOTS)
+    MG.set_meter([4, 4])
+    assert MG.SLOTS == 16, '4/4 的格数必须是 16（旧口径），实得 %s' % MG.SLOTS
+    MG.set_meter([3, 4])
+    assert MG.SPB == 3.0 and MG.SLOTS == 16, \
+        '3/4 沿用 16 格旧口径（实测过，不许顺手改），实得 SPB=%s SLOTS=%s' % (MG.SPB, MG.SLOTS)
+    # ③ 别名反例（判据自证：这正是修掉的那条）
+    MG.set_meter([5, 4])
+    assert 19 % MG.SLOTS == 19 and 19 % 16 == 3, \
+        '格数口径自证失败：第 5 拍末格在 %d 格下应仍是 19（写死 16 会别名成 3）' % MG.SLOTS
+    # ④ 候选格不越界
+    cells = MG._cell_candidates(1, 3)
+    assert cells, '5/4 的落点候选为空（约束不自洽？）'
+    over = [c for comb in cells for c in comb if c >= 20]
+    assert not over, '5/4 的落点候选里出现小节外的格（≥20）：%s' % over[:6]
+    # ⑤ 端到端：真跑一次 CLI
+    tmp = _temp.mkdtemp(prefix='meter54_')
+    try:
+        song = {
+            'name': 'meter54_probe', 'bpm': 100.0, 'meter': [5, 4], 'style': 'daily',
+            'chords': {'Am': [9, [9, 0, 4]], 'Dm': [2, [2, 5, 9]], 'E': [4, [4, 8, 11]]},
+            'sections': [
+                {'name': 'A', 'bars': 8, 'melody': 'm1',
+                 'chords': ['Am', 'Dm', 'Am', 'E', 'Am', 'Dm', 'E', 'Am']},
+                {'name': 'B', 'bars': 8, 'melody': 'm2',
+                 'chords': ['Dm', 'Am', 'Dm', 'E', 'Am', 'Dm', 'E', 'Am']},
+            ],
+            'melody': {'m1': [[0, 0.0, 1.0, 69]], 'm2': [[0, 0.0, 1.0, 69]]},
+            'patterns': {},
+        }
+        sp = os.path.join(tmp, 'meter54.json')
+        with open(sp, 'w', encoding='utf-8') as fh:
+            _json.dump(song, fh, ensure_ascii=False)
+        prof = os.path.join(ROOT, 'refs', 'themes', 'daily_melody.json')
+        r = _sub.run([sys.executable, os.path.join(HERE, 'melody_gen.py'), sp, prof],
+                     capture_output=True, text=True, encoding='utf-8', cwd=ROOT)
+        assert r.returncode == 0, 'melody_gen 在 5/4 上失败：%s%s' % (
+            (r.stdout or '')[-600:], (r.stderr or '')[-400:])
+        out = _json.load(open(sp, encoding='utf-8'))
+        notes = [n for v in (out.get('melody') or {}).values() for n in v]
+        assert notes, '5/4 生成的旋律是空的'
+        MG.set_meter([5, 4])
+        over = [n for n in notes if not (0.0 <= float(n[1]) < 5.0)]
+        assert not over, '5/4 生成的音落在小节外（拍号内偏移应 <5.0）：%s' % over[:5]
+        fit = MG.chord_fit_pct(out['melody'], out['sections'], out['chords'], [5, 4])
+        bars = float(sum(s['bars'] for s in out['sections']))
+        # ⚠ `chord_fit_pct` 返回 **0~1 比例**（docstring 写着），不是百分数 ——
+        #   第一版按"≥70"比，于是实测 1.00（=100%）被判成"只有 1.0%"（**判据错，不是软件错**）。
+        assert fit >= 0.70, '5/4 强拍和弦音占比只有 %.1f%%（门 ≥70%%）' % (100 * fit)
+        # ⚠ **密度口径必须归一化到"音/拍"**（2026-10-08，`PITFALLS` 359 同族）：
+        #   `melody_gen` 的密度门/目标（`FORM_DENS` 1.8~2.9、`DENS_MAX` 2.6）写的是
+        #   **音/小节**，而 5/4 一小节有 5 拍（比 4/4 长 25%）⇒ 直接比"音/小节"是
+        #   **材料不同类**：实测本曲 3.00 音/小节 = **0.60 音/拍**（4/4 门 2.9/4 = 0.725），
+        #   其实一点不密。所以这里比"音/拍"，区间 = 4/4 的 1.2~2.9 换算过来（0.30~0.725），
+        #   并留 10% 余量（5/4 的密度门还没按拍归一，见 `STANDARD` §6 已知未决）。
+        dens_beat = len(notes) / (bars * 5.0)
+        assert 0.27 <= dens_beat <= 0.80, \
+            '5/4 密度 %.2f 音/拍越界（4/4 门折合 0.30~0.725）' % dens_beat
+        st = MG.form_stats(out['melody'], out['sections'], bar_beats=5.0)
+        assert st, '5/4 的形态层统计为空（守卫会空转）'
+    finally:
+        _shutil.rmtree(tmp, ignore_errors=True)
+    print('        5/4：强拍 [0,3] · 20 格（4/4 与 3/4 仍 16）· 端到端 %d 音 · '
+          '强拍和弦音 %.1f%% · 密度 %.2f 音/拍（= %.2f 音/小节）· 落点全部在小节内'
+          % (len(notes), 100 * fit, dens_beat, len(notes) / bars))
+
+
+@check
+def t_duration_fit():
+    """**「我要 N 秒」要真的做得到，且速度不许脱离主题模板依据**（2026-10-08 第二轮④）。
+
+    为什么守它：时长 = `总小节 × 每小节四分 × 60 ÷ BPM`，而**总小节由段数定死**
+    （段长 8、首尾各 4）。旧行为只让用户改 BPM ⇒ 想压到 100 秒得把 BPM 顶到 **288**
+    （cheerful 模板区间 129~140）—— 秒数"做到了"，但那条读数已经**不在该主题任何一首模板上**
+    （红线 3 依据可查）。新做法 `new_song.duration_plan` **联合解** `(段数, BPM)`：
+      ① 有解 → 秒数精确命中，且段数取"离主题原 plan 最近"的；
+      ② 无解 → BPM 夹到区间端点，并**如实报出差值**（红线 5，不许静默给个"看起来对"的时长）。
+
+    钉五件（**期望值全用被测数据现算，但断言口径是字面量**）：
+      ① 用主题自己的中位速度反推的目标时长 ⇒ `exact=True` · 实际差 ≤0.5s · BPM 落在 `[p25,p75]`
+      ② 真跑 `build_from_theme(pack, ..., seconds=T)`：总小节 = `8 + nsec*8` ·
+         实际时长对得上 · `d['bpm']` 在区间内
+      ③ 段数若偏离主题 `form.plan` ⇒ **必须有 `basis.structure_source`** 且能过 `IMITATE_SRC_RE`
+      ④ 极端目标（20 秒，区间内做不到）⇒ `exact=False` · BPM 被夹到上端点 ·
+         打印里出现"做不到"（**不许静默**）
+      ⑤ `seconds=None` 时逐字节走老路（总小节 == 主题包 `form.total_bars`）
+    **判据自证**：把 `duration_plan` 换成"无视速度区间、永远 exact"的版本 ⇒ ①④ 必须失败。
+    """
+    import new_song as NS
+    import song_engine as se
+    import theme_pack as TP
+    bad, checked = [], 0
+    for th in sorted(TP.THEMES)[:4]:
+        pack = TP.load_pack(th)
+        if not pack:
+            continue
+        form = pack.get('form') or {}
+        plan = form.get('plan') or []
+        if not plan:
+            continue
+        sec_bars = int(form.get('section_bars') or 8)
+        bb = se.bar_beats(pack.get('meter') or (4, 4))
+        b = pack.get('bpm') or {}
+        lo, hi, med = float(b.get('p25')), float(b.get('p75')), float(b.get('median'))
+        plan_nsec = len(plan) - 2
+        T = (2 * 4 + plan_nsec * sec_bars) * bb * 60.0 / med
+        nsec, bpm, info = NS.duration_plan(pack, T)
+        checked += 1
+        if not info['exact'] or abs(info['actual'] - T) > 0.5:
+            bad.append('%s：中位速度反推的 %.1fs 应精确命中，实得 exact=%s actual=%.1f'
+                       % (th, T, info['exact'], info['actual']))
+        if not (lo - 1e-6 <= bpm <= hi + 1e-6):
+            bad.append('%s：解出的 BPM %.1f 跑到模板区间 %.1f~%.1f 之外了' % (th, bpm, lo, hi))
+        d, out = quiet(NS.build_from_theme, pack, 'dur_probe', seed=1, ncand=1, seconds=T)
+        bars = sum(int(s['bars']) for s in d['sections'])
+        want_bars = 2 * 4 + nsec * sec_bars
+        real = bars * bb * 60.0 / float(d['bpm'])
+        if bars != want_bars:
+            bad.append('%s：总小节 %d ≠ 8+%d×%d=%d' % (th, bars, nsec, sec_bars, want_bars))
+        if abs(real - T) > 0.5:
+            bad.append('%s：成品时长 %.1fs 与目标 %.1fs 差 %.1fs' % (th, real, T, real - T))
+        if not (lo - 1e-6 <= float(d['bpm']) <= hi + 1e-6):
+            bad.append('%s：成品 BPM %.1f 不在模板区间 %.1f~%.1f'
+                       % (th, float(d['bpm']), lo, hi))
+        src = (d.get('basis') or {}).get('structure_source')
+        if nsec != plan_nsec:
+            if not src or not IMITATE_SRC_RE.match(src) or not src.startswith('duration:'):
+                bad.append('%s：段数 %d ≠ plan %d，却没有 duration: 留痕（实得 %r）'
+                           % (th, nsec, plan_nsec, src))
+            # ⚠ **`kind` 必须一起写**：`t_theme_basis_whitelist` 只认 `kind == 'theme_pack'`，
+            #   只写 `structure_source` 会被判"依据不明"（第一版就是这么红的 —— 自检抓到的）。
+            if (d.get('basis') or {}).get('kind') != 'theme_pack':
+                bad.append('%s：写了 structure_source 却没写 basis.kind=theme_pack（实得 %r）'
+                           % (th, (d.get('basis') or {}).get('kind')))
+        # ④ 极端目标：区间内做不到 → 必须报"做不到"，且 BPM 夹在端点上
+        _n2, bpm2, info2 = NS.duration_plan(pack, 20.0)
+        if info2['exact']:
+            bad.append('%s：20 秒竟被判成"区间内做得到"（exact=True）' % th)
+        if abs(bpm2 - hi) > 1e-6:
+            bad.append('%s：做不到时 BPM 应夹到上端点 %.1f，实得 %.1f' % (th, hi, bpm2))
+        _d2, out2 = quiet(NS.build_from_theme, pack, 'dur_probe2', seed=1, ncand=1, seconds=20.0)
+        if '做不到' not in out2:
+            bad.append('%s：20 秒做不到，却没有打印"做不到"（静默给错时长）' % th)
+        # ⑤ 不给 seconds 时走老路
+        d3, _o3 = quiet(NS.build_from_theme, pack, 'dur_probe3', seed=1, ncand=1)
+        if sum(int(s['bars']) for s in d3['sections']) != int(form.get('total_bars') or 0):
+            bad.append('%s：`seconds=None` 时总小节 %d ≠ 主题包 total_bars %s（老路被动了）'
+                       % (th, sum(int(s['bars']) for s in d3['sections']),
+                          form.get('total_bars')))
+    assert checked >= 3, '主题包太少（%d），这条检查会空转' % checked
+    assert not bad, '时长可控违约（%d 条）：\n      %s' % (len(bad), '\n      '.join(bad[:6]))
+    print('        「要 N 秒」：%d 个主题逐一对账 —— 有解时精确命中且 BPM 留在模板区间、'
+          '无解时 BPM 夹端点并报出差值、不给 seconds 时走老路' % checked)
+
+
+@check
+def t_frontend_versions():
+    """**改了前端 js/css 就必须升 `?v=`**（2026-10-08 第五件；用户："软件窗口改适配了吗"）。
+
+    为什么守它：浏览器 / WebView2 **按 URL 缓存**，`?v=` 是唯一的破缓存手段。当天实测踩到：
+    改了 `studio/web/create.js`（创作台「想要的时长」提示）却**忘升** `create.html` 的 `?v=12`
+    ⇒ 面板照样把**旧文件**发给浏览器，用户"改了却看不到"（仓库口径：这类事故有一半是这个）。
+    而当时**自检里一条盯它的检查都没有** —— 这条补上：口径与工具 `scripts/asset_versions.py`
+    **同一份**（守卫不另写一份判据，那正是 `PITFALLS 353` 的形态）。
+
+    判据 = `asset_versions.problems()`：
+      ① 被 html 引用的本地 `.js/.css` 必须**登记在 `studio/web/_versions.json`**（新资源漏登记 = 无人盯）
+      ② 内容 sha 与清单一致 —— 不一致就是"改了没升号"（错误信息里直接给出该把 v=N 改成 v=N+1）
+      ③ 同一文件在**各页的 `?v=` 必须一致**（实测抓到 `i18n.js` 在 `ed.html` 是 v=1、`index.html` 是 v=3）
+      ④ 被引用时**必须写 `?v=`**（没写 = 改了必然被缓存）
+    空转保护：扫到的引用数 ≥ `asset_versions.MIN_REFS`。
+    **判据自证**：`sha16` 对同一文件稳定（同一文件两次一致）。
+    """
+    import asset_versions as AV
+    p = os.path.join(AV.WEB, 'create.js')
+    assert AV.sha16(p) == AV.sha16(p), '判据自证失败：同一文件两次算出的 sha 不一致'
+    bad, st = AV.problems()
+    assert st['n'] >= AV.MIN_REFS, \
+        '只扫到 %d 处前端资源引用（下限 %d）—— 判据在空转（页面改名/搬走了？）' % (st['n'], AV.MIN_REFS)
+    assert not bad, ('前端资源版本不一致（%d 条）—— 改了 js/css 要**先把 html 里的 `?v=` 加 1**，'
+                     '再跑 `python scripts\\asset_versions.py --write`：\n      %s'
+                     % (len(bad), '\n      '.join(bad[:6])))
+    names = sorted(k for k in AV.load_manifest() if not k.startswith('_'))
+    print('        前端资源：%d 个资源 / %d 处引用 · 版本号与内容 sha 全一致（%s）'
+          % (st['refs'], st['n'], '、'.join(names)))
+
+
+@check
+def t_extract_finish_contracts():
+    r"""面板提取链的**收尾两步**必须真的接着（2026-10-09）。
+
+    背景：面板两档提取跑完后原来有两件事没人做 ⇒ **每首提取曲都留红**：
+      ① 混音对标默认落成 `bgm01c`（别的曲子），`full` 档于是"照别人的频谱调参"
+         ⇒ `t_restore_ref_is_own_song` 必红；
+      ② 只要原曲有鼓，渲染后 Perc 占比就超门 ⇒ `t_perc_declared_for_restore` 必红。
+    工具 `scripts/extract_finish.py` 把两件事固定成一步。本项守三件事：
+      ① **面板链真的调它**，且放在 `extract_notes` **之前**（notes.md 记的参考画像才是修正后的）；
+      ② **口径一处**：Perc 判据只有 `extract_finish.perc_share()` 一份，守卫与它同源
+         （"各写一份判据"是 PITFALLS 353 的形态）；
+      ③ **判据有区分度**：`drums_verdict` 三态齐全（有鼓 / 看不出有鼓 / 判不了），
+         且 `declaration_text` 必须带**实测数字**（空话放行不了）。
+    判据自证：合成证据三态 + 源码断言对"没接"的写法会红。
+    """
+    import extract_finish as EF
+
+    # ① 面板链接着它，且在写 notes.md 之前
+    srv = open(os.path.join(ROOT, 'studio', 'server.py'), encoding='utf-8').read()
+    assert 'extract_finish.py' in srv, \
+        '面板的提取链**没接收尾工具**（`extract_plan` 里找不到 `extract_finish.py`）—— ' \
+        '那样每首提取曲都会留下"对标错 / 打击乐未声明"两条红'
+    _i_fin = srv.find('extract_finish.py')
+    _i_notes = srv.find("'extract_notes.py'")
+    assert -1 < _i_fin < _i_notes, \
+        '收尾步没放在 `extract_notes` **之前** —— notes.md 会记下**修正前**的参考画像'
+
+    # ② 口径一处：Perc 门与被守卫调用的那个函数都在工具里
+    assert abs(EF.PERC_FRAC - 0.15) < 1e-9, \
+        'Perc 门被改成 %.3f —— 0.15 是被实测逼出来的（原曲无鼓那首 1459 音 → 0 音后用户认可）' % EF.PERC_FRAC
+    _st = open(os.path.join(HERE, 'selftest.py'), encoding='utf-8').read()
+    assert 'EF.perc_share(d)' in _st, \
+        '守卫没走 `extract_finish.perc_share()`（又自己读了一遍 MIDI？）—— 口径必须一处'
+
+    # ③ 判据三态 + 数字（**正例必须放行、反例必须拦下**）
+    ev_loud = {'drums': -14.75, 'bass': -17.68, 'other': -22.36, 'guitar': -22.55}
+    ev_quiet = {'drums': -40.0, 'bass': -15.0, 'other': -22.0}
+    assert EF.drums_verdict(ev_loud)[0] is True, \
+        '鼓是**最响的一轨**（bgm23 实测形态）却判不出"有鼓"：%s' % (EF.drums_verdict(ev_loud),)
+    assert EF.drums_verdict(ev_quiet)[0] is False, \
+        '鼓比最响轨低 25dB 还判"有鼓"（那会把"没鼓"也声明成有鼓）：%s' % (EF.drums_verdict(ev_quiet),)
+    assert EF.drums_verdict({})[0] is None, '缺分轨该判"判不了"（不能猜）'
+    _txt = EF.declaration_text('x', ev_loud, 4172, 7628, 0.547, EF.drums_verdict(ev_loud)[1])
+    assert any(ch.isdigit() for ch in _txt) and len(_txt) > 40, \
+        'perc_exempt 的正文必须带**实测数字**（空话放行不了）：%r' % _txt[:60]
+    assert 'docs' not in _txt
+
+    # ④ 真数据烟测：库里能读到的渲染 MIDI 要量得出占比
+    _d = [x for x in song_dirs() if os.path.isfile(os.path.join(x, 'render.json'))]
+    _ok = 0
+    for x in _d[:12]:
+        ps = EF.perc_share(x)
+        if ps is None:
+            continue
+        _p, _t, _f, _m = ps
+        assert 0.0 <= _f <= 1.0 and _t > 0, '占比算错：%s → %s' % (x, ps)
+        _ok += 1
+    assert _ok >= 1, '库里一首渲染 MIDI 都量不到 —— 这条烟测在空转'
+
+
+@check
+def t_song_name_rules():
+    r"""**曲目名规则**（`scripts/name_rules.py` + `studio/web/create.js` 的 JS 镜像 · 2026-10-09）。
+
+    用户问"为什么面板上曲名不能有中文和空格"，查下来：曲目名（`id`）**同时是目录名 /
+    文件名前缀 / 命令行参数 / URL 参数**，必须挡的只是**路径元字符那一半**
+    （`/ \\ : * ? " < > |`、`..`、Windows 保留名、以 `-`/`.` 开头、结尾点或空格、长度）；
+    **中文与空格本身是安全的**（仓库全程跑通中日文路径：`…\ピュアソングガーデン！解包\Bgm\BGM23.ogg`）。
+    ⇒ 本项守三类回退：
+      ① `FORBIDDEN` 被放开（`/` `\\` `..` 进得来 ⇒ 目录穿越 / 写到别的曲子）；
+      ② **面板那侧**又改回 ASCII 白名单（用户再看到"不能用中文"）；
+      ③ **两侧口径脱节**（前端放行、后端拒绝，或反过来）。
+    判据自证：末尾用合成串验"旧白名单写法确实会被这条正则抓到"。
+    """
+    import name_rules as NR
+
+    # ① 正例必须放行 —— 这就是本轮的诉求
+    for good in ('夏日 的海', 'My Song 2', 'BGM35.2', '钢琴曲 01', 'a b', '曲 01'):
+        nm, err = NR.check_song_name(good)
+        assert not err, '合法曲名被拒：%r → %s' % (good, err)
+        assert nm == good.strip(), '规范化改动了名字：%r → %r' % (good, nm)
+
+    # ② 必挡（每条都对应一类真实故障）
+    for bad, why in (('../x', '路径穿越'), ('a/b', '路径分隔符'), ('a\\b', '路径分隔符'),
+                     ('CON', 'Windows 保留名'), ('con.txt', '保留名带后缀'),
+                     ('x.', '结尾点'), ('.hidden', '隐藏项'), ('-opt', 'argv 会被当选项'),
+                     ('a?b', '通配符'), ('', '空'), ('还是 空 ', '末尾空格该被 strip 后合法'),
+                     ('x' * 49, '太长'), ('a..b', '双点')):
+        got = NR.check_song_name(bad)[1]
+        if why == '末尾空格该被 strip 后合法':
+            assert not got, '首尾空白该被 strip 成合法名：%r → %s' % (bad, got)
+        else:
+            assert got, '%r 该被拒（%s）' % (bad, why)
+
+    # ③ 与面板镜像**同源**（HINT 逐字 + 常量逐项）
+    js = open(os.path.join(ROOT, 'studio', 'web', 'create.js'), encoding='utf-8').read()
+    _h = re.search(r"var SN_HINT = '([^']*)';", js)
+    assert _h, ('create.js 里找不到 `SN_HINT` 字面量 —— 规则说明必须写成**一个**字面量'
+                '（用 `+` 拼接后文件里就没有那句话了，两侧口径也就无从比对）')
+    # ⚠ **值级**比对：JS 源码里的 `\\` 是转义、值只有一个反斜杠（第一版拿文件文本直接比，误报脱节）
+    _js_hint = _h.group(1).replace('\\\\', '\\')
+    assert _js_hint == NR.SONG_NAME_HINT, (
+        'create.js 的规则说明与 `name_rules.SONG_NAME_HINT` 不一致（值级）⇒ 两侧口径脱节\n'
+        '      JS: %r\n      PY: %r' % (_js_hint, NR.SONG_NAME_HINT))
+    assert 'var SN_MAX = %d;' % NR.MAX_LEN in js, \
+        'create.js 的 `SN_MAX` 与 name_rules.MAX_LEN(%d) 不一致' % NR.MAX_LEN
+    _n = re.search(r'最多 (\d+) 字', _js_hint)
+    assert _n and int(_n.group(1)) == NR.MAX_LEN, \
+        'SN_HINT 里写的上限(%s)与 name_rules.MAX_LEN(%d) 不一致' % (
+            _n.group(1) if _n else '?', NR.MAX_LEN)
+    _m = re.search(r"var SN_BAD = '([^']*)';", js)
+    assert _m, 'create.js 里找不到 `SN_BAD`（禁用字符表）'
+    assert _m.group(1).replace('\\\\', '\\') == NR.FORBIDDEN, \
+        'create.js 的 SN_BAD=%r 与 name_rules.FORBIDDEN=%r 不一致' % (_m.group(1), NR.FORBIDDEN)
+    assert "'CON', 'PRN', 'AUX', 'NUL'" in js and "'COM' + i" in js and "'LPT' + i" in js, \
+        'create.js 的 Windows 保留名表与 name_rules.RESERVED 不一致'
+
+    # ④ 旧的 ASCII-only 白名单**必须已经不在**（服务端与面板都查）
+    _old = r'\[0-9A-Za-z_\]\[0-9A-Za-z_-\]\{0,40\}'
+    for p, what in ((os.path.join(ROOT, 'studio', 'server.py'), '服务端'),
+                    (os.path.join(ROOT, 'studio', 'web', 'create.js'), '面板')):
+        src = open(p, encoding='utf-8').read()
+        assert not re.search(_old, src), \
+            '%s 还留着旧的 ASCII-only 曲名白名单 —— 用户又会看到"不能用中文"' % what
+    # 服务端三处入口接的是同一处口径
+    _srv = open(os.path.join(ROOT, 'studio', 'server.py'), encoding='utf-8').read()
+    _n = _srv.count('check_song_name(')
+    assert _n >= 3, \
+        'server.py 只有 %d 处用 check_song_name（/api/new · /api/upload · /api/extract 该各一处）' % _n
+    # 判据自证：断言里那条正则**确实**能抓到旧写法
+    assert re.search(_old, "if not re.match(r'^[0-9A-Za-z_][0-9A-Za-z_-]{0,40}$', nid):"), \
+        '判据自证失败：旧白名单写法没被这条正则抓到（那 ④ 守不住任何东西）'
+
+
+@check
+def t_mutation_harness_safe():
+    r"""变异脚本**不许删"模块级 ROOT"** —— `selftest.ROOT` 就是**仓库根**（2026-10-09 拆的雷）。
+
+    现场：`mutation_check._FakeRoot.__exit__` 原来是 `shutil.rmtree(st.ROOT)`，而
+    `st = selftest`、`selftest.ROOT` = **仓库根**；只因它先把 `st.ROOT` 指到了临时目录才没炸
+    —— **任何一次交错/异常，或别的用例也动 `st.ROOT`，就会把仓库根删掉**，而
+    `ignore_errors=True` 会让你连"删了一半"都不知道。
+    判据（机器可判）：`mutation_check.py` 里**不许出现** `rmtree(<模块>.ROOT` / `rmtree(ROOT`
+    这类"删一个由全局变量指向的路径"的调用；要清理就删**自己刚建的临时目录**（局部变量 / `TMP`）。
+    ⚠ **判据用 AST、不用正则**（2026-10-09 自伤记录）：第一版拿正则扫源码，结果被**我自己写在
+    注释里的旧写法**（"原来删的是 `rmtree(st.ROOT)`"）和**变异用例里的注入串**双双误伤 ——
+    守卫要判的是**真会执行的调用**，注释与字符串不是代码。判据自证：合成片段必须被抓到。
+    """
+    import ast
+    src = open(os.path.join(HERE, 'mutation_check.py'), encoding='utf-8').read()
+    tree = ast.parse(src)                      # 语法坏掉也在这里炸（另一种保护）
+
+    def _bad_rmtree(t):
+        """→ [(行号, 实参)]：`rmtree(ROOT)` / `rmtree(x.ROOT)` 这类调用。"""
+        out = []
+        for node in ast.walk(t):
+            if not isinstance(node, ast.Call) or not node.args:
+                continue
+            f = node.func
+            fn = f.attr if isinstance(f, ast.Attribute) else getattr(f, 'id', '')
+            if fn != 'rmtree':
+                continue
+            a0 = node.args[0]
+            if isinstance(a0, ast.Name) and a0.id == 'ROOT':
+                out.append((node.lineno, 'ROOT'))
+            elif isinstance(a0, ast.Attribute) and a0.attr == 'ROOT':
+                out.append((node.lineno, ast.unparse(a0)))
+        return out
+
+    _bad = _bad_rmtree(tree)
+    assert not _bad, (
+        'mutation_check.py 第 %d 行出现"删模块级 ROOT"的调用：`rmtree(%s)` —— `selftest.ROOT` 是'
+        '**仓库根**，真执行就删仓库；清理要删**自己刚建的临时目录**（见 `_FakeRoot` 的 `_made`）'
+        % (_bad[0][0] if _bad else 0, _bad[0][1] if _bad else ''))
+    # 反空转：文件里必须**仍有** rmtree 调用（否则这条守卫是装饰）
+    assert any(isinstance(n, ast.Call) and getattr(n.func, 'attr', '') == 'rmtree'
+               for n in ast.walk(tree)), \
+        'mutation_check.py 里找不到任何 rmtree 调用 —— 判据要跟着实现走，别让它空转'
+    # 判据自证：合成片段必须被抓到（旧写法 + 带模块前缀的写法）
+    _probe = ast.parse('import shutil as sh\nsh.rmtree(st.ROOT, ignore_errors=True)\n'
+                       'sh.rmtree(ROOT)\nsh.rmtree(TMP, ignore_errors=True)\n')
+    assert len(_bad_rmtree(_probe)) == 2, \
+        '判据自证失败：`rmtree(st.ROOT)` / `rmtree(ROOT)` 该各被记一条、`rmtree(TMP)` 不该被记'
 
 
 @check

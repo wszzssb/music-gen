@@ -73,23 +73,51 @@ SPB = 4.0                                     # 一小节的四分音符数（�
 # （强拍位置 `o % SPB`、小节起点 `int(t // SPB)`、句长 `bars * SPB`、十六分格→拍 `off/4.0`）。
 # 改成参数贯穿要动 33 处、漏一处就会静默把音撒到小节外；前提是**串行调用**
 # （本项目是 CLI，一次一曲），`main()` 的拍号守卫里已接上。
+#
+# **`SLOTS` = 一小节几个十六分格**（2026-10-08 补 5/4 时提出来的）。
+# ⚠ 它**不等于** `SPB*4` 对所有拍号都成立 —— 见 `set_meter()` 里那条：
+#   4/4 与 3/4 **沿用 16 格**这个实测过的旧口径（改它等于悄悄改掉 waltz 的生成结果），
+#   只有 5/4 用真正的 `SPB*4 = 20`（否则 `% 16` 会把第 5 拍的音**别名**回第 1 拍）。
+SLOTS = 16
 
 
 def set_meter(meter):
-    """按拍号设置"一小节几拍"（`SPB`），返回新的 SPB。
+    """按拍号设置"一小节几拍"（`SPB`）与"几格"（`SLOTS`），返回新的 SPB。
 
     `meter` 为 `[拍数, 音符单位]`；引擎的"拍"**一律是四分音符**（`bpm` 也是四分音符速度），
     所以一小节几个四分音符 = `拍数 * 4 / 单位`（同 `song_engine._norm_meter` 的口径）。
+
+    **`SLOTS` 的口径（2026-10-08，别想当然）**：
+      · `[4,4]`/`[3,4]` → **16**（3/4 也是 16）—— 这是本仓库所有已生成曲子用过的旧口径，
+        实测 3/4 的落点 `beat*4` 只到 11，`% 16` 与 `% 12` 结果相同，所以**不改**（改了没收益、
+        却动了既有曲目的生成结果）；
+      · `[5,4]` → **20**（= SPB×4）。`% 16` 在 5/4 下是**错的**：第 5 拍上的音（`beat*4 = 16~19`）
+        会被别名回 0~3 格（= 第 1 拍），落点直方图与"末落点铺满"判据全错。
     """
-    global SPB
+    global SPB, SLOTS, _METER
     n, d = int(meter[0]), int(meter[1])
+    _METER = [n, d]
     SPB = float(n) * 4.0 / float(d)
+    SLOTS = 16 if (n, d) in ((4, 4), (3, 4)) else int(round(SPB * 4))
     # ⚠ 默认参数在**函数定义时**就绑定了旧 SPB（`def form_stats(..., bar_beats=SPB)`）——
     # 不重绑的话这两个统计函数在 3/4 下仍按 4 拍切小节，守卫会拿错基准（静默给错答案）。
     # 它们定义在本函数之后，而调用发生在模块加载完毕的 `main()` 里，所以这里引用得到。
     for _fn in (form_stats, small_step_pct):
         _fn.__defaults__ = (SPB,)
     return SPB
+
+
+def strong_offsets():
+    """一小节内**该有拍点感**的位置（四分音符，从 0 起）—— 落点保底/裁剪共用这一份。
+
+    ⚠ 唯一真源是 `song_engine.strong_beats`（`check_song` / 守卫也从那里取），
+    这里只是把它读出来，**不许再抄一份判据**（4/4→[0,2] · 3/4→[0] · 5/4→[0,3]，见那里）。
+    """
+    import song_engine as _se
+    return _se.strong_beats(_METER)
+
+
+_METER = [4, 4]
 DENS_MAX = 2.6                                # 密度上限（音/小节，用户口径，见 main() 里 dens）
 
 
@@ -260,22 +288,31 @@ def _ensure_strong_onsets(ons, t, end):
     （段起点在拍 1.25 时，候选里根本没有格 0）。实测 30 号画像的格 0/8 各占 6%，
     生成后 36 小节**只有 3 个强拍音** —— 自检 `melody_chord_fit` 因样本太少直接空转，
     音乐上也失去拍点感（"这条纪律是硬要求，不是口味"）。保底只挪动**已有落点**，
-    不新增音、不改音高，所以不影响密度与画像的其它维度。"""
+    不新增音、不改音高，所以不影响密度与画像的其它维度。
+
+    ⚠ **强拍位置不再写死"第 1 拍与第 3 拍"**（2026-10-08 补 5/4 时改）：改成读
+    `strong_offsets()`（唯一真源 = `song_engine.strong_beats`）。两处后果，都是**修正**：
+      · 4/4：`[0, 2]`，与旧写法**逐字等价**（旧代码就是写死 0 与 2）；
+      · 3/4：旧代码也按 `+2` 找"第 3 拍"—— 而 3/4 一小节只有 3 拍，第 3 拍按
+        `strong_beats` 是**弱拍**（STANDARD §5 那条口径），于是保底会把音放到弱拍上。
+        现在只认 `[0]`：**新生成的 waltz 会与旧曲略有不同**（旧曲不重生成，不受影响）；
+      · 5/4：`[0, 3]`（3+2 分组），20 格小节里不会再出现"保底到第 3 拍"的错误。
+    """
     out = list(ons)
+    strong = strong_offsets() or [0.0]
     b0, b1 = int(t // SPB), int((end - 0.01) // SPB)
     b = b0
     while b <= b1:
         grp = range(b, min(b + 2, b1 + 1))
-        has = any(any(abs(o - (bb * SPB)) < 1e-6 or abs(o - (bb * SPB + 2)) < 1e-6
-                      for o in out) for bb in grp)
+        has = any(any(abs(o - (bb * SPB + s)) < 1e-6 for s in strong for o in out)
+                  for bb in grp)
         if not has:
             cand = [o for o in out if b * SPB - 1e-9 <= o < min(b + 2, b1 + 1) * SPB]
             if cand:
-                o = min(cand, key=lambda x: min(abs(x - int(x // SPB) * SPB),
-                                                abs(x - (int(x // SPB) * SPB + 2))))
+                o = min(cand, key=lambda x: min(abs(x - (int(x // SPB) * SPB + s))
+                                                for s in strong))
                 bb = int(o // SPB)
-                tgt = bb * SPB if abs(o - bb * SPB) <= abs(o - (bb * SPB + 2)) \
-                    else bb * SPB + 2.0
+                tgt = min([bb * SPB + s for s in strong], key=lambda x: abs(x - o))
                 if tgt < end - 0.1:
                     out = [tgt if abs(x - o) < 1e-9 else x for x in out]
         b += 2
@@ -373,13 +410,16 @@ VARIANTS_ON = True
 
 
 def _cell_candidates(bars, n):
-    """枚举满足**覆盖性硬约束**的落点组合（16 格选 n 个，n=3/4 时几百种，直接枚举）。
+    """枚举满足**覆盖性硬约束**的落点组合（`SLOTS` 格选 n 个，n=3/4 时几百种，直接枚举）。
 
     为什么枚举而不是"抽样 + 重试"：约束有 4 条且互相牵扯（首/末/间隔上下限），
     随机构造要几十次才命中一次，而且**命中的分布并不均匀**（会偏向容易满足的格）；
     枚举能拿到干净、完整的候选集，再交给 `_cell_fit` 打分 —— 判据与候选解耦。
+
+    ⚠ 格数用 `SLOTS` 而**不是**写死的 16（2026-10-08）：5/4 一小节 20 格，
+    写死 16 会枚举出**小节外**的格（第 5 拍之后），再把音撒到下一小节里。
     """
-    slots = int(bars) * 16
+    slots = int(bars) * SLOTS
     out = []
     for comb in itertools.combinations(range(slots), n):
         if comb[0] > CELL_FIRST_MAX:
@@ -619,15 +659,16 @@ def form_stats(melody, sections, bar_beats=SPB):
         return {}
     perbar, g0 = {}, 0
     for (a, _du, _p) in notes:
-        k = int(round(a * 4))                 # 16 分格（只支持 4/4，调用方保证）
-        if k % 16 == 0:
+        k = int(round(a * 4))                 # 十六分格（格数 = `SLOTS`，见 `set_meter`）
+        if k % SLOTS == 0:
             g0 += 1
         perbar.setdefault(int(a // bar_beats), []).append(a)
     last8 = gaps = 0
     mgs = []
     for bar, xs in perbar.items():
         xs = sorted(xs)
-        if max(int(round(x * 4)) % 16 for x in xs) >= 8:
+        # "铺满小节" = 末落点跨过**半小节**（4/4 的旧口径就是 "≥8 格"= 第 3 拍；5/4 → 10 格）
+        if max(int(round(x * 4)) % SLOTS for x in xs) >= SLOTS // 2:
             last8 += 1
         ext = xs + [(bar + 1) * bar_beats]
         mgs.append(max(ext[i + 1] - ext[i] for i in range(len(ext) - 1)))
@@ -909,8 +950,12 @@ def _cap_onsets(ons, b0, b1, cap, rng):
             out += xs
             continue
         if len(xs) > cap:
+            # 强拍位置读真源（`strong_offsets()`）：4/4 = 拍 1/3 · 3/4 = 拍 1 · 5/4 = 拍 1/4。
+            # ⚠ 旧写法是 `o % SPB == 0 或 (SPB>=4 且 o%SPB == SPB/2)` —— 在 5/4 下会把
+            #   **拍 2.5**（弱位）当强拍保下来，裁掉的却是真正的第 4 拍。
+            _st = strong_offsets() or [0.0]
             strong = [o for o in xs
-                      if abs(o % SPB) < 1e-6 or (SPB >= 4 and abs(abs(o % SPB) - SPB / 2) < 1e-6)]
+                      if any(abs((o % SPB) - s) < 1e-6 for s in _st)]
             rest = [o for o in xs if o not in strong]
             xs = sorted((strong + rest)[:cap]) if cap >= len(strong) else sorted(strong[:cap])
         elif len(xs) < cap:
@@ -985,12 +1030,16 @@ def apply_rhythm_cells(notes, spb=None, prof=None, rng=None):
 
 
 def rhythm_cell_stats(notes, spb=None):
-    """落点体检（守卫口径）：on8 = 落 8 分格比例 · weak = 落 16 分弱格比例。"""
+    """落点体检（守卫口径）：on8 = 落 8 分格比例 · weak = 落 16 分弱格比例。
+
+    ⚠ 桶数 = `SLOTS`（不是写死的 16）：5/4 一小节 20 格，写死 16 会把第 5 拍的音别名回第 1 拍。
+    4/4 与 3/4 下 `SLOTS == 16`，与旧口径逐字一致。
+    """
     import math
     b = float(SPB if spb is None else spb)
-    hist = [0] * 16
+    hist = [0] * SLOTS
     for n in notes:
-        hist[int(round(((n[0] % 1) * b + n[1]) * 4)) % 16] += 1
+        hist[int(round(((n[0] % 1) * b + n[1]) * 4)) % SLOTS] += 1
     tot = sum(hist) or 1
     ent = 0.0
     for h in hist:
@@ -999,7 +1048,7 @@ def rhythm_cell_stats(notes, spb=None):
             ent -= p * math.log2(p)
     return (100.0 * sum(h for i, h in enumerate(hist) if i % 2 == 0) / tot,
             100.0 * sum(h for i, h in enumerate(hist) if i % 4 in (1, 3)) / tot,
-            ent / math.log2(16))
+            ent / math.log2(SLOTS))
 
 
 def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None,
@@ -1229,8 +1278,9 @@ def gen_section(sec, chords, prof, rng, mode_scale, tonic, per=None, dens=None,
 
             # ④ 音高
             cad_tone = False            # 本音是不是句末终止音（⑧⑨ 要跳过它，见 ④ 末）
-            strong = abs((on - bar * SPB) - round(on - bar * SPB)) < 1e-6 and \
-                int(round(on - bar * SPB)) % 2 == 0          # 第 1、3 拍
+            # 强拍口径读真源（旧写法是"整数拍且偶数拍"= 第 1、3 拍，在 5/4 下会把第 3、5 拍
+            # 也当强拍 —— 5/4 的强拍是第 1、4 拍）。
+            strong = any(abs((on - bar * SPB) - s) < 1e-6 for s in (strong_offsets() or [0.0]))
             if motif is not None:
                 # **动机模式的音高**：每小节第一个音 = 动机根音**整体移调**到该小节和弦
                 # （同 figure 换高度说 = 模进）；其后每个音按动机的**音程 cell** 走。
@@ -2303,16 +2353,22 @@ def main():
     d = json.load(open(song, encoding='utf-8'))
     # **拍号**：落点/时值/拱形全是按"一小节几拍、每拍 4 个十六分格"写的 —— 所以进生成前
     # 必须按本曲拍号把 `SPB`（一小节拍数）设对，否则会静默把音撒到小节外。
-    # 2026-09-18 前这里**直接拒绝非 4/4**（"宁可拒绝，也不给错旋律"）。现在 3/4 放开
-    # （用户要求：waltz 主题的 10 首模板全是 3/4）；**其余拍号仍拒绝** —— 强拍位置、
-    # 句法都还没在那些拍号上量过，宁可拒绝也不给没验过的答案。
+    # 2026-09-18 前这里**直接拒绝非 4/4**（"宁可拒绝，也不给错旋律"）。2026-09-18 放开 3/4
+    # （用户要求：waltz 主题的 10 首模板全是 3/4）；**2026-10-08 放开 5/4**（3+2 分组，
+    # 强拍取第 1、4 拍，依据见 `song_engine.strong_beats`），但**只走规则层**：
+    # 画像的 `onset16_hist` / `dur16_hist` 是 4/4 的 **16 格方言**，套到 5/4 的 20 格上
+    # 没有依据（库里也没有 5/4 主题包）⇒ 落点不由画像抽样决定，只由强拍/覆盖性规则决定。
+    # ⚠ **其余拍号仍然拒绝**（6/8、7/8…）：强拍位置、句法都还没在那些拍号上量过。
     meter = song_engine._norm_meter(d.get('meter'))
-    if meter not in ([4, 4], [3, 4]):
-        print('melody_gen 目前只支持 4/4 与 3/4（本曲 meter=%s）。'
+    if meter not in ([4, 4], [3, 4], [5, 4]):
+        print('melody_gen 目前只支持 4/4、3/4 与 5/4（本曲 meter=%s）。'
               '其余拍号请手写 melody，或先用 3/4 试。' % meter)
         return 1
     set_meter(meter)
-    print('  拍号 %s → 一小节 %.2f 拍' % (meter, SPB))
+    print('  拍号 %s → 一小节 %.2f 拍 · %d 格' % (meter, SPB, SLOTS))
+    if meter == [5, 4]:
+        print('  ⚠ 5/4 走**规则层**：强拍取第 1、4 拍（3+2），**不吃画像的 16 格方言**'
+              '（那是 4/4 的量；库里没有 5/4 主题包）—— 交付时要写明这条依据边界')
     chords = d['chords']
     names = list(d['melody'].keys())
     if '--tonic' in sys.argv:
@@ -2675,9 +2731,11 @@ def main():
                      st['cadence_rate'] * 100, st['cadence_root_rate'] * 100))
     fs = form_stats(d['melody'], d['sections'])
     if fs:
-        print('  形态层（铺满小节）：末落点≥8 格的小节 %.0f%%（真实模板 79~90%%）· '
+        # 标签跟着格数走（5/4 是 20 格，"≥8 格"这个说法只对 16 格口径成立 —— 打印对不上
+        # 就是另一种"静默给错答案"）。门值本身不变：跨过**半小节**。
+        print('  形态层（铺满小节）：末落点≥%d 格（半小节）的小节 %.0f%%（真实模板 79~90%%）· '
               '小节内最大空档中位 %.2f 拍（真实 1.0~1.4）· 格 0 占比 %.0f%%（真实 13~15%%）'
-              % (fs['last8'] * 100, fs['maxgap_med'], fs['g0'] * 100))
+              % (SLOTS // 2, fs['last8'] * 100, fs['maxgap_med'], fs['g0'] * 100))
     print('  音阶：%s（按本曲和弦推断；段落 mode 可覆盖）'
           % ('大调' if base_scale is SCALE_MAJOR else '小调'))
     return 0

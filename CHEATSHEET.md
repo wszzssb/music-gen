@@ -15,8 +15,16 @@ $py = ".\.venv\Scripts\python.exe"
 & $py scripts\theme_pack.py seaside --calibrate            # 标定段间曲线的阻尼系数（出探针曲→渲染→写回包）
 # ② 依据模板包出歌：和声/速度/调式/节奏音型/配器/段落 + 旋律语言画像（自动跑 melody_gen）
 & $py scripts\new_song.py 35_x --theme seaside --ref BGM16c   # 省略 --ref = 用包里的**混音目标**
+#   曲目名（= 目录名）：**中文与空格都可以**（`new_song.py "夏日 的海" --theme tender`）；
+#     只禁路径元字符 —— 口径一处：`scripts/name_rules.py`（`/ \ : * ? " < > |` · `..` ·
+#     Windows 保留名 · 以 `-`/`.` 开头 · 结尾点或空格 · >48 字）。面板两侧同源（守卫 `song_name_rules`）。
 #   BPM：默认在**主题模板的 p25~p75 真实范围**内按 seed 取（旧行为是固定中位数 →
 #   同主题每首一样，实测 battle 3 首全 139、daily 4 首全 128）；要钉死加 `--bpm 150`
+#   **想要的时长**：`--seconds 100`（与 `--bpm` 是同一量的两种写法，但它会**联合解
+#   「段数 + BPM」**，尽量让速度留在主题模板区间内；做不到会夹端点并打印差值）。
+#   ⚠ 实测：15 个主题里只有 **3 个**能在模板速度区间内做到 100 秒 —— 其余要改段数才行。
+#   · `--arr-only "piano,strings"`：编配白名单（空串/`none` = 只留主奏）
+#   · `--lead 65` / `--lead sax,trumpet`：点名主奏音色（多件按段轮换）
 #   --energy-gain 1.0（默认）= 段间能量曲线的阻尼系数（0=不写曲线，1=照抄目标起伏）
 #   混音目标 = 对齐到哪份真实音频画像（BPM/打击感/调式挑），**不是模板依据**
 # ③ 只改 songs\35_x\song.json（chords / melody / sections）

@@ -71,6 +71,10 @@ LIB_FILE = os.path.join(HERE, '.libpath')
 _SCRIPTS = os.path.join(TOOLCHAIN, 'scripts')
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
+# 曲目名口径**只有一处**（`scripts/name_rules.py`）：2026-10-09 放开中文与空格。
+# 原来这里/`/api/upload`/`/api/extract`/`create.js` 各写一条 ASCII 白名单，
+# 用户问"为什么不能有中文和空格"—— 查下来必须挡的只有**路径元字符**那一半。
+from name_rules import check_song_name, SONG_NAME_HINT      # noqa: E402
 PY = None                     # 由 main() 设定：music-gen 的 .venv python
 EXPORT_DIR = os.path.join(LIB, 'export')        # 交付物跟着**曲库**走
 TMP_AUDIO = os.path.join(os.environ.get('TEMP', HERE), 'bgm-studio-audio')
@@ -317,6 +321,12 @@ def song_dir(sid, need_json=True):
         d = base
     else:
         d = os.path.join(base, sid)
+        # ⚠ **防穿越兜底**（2026-10-09）：曲名规则放开了中文与空格，"ASCII 白名单"不再是
+        #   唯一防线 ⇒ 这里再按"解析后的路径必须仍在曲库内"验一次（`check_song_name`
+        #   已经挡掉 `/ \ ..`，两道一起用；同 `/api/dl` 的 `startswith` 口径）。
+        _ab, _ad = os.path.abspath(base), os.path.abspath(d)
+        if _ad != _ab and not _ad.startswith(_ab + os.sep):
+            raise FileNotFoundError('曲目 id 越出曲库：%r（曲库 %s）' % (sid, base))
     if not os.path.isdir(d):
         raise FileNotFoundError('找不到曲目: %s（曲库 %s）' % (sid, LIB))
     if need_json and not os.path.isfile(os.path.join(d, 'song.json')):
@@ -815,6 +825,13 @@ def extract_plan(name, src, mode, seconds=None):
         #   `.mid` 照旧在目录里 —— 用户要的"一份 MIDI"没有少，只是旁边多了两件。
         #   精修（力度写回 / 段级编配 / band_match / 体检）仍然只在完整还原那档跑。
         cmds.append(['scripts/make_song.py', name, '--no-tune'])
+    # **收尾两步**（2026-10-09 接）：① 混音对标改成**本曲原曲**（默认落的 `bgm01c` 是别的曲子，
+    #   `full` 档会因此"照别人的频谱调参" ⇒ 守卫 `restore_ref_is_own_song` 必红）；
+    #   ② 渲染后 Perc 占比超门时，按**分轨实测数字**写 `patterns.perc_exempt`（或明确建议
+    #   写 `arr.perc: 0`）。⚠ 放在**渲染之后、`extract_notes` 之前**：notes.md 里记的
+    #   「参考画像」要是修正后的那个。
+    cmds.append([py_exe(), os.path.join(_SCRIPTS, 'extract_finish.py'), name,
+                 '--audio', src, '--stems-dir', h6, '--mode', mode])
     # **无论哪一档，最后都要写 `notes.md`**：转录那条链自己不写它，而曲目目录必须齐 4 件
     # （`song.json`/`compose.py`/`notes.md`/`render.json`，守卫 `notes_present` 就是这么判的）
     # —— 少了这一步，提取出来的**每一首**都会让全量自检变红（2026-10-07 实测踩到）。
@@ -1186,7 +1203,11 @@ class Handler(BaseHTTPRequestHandler):
                     if os.path.isfile(p):
                         fs.append({'name': fn, 'size': os.path.getsize(p),
                                    'mtime': os.path.getmtime(p),
-                                   'url': '/api/dl?id=%s&f=%s' % (sid, urllib.parse.quote(fn))})
+                                   # ⚠ `sid` 也必须 `quote`（2026-10-09）：曲名放开中文/空格后，
+                                   #   这里原来是裸 `id=%s` ⇒ 含 `&`/`#`/`%` 的名字会把 URL 切坏
+                                   #   （同一文件里别处都 quote 了，只有这一处漏）。
+                                   'url': '/api/dl?id=%s&f=%s'
+                                          % (urllib.parse.quote(sid), urllib.parse.quote(fn))})
                 return self._json({'ok': True, 'dir': d, 'files': fs})
             if u.path == '/api/dl':
                 fn = (q.get('f') or [''])[0]
@@ -1285,9 +1306,9 @@ class Handler(BaseHTTPRequestHandler):
                                    'notes_speed_synced': _fixed, 'log': out[-400:]})
             if u.path == '/api/new':
                 body = self._body()
-                nid = (body.get('id') or '').strip()
-                if not re.match(r'^[0-9A-Za-z_][0-9A-Za-z_-]{0,40}$', nid):
-                    return self._err('曲目名只能用字母/数字/下划线（例：24_my_song）')
+                nid, _nmerr = check_song_name(body.get('id'))
+                if _nmerr:
+                    return self._err('%s（%s）' % (_nmerr, SONG_NAME_HINT))
                 ref = body.get('ref') or first_ref()
                 # **模板依据走主题模板包**（用户口径：一次生成依据同主题 ≥8 首白名单模板）。
                 # 老 `--from <现成曲目>` 仍可用，但它会被 check_song 判为"依据不合规"。
@@ -1328,6 +1349,19 @@ class Handler(BaseHTTPRequestHandler):
                 lead = (body.get('lead') or '').strip()
                 if lead:
                     args += ['--lead', lead]
+                # **想要的时长（秒）**（`--seconds`，2026-10-08 第二轮④）：与"改 BPM"是同一个量的
+                #   两种写法，但 `--seconds` 会**联合解**「段数 + BPM」，尽量让速度留在该主题模板
+                #   的实测区间内（见 `new_song.duration_plan`）。给了它，前端就**不要再**走
+                #   "生成后回写 bpm"那条路（那条只改速度、不改结构，还会把速度顶到区间外）。
+                secs = body.get('seconds')
+                if secs not in (None, '', 0, '0', 'null'):
+                    try:
+                        secs = float(secs)
+                    except (TypeError, ValueError):
+                        return self._err('seconds（想要的时长）要是数字，单位秒（例：100）')
+                    if not 10 <= secs <= 600:
+                        return self._err('seconds 要在 10~600 秒之间（给的是 %s）' % secs)
+                    args += ['--seconds', '%.1f' % secs]
                 # 能量：创作台的「提要求」会给一个 0.8~1.3 的建议值（`ask_parse` 推的）
                 try:
                     eg = float(body.get('energy_gain') or 0)
@@ -1387,9 +1421,12 @@ class Handler(BaseHTTPRequestHandler):
                 # 参考音频上传：桌面壳里前端拿不到本机绝对路径，只能把文件读成 base64 发过来
                 import base64
                 body = self._body()
-                nid = re.sub(r'[^0-9A-Za-z_-]+', '_', str(body.get('id') or '')).strip('_')[:40]
-                if not nid:
-                    return self._err('先给这首曲子起个名（字母/数字/下划线）')
+                # ⚠ 这里原来是 `re.sub(r'[^0-9A-Za-z_-]+','_')` —— **静默改写**而不是拒绝：
+                #   中文名会被整串改成 `_` ⇒ strip 后为空 ⇒ 报"先给这首曲子起个名"，
+                #   用户看到的是一句与"我明明起了名"矛盾的错。现在与 `/api/new` 同一口径。
+                nid, _uerr = check_song_name(body.get('id'))
+                if _uerr:
+                    return self._err('%s（%s）' % (_uerr, SONG_NAME_HINT))
                 ext = os.path.splitext(str(body.get('name') or ''))[1].lower()
                 if ext not in UPLOAD_EXT:
                     return self._err('不认这种音频后缀：%s（支持 %s）'
@@ -1409,9 +1446,9 @@ class Handler(BaseHTTPRequestHandler):
                                    'name': os.path.basename(str(body.get('name') or ''))})
             if u.path == '/api/extract':
                 body = self._body()
-                nid = (body.get('id') or '').strip()
-                if not re.match(r'^[0-9A-Za-z_][0-9A-Za-z_-]{0,40}$', nid):
-                    return self._err('曲目名只能用字母/数字/下划线（例：my_song_01）')
+                nid, _eerr = check_song_name(body.get('id'))
+                if _eerr:
+                    return self._err('%s（%s）' % (_eerr, SONG_NAME_HINT))
                 mode = (body.get('mode') or 'fast').strip()
                 if mode not in ('fast', 'full'):
                     return self._err('mode 只能选 fast（只出 MIDI）或 full（完整还原）')

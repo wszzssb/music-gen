@@ -266,8 +266,12 @@ def delegate_new_song(argv):
     # `daily_mix` 也会被它当成位置参数。首版在这里照抄了那个写法，`pos` 就变成两项
     # （`_probe` + `daily_mix`）→ **永远不委托**；自检只查"有没有接线"、查不出这个，
     # 是端到端试跑才逮到的（所以这条路径必须留一个真跑的用例，别只靠静态断言）。
+    # ⚠ **带值选项必须全列在这里**（2026-10-08 补 `--arr-only` / `--lead` / `--seconds`）：
+    #   漏一个 → 它的值会被当成位置参数 → `len(pos) != 1` → **退回 CLI 直连**（不静默，
+    #   但等于新参数走不到面板这条唯一入口上）。三个新参数是 2026-10-08 两轮加的：
+    #   `--arr-only`（编配白名单）· `--lead`（点名主奏）· `--seconds`（想要的时长）。
     _VALUED = ('--theme', '--from', '--style', '--ref', '--seed',
-               '--candidates', '--energy-gain')
+               '--candidates', '--energy-gain', '--arr-only', '--lead', '--seconds')
     pos, i = [], 1
     while i < len(argv):
         if argv[i] in _VALUED:
@@ -297,7 +301,8 @@ def delegate_new_song(argv):
         body['style'] = _opt(argv, '--style') or 'daily'
     else:
         return None                     # 用法交给原生报错
-    for k, flag in (('seed', '--seed'), ('ref', '--ref')):
+    for k, flag in (('seed', '--seed'), ('ref', '--ref'), ('arr_only', '--arr-only'),
+                    ('lead', '--lead'), ('seconds', '--seconds')):
         v = _opt(argv, flag)
         if v:
             body[k] = v

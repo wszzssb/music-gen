@@ -306,6 +306,9 @@ EQ 参数有保守上限（`low ≤9 / mid_db ≤10 / shelf ≤10`）：差距 >
 | `report_sections.py` | **逐段体检**（一张表列清"哪一段不像、差在哪一层"）：同一条曲子段间读数常**不是一个方向**（实测质心差从引子 +43Hz 到尾段 −944Hz），而"全曲中位"把两头抹平 ⇒ **只报段级** |
 | `pitfall_dup.py` | **坑台账查重 + 索引完整性**（入账新坑前先跑）：`--check-index` / `--index-miss` / `--self-test`；自检项 `t_pitfall_index` 跑的就是它（`PITFALLS` 328：索引手写会漂，实测漂到 11 条没进索引） |
 | `token_audit.py` | **文档预算审计**：逐份量体量、对 `LIMITS` 报余量/超限，并估算"一个典型写歌对话要读多少 token"（`--json` 给机器读）。**往任何有预算的文档里加内容之前先看它**，顺序是"先抬上限、再落内容、最后补压缩"（`docs/CONVENTION.md` 文首框） |
+| `asset_versions.py` | **前端资源版本清单**：`--write` 按当前 html 与文件内容刷新 `studio/web/_versions.json` · `--check` 只检查。**改了 `studio/web/*.js\|*.css` 就必须先把 html 里的 `?v=` 加 1**（浏览器/WebView2 按 URL 缓存，不升号 = 用户看到旧文件）；自检项 `t_frontend_versions` 用同一份口径（2026-10-08 实测踩过：改了 `create.js` 忘升 `create.html` 的 `?v=12`） |
+| `name_rules.py` | **曲目名合法性**（面板与脚本的**唯一口径**）：`check_song_name(raw) → (name, err)`。**2026-10-09 放开中文与空格** —— 曲目名同时是**目录名 / 文件名前缀 / argv / URL 参数**，所以只禁路径元字符（`/ \ : * ? " < > \|`、`..`、Windows 保留名、以 `-`/`.` 开头、结尾点或空格、>48 字）。`studio/server.py` 三处入口（`/api/new` · `/api/upload` · `/api/extract`）与 `studio/web/create.js` 的 JS 镜像都走它；守卫 `t_song_name_rules` 比对两侧同源 |
+| `extract_finish.py` | **面板提取链的收尾两步**（2026-10-09 接进 `extract_plan`，**放在 `extract_notes` 之前**）：① **混音对标改成"本曲原曲"** —— 建 `refs/<名>.json` + 把 `render.json.ref` 指过去；已经按错对标调过参（`tuned=true`）就**重渲染一次**，否则只是"改字掩红"。已对得上的老曲**一律不动**（判据跟守卫 `t_restore_ref_is_own_song` 走；要强制重建加 `--force-ref`）。② **打击乐声明** —— 渲染后 Perc 占比超门（`0.15`）时，按**分轨实测电平**判"原曲是否真有鼓"：有就写 `patterns.perc_exempt`（**带实测数字**），看不出有鼓就**不写**并建议 `arr.perc: 0`（宁可留红也不写空话）。`--dry` 只打印。口径与守卫同源（`perc_share()`）；守卫 `t_extract_finish_contracts` |
 
 **提取流水线的应用层规则**（不跑模型、只改装配，2026-09-30 实测 · 10-01 接进流水线）：
 `scripts\vote_apply.py` —— **族票**（同族多视图算**一票**；9 视图"票数≥3" **+0.0041**

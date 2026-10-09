@@ -673,11 +673,20 @@ def strong_beats(meter):
     口径（唯一来源，`check_song` / `melody_gen` / `selftest` 都从这里取）：
     - 偶数拍号 → `[0, 半小节]`：`[4,4]`→`[0,2]`、`[6,8]`→`[0,1.5]`（两个附点四分脉冲）、`[2,4]`→`[0,1]`
     - 奇数拍号 → `[0]`：`[3,4]` 的第 2 拍是**弱拍**，把它当强拍判会误报（老代码写死第 1、3 拍）
+    - **`[5,4]` 例外**（2026-10-08）：五拍子按 **3+2** 分组 ⇒ 强拍是**第 1 拍与第 4 拍**（0 与 3）。
+      依据：5/4 的通行分法就是 3+2（如 *Take Five*：Ebm7 走 3 拍、Bbm7 走 2 拍，
+      "always landing on a root note on beats **1 and 4**"），从来不是"五下均等" ——
+      见 [More odd times · Mixdown Magazine](https://mixdownmag.com.au/features/columns/more-odd-times/)。
+      ⚠ 库里**没有 5/4 主题包**（拍号是主题属性，新主题要 ≥8 首同主题真实模板），
+      所以这条只服务**手写 / 扒带**的 5/4 曲；`melody_gen` 对 5/4 也**只走规则层**
+      （画像的 `onset16_hist` 是 4/4 的 16 格方言，套到 20 格上没有依据）。
     """
     m = meter if isinstance(meter, (list, tuple)) else (meter or {}).get('meter')
     num, den = (m or (4, 4))
     num, den = int(num), int(den)
     unit = 4.0 / den                       # 一拍 = 几个四分音符
+    if (num, den) == (5, 4):
+        return [0.0, 3.0]
     if num % 2:                            # 奇数拍：只有第 1 拍是强拍
         return [0.0]
     return [0.0, round(num / 2.0 * unit, 4)]

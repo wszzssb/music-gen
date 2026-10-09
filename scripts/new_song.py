@@ -7,6 +7,12 @@ r"""新歌脚手架（song.json 方案）：**新歌只写一个 JSON，不写�
   python new_song.py 35_seaside --theme seaside [--ref BGM16c] [--seed 7] [--energy-gain 1.0]
   #   ⚠ `--seed` **省略时按曲名派生**（同名可复现、异名出新曲）—— 见 `seed_from_name`：
   #     旧行为是写死默认 7，于是"同一主题再建一首"拿到的是**逐音相同**的同一首曲子。
+  #   · `--arr-only "piano,strings"`：编配**白名单**（空串/`none` = 只留主奏）
+  #   · `--lead 65` / `--lead sax,trumpet`：点名主奏音色（多件按段轮换）
+  #   · `--seconds 100`：**想要的时长**（秒）。与 `--bpm` 是同一量的两种写法，但它会
+  #     **联合解「段数 + BPM」**，尽量让速度留在该主题模板的实测区间内（见 `duration_plan`）；
+  #     做不到精确命中时会把 BPM 夹到区间端点并**打印差值**（不许静默给个"看起来对"的时长）。
+  #     段数真的动了会写 `basis.structure_source = 'duration:<N>s/plan<原段数>'`（留痕）。
   # ② 复现/改歌：从现成曲目复制骨架（**不算模板依据**，会被 check_song 标记为非白名单）
   python new_song.py 06_morning --from 05_d135_cheerful [--style gorgeous]
   python new_song.py --list-styles        # 引擎风格预设
@@ -783,6 +789,53 @@ def intro_style_for(name, key=None):
     return cands[h % len(cands)]
 
 
+def duration_plan(pack, seconds, nmin=3, nmax=16):
+    """把「**我要 N 秒**」解成 `(段数, BPM, 说明)` —— **BPM 必须落在主题模板实测区间内**。
+
+    为什么这么解（2026-10-08 第二轮④；用户口径："时长/结构可控 …… 旧的曲子直接归档不用改，
+    直接做新的"）：时长 = `总小节 × 每小节四分 × 60 ÷ BPM`，而**总小节由段数定死**
+    （段长固定 8、首尾各 4 小节）。旧行为只让用户改 BPM ⇒ 想压到 100 秒就得把 BPM 顶到
+    **288**（cheerful 模板区间 129~140）—— 秒数"做到了"，但**速度脱离了该主题全部模板依据**，
+    等于在"依据可查"这条红线上开了个口子（`docs/STANDARD.md` §5 原先把这条写成"自由可设"）。
+
+    现在**联合解**：枚举段数，先找"让所需 BPM 落在 `[p25,p75]` 内"的那些；
+      ① 有解 → 秒数**精确命中**，再在同为精确解的段数里挑**离主题原 plan 最近**的（依据动得最少）；
+      ② 无解 → 退回"最接近的可行值"，BPM 夹到区间端点，并把**差值如实报出**（红线 5：
+         不许静默给一个"看起来对"的时长）。
+    返回 `(nsec, bpm, info)`；`info` 带 `exact / actual / bars / plan_nsec / need_bpm / range`。
+
+    ⚠ **段数变了就要留痕**（`basis.structure_source`，见 `build_from_theme` 与
+    `docs/STANDARD.md` §5"改结构"那条）：段数 ≠ 主题包 `form.plan` 时，后续接手的人
+    必须能看出"这不是主题包原样的结构"。
+    """
+    import song_engine as _se
+    form = pack.get('form') or {}
+    sec_bars = int(form.get('section_bars') or 8)
+    intro = 4                                  # `theme_pack.build_plan` 里 Intro/Outro 各 4 小节
+    plan_nsec = max(1, len(form.get('plan') or []) - 2)      # plan 含 Intro/Outro
+    bb = _se.bar_beats(pack.get('meter') or (4, 4))
+    b = pack.get('bpm') or {}
+    lo, hi = b.get('p25'), b.get('p75')
+    lo = float(lo) if lo else None
+    hi = float(hi) if hi else None
+    med = float(b.get('median') or 120.0)
+    best = None
+    for nsec in range(max(1, int(nmin)), int(nmax) + 1):
+        bars = 2 * intro + nsec * sec_bars
+        need = bars * bb * 60.0 / float(seconds)
+        exact = (lo is None or hi is None) or (lo - 1e-9 <= need <= hi + 1e-9)
+        bpm = need if exact else min(max(need, lo if lo else need), hi if hi else need)
+        actual = bars * bb * 60.0 / bpm
+        key = (0 if exact else 1, round(abs(actual - float(seconds)), 3),
+               abs(nsec - plan_nsec))
+        if best is None or key < best[0]:
+            best = (key, nsec, bpm, exact, bars, actual, need)
+    _k, nsec, bpm, exact, bars, actual, need = best
+    info = {'exact': bool(exact), 'actual': actual, 'bars': bars, 'plan_nsec': plan_nsec,
+            'need_bpm': need, 'range': (lo, hi), 'target': float(seconds)}
+    return nsec, float(bpm), info
+
+
 def _bpm_from_pack(pack, seed):
     """按主题模板包的**真实 BPM 范围**取一个值（不再固定用中位数）。→ (bpm, 来源说明)
 
@@ -801,7 +854,9 @@ def _bpm_from_pack(pack, seed):
     med = float(b.get('median') or 120.0)
     lo, hi = b.get('p25'), b.get('p75')
     if lo and hi and float(hi) == float(lo):
-        return float(lo), '命令行 --bpm 指定'          # theme_mode 把范围塌缩成了一点
+        # 范围被塌缩成一点有两种来路，**别都说成"命令行 --bpm"**（误导性打印 = 静默的一种）：
+        # ① `theme_mode` 的 `--bpm`；② `build_from_theme` 的 `--seconds`（`duration_plan` 解出来的）。
+        return float(lo), b.get('src') or '命令行 --bpm 指定'
     if not lo or not hi or float(hi) < float(lo):
         return med, '主题中位数 %g（包内没有 p25/p75 范围）' % med
     x = (int(seed) * 1103515245 + 12345) & 0x7FFFFFFF
@@ -940,16 +995,44 @@ def harmony_tension_levels(pack, secs):
     return out
 
 
-def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=None, lead=None):
-    """主题模板包 → song.json 数据（**作曲依据全在包里**）"""
+def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=None, lead=None,
+                     seconds=None):
+    """主题模板包 → song.json 数据（**作曲依据全在包里**）。
+
+    `seconds`（2026-10-08 第二轮④）：**想让它多长**（秒）。给了就由 `duration_plan` 联合解
+    `(段数, BPM)` —— BPM 尽量留在主题模板实测区间内、段数离原 plan 最近；段数真的动了就写
+    `basis.structure_source = 'duration:<N>s/plan<原段数>'`（留痕，`t_imitate_path_marked` 认这个前缀）。
+    """
     import build_song
     import song_engine
+    import theme_pack
     arr_by_role = True          # 新歌默认按段落角色差异化编制（见下）
     gtr_arp = theme_guitar_arp(pack)
     gtr_beats = song_engine.guitar_beats((pack.get('rhythm') or {}).get('high_slot_share'),
                                          dense=0.55)
-    plan = (pack.get('form') or {}).get('plan') or []
     progs = theme_progressions(pack, seed=seed)
+    plan = (pack.get('form') or {}).get('plan') or []
+    _dur = None
+    if seconds:
+        # **时长优先**：段数由 `duration_plan` 定（需要 `n_progs` 才能重算 plan，
+        # 所以顺序是 progs → plan），BPM 塌缩成解出来的那个点（`_bpm_from_pack` 会原样返回）。
+        _nsec, _bpm, _info = duration_plan(pack, float(seconds))
+        _dur = dict(_info, nsec=_nsec, bpm=_bpm)
+        _form = pack.get('form') or {}
+        plan = theme_pack.build_plan(pack.get('theme'), _nsec,
+                                     int(_form.get('section_bars') or 8), len(progs),
+                                     intro_bars=4)
+        pack = dict(pack)
+        pack['bpm'] = {'median': _bpm, 'p25': _bpm, 'p75': _bpm,
+                       'src': '按“要 %.0f 秒”解出（%d 段）' % (float(seconds), _nsec)}
+        if not _info['exact']:
+            print('  !! 要 %.0f 秒**做不到**（主题模板速度区间 %s~%s 内最近的是 %.1f 秒，'
+                  '差 %.1f 秒）—— BPM 已夹到区间端点，没有硬顶速度'
+                  % (float(seconds), _info['range'][0], _info['range'][1],
+                     _info['actual'], abs(_info['actual'] - float(seconds))))
+        else:
+            print('  时长：要 %.0f 秒 → **%d 段 / %.1f BPM**（主题模板区间 %s~%s）'
+                  % (float(seconds), _nsec, _bpm, _info['range'][0], _info['range'][1]))
     if not plan or not progs:
         raise SystemExit('主题包 %s 缺 form.plan / harmony（先重跑 theme_pack.py）'
                          % pack.get('theme'))
@@ -1090,22 +1173,15 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
     _pool = _contra or _body
     if _pool:
         _q = secs[_pool[-2] if len(_pool) >= 2 else _pool[-1]]
-        _qa = dict(_q.get('arr') or {})
-        for _k in ('uku', 'arp', 'strings', 'glock', 'ep', 'shimmer', 'glock_all'):
-            _qa[_k] = False
-        # ⚠ **白名单优先**（`--arr-only`，2026-10-08）：呼吸口也要尊重"只用这几件乐器" ——
-        #   否则它会把 bass/piano/pad 一律强开（实测 `--arr-only piano` 生成的曲子里，
-        #   被挑中的对比段仍出现 `bass=True pad=True`，就是这一行干的）。
-        #   `perc: 0` 保持不变（呼吸口本来就不该敲）。
-        _qa.update({'bass': bool(_allow_arr is None or 'bass' in _allow_arr),
-                    'piano': bool(_allow_arr is None or 'piano' in _allow_arr),
-                    'pad': bool(_allow_arr is None or 'pad' in _allow_arr),
-                    'perc': 0, 'density': 0})
-        # ⚠ **不要在这里再压 `mix`**（2026-09-18 实测后去掉）：原结构配方（已删 2026-09-24） 里
+        # ⚠ **白名单优先**（`--arr-only`，2026-10-08）：呼吸口也有**自己的一份层清单**，
+        #   两处裁决收在 `breath_point_arr`。原先内联在这里（逐层 `=False` 再抬回
+        #   `bass/piano/pad`）—— 实测 `--arr-only piano,strings` 会被它静默关掉 15 段 `strings`
+        #   （白名单里的 `uku/arp/strings/glock/ep/shimmer` 全中），见 `PITFALLS` **364**。
+        #   ⚠ **不要在这里再压 `mix`**（2026-09-18 实测后去掉）：原结构配方（已删 2026-09-24） 里
         # 呼吸口 RMS −19.7 vs 主体 −15.8 —— **只降 3.9dB**，它靠**密度**降（起音 36→6.4），
         # **不是靠音量**。实测我们只做 density 时入口落差 −1.9~−3.6dB，与配方吻合；
         # 若再叠 `mix × 0.42`（≈ −7.5dB）就过冲，入口会变成硬切。
-        _q['arr'] = _qa
+        _q['arr'] = breath_point_arr(_q.get('arr'), _allow_arr)
     # **收尾逐小节渐弱**（2026-09-18 补，口径同 `CASE-BGM36.md:60` / 原案例文档（已删 2026-09-24））：
     # BGM36 最后 **7 小节**衰减到 −94.1dB、BGM35 是 5 小节到 −38dB —— 那才是"过渡自然"的样板；
     # 我们的 `section_gap` 只做段末几拍，实测收尾段 RMS 只到 −16.5dB（主体 −15.9）。
@@ -1139,7 +1215,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
     _mel_tpl = (theme_programs(pack, seed=seed).get('Melody') or (None,))[0]
     _MEL_SEED = _voice_seed(short, 'lead')
     _MEL_PROGS = melody_prog_pool(_mel_tpl, seed=_MEL_SEED,
-                                  leads=lead_pool_for_theme(pack))
+                                  leads=lead_pool_for_theme(pack, verbose=True))
     _MEL_SEQ = melody_prog_seq(_MEL_PROGS, len(secs), seed=_MEL_SEED)
     # **指定主奏音色**（`--lead sax` / `--lead sax,trumpet`，2026-10-08 用户问
     #   "为什么直接生成没有萨克斯"）。主奏（Melody 轨的逐段音色 `arr.melody_prog`）本来由
@@ -1155,10 +1231,16 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
         import solo_instrument as _si
         _want = [_si.parse_instrument(_x)[0]
                  for _x in _re.split(r'[,，、\s]+', str(lead)) if _x.strip()]
-        if _want:
-            _MEL_SEQ = [_want[_i % len(_want)] for _i in range(len(secs))]
-            print('  主奏音色：**由 --lead 指定** → %s（%d 件，按段轮换）'
-                  % ('、'.join('GM %d' % p for p in _want), len(_want)))
+        # ⚠ **空清单不许静默**（2026-10-08 补，与 `solo_instrument.to_multi` 同一口径）：
+        #   实测 `--lead ","` 会得到 `_want == []` ⇒ 走不进下面的覆盖分支 ⇒ **一句话都不打印、
+        #   悄悄退回主题主奏池**（用户以为点名生效了）。`--instruments ""` 那边是 raise 的，
+        #   这里对齐它（红线 5"不许静默"）。
+        if not _want:
+            raise SystemExit('--lead 里没有可用的乐器名：%r（例：`--lead sax` 或 `--lead 65,40`；'
+                             '可用别名见 `solo_instrument.INSTRUMENTS`）' % (lead,))
+        _MEL_SEQ = [_want[_i % len(_want)] for _i in range(len(secs))]
+        print('  主奏音色：**由 --lead 指定** → %s（%d 件，按段轮换）'
+              % ('、'.join('GM %d' % p for p in _want), len(_want)))
     for _i, _s in enumerate(secs):
         _s['arr']['melody_prog'] = _MEL_SEQ[_i]
     # **引子渐入**（`arr.perc_in` → `song_engine.perc_part(inbars=…)`）：真实模板里引子是
@@ -1285,6 +1367,16 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
                    'energy_curve_db': eused,
                    'energy_gain': effective_gain(pack, energy_gain),
                    'templates': [t['file'] for t in (pack.get('templates') or [])]}}
+    # **"要 N 秒"改了结构 → 留痕**（2026-10-08 第二轮④）：段数 ≠ 主题包 `form.plan` 时，
+    # 接手的人必须能一眼看出"这不是主题包原样的结构"，否则就踩 `PITFALLS 243`（两条路径混用）。
+    # ⚠ **`kind` 必须一起写**（口径照 `expand_sections.apply_plan`）：`t_theme_basis_whitelist`
+    #   只认 `basis.kind == 'theme_pack'`，**只写 structure_source 会被判"依据不明"**
+    #   —— 这是自检当场抓到的（第一版漏了 kind，`zz_secs_probe` 立刻红了）。
+    #   前缀 `duration:` 由 `selftest.IMITATE_SRC_RE` 认；段数没动就不写（写了反而是噪声）。
+    if _dur and _dur['nsec'] != _dur['plan_nsec']:
+        d['basis'] = {'kind': 'theme_pack',
+                      'structure_source': 'duration:%gs/plan%d'
+                                          % (_dur['target'], _dur['plan_nsec'])}
     return d
 
 
@@ -1617,18 +1709,73 @@ def lead_assign():
     return out
 
 
-def lead_pool_for_theme(pack):
+def lead_pool_for_theme(pack, verbose=False):
     """某主题的段级主奏池，**按跨主题区分度排序**（默认主奏 → 共用少的 → 票数序）。
 
     为什么要重排（2026-10-01）：段级 `melody_prog` 序列是"池身按 seed 轮换"，池若是
     票数序，长笛（8 个主题共用）就会在多数主题里排前面 → 8 首曲子的中段仍是同一种音色。
+
+    ⚠ **柔主题再过一道亮度筛**（`_soft_lead_filter`，2026-10-08 第二轮）：名单里的主题
+    把实测偏亮的候选挡在池外 —— 理由与两次失败的"数据驱动分类"都记在那两个常量处。
     """
     cands = lead_candidates(pack)
     shares = theme_lead_shares()
     d = lead_assign().get(pack.get('theme'))
     rest = sorted([q for q in cands if q != d],
                   key=lambda q: (shares.get(q, 99), cands.index(q)))
-    return ([d] if d in cands else []) + rest
+    order = ([d] if d in cands else []) + rest
+    return _soft_lead_filter(pack, order, verbose=verbose)[0]
+
+
+# ---------------------------------------------------------------- 柔主题的主奏亮度上限
+# 用户口径（`docs/STANDARD.md` §6-4；原话："抒情曲'太高'"）：柔主题的主奏池里有偏亮的音色
+# （**方波 39.1 / 合成铜管 40.0** dB @2.5–5kHz，都是 `HF_LEVEL` 的实测量），抒情曲里听到
+# 就是"太高"。修法 = 把超过上限的**实测亮**候选挡在段级池外（`lead_pool_for_theme` 里调用）。
+#
+# ⚠ **名单是人工声明的，不是从数据推的** —— 我先试了两条数据驱动分类，**都判据不成立**
+#   （留在这里当证据，别再走一遍）：
+#     ① 主题包 `mix_target.candidates[].centroid`：实测是**量化桶值**（2043/2421/2553/3068/
+#        3250/3284/3338 七档、多主题同值），按中位切 ⇒ **cheerful(2043) 竟是最"暗"的**、
+#        battle/neon 也落在暗半边 ⇒ 阈值一挪就翻。
+#     ② 混音目标画像的**高频倾斜**（2500–5000 减 200–500，连续 dB）：15 主题中位 **+10.3dB**，
+#        `tender` **恰好落在中位**、`cheerful +9.4 / battle +8.7 / neon +9.6` 全在"暗"半边
+#        ⇒ 方向与听感相反。
+#   两条都是"触发率≈一半 + 方向不对"= `PITFALLS` **225/251** 那一族（阈值型判据在本库失效）。
+#   ⇒ 所以改成**显式名单 + 可复核的效果判据**：名单里每个主题都必须满足"池内不再有
+#     `HF_LEVEL > SOFT_LEAD_CAP` 的候选"，**加名单要写理由**（守卫 `soft_lead_pool` 钉着）。
+SOFT_THEMES = {
+    'tender': '温柔抒情（100BPM）—— 用户点名"抒情曲太高"的那一首',
+    'sorrow': '悲伤（95BPM）—— 与 tender 同族：慢、长音多、弱击',
+    'waltz':  '三拍圆舞（100BPM）—— 同族慢曲',
+}
+# 上限取值有锚点：**GM 26 的实测值（34.2dB）**，落在长笛 29.7 与方波 39.1 之间 ——
+# 不是随手取的数，而是"实测表里最接近两者中点的那一档"。
+SOFT_LEAD_CAP = 34.2
+# 保底：筛完至少留这么多个候选（免得把某主题的池压成 1 个、段级轮换直接空转）。
+SOFT_LEAD_MIN = 2
+
+
+def _soft_lead_filter(pack, order, verbose=False):
+    """柔主题的主奏池 → 去掉**实测偏亮**的候选（返回 `(保留, 被筛掉)`）。
+
+    ⚠ **未实测亮度的候选一律保留**（`HF_LEVEL` 里没有的音色）——不许拿"族估值/听起来差不多"
+    当亮度判据（同「未实测音色又用族估值」那条坑）。所以这道筛只对**有实测量的**候选生效。
+    ⚠ 池首被筛掉时**如实打印**（不许静默）：`sorrow` 的分配音色是 **71（40.0dB）**，
+    筛掉后它这一段的主奏会换成池里下一个 —— 这是本改动的**预期效果**，不是副作用。
+    """
+    th = pack.get('theme')
+    if th not in SOFT_THEMES:
+        return list(order), []
+    keep = [q for q in order if q not in HF_LEVEL or HF_LEVEL[q] <= SOFT_LEAD_CAP]
+    if len(keep) < SOFT_LEAD_MIN:                 # 保底：宁可留亮的，也不许池空/只有一个
+        keep = [q for q in order[:SOFT_LEAD_MIN]]
+    dropped = [q for q in order if q not in keep]
+    if dropped and verbose:
+        print('  柔主题主奏亮度筛（%s：%s）：挡掉 %s（上限 %.1fdB；实测 %s）'
+              % (th, SOFT_THEMES[th], '、'.join('GM %d' % q for q in dropped),
+                 SOFT_LEAD_CAP,
+                 '、'.join('GM %d=%.1f' % (q, HF_LEVEL[q]) for q in dropped if q in HF_LEVEL)))
+    return keep, dropped
 
 
 def melody_prog_pool(mel_tpl, seed=None, leads=None):
@@ -1850,8 +1997,38 @@ def _apply_arr_only(secs, spec, verbose=True):
     return want
 
 
+# ───────── "呼吸口"（留白段）的编配裁决：`breath_point_arr`（2026-10-08 从内联提出来） ─────────
+# 呼吸口 = `build_from_theme` 挑出的那一段"对比/留白"段。它要把装饰层关掉、只留骨架，
+# 所以**自带一份层清单** —— 而 `--arr-only` 也有自己的一份（`ARR_INSTR_KEYS`）。
+# ⚠ **两份清单必须由同一个函数裁决**（2026-10-08 实测踩到，`PITFALLS` **364**）：
+#   原先把这段**内联**在 `build_from_theme` 里，逐层 `= False` 之后只把 `bass/piano/pad`
+#   抬回来 —— 于是**白名单里的 `uku/arp/strings/glock/ep/shimmer` 会被呼吸口静默关掉**。
+#   实测：`--arr-only piano,strings` 跑 15 个主题，**15 段（每主题正好 1 段）的 `strings=False`**，
+#   用户听到的是"有一整段弦乐没了"，而日志只印"只开 piano、strings"、退出码 0。
+#   抽成模块级函数是为了**变异用例能直接打到它**（同 `song_engine.harmony_below` 的做法）。
+BREATH_ON = ('bass', 'piano', 'pad')                                # 老行为下呼吸口保留的骨架层
+BREATH_OFF = ('uku', 'arp', 'strings', 'glock', 'ep', 'shimmer')    # 老行为下呼吸口关掉的装饰层
+
+
+def breath_point_arr(arr, allow=None):
+    """呼吸口那一段的 `arr`（返回**新** dict，不改入参）。
+
+    `allow` = `--arr-only` 的乐器层白名单集合（`None` = 没给白名单 = **老行为、逐字节不变**）。
+    **白名单优先**：用户点名要的层不许被呼吸口关掉。
+    `glock_all` 不是乐器层（是"钟琴全轴"控制键）→ 一律关；`perc`/`density` 归零是呼吸口的
+    本意（靠**密度**降、不靠音量 —— 见调用点那段实测注释）。
+    """
+    qa = dict(arr or {})
+    for k in BREATH_ON + BREATH_OFF:
+        qa[k] = (k in BREATH_ON) if allow is None else (k in allow)
+    qa['glock_all'] = False
+    qa['perc'] = 0
+    qa['density'] = 0
+    return qa
+
+
 def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
-                force=False, bpm=None, arr_only=None, lead=None):
+                force=False, bpm=None, arr_only=None, lead=None, seconds=None):
     """`--theme` 路径：按主题模板包生成一首新歌"""
     import theme_pack as tp
     # **没给 seed 就按曲名派生**（2026-10-01）：不给的话默认 7 → 同一主题每首一样，
@@ -1892,7 +2069,7 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
         shutil.rmtree(dst)
     os.makedirs(dst)
     data = build_from_theme(pack, short, seed=seed, ncand=ncand, energy_gain=energy_gain,
-                            arr_only=arr_only, lead=lead)
+                            arr_only=arr_only, lead=lead, seconds=seconds)
     song_json = os.path.join(dst, 'song.json')
     json_io.save(song_json, data)
     print('已创建 songs\\%s\\song.json' % new)
@@ -2203,11 +2380,19 @@ def main():
     # `build_from_theme` 里那段（主奏本来由主题主奏池 + seed 决定，15 个主题里只有
     # battle/night 的池含萨克斯 ⇒ 用户问"为什么直接生成没有萨克斯"）。
     lead = sys.argv[sys.argv.index('--lead') + 1] if '--lead' in sys.argv else None
+    # **想要的时长（秒）**（`--seconds 100`，2026-10-08 第二轮④）：与 `--bpm` 是**同一个量的
+    # 两种写法** —— 但 `--bpm` 会把速度顶到主题模板区间之外，`--seconds` 会**联合解**
+    # 段数 + BPM，尽量让速度留在模板区间内（见 `duration_plan`）。两个都给时以 `--seconds` 为准。
+    cli_seconds = float(sys.argv[sys.argv.index('--seconds') + 1]) \
+        if '--seconds' in sys.argv else None
+    if cli_seconds and cli_bpm:
+        print('  ⚠ `--bpm` 与 `--seconds` 同时给了：以 `--seconds` 为准'
+              '（它会自己解 BPM，并尽量留在主题模板速度区间内）')
     force = '--force' in sys.argv
     if theme:
         rc = theme_mode(new, theme, ref_name=ref_name, seed=seed, ncand=ncand,
                         energy_gain=egain, force=force, bpm=cli_bpm, arr_only=arr_only,
-                        lead=lead)
+                        lead=lead, seconds=cli_seconds)
         # ⚠ **挂曲库必须跟着 `theme_mode` 的出口**：main 末尾那处调用**走不到这里**
         #   —— `--theme` 路径在下面这样一行就 return 了。第一版我把调用写在 main 末尾，
         #   实测 3 首变体全是 404、日志里也没有"已挂面板曲库"（加了 ≠ 生效）。

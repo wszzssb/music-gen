@@ -1358,9 +1358,17 @@ def main():
     import song_engine as _se
     _real_dirs = st.song_dirs
 
+    # ⚠⚠ **2026-10-09 拆雷**：原来 `__exit__` 删的是 `st.ROOT`（`st` = `selftest`，它的 `ROOT`
+    #   就是**仓库根**）—— 只因 `_renamed_dirs()` 先把 `st.ROOT` 指到了临时目录才没出事；
+    #   **任何一次交错/异常，或别的用例也动 `st.ROOT`，就会 `rmtree` 仓库根**。
+    #   现在：**只删这次自己建的那个临时目录**（记在 `_made` 里），并且**先还原全局再删**。
+    #   守卫 `t_mutation_harness_safe` 钉住"不许 rmtree 模块级 ROOT"。
+    _made = []
+
     def _renamed_dirs(**kw):
         import tempfile
         d = tempfile.mkdtemp(dir=ROOT)
+        _made.append(d)
         os.makedirs(os.path.join(d, 'songs', 'zz_renamed'), exist_ok=True)
         sd = os.path.join(d, 'songs', 'zz_renamed')
         json.dump({'name': 'zz_renamed', 'bpm': 120, 'chords': {'C': [36, [55, 60, 64]]},
@@ -1375,11 +1383,14 @@ def main():
     class _FakeRoot:
         def __enter__(self):
             self.old_root, self.old_dirs = st.ROOT, st.song_dirs
+            del _made[:]
             st.song_dirs = _renamed_dirs
         def __exit__(self, *a):
             import shutil
-            shutil.rmtree(st.ROOT, ignore_errors=True)
-            st.ROOT, st.song_dirs = self.old_root, self.old_dirs
+            st.ROOT, st.song_dirs = self.old_root, self.old_dirs          # **先还原**
+            for _d in _made:                                              # 只删自己建的
+                shutil.rmtree(_d, ignore_errors=True)
+            del _made[:]
     results.append(case('render.json.mid 与曲名脱钩', 'render_json_mid_matches_name',
                         lambda: _FakeRoot()))
 
@@ -2419,10 +2430,17 @@ def main():
     _orig_gd = _mr._grid_dev
 
     def _mr_griddev_no1000(path, bpm=None):
-        """把 ms/tick 改回"漏 ×1000"的那一版（模拟第一版的 bug）。"""
+        """把 ms/tick 改回"漏 ×1000"的那一版（模拟第一版的 bug）。
+
+        ⚠ 2026-10-08 修：`_grid_dev` 早已返回**5 元组**（多了 `slots_per_bar`），而这里仍在按
+        4 元组解包 ⇒ 注入本身抛 `ValueError`，被 `measure()` 的 `except` 吞成 error dict
+        ⇒ 守卫在 `r40['tracks']` 处 `KeyError`（**崩了 ≠ 抓到**，`PITFALLS` 251）。
+        按当前形状解包才对得上（这条用例在修之前一直显示"崩了"）。
+        """
         out = _orig_gd(path, bpm)
-        tracks, b, tpb, g = out
-        return ({k: [(s, d / 1000.0) for s, d in v] for k, v in tracks.items()}, b, tpb, g)
+        tracks, b, tpb, g, spb = out
+        return ({k: [(s, d / 1000.0) for s, d in v] for k, v in tracks.items()},
+                b, tpb, g, spb)
 
     def _mr_griddev_nofold(path, bpm=None):
         """把"折进 ±半格"那一步去掉（模拟不折叠的版本）。
@@ -3466,6 +3484,303 @@ def main():
         return Mut(_EN, 'build', patched)
     results.append(case('提取记录：抹掉「没验证什么」',
                         'extract_notes_contracts', _notes_lose_caveats))
+
+    # 86. **生成端"点名类"参数的两处白名单**（`--arr-only` / `--lead` / `--instruments`；
+    #     2026-10-08 补 §20.3-2 的守卫欠账）。它们的共同危险是**静默**：命令 exit 0、
+    #     日志照印"已按你说的做"，而产物少了一件乐器、或悄悄换回默认音色 —— 用户要到**听**
+    #     的时候才发现（红线 5）。五条注入各打一种静默失败，别合并（错法与防线都不同）。
+    import new_song as _NS
+    import solo_instrument as _SI
+
+    def _old_breath_point(arr, allow=None):
+        """旧实现（内联版）：逐层关装饰层，再把 `bass/piano/pad` 抬回来 ——
+        **白名单里的 `uku/arp/strings/glock/ep/shimmer` 会被它一起关掉**
+        （实测 `--arr-only piano,strings` 在 15 个主题上关掉 **15 段** `strings`，`PITFALLS` 364）。"""
+        qa = dict(arr or {})
+        for k in ('uku', 'arp', 'strings', 'glock', 'ep', 'shimmer', 'glock_all'):
+            qa[k] = False
+        qa.update({'bass': bool(allow is None or 'bass' in allow),
+                   'piano': bool(allow is None or 'piano' in allow),
+                   'pad': bool(allow is None or 'pad' in allow),
+                   'perc': 0, 'density': 0})
+        return qa
+    results.append(case('编配白名单被呼吸口覆盖（清单里的 strings 被关掉）',
+                        'arr_only_whitelist',
+                        lambda: Mut(_NS, 'breath_point_arr', _old_breath_point)))
+
+    def _perc_always_on():
+        _real = _NS._apply_arr_only
+
+        def fake(secs, spec, verbose=True):
+            want = _real(secs, spec, verbose)
+            for s in secs:
+                s.setdefault('arr', {})['perc'] = 1      # 没点 perc 也开鼓
+            return want
+        return Mut(_NS, '_apply_arr_only', fake)
+    results.append(case('编配白名单的 perc 失效（没点 perc 也有鼓）',
+                        'arr_only_whitelist', _perc_always_on))
+
+    # ⚠ 注入的是 `parse_instrument` 而不是轮换本身：名字被静默当成钢琴正是**用户会遇到的**那一种
+    #   （点名萨克斯 → 出来还是钢琴，日志还印着"由 --lead 指定"）。期望值用的是**字面量**
+    #   `[65,40]`，所以复用被测函数的实现改坏也照样抓得到。
+    results.append(case('点名的主奏音色失效（要萨克斯给钢琴）', 'lead_override_contracts',
+                        lambda: Mut(_SI, 'parse_instrument', lambda s: (0, 'GM 0'))))
+
+    # `LOW_GM` 清空 ⇒ 多乐器时"低音区那件"这个判据没了，Bass 拿到清单第 1 件（亮音色）。
+    # 守卫比的是**手写的已知答案**（`LOW_KNOWN`），不复用这个常量 —— 复用就抓不到了。
+    results.append(case('多乐器：低音分到非低音音色', 'multi_instruments_contracts',
+                        lambda: Mut(_SI, 'LOW_GM', set())))
+
+    # 两个白名单域（生成时 `--arr-only` / 独奏化 `--instruments`）各写了一份同样的层清单 ——
+    # 只改一处就脱节（CONVENTION §1"抄一份 = 埋一处漂移"）。
+    # ⚠ 打的是 `arr_only_whitelist`（域相等的断言在那一项里）—— 第一版写成
+    #   `multi_instruments_contracts`，**抓不到**：那一项自己也按 `_MULTI_LAYERS` 遍历，
+    #   清单少一层时"守卫期望"与"被测实现"一起变 ⇒ 判据自洽地通过（实测"漏了"，2026-10-08）。
+    results.append(case('多乐器：两个白名单域脱节（少一层）', 'arr_only_whitelist',
+                        lambda: Mut(_SI, '_MULTI_LAYERS',
+                                    tuple(k for k in _SI._MULTI_LAYERS if k != 'shimmer'))))
+
+    # 87. **柔主题主奏亮度筛**（2026-10-08 第二轮①，用户"抒情曲太高"）。两种坏法都要抓：
+    #     ① 筛子失灵（上限抬到天上）⇒ 方波 39.1 / 合成铜管 40.0 又回到 tender 的池里；
+    #     ② 名单被清空 ⇒ 同一个后果（两种形态，别合并 —— 一个打"阈值"，一个打"名单"）。
+    results.append(case('柔主题主奏亮度筛失灵（上限抬到天上）', 'soft_lead_pool_by_theme',
+                        lambda: Mut(_NS, 'SOFT_LEAD_CAP', 999.0)))
+    results.append(case('柔主题名单被清空（筛子成空转）', 'soft_lead_pool_by_theme',
+                        lambda: Mut(_NS, 'SOFT_THEMES', {})))
+
+    # 88. **承诺型文档的代码指针**（2026-10-08 第二轮②）。三种坏法，都改**磁盘上的文档**
+    #     （守卫是读文件+ast 的，改内存它看不见）：
+    #     ① 有人又把行号写回去 → 必须红（实测 `STANDARD` 三个指针漂了两个）；
+    #     ② 符号被改名/写错 → 必须红（符号锚点的全部价值就在这里）；
+    #     ③ 指针被删光 → 空转保护必须红。
+    _std_doc = os.path.join(ROOT, 'docs', 'STANDARD.md')
+
+    class _DocPointerMut:
+        """把符号锚点换成给定的坏形态，退出时**逐文件**还原。
+
+        `drop_all=True` = 把**所有承诺型文档**里的符号锚点都删掉 —— 用来验"空转保护"。
+        ⚠ **第一版只删 `STANDARD.md` 的 3 个锚点**，而后来 §5 又加了锚点（共 9 个）
+        ⇒ 删掉 3 个还剩 ≥3，保护不触发、用例显示"**漏了**"（2026-10-08 实测，全量变异
+        333/334 的那一条）。所以"删光"必须**跨文档**做，别绑定某一个文件的当前内容。
+        """
+        ANCHORS = ('`new_song.py#build_from_theme`', '`theme_pack.py#aggregate`',
+                   '`selftest.py#t_imitate_path_marked`')
+
+        def __init__(self, bad_text=None, drop_all=False):
+            self.bad, self.drop_all = bad_text, drop_all
+            self.olds = {}
+
+        def _anchor_docs(self):
+            """所有可能带锚点的承诺型文档（含宿主 SKILL，存在才动）。"""
+            out = [os.path.join(ROOT, r) for r in st.POINTER_DOCS]
+            out.append(os.path.join(ROOT, 'docs', 'STUDIO-WORKFLOW.md'))
+            out.append(os.path.join(os.path.expanduser('~'), '.dsh', 'skills',
+                                    'bgm-studio', 'SKILL.md'))
+            return [p for p in dict.fromkeys(out) if os.path.exists(p)]
+
+        def __enter__(self):
+            import re as _re          # ⚠ 本文件没有模块级 `re`（上一版这里裸用 re.sub → NameError，
+            if self.drop_all:         #   整轮变异在**最后一条用例**上崩了，见 §22 的记录）
+                for p in self._anchor_docs():
+                    old = open(p, encoding='utf-8').read()
+                    new = _re.sub(r'`([\w./\\-]+\.(?:py|js))#(\w+)`', r'`\1`', old)
+                    if new != old:
+                        self.olds[p] = old
+                        with open(p, 'w', encoding='utf-8', newline='\n') as fh:
+                            fh.write(new)
+                assert self.olds, '所有承诺型文档里都没有符号锚点可删（判据已经空了？）'
+                return self
+            self.olds[_std_doc] = open(_std_doc, encoding='utf-8').read()
+            new = self.olds[_std_doc].replace('`theme_pack.py#aggregate`', self.bad, 1)
+            assert new != self.olds[_std_doc], '注入锚点不在了（STANDARD §5 的写法改过？）'
+            with open(_std_doc, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+            return self
+
+        def __exit__(self, *a):
+            for p, old in self.olds.items():
+                with open(p, 'w', encoding='utf-8', newline='\n') as fh:
+                    fh.write(old)
+
+    results.append(case('文档指针退回行号写法（会漂）', 'doc_code_pointers',
+                        lambda: _DocPointerMut('`theme_pack.py:1053`')))
+    results.append(case('文档指针的符号不存在（改名后没人改文档）', 'doc_code_pointers',
+                        lambda: _DocPointerMut('`theme_pack.py#no_such_symbol_xyz`')))
+    results.append(case('文档指针被删光（检查空转）', 'doc_code_pointers',
+                        lambda: _DocPointerMut(drop_all=True)))
+
+    # 89. **5/4 拍号**（2026-10-08 第二轮③）。两种坏法：
+    #     ① 强拍口径退回"奇数拍只算第 1 拍"（= 老行为）⇒ 5/4 的第 4 拍不再被当强拍；
+    #     ② `set_meter` 退回"不设格数"（SLOTS 恒 16）⇒ 20 格小节里的音被别名回第 1 拍。
+    import song_engine as _SE54
+    import melody_gen as _MG54
+
+    def _old_set_meter(meter):
+        """老版 `set_meter`：只设 SPB、不设 SLOTS（= 5/4 会按 16 格算）。"""
+        n, d = int(meter[0]), int(meter[1])
+        _MG54._METER = [n, d]
+        _MG54.SPB = float(n) * 4.0 / float(d)
+        _MG54.SLOTS = 16
+        for _fn in (_MG54.form_stats, _MG54.small_step_pct):
+            _fn.__defaults__ = (_MG54.SPB,)
+        return _MG54.SPB
+
+    results.append(case('5/4 强拍退回"只有第 1 拍"（第 4 拍不算强拍）', 'meter_five_four_rules',
+                        lambda: MutMany([(_SE54, 'strong_beats', lambda m: [0.0])])))
+    results.append(case('5/4 格数退回 16（第 5 拍被别名回第 1 拍）', 'meter_five_four_rules',
+                        lambda: Mut(_MG54, 'set_meter', _old_set_meter)))
+
+    # 90. **时长可控**（2026-10-08 第二轮④）：把"速度必须留在主题模板区间内"这条判据丢掉
+    #     （换成"永远算成精确命中、BPM 用算出来的值"）⇒ 守卫必须抓到（BPM 会跑到区间外、
+    #     且 20 秒这种做不到的目标会被谎报成"做得到"）。
+    _orig_dp = _NS.duration_plan
+
+    def _dp_ignore_range(pack, seconds, nmin=3, nmax=16):
+        _n, _b, _i = _orig_dp(pack, seconds, nmin, nmax)
+        return _n, float(_i['need_bpm']), dict(_i, exact=True)     # 无视速度区间
+    results.append(case('时长：无视主题速度区间（BPM 顶到区间外）', 'duration_fit',
+                        lambda: Mut(_NS, 'duration_plan', _dp_ignore_range)))
+
+    # 91. **前端版本号**（2026-10-08 第五件）：改了 js/css 不升 `?v=` ⇒ 浏览器/WebView2 继续用
+    #     缓存的旧文件（"改了却看不到"）。两种坏法各一条 —— 一个打**内容侧**，一个打**清单侧**：
+    #       ① 只改 js 内容（版本号与清单都不动）
+    #       ② 只把 html 的 `?v=` 加 1（清单没刷新）
+    _cj = os.path.join(ROOT, 'studio', 'web', 'create.js')
+    _ch = os.path.join(ROOT, 'studio', 'web', 'create.html')
+    _cm = os.path.join(ROOT, 'studio', 'web', '_versions.json')
+
+    class _FrontMut:
+        def __init__(self, mode):
+            self.mode, self.olds = mode, {}
+
+        def __enter__(self):
+            import re as _re            # ⚠ 本文件没有模块级 `re`。**两个分支都要用它** ——
+            for p in (_cj, _ch, _cm):   #   第一次只给 drop_all 加了 import，于是 html 那条
+                self.olds[p] = open(p, encoding='utf-8').read()   # 又一次 NameError 崩在最后
+            if self.mode == 'content':
+                with open(_cj, 'a', encoding='utf-8', newline='\n') as fh:
+                    fh.write('\n// mutation probe\n')          # 内容变了、版本号没动
+            else:
+                old = self.olds[_ch]
+                new = _re.sub(r'create\.js\?v=(\d+)',
+                              lambda m: 'create.js?v=%d' % (int(m.group(1)) + 1), old)
+                assert new != old, '注入锚点不在了（create.html 里的 create.js?v= 改过？）'
+                with open(_ch, 'w', encoding='utf-8', newline='\n') as fh:
+                    fh.write(new)                              # 版本号升了、清单没刷新
+            return self
+
+        def __exit__(self, *a):
+            for p, old in self.olds.items():
+                with open(p, 'w', encoding='utf-8', newline='\n') as fh:
+                    fh.write(old)
+
+    results.append(case('前端：改了 js 没升 ?v=（浏览器用缓存的旧文件）', 'frontend_versions',
+                        lambda: _FrontMut('content')))
+    results.append(case('前端：升了 html 的 ?v= 却没刷新清单', 'frontend_versions',
+                        lambda: _FrontMut('html')))
+
+    # 93. **曲目名规则**（2026-10-09 放开中文与空格）：两类回退各一条 ——
+    #     ① `FORBIDDEN` 被放开（`/` `\` `..` 进得来 ⇒ 目录穿越 / 写到别的曲子）；
+    #     ② **面板镜像与后端脱节**（JS 改了 PY 没改）⇒ 前端放行、后端拒绝（或反之）。
+    import name_rules as _NR
+
+    class _NameJsMut:
+        """改 create.js 里的 `SN_MAX`（模拟"面板那侧被改回旧口径 / 与 PY 脱节"）。"""
+
+        def __init__(self, old, new):
+            self.p = os.path.join(ROOT, 'studio', 'web', 'create.js')
+            self.old, self.new = old, new
+
+        def __enter__(self):
+            self.text = open(self.p, encoding='utf-8').read()
+            assert self.old in self.text, '注入锚点不在了：%r' % self.old
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text.replace(self.old, self.new, 1))
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('曲名规则：禁用字符表被放开（路径元字符能进来）', 'song_name_rules',
+                        lambda: Mut(_NR, 'FORBIDDEN', '')))
+    results.append(case('曲目名：面板镜像与后端脱节（前端放行后端拒）', 'song_name_rules',
+                        lambda: _NameJsMut('var SN_MAX = 48;', 'var SN_MAX = 40;')))
+
+    # 94. **变异脚本自己不许删"模块级 ROOT"**（2026-10-09 拆的雷）：注入 = 把 `_FakeRoot`
+    #     的清理改回 `rmtree(st.ROOT)`（`st` = `selftest`，`ROOT` = **仓库根**）⇒ 绊线必须响。
+    class _HarnessMut:
+        """把"删自己建的临时目录"改回"删 `st.ROOT`"（地雷复活）。"""
+
+        def __init__(self):
+            self.p = os.path.join(ROOT, 'scripts', 'mutation_check.py')
+
+        def __enter__(self):
+            self.text = open(self.p, encoding='utf-8').read()
+            # ⚠ 注入串**拼出来**、不写成字面量 —— 否则守卫 `t_mutation_harness_safe` 的源码扫描
+            #   会把"用例里提到的那句"也当成真代码（第一版就是这么自伤的）。
+            _bad = 'shutil.rmtree(st.' + 'ROOT, ignore_errors=True)'
+            new = self.text.replace('shutil.rmtree(_d, ignore_errors=True)', _bad, 1)
+            assert new != self.text, '注入锚点不在了（`rmtree(_d, ...)` 改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('变异脚本：清理改回删"模块级 ROOT"（= 仓库根）', 'mutation_harness_safe',
+                        lambda: _HarnessMut()))
+
+    # 92. **描述器的 `--compare` 忽略 `--start`**（2026-10-09 实测抓到）：`ab_bounds` 原来
+    #     没有 start 形参、单段分支写死 0.0 ⇒ `--compare --start 186 --dur 28` **静默跑 0–28s**
+    #     （"跨窗复核"实际是同一个窗跑两遍）。注入：把 `ab_bounds` 换成"忽略 start"的实现 ⇒
+    #     `t_music_critic_contracts` 必须报警。⚠ 同族：`ask_audio_critic.single_bounds` 2026-09-21
+    #     修过一模一样的一条（"参数收下了没用"）。
+    import ask_music_critic as _MC
+
+    def _ab_ignores_start(tr, tm, n=None, start=0.0, dur=None, **kw):
+        """**忠实复现原始 bug**：只有"单段（`dur`）"分支把起点写死 0.0，别的分支照旧。
+        这样旧断言（段长夹紧那条）会**放过**，只有**新加的第 ①c 条**能抓到它。"""
+        import ask_audio_critic as _aac
+        total = min(float(tr), float(tm))
+        if dur:
+            return _aac.single_bounds(total, 0.0, min(float(dur), _MC.MAX_SEC), max_sec=_MC.MAX_SEC)
+        return _aac.segment_bounds(total, max(1, int(n or 1)), max_sec=_MC.MAX_SEC)
+
+    results.append(case('描述器：--compare 忽略 --start（静默问错段）', 'music_critic_contracts',
+                        lambda: Mut(_MC, 'ab_bounds', _ab_ignores_start)))
+
+    # 96. **面板提取链的收尾两步**（2026-10-09 接）：三类回退各一条 ——
+    #     ① 判据放到天上（谁来都算"没鼓" ⇒ 该声明的曲子永远声明不了）；
+    #     ② **面板链把那步摘掉**（"接进链路"只停在嘴上）；
+    #     ③ 声明退化成空话（不带实测数字 = 守卫会放行空理由）。
+    import extract_finish as _EF
+
+    class _ChainNoFinishMut:
+        """把 `extract_plan` 里那步收尾摘掉（模拟"没接进链路"）。"""
+
+        def __init__(self):
+            self.p = os.path.join(ROOT, 'studio', 'server.py')
+
+        def __enter__(self):
+            self.text = open(self.p, encoding='utf-8').read()
+            new = self.text.replace(
+                "    cmds.append([py_exe(), os.path.join(_SCRIPTS, 'extract_finish.py'), name,\n"
+                "                 '--audio', src, '--stems-dir', h6, '--mode', mode])\n", '')
+            assert new != self.text, '注入锚点不在了（收尾步改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('提取收尾：鼓的判据被放到天上（谁都不算有鼓）', 'extract_finish_contracts',
+                        lambda: Mut(_EF, 'DRUMS_WITHIN_DB', 999.0)))
+    results.append(case('提取收尾：面板链把那步摘掉了（没接进链路）', 'extract_finish_contracts',
+                        lambda: _ChainNoFinishMut()))
+    results.append(case('提取收尾：perc_exempt 退化成空话（没实测数字）', 'extract_finish_contracts',
+                        lambda: Mut(_EF, 'declaration_text', lambda *a, **k: '原曲有鼓')))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):

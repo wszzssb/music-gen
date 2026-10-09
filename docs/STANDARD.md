@@ -50,8 +50,8 @@
 
 | 门 | 命令 | 通过线 |
 |---|---|---|
-| 自检 | `.\.venv\Scripts\python.exe scripts\selftest.py --fast` | **222/222** |
-| 变异 | `... scripts\mutation_check.py` | **320/321（漏 0）**；320 里那 1 条是"夹具不存在"的合法跳过 |
+| 自检 | `.\.venv\Scripts\python.exe scripts\selftest.py --fast` | **224/225**；那 1 条红是 §6-1 的已知未决（`density_dynamic_range`，两条曲子 6.2/7.0 倍 vs 门 8） |
+| 变异 | `... scripts\mutation_check.py` | **326/326（漏 0 · 崩 0）** |
 | 文档预算 | `... scripts\token_audit.py` | 全部 ≤ `LIMITS` |
 | 坑索引 | `... scripts\pitfall_dup.py --check-index` | "索引一致" |
 | 文档地图 | `... scripts\doc_map.py` | `doc_map_fresh` 绿（改了文档必重生成） |
@@ -64,10 +64,11 @@
 
 | 想做的事 | 现状 | 依据 |
 |---|---|---|
-| **拍号** | 是**主题的属性**（waltz 3/4，其余 4/4），不是曲子的自由参数 | `new_song.py:1197`；`melody_gen` **只支持 4/4 与 3/4**（其它拍号"旋律需手写"） |
-| **结构（总小节）** | 由主题模板算：`段数 = 模板小节中位 ÷ 段长`（夹 3~14）· 段长固定 8 | `theme_pack.py:1053`。实测 15 主题：**7~16 段 · 48~120 小节 · 96~269 秒** |
-| **改结构** | 允许，但**必须留痕**（段数 ≠ 主题包 `form.plan` 时要有 `imitate:`） | 守卫 `imitate_path_marked`（`selftest.py:9482`） |
-| **时长 ↔ BPM** | 同一件事的两种写法：`秒 = 小节数 × 每小节四分 × 60 ÷ BPM`；创作台已有「想要的时长（秒）」框 | `studio/web/create.js` 的 `barBeats/estSeconds/suggestBpm` |
+| **拍号** | 是**主题的属性**（waltz 3/4，其余 4/4），不是曲子的自由参数 | `new_song.py#build_from_theme`（`'meter': list(pack.get('meter') or [4, 4])`）；`melody_gen.py#set_meter` 现在认 **4/4 · 3/4 · 5/4**（其余仍拒绝） |
+| **5/4（2026-10-08 新增）** | **只在规则层可用**：强拍 = **第 1、4 拍**（3+2 分组）· 一小节 **20 格**（不是 16）。⚠ **立不成主题**（素材摸底见 `HANDOFF §22.4`）：库内 [5,4] 只有 **2 首**（都单轨），白名单 bitmidi 抽扫 **67 首得 5 首 [5,4]**（多轨仅 **3 首**）—— 离"同主题 ≥8 首"还差 ⇒ 只服务**手写/扒带**曲，且**不吃画像方言**（`onset16_hist` 是 4/4 的 16 格量） | `song_engine.py#strong_beats`（依据 [More odd times · Mixdown](https://mixdownmag.com.au/features/columns/more-odd-times/)）· 守卫 `selftest.py#t_meter_five_four_rules`（端到端：48 音 · 强拍和弦音 100% · 落点全在小节内） |
+| **结构（总小节）** | 由主题模板算：`段数 = 模板小节中位 ÷ 段长`（夹 3~14）· 段长固定 8 | `theme_pack.py#aggregate`（`NSEC_MIN, NSEC_MAX = 3, 14`）。实测 15 主题：**7~16 段 · 48~120 小节 · 96~269 秒** |
+| **改结构** | 允许，但**必须留痕**：段数 ≠ 主题包 `form.plan` 时要有 `imitate:` / `theme_pack-plan:` / `duration:` 前缀，且 `basis.kind == 'theme_pack'` | 守卫 `selftest.py#t_imitate_path_marked` · `t_theme_basis_whitelist` |
+| **时长 ↔ BPM** | **2026-10-08 起「我要 N 秒」能真做到**：`--seconds N`（CLI）/ 创作台「想要的时长」→ `duration_plan` **联合解「段数 + BPM」**，BPM 尽量留在该主题模板区间内；**无解时夹端点并打印差值**（不静默） | `new_song.py#duration_plan` · 守卫 `selftest.py#t_duration_fit`。实测 cheerful「100 秒」→ **6 段 / 134.4 BPM / 正好 100.0 秒**（原 14 段要 288 BPM，远超模板 129~140）；面板走 `studio/server.py` 的 `/api/new`（`seconds`） |
 | **编配用哪几件** | `--arr-only "piano,strings"`（白名单）；**空 = `none` = 只留主奏**；面板：创作台「生成时只用这几件」 | `new_song._apply_arr_only` |
 | **主奏用什么乐器** | `--lead "40"`（GM 号）或 `--lead sax,trumpet`（多件按段轮换）；面板是**两级选择**（16 大类 → 该类的 8 个音色） | `new_song.build_from_theme` 的 lead 分支；`studio/web/gm.js` |
 | **独奏化（改已有曲子）** | 独立页 `/solo`：选一首 + 选**一件**乐器（独奏=一件）；命令行 `--instrument`（单件，合并声部）/ `--instruments a,b`（多件，保留声部） | `scripts/solo_instrument.py` |
@@ -86,9 +87,30 @@
    逐轨**消除法**显示 **Melody（长笛）贡献 14.2dB，其余 8 轨合计 ≈0.1dB** ⇒ 换 Hook 音色、
    降 Perc、换 Arp 全是无效改法（都试过）。**真正要动的是主奏音色**（换电钢后该档 −14.0dB 到 −1.1）。
    ⇒ 教训：**别用 `probe_timbre --solo` 的 raw dB 当"总混贡献"**，要逐轨静音重渲染（消除法）。
-3. **守卫欠账**：`--arr-only` / `--lead` / 多乐器 `--instruments` 这三处新参数**还没配自检与变异用例**。
-4. 主题级的下一个改动候选：`tender` 等"柔"主题的主奏池（长笛/短笛/方波/合成铜管）偏亮 ⇒
-   要么按频段筛池，要么把"柔主题"的主奏候选换成更暗的音色。
+3. ✅ **已清（2026-10-08 第二轮）**：`--arr-only` / `--lead` / 多乐器 `--instruments` 三处新参数
+   已配守卫（`arr_only_whitelist` · `lead_override_contracts` · `multi_instruments_contracts`）
+   + **5 条变异用例**。**顺带抓到并修掉一个真 bug**：呼吸口（留白段）会把它自己那份层清单
+   盖在用户白名单上 —— `--arr-only piano,strings` 实测 **15 个主题 15 段**的 `strings` 被静默关掉
+   （`PITFALLS` **364**）。
+   **仍欠**：`arr.harmony`（副旋律/加厚层）是**会发声**的层，却**不在**那两个白名单域里
+   （实测曲库里 **0/36** 首用到 ⇒ 目前只是潜伏：一旦有人手写它，`--arr-only` / `--instruments`
+   会漏掉它）。要动就得同时改 `new_song.ARR_INSTR_KEYS` 与 `solo_instrument._MULTI_LAYERS`
+   （守卫钉着两者相等），并**重生成 + 重渲染**用到它的曲子 —— 本轮没做。
+4. ✅ **已做（2026-10-08 第二轮）**：柔主题主奏池的亮度筛 —— 名单 `tender`/`sorrow`/`waltz`，
+   上限 `SOFT_LEAD_CAP = 34.2dB`（2.5–5kHz 实测量），实测挡掉 `sorrow:GM 71(40.0)` 与
+   `tender:GM 80(39.1)`，其余 12 主题池一字未动（守卫 `soft_lead_pool_by_theme`）。
+   ⚠ **名单是人工声明的，不是数据推的**：试过两条数据驱动分类（主题包 `centroid` = 量化桶值、
+   画像高频倾斜 = 方向与听感相反），**都判据不成立**（`PITFALLS 225/251` 那一族）——
+   要加主题进名单，**必须写理由**（守卫钉着"理由空白 = 不放行"）。
+5. **5/4 的密度门还没按拍归一**（2026-10-08 第二轮）：`melody_gen` 的密度目标/硬门
+   （`FORM_DENS` 1.8~2.9、`DENS_MAX` 2.6）写的是**音/小节**，而 5/4 一小节有 5 拍
+   （比 4/4 长 25%）⇒ 实测 5/4 的成品 **3.00 音/小节 = 0.60 音/拍**（4/4 门折合 0.725）
+   其实不密，但生成端会自报"**0/1 条候选在门内**"。**改动它会影响 3/4**（waltz 走同一份门）
+   ⇒ 本轮没动；要动就按"音/拍"重写门并给 3/4 做对照。
+6. **3/4 的落点保底改了口径**（2026-10-08 第二轮）：旧代码把"第 1、3 拍"都当保底目标，
+   而 `strong_beats` 认为 3/4 的**第 3 拍是弱拍** ⇒ 现在只认第 1 拍（每 2 小节窗口内
+   若一个第 1 拍落点都没有，会把 1 个音挪到第 1 拍）。**4/4 逐字不变**（已用字面量守卫钉着）；
+   **新生成的 waltz 会与旧曲略有不同**（旧曲不重生成，不受影响）。
 
 ---
 
@@ -107,3 +129,7 @@ SKILL.md（路由表：哪件事读哪份）
 主题依据换血（专属素材池 + 编配/语义闸门）· `arr_share` 编配变薄 · 4 种曲式按主题派生 ·
 `--arr-only` / `--lead` / 多乐器独奏化 · 创作台两级 GM 选择 + 时长框 · `/solo` 独立页 ·
 判据审计（强拍门 100%→70%，`PITFALLS 359`）。
+
+**2026-10-08 第二轮（补守卫欠账，细节在 `HANDOFF-GEN-SAMENESS.md §21`）**：
+三处点名类参数配齐守卫与变异用例 · 修掉"呼吸口覆盖用户白名单"（`PITFALLS 364`）·
+`--lead` 的空清单从"静默不生效"改成报错 · 自检 **222 → 225 项**。

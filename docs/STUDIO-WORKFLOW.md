@@ -127,6 +127,9 @@ python studio\server.py --port 8765 --lib D:\test\llm_direct\b35_studio
 | 4 | 曲目目录本身缺 `song.json` | 面板给出那句提示（**面板有意支持**：`need_json=False` 放行纯音频目录做 A/B 试听） | 有意试听可留；交付物/中间产物请移出曲库 |
 | 5 | **交付目录**（`<曲名>_交付\`）摆在**曲库根的下级** | 面板把它当一首曲目（里面有 `song.json` 时）或纯音频目录；用户拿到的是"能播不能改"的条目 | **交付目录放曲库外**（如 `D:\test\piano_rain_交付\`），**别放 `D:\test\dt_midi\` 里面**；要对比的多版本音频放它的 `variants/` 子目录 |
 | 6 | **交付目录被面板切成曲库根**，而它里面**没有 `song.json`** | 判成"纯音频目录"→ 面板逐项报「读不到曲目」（用户 2026-09-21 **连报两次**） | **让交付目录成为合法曲目目录**（见下），别靠"藏起 `song.json`"躲避 |
+| 7 | **曲目名里写中文/空格被拒**（2026-10-09 之前） | 面板提示"曲目名只能用字母/数字/下划线" —— 那时是三处各写一条 ASCII 白名单 | **现在中文与空格都可用**（口径一处：`scripts/name_rules.py`）：曲目名同时是**目录名/文件名/argv/URL 参数**，所以只禁路径元字符（`/ \ : * ? " < > \|` · `..` · Windows 保留名 · 以 `-`/`.` 开头 · 结尾点或空格 · >48 字）。⚠ 改这条规则**必须两侧同改**（`name_rules.py` + `studio/web/create.js` 的 JS 镜像），守卫 `t_song_name_rules` 会比对 |
+
+| 8 | **面板提取完的曲子留两条红**（2026-10-09 之前）：对标是**别的曲子** + 打击乐未声明 | 面板提 BGM35 实测：`render.json.ref=bgm01c`（128BPM，本曲 150）⇒「完整还原」那档是"照别人的频谱调参"；同时 Perc 45.7% > 门 15% ⇒ `restore_ref_is_own_song` 与 `perc_declared_for_restore` 双双红 | **已接进链**（`scripts/extract_finish.py`，在 `extract_plan` 里放在 `extract_notes` **之前**）：① 建本曲画像 `refs/<名>.json` + `render.json.ref` 指过去，已经按错对标调过参的**重渲染一次**（否则只是改字掩红）；② 按**分轨实测电平**判"原曲是否真有鼓"，有就写 `patterns.perc_exempt`（带实测数字），看不出有鼓就**不写**并建议 `arr.perc: 0`。守卫 `t_extract_finish_contracts` |
 
 **交付目录的正确形态**（一劳永逸，两种用法都不报错）：
 
@@ -145,7 +148,7 @@ python studio\server.py --port 8765 --lib D:\test\llm_direct\b35_studio
 判据：**交付目录就该是一首完整曲目** —— 这样它既是交付物、也是一个合法曲库条目。
 
 
-**`probe_lib` 的判定顺序**（`studio/server.py:209`，改曲库前先记住）：
+**`probe_lib` 的判定顺序**（`studio/server.py#probe_lib`，改曲库前先记住）：
 `LIB/songs/` → **`LIB/song.json` 或 库根有音频 → single** → 遍历子目录找 `<id>/song.json` → flat。
 ⚠ 第 2 步在前，所以**库根一旦有散装音频，容器布局就再也认不出来**。
 
