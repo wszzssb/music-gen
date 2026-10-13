@@ -13219,6 +13219,31 @@ def t_extract_paths_contracts():
         '去鼓那次带了 `--no-song` —— **那就不会切轨**，没有 `nodrums_<轨>.mid`（实测必挂）'
     assert '--song-name' in _nodr[0] and _nodr[0][_nodr[0].index('--song-name') + 1] != 'probe', \
         '去鼓那次没给独立的 `--song-name` —— 它的 song.json（bpm 翻倍）会覆盖 pure 那版的 bpm 基准'
+    # ⚠ **去鼓那次的 song.json 必须落曲库外**（2026-10-13 第二轮，用户点名治的副作用）：
+    #   那份只是"与 pure 版分开"用的中间产物。旧写法靠**另起一个曲目名**
+    #   （`songs/<名>_nodrums/`）实现"分开"⇒ 面板每跑一次 partial，曲库里就多一个
+    #   **没有 notes.md 的曲目**（`notes_present` / `velocity_measured` 当场留红，
+    #   实测本机积了 BGM29_nodrums / BGM36_nodrums 两个）。现在由 `--song-out` 写到
+    #   `<W>/nodrums/song.json`（与逐轨 MIDI 同目录，仍在面板能打开的范围内）。
+    assert '--song-out' in _nodr[0], \
+        '去鼓那次没带 `--song-out` —— song.json 会退回写进曲库，曲库里就多一个' \
+        '没 notes.md 的曲目（面板每跑一次 partial 多一个）'
+    _so = _nodr[0][_nodr[0].index('--song-out') + 1]
+    assert _so == EP.nodrums_song_out(W), \
+        '去鼓那次的 `--song-out` 不是 `nodrums_song_out(W)`：实得 %r（该 %r）—— 口径两处写就会漂' \
+        % (_so, EP.nodrums_song_out(W))
+    assert not os.path.abspath(_so).startswith(
+        os.path.abspath(os.path.join(ROOT, 'songs')) + os.sep), \
+        '`--song-out` 指到**曲库里面**了：%s —— 必须写在曲库外（曲库根混进"半成品曲目"' \
+        '就是这条副作用的成因）' % _so
+    _sn = _nodr[0][_nodr[0].index('--song-name') + 1]
+    assert _sn == EP.NODRUMS_SONG_PREFIX + 'probe' and _sn.startswith('_'), \
+        '去鼓那次的 `--song-name` 不是 `NODRUMS_SONG_PREFIX + 曲名`（实得 %r）：' \
+        '`_` 开头是**双保险** —— 万一 `--song-out` 失效退回曲库，`selftest.song_dirs()`' \
+        '（第 108 行）会跳过它，不至于把曲库弄红' % _sn
+    assert EP.NODRUMS_SONG_PREFIX.startswith('_'), \
+        '`NODRUMS_SONG_PREFIX` 不以 `_` 开头（%r）—— 失去"退回时不被当成曲目"的那层保险' \
+        % EP.NODRUMS_SONG_PREFIX
     assert _nodr[0][_nodr[0].index('--stems-dir') + 1] == h6, \
         '去鼓那次转录没带六轨目录（逐音力度会恒 100）'
     # ⚠ 逐轨 MIDI 的**实际落点**必须与装配指的逐字一致：切轨产物在

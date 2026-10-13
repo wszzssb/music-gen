@@ -581,3 +581,28 @@ tender/mystery/battle），最高 gorgeous 0.13 处/小节 —— 这也解释�
 （只有手动跑 `i18n_check.py` 才知道）。**要恢复**：`git revert` 本次提交即可（注入用例一并回来）。
 
 **验证**：`selftest --fast` **236/236**（原 238）· `mutation_check` **346/346 个故障被抓到**（用例数 −4）。
+
+---
+
+## 2026-10-13（第二轮）｜治掉"面板 `partial` 档污染曲库"
+
+**症状**：全库自检连红两条 —— `notes_present` 与 `velocity_measured`，红的是 `BGM29_nodrums` /
+`BGM36_nodrums`：两个只有 `compose.py` + `song.json`、**没有 `notes.md`** 的目录。
+
+**根因**（不是代码坏了，是**功能副作用**）：`partial` 档的去鼓那一次转录必须与 `pure` 版分开
+（那份 bpm 是**翻倍**的，会覆盖装配用的 bpm 基准），而当时唯一的"分开"办法是**另起一个曲目名**
+（`--song-name <名>_nodrums`）⇒ 那份中间产物被写进了曲库。**面板每跑一次 `partial` 就积一个**。
+
+**修法（双保险）**：
+① `transcribe_ymt3.py` 新增 `--song-out`（透传 `transcribe_to_song --out` —— 落盘位置本来就支持）；
+② `extract_paths.nodrums_song_out(W)` 把它写到**曲库外**（`<W>/nodrums/song.json`，与逐轨 MIDI 同目录，复查照样找得到）；
+③ `--song-name` 从**后缀** `_nodrums` 改成**前缀** `_nodrums_`（`NODRUMS_SONG_PREFIX`）——
+   万一 `--song-out` 失效退回曲库，`selftest.song_dirs()`（第 108 行）会跳过 `_` 开头的目录。
+
+**判据**：守卫 `t_extract_paths_contracts` 加 4 条（必须带 `--song-out` · 它 == `nodrums_song_out(W)` ·
+**不在曲库根之内** · `--song-name` == 前缀+曲名且以 `_` 开头）；变异 3 条（落点指回曲库 ·
+摘掉 `--song-out` · 前缀去掉 `_`）。⚠ 只写 `_so == EP.nodrums_song_out(W)` 是**自洽检查**、
+改函数两边一起变 ⇒ **抓不到**，所以另配了一条"不在曲库根之内"的独立判据。
+
+**现有污染已清**：两首 `*_nodrums` 目录移出曲库（备份在 `D:\test\_tmp\music-gen-nodrums-offlib\`）。
+坑台账 **367**。

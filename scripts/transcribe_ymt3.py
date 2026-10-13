@@ -29,6 +29,13 @@ kernel 启动开销上。加大 batch 是这里唯一有效的旋钮。
     python scripts/transcribe_ymt3.py <音频或目录> [-o 输出目录] [--bsz 32|auto]
                                       [--name 名字] [--repo 仓库] [--weights 权重]
 
+接续那一步（默认开）落哪儿：
+    `--song-name` 决定 `songs/<名>/song.json`（曲库里）；
+    `--song-out <路径>` 把它改到**别处**（2026-10-13 加）—— 面板 `partial` 档靠它把
+    去鼓那次的 song.json 写到**曲库外**（`_extract/<名>/nodrums/song.json`）：
+    那份 bpm 是翻倍的中间产物，若靠"另起一个曲目名"与 `pure` 版分开，
+    **每跑一次 partial 就会在曲库里积一个没 `notes.md` 的曲目**（PITFALLS 367）。
+
 模型准备（一次性，见 ML.md）：
     仓库  D:\\test\\models\\ymt3repo          （HF Space mimbres/YourMT3 的 clone）
     权重  <仓库>/amt/logs/2024/<exp>/checkpoints/model.ckpt （516MB，经 hf-mirror 取得）
@@ -431,8 +438,18 @@ def _split_by_engine_track(mid_path, name, out_dir):
 
 
 def _run_song_pipeline(audio_path, mid_path, out_dir, name, song_name=None,
-                       stems_dir=None):
+                       stems_dir=None, song_out=None):
     """接续走正路：切轨 → 和弦表 → `transcribe_to_song.py --auto` → song.json。
+
+    `song_out`：**song.json 落哪个路径**（默认仍由 `--song-name` 推导成
+    `songs/<song-name>/song.json`，即写进曲库）。
+    ⚠ 2026-10-13 加：面板 `partial` 档必须把**去鼓那次**转录的 song.json 写到**曲库外**
+      （`extract_paths.NODRUMS_SONG_OUT`）—— 原因是"与 pure 版分开"这条要求原来只能靠
+      **另起一个曲目名**（`songs/<名>_nodrums/`）实现，于是**每跑一次 partial，曲库里就多一个
+      没有 `notes.md` 的曲目**：全库自检 `notes_present` / `velocity_measured` 当场留红，
+      而且它会一直堆在那里（实测本机已积 `BGM29_nodrums` / `BGM36_nodrums` 两个）。
+      落盘位置本来就由 `transcribe_to_song --out` 支持（它会 `makedirs` 父目录、
+      引擎入口 `compose.py` 也写在同一个目录），所以这一环只差"把它透传下来"。
 
     `stems_dir`：demucs 六轨目录（给 `transcribe_to_song --stems-dir`）——
     **逐音力度从分轨音频量**。为什么要在这一环给（2026-10-03 实测，BGM35）：
@@ -494,6 +511,10 @@ def _run_song_pipeline(audio_path, mid_path, out_dir, name, song_name=None,
            #   它还会让 `melody_chord_fit` 报"强拍贴合只 60%"——量的是那条副本、不是编配本身。
            #   要保留副本（少数情况）手工跑 `transcribe_to_song.py ... --keep-melody`。
            "--no-melody", "--auto", "--audio", audio_path]
+    if song_out:
+        # ⚠ 面板 `partial` 档必经这里：把 song.json 写到**曲库外**（见本函数 docstring）。
+        #   写进曲库的老做法会让曲库每跑一次多一个"没 notes.md 的曲目"。
+        cmd += ["--out", song_out]
     if stems_dir:
         # 逐音力度：`transcribe_to_song --stems-dir` 会在 `read_notes` **之前**
         # 拿 demucs 分轨量一遍（顺序反了补进来的音还是恒 100）。见本函数 docstring。
@@ -540,6 +561,11 @@ def main():
                          "实测那版\"不像\"用 EQ 修不回来。只有确实只要一份纯 MIDI 时才加它")
     ap.add_argument("--song-name", default=None,
                     help="接续生成 song.json 的曲目名（默认由音频名推导；会是 songs/<名>/）")
+    ap.add_argument("--song-out", default=None,
+                    help="接续生成的 song.json **落到哪个路径**（默认 `songs/<song-name>/song.json`，"
+                         "即写进曲库）。面板 `partial` 档用它写到**曲库外**：去鼓那次转录必须与 "
+                         "pure 版分开（否则会把 bpm 基准覆盖掉，节拍判定翻倍），"
+                         "但**不该在曲库里留下一个没有 notes.md 的曲目**（每跑一次多一个，全库自检留红）")
     ap.add_argument("--stems-dir", default=None,
                     help="**demucs 六轨目录**：接续那一步用它给每个音**量真实力度**"
                          "（YourMT3 的力度恒 100 ⇒ 不量就是打字机）。"
@@ -817,7 +843,7 @@ def main():
             print("\n── 接续正路：转录 → song.json（引擎编配）──", flush=True)
             try:
                 _run_song_pipeline(path, dst, out_dir, name, args.song_name,
-                                   args.stems_dir)
+                                   args.stems_dir, song_out=args.song_out)
             except Exception as _e:                                 # noqa: BLE001
                 print("  ! 接续出错（%s）—— 转录音符已保留，MIDI 照旧可用" % str(_e)[:80],
                       flush=True)

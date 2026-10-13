@@ -84,13 +84,19 @@ NODRUMS_NAME = 'nodrums'
 #: 切轨产物的**子目录后缀**：`_split_by_engine_track` 把逐轨 MIDI 固定写进 `<out>/<name>_stems/`
 #: （2026-10-13 实测：装配原来指到 `<out>/` 那一层 ⇒ 三首全长曲目全部 exit 3）。
 SPLIT_SUFFIX = '_stems'
-#: 去鼓那次的 `--song-name` 后缀。⚠ **必须与主曲名分开**（2026-10-13 实测）：
+#: 去鼓那次的 `--song-name` **前缀**。⚠ **必须与主曲名分开**（2026-10-13 实测）：
 #: ① 去鼓转录**不能加 `--no-song`** —— 逐轨 MIDI 是在"写 song.json"那条支路里切的
 #:    （`transcribe_ymt3._run_song_pipeline` → `_split_by_engine_track`），加了 `--no-song`
 #:    就**只有一条合并 MIDI、没有 `nodrums_<轨>.mid`** ⇒ 装配必挂（实测三首全长曲目全挂）。
-#: ② 而它会往 `songs/<song-name>/song.json` 写一份自己的（**去鼓版 bpm 是翻倍的**）——
-#:    那份**必须**与 `pure` 那版分开，否则会把"bpm 基准"覆盖掉，装配就钉错速度了。
-NODRUMS_SUFFIX = '_nodrums'
+#: ② 而它会写一份自己的 `song.json`（**去鼓版 bpm 是翻倍的**）—— 那份**必须**与 `pure`
+#:    那版分开，否则会把"bpm 基准"覆盖掉，装配就钉错速度了。
+#: ⚠ **前缀（不是后缀）且以 `_` 开头**是刻意的**双保险**（2026-10-13 第二轮）：
+#:    正常情况那份 song.json 由 `--song-out` 写到**曲库外**（见 `nodrums_song_out`）；
+#:    万一 `--song-out` 因故失效而退回曲库，`_` 开头的目录会被 `selftest.song_dirs()`
+#:    （`selftest.py:108`）跳过 ⇒ 不会把"没 notes.md 的曲目"算进全库自检。
+#:    老写法是**后缀** `_nodrums`，于是本机实测积下了 `BGM29_nodrums` / `BGM36_nodrums`
+#:    两个污染目录（缺 notes.md + 力度恒 100 ⇒ `notes_present` / `velocity_measured` 红）。
+NODRUMS_SONG_PREFIX = '_nodrums_'
 #: `all` 档"逐条分轨转录"的输出根目录名（产物在 `<W>/<它>/<分轨名>/<分轨名>.mid`）
 PER_STEM_DIR = 'per_stem'
 #: demucs 模型名（`stem_split -m` 的实参，**也是它自建的那层目录名**）
@@ -185,6 +191,24 @@ GAPFILL_CODE = (
     "print('[补轨] 已写回 %s（现 %d 轨 %d 音）'%(sj,len([k for k,v in na.items() if v]),\n"
     "      sum(len(v) for v in na.values())),flush=True)\n"
 )
+
+
+def nodrums_song_out(W):
+    """去鼓那次转录的 `song.json` 该落哪 —— **曲库外**：`<W>/nodrums/song.json`。
+
+    为什么单独一个函数（2026-10-13 第二轮，用户点名"面板 partial 档的副作用处理一下"）：
+    这一份只是"与 `pure` 那版分开"用的**中间产物**（它的 bpm 是翻倍的，绝不能覆盖基准），
+    但在旧写法下它落在 `songs/<名>_nodrums/` ⇒ **曲库里多出一个曲目目录**，
+    面板每跑一次 `partial` 就多一个；而它没有 `notes.md`、力度也没量过 ⇒
+    全库自检 `notes_present` / `velocity_measured` 当场留红（实测本机积了
+    `BGM29_nodrums` / `BGM36_nodrums` 两个）。落盘位置本来就由
+    `transcribe_to_song --out` 支持，`transcribe_ymt3 --song-out` 只是把它透传下来。
+
+    `W` 是面板的提取工作目录（`studio/server.py` 的 `EXTRACT_WORK` = `<工具链>/_extract/<名>`），
+    **在曲库外** —— 与逐轨 MIDI（`<W>/nodrums/nodrums_stems/`）同处一个目录，
+    所以那份 song.json 依旧在面板能打开的范围内（复查时找得到）。
+    """
+    return os.path.join(W, NODRUMS_NAME, 'song.json')
 
 
 def h6_of(flat, audio):
@@ -335,13 +359,16 @@ def partial(name, W, flat, h6, audio, mode, scripts, py_exe, py_ml, parts=DEFAUL
     body = [
         [py_exe, os.path.join(scripts, 'drumless_mix.py'), 'mix',
          '--stems', h6, '-o', wav, '--drop', 'drums'],
-        # ⚠ **不加 `--no-song`**：逐轨 MIDI 只在"写 song.json"那条支路里切（见 `NODRUMS_SUFFIX`
-        #   那段说明）。`--song-name` 指到 `<名>_nodrums` ⇒ 它的 song.json 落在**另一首**上，
-        #   `pure` 那版（装配的 bpm 基准）不会被覆盖。
+        # ⚠ **不加 `--no-song`**：逐轨 MIDI 只在"写 song.json"那条支路里切（见
+        #   `NODRUMS_SONG_PREFIX` 那段说明）。它那份 song.json（**bpm 翻倍**）由 `--song-out`
+        #   写到**曲库外**（`<W>/nodrums/song.json`）⇒ 既不会覆盖 `pure` 那版的 bpm 基准，
+        #   也不会在曲库里留下一个"没 notes.md 的曲目"（面板每跑一次多一个 —— 用户
+        #   2026-10-13 点名要治的那个副作用）。
         #   ⚠ `transcribe_ymt3` **没有** `--no-compose-file` 那个开关（那是 `transcribe_to_song`
         #   的）—— 写了会 argparse 报错（实测）。
         [py_ml, os.path.join(scripts, 'transcribe_ymt3.py'), wav, '-o', nodr,
-         '--name', NODRUMS_NAME, '--song-name', name + NODRUMS_SUFFIX,
+         '--name', NODRUMS_NAME, '--song-name', NODRUMS_SONG_PREFIX + name,
+         '--song-out', nodrums_song_out(W),
          '--stems-dir', h6],
     ]
     sj = (os.path.join(songs, name, 'song.json') if songs

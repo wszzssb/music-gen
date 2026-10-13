@@ -4015,7 +4015,8 @@ def main():
                 out = []
                 for c in cmds:
                     if any(str(x).endswith('transcribe_ymt3.py') for x in c) and '--stems-dir' in c:
-                        c = [x for x in c if x not in ('--song-name', name + _EP2.NODRUMS_SUFFIX)]
+                        c = [x for x in c if x not in ('--song-name',
+                                                       _EP2.NODRUMS_SONG_PREFIX + name)]
                         c = c + ['--no-song']
                     out.append(c)
                 return out
@@ -4027,11 +4028,45 @@ def main():
 
     results.append(case('三档：去鼓那次退回 `--no-song`（不切轨 ⇒ 装配必挂）',
                         'extract_paths_contracts', lambda: _NoSongMut()))
-    # ⑲ 去鼓那次的 `--song-name` 被写死成主曲名 ⇒ 它那份 **bpm 翻倍** 的 song.json
-    #    会覆盖掉装配的 bpm 基准（时间轴错一倍）。注入：把 `--song-name` 的值换回主曲名。
-    results.append(case('三档：去鼓那次的 song-name 写死成主曲名（覆盖 bpm 基准）',
+
+    class _NoSongOutMut:
+        """把去鼓那次的 `--song-out` 摘掉 ⇒ song.json 退回写进曲库（半成品曲目堆在曲库里）。"""
+
+        def __init__(self):
+            self.old = _EP2.partial
+
+        def __enter__(self):
+            def patched(name, W, flat, h6, audio, mode, scripts, py_exe, py_ml,
+                        parts=_EP2.DEFAULT_PARTS, songs=None):
+                cmds = self.old(name, W, flat, h6, audio, mode, scripts, py_exe, py_ml,
+                                parts=parts, songs=songs)
+                out = []
+                for c in cmds:
+                    if '--song-out' in c:
+                        _i = c.index('--song-out')
+                        c = c[:_i] + c[_i + 2:]          # 参数名与它的值一起去掉
+                    out.append(c)
+                return out
+            _EP2.partial = patched
+            return patched
+
+        def __exit__(self, *a):
+            _EP2.partial = self.old
+    # ⑲ **去鼓那次的 song.json 不许写回曲库**（2026-10-13 第二轮，用户点名治的副作用：
+    #    面板每跑一次 `partial`，曲库里就多一个没 notes.md 的曲目 ⇒ 全库自检留红）。
+    #    三条注入分别打：① 落点指回曲库 ② 干脆不带 `--song-out` ③ song-name 去掉 `_` 前缀
+    #    （失去"万一退回也不被当成曲目"的那层保险）。⚠ 判据里**不能**只写
+    #    `_so == EP.nodrums_song_out(W)` —— 那两边同源，改函数会一起变（自洽检查抓不到），
+    #    所以另配一条"路径不在曲库根之内"的独立判据，本条注入正是靠它抓到。
+    results.append(case('三档：去鼓的 song.json 又写回曲库（曲库多一个半成品曲目）',
                         'extract_paths_contracts',
-                        lambda: Mut(_EP2, 'NODRUMS_SUFFIX', '')))
+                        lambda: Mut(_EP2, 'nodrums_song_out',
+                                    lambda W: os.path.join(ROOT, 'songs', 'x', 'song.json'))))
+    results.append(case('三档：去鼓那次不带 --song-out（退回写进曲库）',
+                        'extract_paths_contracts', lambda: _NoSongOutMut()))
+    results.append(case('三档：去鼓的 song-name 不再是 `_` 开头（退回旧后缀写法）',
+                        'extract_paths_contracts',
+                        lambda: Mut(_EP2, 'NODRUMS_SONG_PREFIX', 'nodrums_')))
     # ⑱ **装配只带被替换的那两轨**（把 pure 那版其余轨整片覆盖掉）——2026-10-13 端到端实测：
     #    成品 2781 音 → **567 音**，而任务 rc=0（静默丢内容）。注入：让 `partial` 的装配只喂 parts。
     results.append(case('三档：装配只带替换轨（把其余轨覆盖掉，音数腰斩）',

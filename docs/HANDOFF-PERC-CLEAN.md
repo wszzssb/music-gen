@@ -13,6 +13,7 @@
 | §5.1 `perc_clean.py` 收尾三项欠账 | ✅ | README 有行 · `t_perc_clean_selftest`（4 断言）· 变异（本轮补：`t_docs_paths` 加本文件 + 第 99 组） |
 | §5.2 **面板三档**（`pure`/`partial`/`all`） | ✅ **已落地并端到端跑通** | 新工具 `extract_paths.py`（步骤表）· `drumless_mix.py`（去鼓混音+半速纠正）· `server.extract_plan` 转发 · `/api/extract` 参数 · 前端选项 |
 | 端到端验证（**3 首全长** BGM11/21/03） | ✅ | 两档各跑一遍出成品；partial 的隐性契约就是靠它暴露的（见下第 1 条） |
+| §0.5 **面板 `partial` 档污染曲库**（每跑一次多一个没有 `notes.md` 的 `<名>_nodrums` 曲目） | ✅ **已根治**（用户 2026-10-13 点名"副作用处理一下"） | `transcribe_ymt3 --song-out`（透传 `--out`）+ `extract_paths.nodrums_song_out(W)` 写到**曲库外** · `NODRUMS_SONG_PREFIX='_nodrums_'` 双保险 · 守卫 4 条 + 变异 3 条 · PITFALLS **367** |
 | §7.6 本文档没接进路由表/预算 | ✅ **上轮已接完**（本轮复核 + 补齐一处） | `SKILL.md:28` · `token_audit.DOCS/LIMITS`（上限以该文件为唯一真源）· `doc_map.GROUPS` · `selftest.t_docs_paths` 的 files/dokeys（⚠ **原来是假 ✅**：那处只有 `doc_map`/`SKILL`/`token_audit` 三处登记，`t_docs_paths` 的 `files`/`dokeys` 两个列表**都没有**本文档，本轮 2026-10-13 才真加进去） |
 
 **新增的守卫与判据**（改这三档的人必须先看）：
@@ -41,6 +42,14 @@
       （实测 BGM11 的 Hook 就是空的）时那条轨退回纯单来源那版；只有**一条都没产出**才拒绝。
    ④ 装配**必须把纯单来源那版的其余轨也带上**（只带被替换的两轨会把它们整片覆盖 ——
       实测成品 2781 音 → **567 音**，而 rc 仍 0）。
+   ⑤ **那份 song.json 必须落曲库外**（2026-10-13 第二轮，用户点名"副作用处理一下"）：它只是
+      "与 `pure` 版分开"用的**中间产物**，旧写法靠**另起一个曲目名**分开 ⇒ 面板**每跑一次
+      `partial`，曲库里就多一个没有 `notes.md` 的 `<名>_nodrums` 曲目**（全库自检
+      `notes_present` / `velocity_measured` 当场留红，看起来却像代码坏了）。现在由
+      `transcribe_ymt3 --song-out` 写到 `<W>/nodrums/song.json`；`--song-name` 同时改成
+      **`_` 前缀**（`NODRUMS_SONG_PREFIX`）—— 万一 `--song-out` 失效退回曲库，
+      `selftest.song_dirs()`（第 108 行）会跳过 `_` 开头的目录。守卫四条 + 变异三条盯着，
+      PITFALLS **367** 有全过程。
 2. **`transcribe_to_song` 的一个真 bug（与本轮的 `partial` 无关，是它就有的）**：
    段内和弦行数 < 小节数时补的是写死的 `'C'`，而 `chords` 表是从 chords-log 里**实际出现过**
    的和弦建的 —— log 里没有 `'C'` 时补出的就是**未定义和弦** ⇒ 引擎当场
@@ -170,3 +179,7 @@
    **判据写在能合成检验的那一层**（`extract_paths` 是纯函数、可断言；`server.extract_plan` 只转发）·
    **`partial` 的取轨表要说清"这是哪一首的实测"**（默认值来自 BGM23 一首，n=1）·
    **变异注入打属性、不改源码文本**（`import` 已缓存，文本注入不 reload ⇒ 判据永远抓不到 = 假漏）。
+8. **别让"中间产物"进曲库**（2026-10-13 第二轮）：曲库根只放**成品曲目**（`song.json` /
+   `compose.py` / `notes.md` / `render.json` 四件齐）；链路自己的中间产物一律落**曲库外**的
+   工作目录（`_extract/<名>/`）—— 否则全库自检会把它们当曲目，红得看起来像代码坏了
+   （PITFALLS 367：面板 `partial` 档原来就是每跑一次积一个）。

@@ -232,6 +232,9 @@ studio\stop.cmd     # 停
 #       **并自动写引擎入口 `compose.py`**（2026-10-05 起；`--no-compose-file` 可关）——
 #       少了它首次 `make_song` 会静默「跳过作曲 → 找不到 MIDI」（PITFALLS 323）。
 #       干净重提取一条链：`transcribe_ymt3 <音频> --name <名> --song-name <名> --stems-dir <6轨>` → `make_song <名>`
+#       `--song-out <路径>`：那份 song.json 写到**别处**（面板 `partial` 档靠它写到曲库外）——
+#         去鼓那份是 bpm 翻倍的中间产物，靠"另起一个曲目名"分开就会**每跑一次在曲库留一个
+#         没 notes.md 的曲目**（PITFALLS 367）
 #     ⚠ **别在还原/交付时加 `--no-tune`**（2026-10-06 血账，PITFALLS 348）：它＝整个混音调参循环
 #       不跑，产物"平衡/响度/宽度"全没校准，不能当 A/B 依据也不能交付。A/B 快看时才用，且要记住它没调参。
 #     ↑ `transcribe_to_song.py` **默认全量**（写 `notes_extra_full: true`，逐音照写）。
