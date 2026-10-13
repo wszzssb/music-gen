@@ -60,6 +60,7 @@
 | `song_name_rules` | **曲名规则被改坏**：放开路径元字符（`/ \ ..` 能进目录名）· **面板那侧改回 ASCII 白名单**（用户又看到"不能用中文"）· **前后端口径脱节**（前端放行、后端拒绝） | 第 93 组（2 条） |
 | `mutation_harness_safe` | **变异脚本删"模块级 ROOT"**（`st.ROOT` = **仓库根**，`ignore_errors=True` 会删一半还不报） | 第 94 组（1 条） |
 | `extract_finish_contracts` | **面板提取链的收尾两步没接/被摘掉**（对标错 + 打击乐未声明 ⇒ 每首提取曲留红）· 鼓的判据被放到天上（谁都不算有鼓）· `perc_exempt` 退化成空话（无实测数字）· 收尾步被挪到 `extract_notes` 之后（notes.md 记下修正前的对标） | 第 96 组（3 条） |
+| `extract_paths_contracts` | **面板提取的三档内容路径悄悄退化**（`pure` 里冒出 `drumless_mix.py` ⇒ 不再是纯单来源 · `partial` 的去鼓产物名与装配 `--mid` 对不上 ⇒ 静默少一层 · 装配没钉死 bpm ⇒ 去鼓输入时间轴错一倍 · 未知档/空取轨表不抛错而静默退回 `pure` · server 没转发 `path`/`parts` ⇒ 面板 dropdown 是摆设） | 第 99 组（5 条） |
 | `arr_only_whitelist` | **用户点名的编配白名单与产物不符**：清单外的层响了 / 清单里的层被**呼吸口**关掉 / 没点 `perc` 也有鼓 | 第 86 组（2 条） |
 | `lead_override_contracts` | **点名主奏（`--lead`）没落到产物**：单件不恒定 · 多件不轮换 · 坏清单被静默忽略 | 第 86 组（1 条） |
 | `multi_instruments_contracts` | **多乐器化（`--instruments`）**：角色分配错（低音拿到亮音色）· 清单外的层没关 · **两个白名单域脱节** | 第 86 组（2 条） |

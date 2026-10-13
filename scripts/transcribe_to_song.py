@@ -125,6 +125,11 @@ import song_engine as se                                      # noqa: E402
 
 # 引擎认识的轨名（吉他 → Hook）
 TRACKS = ('Piano', 'Bass', 'Hook', 'Strings', 'Pad', 'Arp', 'Glock', 'Drums', 'Melody')
+#: 段内**和弦行数不够时补齐用的那个和弦名**（见 `main()` 里"和弦表"那段）。
+#: ⚠ 它**必须**同时也进 `chords` 字典（下面有兜底），否则引擎会报
+#: 「段落 X 第 N 小节引用了未定义的和弦」并**当场作曲失败**（2026-10-13 实测的真 bug）。
+PAD_CHORD = 'C'
+
 # 一个段最多放多少音进 melody（防止把整轨钢琴都塞进旋律）
 MEL_MAX_PER_BAR = 2
 
@@ -463,9 +468,14 @@ def main():
 
     # —— 和弦表 ——
     rows = parse_chords(a.chords_log)
-    if len(rows) < 8:
+    # ⚠ 门槛是"**报出工具用错**"，不是"过滤短曲子"（2026-10-13 实测两轮）：原来写 8 行 ——
+    #   而 **12 秒片段的 `analyze_chords` 只出 3 行**（它逐小节给一行，10 秒 ≈ 3 小节）
+    #   ⇒ 合法片段被判成"参数写错了"直接 SystemExit ⇒ 面板上表现为"任务失败、找不到 MIDI"。
+    #   改 4 仍不够（3 行照样被拦），最终定 **2**：1 行 = 只有一个小节，那才是真的"文件指错了"。
+    #   ⚠ 短片段照样走"和弦补齐"那条路（见 `PAD_CHORD`），不会因此写出未定义和弦。
+    if len(rows) < 2:
         raise SystemExit('从 %s 只解析出 %d 行小节和弦 —— 检查是不是 analyze_chords 的输出'
-                         % (a.chords_log, len(rows)))
+                         '（0~1 行基本就是 chords-log 指错/空文件）' % (a.chords_log, len(rows)))
     chord_names = [r[1] for r in rows]
     onsets = {r[0]: r[2] for r in rows}
 
@@ -476,6 +486,18 @@ def main():
             t = chord_tones(cn)
             if t:
                 chords[cn] = [t[0], t[1]]
+
+    # ⚠ **补齐用的默认和弦必须真的在表里**（2026-10-13 实测的真 bug）：
+    #   下面段落那步在和弦行数不够时会补 `'C'`（见 `PAD_CHORD` 的定义处），而 `chords` 是从
+    #   log 里**实际出现过**的和弦建的 —— log 里没有 `'C'` 时，补出来的那个就是**未定义和弦**
+    #   ⇒ 引擎当场 `作曲失败`（原话：「段落 Ending 第 1 小节引用了未定义的和弦 "C"」）。
+    #   实测 z_bgm21：log 28 行 / 29 小节，差一行就触发。加兜底定义 + 打进日志（不静默）。
+    if PAD_CHORD not in chords:
+        _t = chord_tones(PAD_CHORD)
+        if _t:
+            chords[PAD_CHORD] = [_t[0], _t[1]]
+            print('  [和弦] ⚠ log 里没有 %r，但补齐那步会用得到 ⇒ 已补一个兜底定义 '
+                  '（否则引擎会「引用了未定义的和弦」直接作曲失败）' % PAD_CHORD)
 
     # ⚠ **生成层的"来源盘点"已移进引擎**（2026-10-04）：`song_engine.apply_restore_no_gen`
     #   直接拿 `notes_extra` **逐段**判"这条轨这一段有没有转录音"，据此开关生成层。
@@ -491,7 +513,7 @@ def main():
         nb = max(1, hi - lo)
         seg = chord_names[lo:hi]
         while len(seg) < nb:                        # 契约 2：和弦数 == 小节数
-            seg.append(seg[-1] if seg else 'C')
+            seg.append(seg[-1] if seg else PAD_CHORD)
         seg = seg[:nb]
         dens = sorted(0 if onsets.get(lo + k, 0) <= 6 else
                       1 if onsets.get(lo + k, 0) <= 20 else

@@ -442,7 +442,9 @@ def check_drums(mine, ref):
         why.append('连击串缺 3–8kHz 冲击支撑 %d 串：%s' % (len(bad), '、'.join(ex)))
     ctrl = rows[0] if rows else None
     return dict(id='⑤', name='鼓连击', state=st, why=why, n_burst=len(rows),
-                bad=bad[:30], ctrl=ctrl, rise_db=BURST_RISE_DB,
+                # ⚠ 这里**不截断**（2026-10-13 改）：下游"按连击串剔假打击"需要**完整**串列表；
+                #   原先 [:30] 只够报告展示 —— 实测全曲 123 串只拿到 30，拿它剔音会漏掉大半。
+                bad=bad, ctrl=ctrl, rise_db=BURST_RISE_DB,
                 n_drum_notes=len(drums), fps=round(fps, 4))
 
 

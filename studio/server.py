@@ -296,6 +296,23 @@ def lib_base():
     return probe_lib(LIB)
 
 
+def songs_base():
+    """**曲目目录的父目录**（`songs/<曲名>/song.json` 里那层 `songs`）—— 取不到就用工具链的标准曲库。
+
+    为什么单独一个函数（2026-10-13）：提取链里**装配要读 `songs/<曲名>/song.json` 的 bpm**
+    （那是第一步那条链写下的、未经去鼓污染的基准）。把这段路径拼在调用点上，遇到
+    "曲库被切成单曲目录 / 一层子目录"两种布局时会拼错，而**拼错的后果是静默钉错速度**
+    （时间轴错一倍）—— 所以口径一处、并带兜底。
+    """
+    try:
+        mode, base = lib_base()
+        if mode in ('flat', 'single'):
+            return base
+    except Exception:                                               # noqa: BLE001
+        pass
+    return os.path.join(TOOLCHAIN, 'songs')
+
+
 def song_dir(sid, need_json=True):
     """曲目目录。`need_json=False` 时**纯音频目录也放行**（试听/取文件用：
     `/api/files`、`/api/dl`、`/api/audio?kind=mix` 都不需要 song.json）。"""
@@ -807,62 +824,64 @@ _FLAT_STEMS_CODE = (
 )
 
 
-def extract_plan(name, src, mode, seconds=None):
-    """两档提取的命令序列（**不重写任何音频逻辑**，只串仓库现有的两个入口）。
+def extract_plan(name, src, mode, seconds=None, path='pure', parts=None):
+    """三档提取的命令序列（**不重写任何音频逻辑**，只串仓库现有的入口）。
 
-    | 档 | 链路 | 产物 | 本机实测耗时 |
+    | `mode` | 链路 | 产物 | 本机实测耗时 |
     |---|---|---|---|
-    | `fast` | `stem_split`（六轨，为逐音力度）→ `transcribe_ymt3`（转录→切轨→`song.json`）→ `compose.py`（作曲） | `songs/<名>/song.json` + `.mid` | 分钟级 |
-    | `full` | 同上 + `restore_oneshot` 六阶段（probe/repair/vel/arrange/render/audit） | 再加 `<名>.ogg` 成品 + 体检 | 十分钟级 |
+    | `fast` | 转录（→切轨→`song.json`）→ `make_song --no-tune`（作曲+渲染） | `songs/<名>/song.json` + `.mid` + `.ogg` | 分钟级 |
+    | `full` | 同上 + `restore_oneshot` 六阶段（probe/repair/vel/arrange/render/audit） | 再加体检 | 十分钟级 |
+
+    `path` = **内容路径**（用户 2026-10-13 点名要的三档，2026-10-13 落地）：
+
+    | `path` | 转录吃什么 | 实测 |
+    |---|---|---|
+    | `pure`（默认） | **全混音**；分轨只用来量逐音力度 | 用户听感认可的那版 |
+    | `partial` | 全混音 + **指定轨**（`parts`，默认 Hook/Pad）改从**去鼓混音**转录，再混合装配 | 只值 2 轨；≈2× 时间 |
+    | `all` | **逐条分轨各自转录**再装配 | **实测更差** · 3~6× 时间 |
+
+    三档的步骤表在 `scripts\\extract_paths.py`（纯函数、可合成检验；守卫
+    `t_extract_paths_contracts` 盯着"某档悄悄退回旧做法"）。这里只负责补上两处
+    `-c` 占位代码（`_FLAT_STEMS_CODE` / `extract_paths.ASM_CODE`）与 `seconds`。
 
     ⚠ 两档都**先分轨**：`transcribe_ymt3 --stems-dir` 是逐音力度的唯一来源，
     不分轨的话 YMT3 输出的每个音力度恒 100（"打字机"，PITFALLS 有实测）。
     ⚠ 工作目录在**曲库外**（`<工具链>/_extract/<名>/`）：曲库根混进散装音频会让
     `probe_lib` 把整库判成"一首曲"（`docs/STUDIO-WORKFLOW.md` §2.5）。
     """
+    import extract_paths as EP
     W = os.path.join(EXTRACT_WORK, name)
-    stems = os.path.join(W, 'stems')
-    ymt = os.path.join(W, 'ymt3')
-    src_name = os.path.splitext(os.path.basename(src))[0]
-    h6 = os.path.join(stems, 'htdemucs_6s', src_name)
-    cmds = [
-        # ⚠ `-m` 只认 `htdemucs` / `htdemucs_6s` / `both`（不是 `6s`；写错会 exit=2，
-        #   任务日志里只留一句 argparse 的 usage —— 2026-10-07 实测踩到）
-        [PY_ML, os.path.join(_SCRIPTS, 'stem_split.py'), src, '-o', stems, '-m', 'htdemucs_6s'],
-        [PY_ML, os.path.join(_SCRIPTS, 'transcribe_ymt3.py'), src, '-o', ymt,
-         '--name', name, '--song-name', name, '--stems-dir', h6],
-    ]
-    if mode == 'full':
-        # 先摊平成 `h6_*.wav`（`probe_instruments` 只认这个前缀），再交给 restore_oneshot
-        h6flat = os.path.join(W, 'stems_h6')
-        cmds.append([py_exe(), '-c', _FLAT_STEMS_CODE, h6, h6flat])
-        cmds.append([py_exe(), os.path.join(_SCRIPTS, 'restore_oneshot.py'), name,
-                     '--audio', src, '--stems-dir', h6flat, '--ymt3-dir', ymt, '--render'])
-    else:
-        # 快速版：作曲 + **渲染（不调参）**。
-        # ⚠ 为什么不是"只跑 `compose.py` 出个 `.mid` 就完"（第一版就是那样，2026-10-07 改）：
-        #   曲目目录**必须齐 4 件**（`song.json`/`compose.py`/`notes.md`/`render.json`）——
-        #   `notes_present` 与 `restore_no_autogen` 都按这个判；而 `compose.py` 只写 MIDI，
-        #   **不写 `notes.md`** ⇒ 提取完的曲目会让全量自检当场变红（实测踩到）。
-        #   `make_song --no-tune` 多花约 15 秒，把 `notes.md` 和可试听的 `.ogg` 一起补上，
-        #   `.mid` 照旧在目录里 —— 用户要的"一份 MIDI"没有少，只是旁边多了两件。
-        #   精修（力度写回 / 段级编配 / band_match / 体检）仍然只在完整还原那档跑。
-        cmds.append(['scripts/make_song.py', name, '--no-tune'])
+    # ⚠ **两个目录别混**（2026-10-13 实测踩到）：`flat` 是分轨**根目录**（`stem_split -o` 的实参，
+    #   它自己会在下面再建 `<模型>/<曲名>/`），`h6` 才是**里面真有 6 个 wav 的那层**
+    #   （给 `--stems-dir` / `drumless_mix --stems` / 收尾两步用）。
+    #   给反了的后果：双层嵌套 + `--stems-dir` 指到空目录 ⇒ 力度恒 100、`partial` 第三步就死。
+    flat = os.path.join(W, 'stems')
+    h6 = EP.h6_of(flat, src)
+    # ⚠ `path=` / `parts=` 用**关键字**传（不靠位置）：守卫 `t_extract_paths_contracts`
+    #   按这两个名字核对"转发真的接上了"，写成位置参数它看不见。
+    #   `songs=` 是装配钉死 bpm 的来源（`songs/<曲名>/song.json`，第一步那条链写的）——
+    #   **不能**用 `<W>/song.json`：那是去鼓那次转录自己写的那份（bpm 翻倍，实测 68 → 136）。
+    cmds = EP.plan(name, path=path, W=W, flat=flat, h6=h6, audio=src, mode=mode,
+                   scripts=_SCRIPTS, py_exe=py_exe(), py_ml=PY_ML, parts=parts,
+                   songs=songs_base())
+    # 三处 `-c` 占位替换成真代码（占位常量名与 `extract_paths` 同名 —— 守卫据此核对）：
+    #   `FLAT_STEMS_CODE`（摊平分轨）· `ASM_CODE`（装配）· `GAPFILL_CODE`（装配后回灌丢掉的轨）
+    cmds = [[_FLAT_STEMS_CODE if c == EP.FLAT_STEMS_CODE else
+             EP.ASM_CODE if c == EP.ASM_CODE else
+             EP.GAPFILL_CODE if c == EP.GAPFILL_CODE else c for c in step] for step in cmds]
     # **收尾两步**（2026-10-09 接）：① 混音对标改成**本曲原曲**（默认落的 `bgm01c` 是别的曲子，
     #   `full` 档会因此"照别人的频谱调参" ⇒ 守卫 `restore_ref_is_own_song` 必红）；
     #   ② 渲染后 Perc 占比超门时，按**分轨实测数字**写 `patterns.perc_exempt`（或明确建议
     #   写 `arr.perc: 0`）。⚠ 放在**渲染之后、`extract_notes` 之前**：notes.md 里记的
-    #   「参考画像」要是修正后的那个。
-    cmds.append([py_exe(), os.path.join(_SCRIPTS, 'extract_finish.py'), name,
-                 '--audio', src, '--stems-dir', h6, '--mode', mode])
+    #   「参考画像」要是修正后的那个。三档共用，由 `EP._tail` 统一给。
     # **无论哪一档，最后都要写 `notes.md`**：转录那条链自己不写它，而曲目目录必须齐 4 件
     # （`song.json`/`compose.py`/`notes.md`/`render.json`，守卫 `notes_present` 就是这么判的）
     # —— 少了这一步，提取出来的**每一首**都会让全量自检变红（2026-10-07 实测踩到）。
-    notes = [py_exe(), os.path.join(_SCRIPTS, 'extract_notes.py'), name,
-             '--audio', src, '--mode', mode, '--stems-dir', h6]
     if seconds:
-        notes += ['--seconds', '%.1f' % float(seconds)]
-    cmds.append(notes)
+        for step in cmds:
+            if any(str(x).endswith('extract_notes.py') for x in step):
+                step += ['--seconds', '%.1f' % float(seconds)]
+                break
     return cmds
 
 
@@ -912,7 +931,10 @@ def start_job(sid, kind, opts=None):
         src = os.path.abspath(str(opts.get('audio') or ''))
         if not os.path.isfile(src):
             raise ValueError('参考音频不存在：%s' % src)
-        return _new_job(sid, kind, extract_plan(sid, src, mode, opts.get('seconds')), '')
+        return _new_job(sid, kind,
+                        extract_plan(sid, src, mode, opts.get('seconds'),
+                                     path=opts.get('path') or 'pure',
+                                     parts=opts.get('parts')), '')
     song = os.path.join(song_dir(sid), 'song.json')
     jobs_dir = TMP_AUDIO
     os.makedirs(jobs_dir, exist_ok=True)
@@ -1506,6 +1528,28 @@ class Handler(BaseHTTPRequestHandler):
                 mode = (body.get('mode') or 'fast').strip()
                 if mode not in ('fast', 'full'):
                     return self._err('mode 只能选 fast（只出 MIDI）或 full（完整还原）')
+                # 内容路径三档（2026-10-13 接）：默认 `pure` = 用户听感认可的那版。
+                # ⚠ 未知档**报错**、不许静默退回 pure —— "选了 A 实际跑了 B"在产物上
+                #   要听很久才发现（口径与 `extract_paths.plan` 一致，那里也会抛）。
+                import extract_paths as _EP
+                path = (body.get('path') or 'pure').strip()
+                if path not in _EP.PATHS:
+                    return self._err('path 只能选 %s' % ' / '.join(sorted(_EP.PATHS)))
+                raw_parts = body.get('parts')
+                if isinstance(raw_parts, str):
+                    parts = [x.strip() for x in raw_parts.replace('，', ',').split(',') if x.strip()]
+                elif isinstance(raw_parts, (list, tuple)):
+                    parts = [str(x).strip() for x in raw_parts if str(x).strip()]
+                else:
+                    parts = []
+                # 轨名必须是引擎认识的那 8 条（写错了装配会静默少一层）
+                _bad = [t for t in parts if t not in _EP.STEM_TO_ENGINE.values()]
+                if _bad:
+                    return self._err('parts 里的轨名不认识：%s（可用 %s）'
+                                     % (', '.join(_bad),
+                                        ' / '.join(sorted(set(_EP.STEM_TO_ENGINE.values())))))
+                if path != 'partial':
+                    parts = []          # 只有 partial 用得上取轨表（别的档传了也不理）
                 src = os.path.abspath(str(body.get('audio') or ''))
                 if not os.path.isfile(src):
                     return self._err('参考音频不存在：%s' % src)
@@ -1520,10 +1564,13 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception:                               # noqa: BLE001
                     secs = None
                 try:
-                    jid = start_job(nid, 'extract:%s' % mode, {'audio': src, 'seconds': secs})
+                    jid = start_job(nid, 'extract:%s' % mode,
+                                    {'audio': src, 'seconds': secs,
+                                     'path': path, 'parts': parts})
                 except ValueError as e:
                     return self._err(str(e))
                 return self._json({'ok': True, 'job': jid, 'id': nid, 'mode': mode,
+                                   'path': path, 'parts': parts or list(_EP.DEFAULT_PARTS),
                                    'audio': src, 'seconds': secs})
             if u.path == '/api/stop':
                 return self._stop_job((q.get('id') or [''])[0])

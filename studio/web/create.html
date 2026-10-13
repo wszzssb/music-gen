@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BGM Studio 创作台</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>♪</text></svg>">
-<link rel="stylesheet" href="/create.css?v=3">
+<link rel="stylesheet" href="/create.css?v=4">
 </head>
 <body>
 <div class="app">
@@ -167,6 +167,39 @@
           <span>再走内容整形 / 力度写回 / 段级编配 / 渲染 / 体检。十分钟级</span>
         </button>
       </div>
+      <div class="field">
+        <label>内容来源 <span class="muted" id="pathHint">分轨怎么用</span></label>
+        <div class="modes paths">
+          <button class="mode path on" data-path="pure">
+            <b>① 纯单来源（推荐）</b>
+            <span>转录吃整段混音，分轨只用来量逐音力度。BGM23 实测：独立尺子 无峰 54.0%（当前认可版）</span>
+          </button>
+          <button class="mode path" data-path="partial">
+            <b>② 部分分轨（去鼓混音 + 换指定轨）</b>
+            <span>把下面点选的几轨改成"从去鼓混音转录"，其余仍走全混音。⚠ 取轨表按曲标定：BGM23 实测只值 Hook/Pad 两层（+8.7pt / +1.4pt）。时间约 2 倍</span>
+          </button>
+          <button class="mode path" data-path="all">
+            <b>③ 其它（效果不好 · 仅对照用）</b>
+            <span>⚠ <b>效果不好，不建议用</b>：实测每一项都比 ① 差 —— 无峰 56.3% vs 54.0% · 每轨各自转录 = 6 次分布外输入（模型对单条分轨最容易失控）· 慢 3~6 倍</span>
+          </button>
+        </div>
+      </div>
+      <div class="field hidden" id="partsField">
+        <label>换成"去鼓混音"的轨（只对②有效，可多选）</label>
+        <div class="chips" id="extParts">
+          <button type="button" class="chip part on" data-part="Hook">Hook 吉他层（BGM23 实测 19.5%→28.2%）</button>
+          <button type="button" class="chip part on" data-part="Pad">Pad 垫子层（BGM23 实测 12.2%→13.6%）</button>
+          <button type="button" class="chip part" data-part="Piano">Piano 钢琴</button>
+          <button type="button" class="chip part" data-part="Strings">Strings 弦乐</button>
+          <button type="button" class="chip part" data-part="Glock">Glock 钟琴</button>
+          <button type="button" class="chip part" data-part="Bass">Bass 贝斯</button>
+          <button type="button" class="chip part" data-part="Arp">Arp 琶音</button>
+          <button type="button" class="chip part" data-part="Melody">Melody 旋律</button>
+        </div>
+        <div class="muted">⚠ 括号里是 <b>BGM23 一首</b>的实测收益（n=1），不是通用配方；
+          别的曲子请先量自己的逐轨表（<code>audit_stems.py</code>）再点。
+          <b>一层都不点</b>跑出来跟 ① 一样 ⇒ 会被直接拒绝（不给"看着选了②实际跑①"留口子）。</div>
+      </div>
       <div class="row">
         <button class="btn primary" id="btnExtract" disabled>🎧 开始提取</button>
         <span class="muted" id="extHint">先选一个音频文件。</span>
@@ -200,6 +233,6 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="/gm.js?v=1"></script>
-<script src="/create.js?v=15"></script>
+<script src="/create.js?v=18"></script>
 </body>
 </html>

@@ -1342,6 +1342,9 @@ def t_docs_paths():
              os.path.join(ROOT, 'docs', 'HANDOFF-FAKE-NOTE.md'),
              os.path.join(ROOT, 'docs', 'HANDOFF-GEN-SAMENESS.md'),
              os.path.join(ROOT, 'docs', 'HISTORY-GEN-SAMENESS.md'),
+             # 2026-10-13：提取链（纯单来源）+ 假打击治理交接 —— 它引用了
+             # `scripts\perc_clean.py` / `extract_paths.py` / `drumless_mix.py`（都要存在）。
+             os.path.join(ROOT, 'docs', 'HANDOFF-PERC-CLEAN.md'),
              # 2026-10-06：HISTORY 拆出的归档件（也要查"指针腐烂"）
              os.path.join(ROOT, 'HISTORY.md'),
              os.path.join(ROOT, 'HISTORY-ARCHIVE.md'),
@@ -1389,6 +1392,10 @@ def t_docs_paths():
               os.path.join(ROOT, 'docs', 'HANDOFF-GEN-SAMENESS.md'),
               # 2026-10-07：上面那份压缩时搬出去的**第一轮归档**（同一条线，也要查指针）
               os.path.join(ROOT, 'docs', 'HISTORY-GEN-SAMENESS.md'),
+              # 2026-10-13：提取链那份（同一批新文档，`.md` 指针也要能走通）。
+              # ⚠ 它原来只进了 `doc_map.py` / `SKILL.md` / `token_audit.py` 三处，
+              #    文档里却已写"files/dokeys ✅ 本轮补的最后一处" —— 是**不实声明**（实测两处都没有）。
+              os.path.join(ROOT, 'docs', 'HANDOFF-PERC-CLEAN.md'),
               os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'), files[-1]]
     dead = []
     for p in dokeys:
@@ -2445,81 +2452,6 @@ def t_perc_declared_for_restore():
 
 
 @check
-def t_density_dynamic_range():
-    """**密度要有大起大落** —— 判据用**逐小节**口径（与它引的依据同口径）。
-
-    ⚠ **2026-09-19 修口径**（用户"选 A"）。本判据原来量的是"**逐段**平均音/小节"，
-    而它引的依据（原结构配方（已删 2026-09-24））写的是"**逐小节**起音数 0→66，变化 66 倍" ——
-    两个口径不同口径量同一批曲子，实测差一个数量级：
-
-    | 曲目 | 逐段起伏 | **逐小节起伏** | 小节 min/max |
-    |---|---|---|---|
-    | `99_b35_remake`（还原版，参考侧代理） | 3.45× | **22.0×** | 4 / 88 |
-    | 某仿写曲 | 3.31× | **4.62×** | 13 / 60 |
-    | 41/42/43 | 10.6/9.1/8.9× | 15.0/12.4/13.8× | 5 / 62~75 |
-
-    → 旧口径下**参考曲自己都过不了 ≥4 倍的门**，同时把"逐小节真的平"的曲子报成通过。
-    新门 **≥8 倍**，依据：参考侧 22× · 历史"全程一条平线"约 2~3× · 本轮 41/42/43 实测 12~15×。
-    判据只数 MIDI 音符（不渲染 —— 用户："只需要 midi 一样就行"）；
-    只查**声明了 `arr.density`** 的曲目（早期曲没这一档，量的是历史包袱）。
-    逐段值仍打印（供参考），**不参与判定**。
-    """
-    checked, bad, info = 0, [], []
-    for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
-        try:
-            d = song_engine.load(p)
-        except Exception:
-            continue
-        secs = d.get('sections') or []
-        if not any((s.get('arr') or {}).get('density') is not None for s in secs):
-            continue                      # 没声明 density 的曲不查（历史曲目）
-        ev, _nb = song_engine.build_events(d)
-        nbar = sum(int(s.get('bars') or 0) for s in secs)
-        if nbar <= 0:
-            continue
-        per_bar = [0] * nbar
-        for k in ev:
-            for (t, _dd, _m, _v) in ev[k]:
-                b = int(t // 4)
-                if 0 <= b < nbar:
-                    per_bar[b] += 1
-        nz = [x for x in per_bar if x > 0]
-        if len(nz) < 8:
-            continue
-        checked += 1
-        ratio = max(nz) / min(nz)
-        per, bar = [], 0                      # 逐段值只作参考输出
-        for s in secs:
-            n = int(s.get('bars') or 0)
-            per.append(sum(per_bar[bar:bar + n]) / max(1, n))
-            bar += n
-        tag = os.path.basename(os.path.dirname(p))
-        info.append('%s %.1f×' % (tag, ratio))
-        # **带理由豁免**（见 `_density_exempt`）：还原曲的密度服从原曲，原曲自己可能不到 8 倍
-        _ex = _density_exempt(d)
-        if ratio < 8.0 and not _ex.get('per_bar'):
-            bad.append('%s: 逐小节 %.1f 倍（min %d / max %d 音每小节；'
-                       '逐段 %.2f 倍）—— 缺极静/极密小节'
-                       % (tag, ratio, min(nz), max(nz), max(per) / max(1e-9, min(per))))
-        elif ratio < 8.0:
-            info[-1] += '（豁免：%s）' % _ex['per_bar'][:24]
-    assert checked >= 1, '没有声明 arr.density 的曲目（这条检查会空转）'
-    # **判据自证**：把一首曲子的 density 全抹平 → 逐小节起伏必然塌到门以下
-    _ratio_of = lambda pb: (max([x for x in pb if x > 0]) /
-                            max(1, min([x for x in pb if x > 0]))) if any(pb) else 0
-    assert _ratio_of([0, 1, 1, 2, 40, 41]) > 8.0, '判据自证失败：示例曲线应判为有起伏'
-    assert _ratio_of([10, 11, 10, 12, 11, 10]) < 8.0, '判据自证失败：平线应判为太平'
-    # **判据自证**：豁免必须**理由非空白**才放行（口径同 `melody_exempt`，空话放行不了东西）
-    assert _density_exempt({'patterns': {'density_exempt': {'per_bar': '   '}}}) == {}, \
-        '判据自证失败：空白理由也被当成豁免'
-    assert _density_exempt({'patterns': {'density_exempt': {'per_bar': '原曲实测 3.3×'}}}) \
-        == {'per_bar': '原曲实测 3.3×'}, '判据自证失败：非空理由没被认作豁免'
-    assert not bad, ('密度太平（逐小节起伏要 ≥8 倍，参考侧实测 22 倍）：%s' % '；'.join(bad[:4]))
-    print('        %d 首带 density 的曲目：逐小节密度起伏（%s）'
-          % (checked, ' · '.join(info[:6])))
-
-
-@check
 def t_style_desc_matches_programs():
     """风格预设的文字说明要与实际音色一致（防复制粘贴串味）"""
     want = {'gorgeous': ('竖琴', 'Hook', 46), 'ballad': ('尼龙', 'Hook', 24),
@@ -3330,49 +3262,6 @@ def t_panel_guard_wired():
     sk.close()
     assert sg.panel_alive(port=dead_port, timeout=0.5) is False, \
         'panel_alive 对没人听的端口 %d 也返回 True —— 探活是装饰品' % dead_port
-
-
-@check
-def t_i18n_ui_translated():
-    """面板**中英切换**必须盖住所有静态文案（2026-09-19 落）。
-
-    背景：切换实现成「中文 = HTML 原文 + 按字典替换」（`studio/web/i18n.js`）。这个做法有个
-    特有的盲区 —— **漏翻只有英文环境看得见**：中文系统下怎么点都不暴露，`smoke_ui.js`
-    （vm 替身，压根不加载 i18n.js）与 `browser_check.js`（中文语言）也照样全绿。
-    实测就是这么漏的：首版字典靠"肉眼扫 HTML"写，一上脚本立刻查出 24 条漏项；其中
-    `<title>` 与两处 `&lt;` 转义条目**运行时根本匹配不上**（`getAttribute()` 给的是解码后的
-    `<`，字典里写的却是 `&lt;`）—— 而当时的检查脚本自己做了 unescape，反倒把 bug 藏住。
-    两处都已修：字典写裸字符、检查脚本不再 unescape（写错就当场报缺失）。
-
-    判据：① 两个 HTML 都引了 `/i18n.js`；② 字典的静态区 / 动态区 / 正则表都在；
-    ③ `scripts/i18n_check.py` 退出码 0；
-    ④ **反向对照**：它抓到的文案条数必须 ≥150 —— 解析一旦坏掉（抓到 0 条）就"永远通过"，
-       这条防的正是"恒真装饰品"（同 `panel_guard_wired` 里对 `panel_alive` 的做法）。
-    """
-    import re as _re
-    import subprocess as _sp
-    web = os.path.join(ROOT, 'studio', 'web')
-    for nm in ('index.html', 'ed.html'):
-        s = open(os.path.join(web, nm), encoding='utf-8').read()
-        assert '/i18n.js' in s, '%s 没引 /i18n.js（语言切换不会加载）' % nm
-    js = open(os.path.join(web, 'i18n.js'), encoding='utf-8').read()
-    for key in ('var DICT = {', 'var DYN = {', 'var REGEX = ['):
-        assert key in js, 'i18n.js 里缺 %s' % key
-    # ⚠ 解码要兜住：Windows 控制台默认 GBK，子进程若不做编码兜底就吐 cp936 字节，
-    #   这里硬按 utf-8 解会抛 UnicodeDecodeError —— 那样"抓到"的理由就成了"解码崩了"，
-    #   而不是"漏翻"（mutation_check 实测踩到过：判据报成功的却是解码异常）。
-    #   两头都堵：给子进程显式 PYTHONIOENCODING，读回来再 errors='replace'。
-    env = dict(os.environ, PYTHONIOENCODING='utf-8')
-    r = _sp.run([sys.executable, os.path.join(HERE, 'i18n_check.py')],
-                capture_output=True, text=True, encoding='utf-8', errors='replace',
-                env=env, cwd=ROOT)
-    out = ((r.stdout or '') + (r.stderr or '')).strip()
-    assert r.returncode == 0, \
-        'i18n_check.py 报漏项（切英文时这些仍是中文）：\n%s' % out[:600]
-    n = sum(int(m) for m in _re.findall(r'含中文文案 (\d+) 条', out))
-    assert n >= 150, ('i18n_check.py 只抓到 %d 条文案（<150）—— 解析大概率坏了，'
-                      '这条检查会退化成恒真' % n)
-    print('        中英切换：%d 条静态文案全覆盖，i18n_check 退出码 0' % n)
 
 
 @check
@@ -4805,6 +4694,23 @@ def t_extract_health_selftest():
 
 
 @check
+def t_perc_clean_selftest():
+    """`perc_clean.py` 的合成自检必须过（4 条断言：串内剔/串外留 · bright 白名单 · 边界 · 空判据不剔）。
+
+    为什么需要：它是本轮新加的**假打击治理**入口（吃 `preflight.py` ⑤ 的全量连击串，
+    判据**不重造**）。而这一步是在**删内容** —— 判据一旦被改坏（容差比较写成开区间、
+    `BRIGHT_KEYS` 被清空、空 `bad` 时"全剔"），后果是**静默删掉真实音符**，
+    而听感上只会表现为"好像安静了点"，不会报错。所以把那份自检挂进仓库自检。
+
+    ⚠ 它同时守着一个已知红线：**别把鼓音数剔到低于原曲**（BGM35 实测 1990 < 原曲 2201
+    是"删过头"的信号）—— 自检管不了阈值标定，但能保证判据本身没坏。
+    """
+    import perc_clean as pc
+    assert pc.selftest(), \
+        'perc_clean 的合成自检 FAIL（串内/串外 · bright 白名单 · ±容差边界 · 空判据不许剔）'
+
+
+@check
 def t_import_midi_tempo_exposed():
     """`midi_file.import_midi` 必须**同时**给出 `bpm` 与 `mpqn`，且两者自洽。
 
@@ -5344,30 +5250,6 @@ def _exempt_dims(j2):
     """
     return _exempt_named(j2, 'melody_exempt')
 
-
-def _density_exempt(j2):
-    """`patterns.density_exempt`：**逐小节密度起伏**的带理由豁免（口径同 `melody_exempt`）。
-
-    依据（2026-09-26 实测 · 收 `princess_charm` 的 `density_dynamic_range` FAIL）：
-    那条门（逐小节起伏 **≥8 倍**）是从**生成路径**的参考配方标定的（参考侧实测 **22 倍**、
-    历史"全程一条平线"约 2~3 倍）。但**还原曲的密度服从原曲**，原曲自己就可能不到 8 倍 ——
-    实测 `princess_charm`（同一套拍网格上数，别拿 mix.mid 的 120BPM 小节去比 145.6BPM 的）：
-
-    | 对象 | 非空小节 min/max | 起伏 |
-    |---|---|---|
-    | ① 原曲转录 | 19 / 62 | **3.3×** |
-    | ② `notes_extra` | 19 / 61 | 3.2× |
-    | ③ 引擎 `build_events` | 15 / 61 | **4.1×** |
-
-    → **原曲本来如此**，引擎没有抹平（逐小节密度与原曲 **r = 0.944**）。
-    按"判据服从原曲"（PITFALLS 260 同轮的口径 / 用户 2026-09-25）**不改音去凑 ≥8 门**，
-    写清理由放行。
-
-    ⚠ ③ 的数字随后变过一次（3.7× → **4.1×**）：那轮按"还原模式"清空了 Melody 层
-    （`transcribe_to_song.py:451-456`，它是 Piano 轨 98% 重复的副本），逐小节计数随之变化。
-    **改过 `song.json` 就要重量这三个数** —— 别让理由里的数字停在旧状态。
-    """
-    return _exempt_named(j2, 'density_exempt')
 
 
 @check
@@ -13179,18 +13061,29 @@ def t_extract_finish_contracts():
       ③ **判据有区分度**：`drums_verdict` 三态齐全（有鼓 / 看不出有鼓 / 判不了），
          且 `declaration_text` 必须带**实测数字**（空话放行不了）。
     判据自证：合成证据三态 + 源码断言对"没接"的写法会红。
+    ⚠ 2026-10-13：三档内容路径落地后**步骤表搬到了 `scripts\extract_paths.py`**
+      （`server.extract_plan` 只剩"转发 + 替换两处 `-c` 占位"）⇒ 本项的源码断言改成查
+      **server + extract_paths 两处之和**：只看 server 会**假红**（收尾步的名字已经不写在
+      那儿了），而"两处都不查"会让这条守卫**静默空转**（PITFALLS 353 的形态）。
     """
     import extract_finish as EF
+    import extract_paths as EP
 
-    # ① 面板链接着它，且在写 notes.md 之前
+    # ① 提取链的步骤表里接着它，且排在 `extract_notes` 之前
     srv = open(os.path.join(ROOT, 'studio', 'server.py'), encoding='utf-8').read()
-    assert 'extract_finish.py' in srv, \
-        '面板的提取链**没接收尾工具**（`extract_plan` 里找不到 `extract_finish.py`）—— ' \
-        '那样每首提取曲都会留下"对标错 / 打击乐未声明"两条红'
-    _i_fin = srv.find('extract_finish.py')
-    _i_notes = srv.find("'extract_notes.py'")
+    epx = open(os.path.join(HERE, 'extract_paths.py'), encoding='utf-8').read()
+    assert 'extract_finish.py' in (srv + epx), \
+        '面板的提取链**没接收尾工具**（`extract_plan` 的步骤表里找不到 `extract_finish.py`）' \
+        '—— 那样每首提取曲都会留下"对标错 / 打击乐未声明"两条红'
+    assert 'import extract_paths as EP' in srv, \
+        '`server.extract_plan` 没走 `extract_paths`（三档又各写一份步骤表）'
+    _i_fin = epx.find("'extract_finish.py'")      # **带引号**才是真的命令行参数
+    _i_notes = epx.find("'extract_notes.py'")
     assert -1 < _i_fin < _i_notes, \
         '收尾步没放在 `extract_notes` **之前** —— notes.md 会记下**修正前**的参考画像'
+    assert epx.count("'extract_finish.py'") == 1, \
+        '`extract_paths.py` 里 `extract_finish.py` 出现 %d 次 —— 三档的收尾口径该只有一处' \
+        % epx.count("'extract_finish.py'")
 
     # ② 口径一处：Perc 门与被守卫调用的那个函数都在工具里
     assert abs(EF.PERC_FRAC - 0.15) < 1e-9, \
@@ -13223,6 +13116,256 @@ def t_extract_finish_contracts():
         assert 0.0 <= _f <= 1.0 and _t > 0, '占比算错：%s → %s' % (x, ps)
         _ok += 1
     assert _ok >= 1, '库里一首渲染 MIDI 都量不到 —— 这条烟测在空转'
+
+
+@check
+def t_extract_paths_contracts():
+    r"""面板提取的**三档内容路径**不许悄悄退化（2026-10-13 接）。
+
+    用户 2026-10-13 点名要三档："纯单来源 / 部分分轨 / 全部分轨"。三档的真差别**只在
+    转录吃什么**，而"选了三档里的哪一档"在产物上很难看出（听起来都是"扒出来的曲子"）
+    ⇒ 必须有机器判据。步骤表全在 `scripts\extract_paths.py`（纯函数），本项对它做
+    **合成断言**（不跑模型、不建曲目）：
+
+      ① `pure` 的命令里**不许出现** `drumless_mix.py`（那正是"纯单来源"的定义）
+      ② `partial` **必须**有：去鼓混音 → 去鼓输入单独转录 → 混合装配；
+         且去鼓转录的产物名（`nodrums_<轨>.mid`）与装配 `--mid` 指的路径**逐字一致**
+         （写错就是"装配静默少一层"，而那正是 PITFALLS 340 那族的形态）
+      ③ `all` = 全混音 1 次 + **每轨各一次**（共 `len(ALL_STEMS)+1`），且不做去鼓混音
+      ④ 装配**必须钉死 bpm**（`SUB_BPM` 占位 + 运行时从 pure 那版 `song.json` 读）：
+         去鼓输入会让 `--auto` 的节拍判定翻倍（实测 71.0 → 141.6），不钉则时间轴错一倍
+         —— 上一轮就是这样得出过"独立基音仅 6.1%"的假读数（`notes.md` §5.10）
+      ⑤ 未知档 / **显式空取轨表**都要**抛错**，不许静默退回 `pure`
+      ⑥ **面板侧真的把它接上了**：`server.extract_plan` 转发 `path`/`parts`，
+         两处 `-c` 占位（`extract_paths.FLAT_STEMS_CODE` / `ASM_CODE`）在 server 里被替换，
+         且 `start_job` 的 `opts` 把 `path`/`parts` 传下去（不然 dropdown 是个摆设）
+
+    ⚠ 判据只查**结构**（哪个脚本、哪个参数），不查"跑出来好不好听" —— 后者只能靠听感
+    （`SKILL` §9c/9d），而 `all` 更差这条是 `notes.md` §5.9 的实测结论、写进了面板文案。
+    """
+    import extract_paths as EP
+
+    S, PY, ML = os.path.join(ROOT, 'scripts'), sys.executable, sys.executable
+    W = os.path.join(ROOT, '_extract', 'probe')
+    flat = os.path.join(W, 'stems')
+    audio = os.path.join(W, 'a.ogg')
+    h6 = EP.h6_of(flat, audio)
+    kw = dict(flat=flat, h6=h6, audio=audio, mode='fast',
+              scripts=S, py_exe=PY, py_ml=ML)
+
+    def _flat(cmds):
+        return [' '.join(str(x) for x in c) for c in cmds]
+
+    def _steps(cmds, script):
+        return [c for c in cmds if any(str(x).endswith(script) for x in c)]
+
+    def _asm_step(cmds):
+        """挑出装配那一步（`-c <ASM_CODE>`）的 argv。"""
+        hit = [c for c in cmds if len(c) > 2 and c[1] == '-c' and c[2] == EP.ASM_CODE]
+        assert len(hit) == 1, '该有且只有 1 个装配 `-c` 步，实得 %d' % len(hit)
+        return hit[0]
+
+    # ⓪ 两个目录的关系（口径一处：`h6_of` 与 `stem_split.split_one` 的拼法必须一致）
+    assert h6 == os.path.join(flat, 'htdemucs_6s', 'a'), \
+        '`h6_of` 拼出来的六轨目录不对：%s（该是 <flat>/htdemucs_6s/<曲名>）' % h6
+    assert h6.startswith(flat + os.sep) and h6 != flat, \
+        '六轨目录必须在分轨根目录**下面**一层'
+
+    # ① pure = 纯单来源：转录吃全混音，**不许**有去鼓混音
+    pure = EP.plan('probe', path='pure', W=W, **kw)
+    assert not any('drumless_mix.py' in x for x in _flat(pure)), \
+        'pure 档里出现了 `drumless_mix.py` —— 那就不是"纯单来源"了（它=partial 的做法）'
+    assert len(_steps(pure, 'transcribe_ymt3.py')) == 1, \
+        'pure 档只该转录 **1 次**（全混音），实得 %d 次' % len(_steps(pure, 'transcribe_ymt3.py'))
+
+    # ⑦ `-o` 只许给分轨根目录；`--stems-dir` 只许给六轨目录（**不许混**）
+    for _nm, _c in (('pure', pure), ('partial', EP.plan('probe', W=W, path='partial', **kw)),
+                    ('all', EP.plan('probe', W=W, path='all', **kw))):
+        _sp = _steps(_c, 'stem_split.py')
+        assert len(_sp) == 1, '%s 档该只有 1 次分轨，实得 %d' % (_nm, len(_sp))
+        _sp = _sp[0]
+        _got_o = _sp[_sp.index('-o') + 1] if '-o' in _sp else None
+        assert _got_o == flat, \
+            '%s 档的 `stem_split -o` 不是分轨根目录（实得 %r）—— `stem_split` 自己会在它下面' \
+            '再建 `<模型>/<曲名>/`，给了六轨目录就会**双层嵌套**（本轮端到端实测踩到）' % (_nm, _got_o)
+        _sd = [c for c in _c if '--stems-dir' in c]
+        assert _sd, '%s 档一个 `--stems-dir` 都没有（逐音力度会恒 100）' % _nm
+        for _c2 in _sd:
+            _g = _c2[_c2.index('--stems-dir') + 1]
+            assert _g == h6, \
+                '%s 档的 `--stems-dir` 不是六轨目录：%r（该 %r）—— 指到分轨根目录/空目录时' \
+                '**一条轨都配不上**，力度恒 100 且只在日志留一行 `!!`' % (_nm, _g, h6)
+
+    # ② partial：三步齐全 + 产物名与装配路径逐字一致
+    parts = ('Hook', 'Pad')
+    part = EP.plan('probe', W=W, path='partial', parts=parts, **kw)
+    txt = '\n'.join(_flat(part))
+    assert 'drumless_mix.py' in txt, 'partial 档少了去鼓混音那一步（那就是 pure 了）'
+    assert '"--drop", "drums"' in txt or '--drop drums' in txt, \
+        'partial 档的去鼓混音没写 `--drop drums`（那会混进鼓、整条链的前提就没了）'
+    _dm = _steps(part, 'drumless_mix.py')[0]
+    assert _dm[_dm.index('--stems') + 1] == h6, \
+        '去鼓混音喂的不是六轨目录（实得 %r）⇒ 它会报「没有可用轨（0 个 wav）」' \
+        % _dm[_dm.index('--stems') + 1]
+    _tr = _steps(part, 'transcribe_ymt3.py')
+    assert len(_tr) == 2, 'partial 档该转录 2 次（全混音 + 去鼓混音），实得 %d' % len(_tr)
+    # ⚠ 去鼓那次**不许带 `--no-song`**（2026-10-13 实测三首全长曲目全挂在这条上）：
+    #   逐轨 `nodrums_<轨>.mid` 是在"写 song.json"那条支路里切的（`_split_by_engine_track`），
+    #   带 `--no-song` 就**只有一条合并 MIDI** ⇒ 装配找不到逐轨文件（exit 3）。
+    _nodr = [c for c in _tr if ('--song-name' in c and c[c.index('--song-name') + 1] != 'probe')]
+    assert len(_nodr) == 1, \
+        'partial 档找不到"去鼓混音单独转录"那一步（该带 `--name nodrums`），实得 %d' % len(_nodr)
+    assert '--no-song' not in _nodr[0], \
+        '去鼓那次带了 `--no-song` —— **那就不会切轨**，没有 `nodrums_<轨>.mid`（实测必挂）'
+    assert '--song-name' in _nodr[0] and _nodr[0][_nodr[0].index('--song-name') + 1] != 'probe', \
+        '去鼓那次没给独立的 `--song-name` —— 它的 song.json（bpm 翻倍）会覆盖 pure 那版的 bpm 基准'
+    assert _nodr[0][_nodr[0].index('--stems-dir') + 1] == h6, \
+        '去鼓那次转录没带六轨目录（逐音力度会恒 100）'
+    # ⚠ 逐轨 MIDI 的**实际落点**必须与装配指的逐字一致：切轨产物在
+    #   `<out>/<name>_stems/<name>_<轨>.mid`（`_split_by_engine_track` 的固定拼法），
+    #   不是 `<out>/`。2026-10-13 实测：指错那一层 ⇒ 三首全长曲目**全部**装配 exit 3。
+    for tr in parts:
+        _want = os.path.join(W, 'nodrums', 'nodrums' + EP.SPLIT_SUFFIX,
+                             'nodrums_%s.mid' % tr)
+        assert '%s=%s' % (tr, _want) in txt, \
+            '装配里没有 `%s=%s`（去鼓转录的产物路径与装配指的对不上 ⇒ 静默少一层）' % (tr, _want)
+    assert EP.SPLIT_SUFFIX == '_stems', \
+        '`SPLIT_SUFFIX` 被改了（%r）—— 切轨产物那层目录名是 `transcribe_ymt3` 定死的' \
+        % EP.SPLIT_SUFFIX    # ⚠ 装配必须**把 pure 那版的其余轨也带上**（2026-10-13 实测）：只带被替换的那两轨会把
+    #   `songs/<曲名>/song.json` 里其余轨整片覆盖 —— 实测 2781 音 → **567 音**，而 rc 仍 0。
+    _covered = {_c.split('=', 1)[0] for _c in
+                [str(x) for x in _asm_step(part) if '=' in str(x) and
+                 str(x).split('=', 1)[0] in set(EP.STEM_TO_ENGINE.values())]}
+    assert set(EP.STEM_TO_ENGINE.values()) <= _covered, \
+        '装配只带了 %s 轨 —— 会丢掉 pure 那版其余轨的内容（实测音数腰斩且 rc=0）：缺 %s' \
+        % (sorted(_covered), sorted(set(EP.STEM_TO_ENGINE.values()) - _covered))
+
+    # ③ all：每轨各一次 + 头部那次全混音（装配要它的 chords.txt 与 bpm），且不做去鼓
+    allc = EP.plan('probe', W=W, path='all', **kw)
+    _ta = _steps(allc, 'transcribe_ymt3.py')
+    assert len(_ta) == len(EP.ALL_STEMS) + 1, \
+        'all 档该 = 全混音 1 次 + 每轨 1 次 = %d 次，实得 %d 次' % (len(EP.ALL_STEMS) + 1, len(_ta))
+    assert 'drumless_mix.py' not in '\n'.join(_flat(allc)), \
+        'all 档不该做去鼓混音（它逐条分轨转录）'
+    # `--drums-mid` 必须指到 drums 那次的产物（鼓的逐小节网格从它来）
+    _ja = '\n'.join(_flat(allc))
+    assert '--drums-mid' in _ja, 'all 档没给 `--drums-mid`（鼓型会丢）'
+    assert os.path.join('per_stem', 'drums', 'drums.mid') in _ja, \
+        'all 档的 `--drums-mid` 没指到逐条转录的 drums 产物'
+
+    # ④ 装配必须钉死 bpm（占位 + 运行时读 pure 那版 song.json）
+    assert EP.SUB_BPM == '{bpm}', \
+        '`SUB_BPM` 占位被改了（%r）—— `ASM_CODE` 里的替换正则就抓不到了' % EP.SUB_BPM
+    # ④b 上游产物缺失 / bpm 来源缺失时，装配必须**说清原因并拒绝**，不许抛裸 FileNotFoundError
+    #     （2026-10-13 端到端实测：去鼓输入撞 256 步解码上限 ⇒ 上游**按设计**不写逐轨 MIDI，
+    #      而当时的报错只有一句 `FileNotFoundError: …\song.json`，看不出是"上游拒绝接续"）
+    for _need, _why in (('256 步解码上限', '没告诉人"撞上限、上游按设计拒绝接续"'),
+                        ('sys.exit(3)', '缺产物/缺 bpm 时没有"拒绝装配"这条路')):
+        assert _need in EP.ASM_CODE, \
+            '`ASM_CODE` 里少了 %s —— %s（缺 bpm 就装配 = 出一份时间轴错一倍的产物）' % (_need, _why)
+    for nm, cmds in (('partial', part), ('all', allc)):
+        _asm = [c for c in cmds if len(c) > 1 and c[1] == '-c' and c[2] == EP.ASM_CODE]
+        assert len(_asm) == 1, '%s 档该有且只有 1 个装配 `-c` 步，实得 %d' % (nm, len(_asm))
+        _joined = ' '.join(str(x) for x in _asm[0])
+        assert EP.SUB_BPM in _joined, \
+            '%s 档的装配里找不到 bpm 占位 %s（没钉死 bpm ⇒ 时间轴可能错一倍）' % (nm, EP.SUB_BPM)
+        assert os.path.join(W, 'song.json') in _joined, \
+            '%s 档的装配没把 pure 那版的 song.json 当 bpm 来源' % nm
+        assert '--mid' in _joined, '%s 档的装配没拼 `--mid`（替换轨一个都没生效）' % nm
+        # ④c **装配后必须回灌**（2026-10-13 三首全长实测的静默丢内容：合并转录里才有、
+        #     没有独立逐轨文件的那几层（Melody/Glock）会被装配整片丢掉，而 rc 仍 0）
+        _gap = [c for c in cmds if len(c) > 2 and c[1] == '-c' and c[2] == EP.GAPFILL_CODE]
+        assert len(_gap) == 1, \
+            '%s 档缺"装配后回灌"那一步（实得 %d 个）—— 少了它，装配丢掉的 Melody/Glock ' \
+            '会**静默消失**（实测三首各丢 157/369/557 音，而任务 rc=0）' % (nm, len(_gap))
+        _gj = ' '.join(str(x) for x in _gap[0])
+        assert EP.PRE_ASM_SUFFIX in _gj, \
+            '%s 档的回灌步没带"装配前副本"路径（该含 %s）' % (nm, EP.PRE_ASM_SUFFIX)
+        _cp = [c for c in cmds if len(c) > 2 and c[1] == '-c' and 'copy2' in c[2]
+               and EP.PRE_ASM_SUFFIX in ' '.join(str(x) for x in c)]
+        assert len(_cp) == 1, \
+            '%s 档缺"装配前留底"那一步（实得 %d 个）—— 不留底就没得回灌' % (nm, len(_cp))
+        # 顺序：留底 → 装配 → 回灌（反了就会拿被覆盖过的文件当副本）
+        _i_cp = cmds.index(_cp[0])
+        _i_as = cmds.index(_asm_step(cmds))
+        _i_gp = cmds.index(_gap[0])
+        assert _i_cp < _i_as < _i_gp, \
+            '%s 档三步顺序错了（留底 %d / 装配 %d / 回灌 %d）' % (nm, _i_cp, _i_as, _i_gp)
+
+    # ⑤ 未知档 / 空取轨表 / 坏轨名 —— 必须抛错（静默退回 pure 是最坏的形态）
+    for bad in ('puree', 'ALL', '', None):
+        try:
+            EP.plan('probe', W=W, path=bad, **kw)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('未知路径 %r 没抛错（静默退回某档了）' % (bad,))
+    try:
+        EP.plan('probe', W=W, path='partial', parts=[], **kw)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('`partial` + 空取轨表没抛错 —— 那会跑出一份和 pure 一样的产物，'
+                             '而面板上写着"部分分轨"')
+    assert EP.plan('probe', W=W, path='partial', parts=None, **kw) == EP.plan(
+        'probe', W=W, path='partial', parts=list(EP.DEFAULT_PARTS), **kw), \
+        '`parts=None` 该等于默认取轨表 %s' % (EP.DEFAULT_PARTS,)
+
+    # ⑥ 面板侧真的接上了（server 转发 + 占位替换 + start_job 传参）
+    srv = open(os.path.join(ROOT, 'studio', 'server.py'), encoding='utf-8').read()
+    assert 'import extract_paths as EP' in srv, 'server.extract_plan 没走 extract_paths（三档又各写一份）'
+    # ⚠ 除 `name`（首个位置参数）外的实参都必须**按关键字**传：
+    #   位置参数下"传的到底是用户选的那档还是写死的 'pure'"在文本上无从区分，
+    #   这条守卫就抓不到"dropdown 是摆设"那种退化。
+    #   （切到 `EP.plan(` 的**配对右括号**为止 —— 调用跨行、参数里还嵌着 `py_exe()`。）
+    _i0 = srv.find('EP.plan(')
+    _dep, _i1 = 0, -1
+    for _k in range(_i0 + len('EP.plan(') - 1, len(srv)):
+        if srv[_k] == '(':
+            _dep += 1
+        elif srv[_k] == ')':
+            _dep -= 1
+            if _dep == 0:
+                _i1 = _k
+                break
+    assert _i1 > 0, '`studio/server.py` 里 `EP.plan(...)` 的括号配不上（源码被改坏了？）'
+    _call = srv[_i0:_i1]
+    for _kw in ('path=path', 'parts=parts', 'mode=mode',
+                'flat=flat', 'h6=h6', 'audio=src', 'songs=songs_base()'):
+        assert _kw in _call, \
+            '`EP.plan(...)` 没按关键字传 `%s`（转发没接全，面板那一档就成了摆设）' % _kw
+    assert "'path': path, 'parts': parts" in srv, \
+        'start_job 的 opts 没带上 `path`/`parts` ⇒ dropdown 到下边就断了'
+    assert 'EP.FLAT_STEMS_CODE' in srv and 'EP.ASM_CODE' in srv and 'EP.GAPFILL_CODE' in srv, \
+        'server 没替换三处 `-c` 占位（摊平分轨 / 装配 / 装配后回灌会跑空代码）'
+    # 三档都在面板上给出来了（前端文案与后端档位不许脱节）
+    html = open(os.path.join(ROOT, 'studio', 'web', 'create.html'), encoding='utf-8').read()
+    for p in sorted(EP.PATHS):
+        assert 'data-path="%s"' % p in html, \
+            '面板上没有 `%s` 这一档（data-path 缺失）—— 三档只存在于代码里' % p
+    # ⑥b **② 档的轨名按钮必须与后端认的轨名逐个对应**（2026-10-13 用户要求：Hook/Pad 那种
+    #     输入框改成**按钮**）。两侧任一脱节都是静默失效：面板点了后端不认，或后端认了没按钮。
+    for tr, _txt in EP.PART_CHOICES:
+        assert 'data-part="%s"' % tr in html, \
+            '面板的轨名按钮里没有 `%s`（data-part 缺失）—— 用户在面板上换不了这一层' % tr
+    _chips = set(re.findall(r'data-part="([A-Za-z]+)"', html))
+    _want = {tr for tr, _t in EP.PART_CHOICES}
+    assert _chips == _want, \
+        '面板轨名按钮与后端 `PART_CHOICES` 不一致：面板多出 %s · 后端多出 %s' \
+        % (sorted(_chips - _want), sorted(_want - _chips))
+    # ⑥c **效果明确不好的那档统一叫「其它」并写明"效果不好"**（用户口径，别再起第三个名字）
+    _worse = [k for k, v in EP.PATHS.items() if v.get('worse')]
+    assert _worse, '没有任何档被标成"效果不好"（`PATHS[...]["worse"]`）—— 面板就无从提示'
+    for _k in _worse:
+        _lab = EP.PATHS[_k]['label']
+        assert '其它' in _lab, '%s 档的显示名必须统一成「其它…」（实得 %r）' % (_k, _lab)
+        assert '效果不好' in _lab, '%s 档的名字里必须写明"效果不好"（实得 %r）' % (_k, _lab)
+        assert '效果不好' in EP.PATHS[_k]['note'], \
+            '%s 档的说明必须讲清"为什么效果不好"' % _k
+        _btn = html[html.find('data-path="%s"' % _k):]
+        _btn = _btn[:_btn.find('</button>')]
+        assert '其它' in _btn and '效果不好' in _btn, \
+            '面板上 `%s` 那个按钮没写「其它 / 效果不好」（实得 %r）' % (_k, _btn[:80])
 
 
 @check
@@ -13396,6 +13539,43 @@ def t_install_entrypoints():
             if re.search(r'songs[\\/]', ln)
             and not any(k in ln for k in ('不随仓库分发', '自己生成', '是空的', '不出库'))]
     assert _hit, '判据自证失败：合成的不当点名没被这条判据抓到（那 ② 守不住任何东西）'
+
+
+@check
+def t_chord_table_guards():
+    r"""**和弦表两件事**：① 补齐用的和弦必须有定义 ② 短片段不该被判成"工具用错"
+    （都是 2026-10-13 实测出来的）。
+
+    ① 现场（真 bug）：段内和弦行数不够时补 `PAD_CHORD`
+
+    现场：`transcribe_to_song.py` 在和弦行数 < 小节数时补一个和弦
+    （原来是写死的 `'C'`），而 `chords` 字典是从 chords-log 里**实际出现过**的和弦建的
+    —— 实测 `z_bgm21`：log **28 行 / 29 小节**，差一行就触发补齐 ⇒ 补出的 `'C'` **不在表里**
+    ⇒ 引擎当场 `作曲失败`（原话「段落 Ending 第 1 小节引用了未定义的和弦 "C"」），
+    而这一步在**面板提取链的装配之后**，所以表现是"任务 overall 失败"、看不出根因。
+
+    判据（机器可判，不依赖具体曲子）：
+      ① `PAD_CHORD` 是模块级常量（口径一处，不许再散写 `'C'`）；
+      ② `chord_tones(PAD_CHORD)` 能解析出音（否则兜底本身是空的）；
+      ③ 源码里**存在**把 `PAD_CHORD` 塞进 `chords` 的那段兜底（删了这条就红）——
+         「补齐用谁」与「谁在表里」必须绑在一起，不能再各写一份。
+    """
+    import transcribe_to_song as TS
+    assert isinstance(getattr(TS, 'PAD_CHORD', None), str) and TS.PAD_CHORD, \
+        '`transcribe_to_song.PAD_CHORD` 不见了（补齐用的和弦名又变回散写的字面量？）'
+    _t = TS.chord_tones(TS.PAD_CHORD)
+    assert _t, '`chord_tones(%r)` 解析不出音 —— 兜底和弦本身是坏的' % TS.PAD_CHORD
+    src = open(os.path.join(HERE, 'transcribe_to_song.py'), encoding='utf-8').read()
+    assert 'if PAD_CHORD not in chords:' in src, \
+        '源码里没有"补齐用的和弦必须进 chords 表"的那段兜底 —— 少了它，log 里缺这个和弦时' \
+        '引擎会「引用了未定义的和弦」直接作曲失败（实测 z_bgm21）'
+    # 反空转：补齐那一行仍在使用这个常量（不是只留了个没人用的常量）
+    assert 'seg.append(seg[-1] if seg else PAD_CHORD)' in src, \
+        '补齐那行没用 `PAD_CHORD`（常量成了摆设，两边又脱节了）'
+    # ② 门槛不许退回 8/4：**12 秒片段只出 3 行**（实测两轮：8 拦、4 也拦）
+    #    ⇒ 写成 8 或 4 都等于"短片段直接判失败"（面板上表现为"任务失败、找不到 MIDI"）。
+    assert 'if len(rows) < 2:' in src, \
+        '和弦行数门槛不是 2 了 —— 8/4 都会让 10 秒级的合法片段被判成"工具用错"直接失败'
 
 
 @check

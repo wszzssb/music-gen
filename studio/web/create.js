@@ -85,8 +85,17 @@
   }
 
   /* ------------------------------------------------------------ 状态 */
-  var ST = { themes: [], songs: [], mode: 'fast', picked: null, jid: null, cur: '',
-             themeMap: {}, bpmTouched: false };
+  var ST = { themes: [], songs: [], mode: 'fast', path: 'pure', picked: null, jid: null,
+             cur: '', themeMap: {}, bpmTouched: false };
+  // 三档内容路径的**人话标签**（口径与 `scripts/extract_paths.py` 的 `PATHS` 一致；
+  // 那边是唯一真源，这里只做显示 —— 别在这儿另写一套判据）。
+  var PATH_LABEL = { pure: '① 纯单来源', partial: '② 部分分轨', all: '③ 其它' };
+  // ② 档"换成去鼓混音"的轨：**按钮**（`data-part`），文案与后端 `extract_paths.PART_CHOICES`
+  // 逐个对应（守卫会核对两侧；按钮点了而后端不认 = 静默失效）。
+  function pickedParts() {
+    return Array.prototype.slice.call(document.querySelectorAll('#extParts .part.on'))
+      .map(function (el) { return el.dataset.part; });
+  }
   var STEPS = {
     'extract:fast': ['分轨', '转录 → song.json', '作曲 + 渲染（不调参）', '写提取记录 notes.md'],
     'extract:full': ['分轨', '转录 → song.json', '摊平分轨（h6_*）', '六阶段精修 + 渲染',
@@ -97,6 +106,15 @@
     'render': ['渲染'],
     'export': ['合并交付 → export/<曲目>/'],
     'export:stems': ['逐轨导出 OGG → export/<曲目>/stems/']
+  };
+  // 三档比 `pure` 多出来的步骤（顺序与 `scripts\extract_paths.py` 的步骤表**逐个对应**；
+  // ⚠ 后端改了步骤数这里必须同步 —— 否则任务面板的进度条与实际跑到第几步对不上。
+  //    实测口径（`pure`=5 步）：`partial` 5+5=10 · `all` 5+9=14。
+  var PATH_STEPS = {
+    'partial': ['去鼓混音', '去鼓混音单独转录', '装配前留底 song.json', '混合装配（bpm 钉死）',
+                '装配后回灌丢掉的轨'],
+    'all': ['逐条分轨各自转录（6 条）', '装配前留底 song.json', '全分轨装配（bpm 钉死）',
+            '装配后回灌丢掉的轨']
   };
 
   /* ---- 主题画像 → 让 BPM / 风格 / 拍号 / 时长都**看得见、改得动** -------------
@@ -379,16 +397,25 @@
       toast(idErr + '（' + SN_HINT + '）', true); return;
     }
     if (!ST.picked) { toast('先选一个音频文件', true); return; }
+    // ② 档必须**至少点一层**（后端也会拒；前端先拦是为了当场说清，而不是等任务失败）
+    var parts = pickedParts();
+    if (ST.path === 'partial' && !parts.length) {
+      toast('② 部分分轨要至少点一层"换成去鼓混音"的轨（一层都不点等于 ①）', true); return;
+    }
     var b = $('btnExtract');
     b.disabled = true; b.textContent = '正在上传音频…';
     try {
       var b64 = await fileToB64(ST.picked);
       var up = await post('/api/upload', { id: id, name: ST.picked.name, data_b64: b64 });
       resetJob();
-      $('jobKind').textContent = '· ' + id + ' · ' + (ST.mode === 'fast' ? '快速版' : '完整还原');
-      showSteps('extract:' + ST.mode);
+      $('jobKind').textContent = '· ' + id + ' · ' + (ST.mode === 'fast' ? '快速版' : '完整还原')
+        + ' · ' + (PATH_LABEL[ST.path] || ST.path)
+        + (ST.path === 'partial' ? '（换 ' + parts.join('/') + '）' : '');
+      showSteps('extract:' + ST.mode, ST.path);
       var r = await post('/api/extract', {
-        id: id, audio: up.path, mode: ST.mode, force: $('extForce').value === '1'
+        id: id, audio: up.path, mode: ST.mode, path: ST.path,
+        parts: ST.path === 'partial' ? parts.join(',') : '',
+        force: $('extForce').value === '1'
       });
       watchJob(r.job, id);
     } catch (e) {
@@ -399,8 +426,13 @@
   }
 
   /* ------------------------------------------------------------ 任务 */
-  function showSteps(kind) {
-    var names = STEPS[kind] || ['处理中'];
+  function showSteps(kind, path) {
+    var names = (STEPS[kind] || ['处理中']).slice();
+    // 三档的真步骤数不一样：`partial` / `all` 在"转录"之后多几步（`extract_paths` 的口径）
+    var extra = PATH_STEPS[path] || [];
+    if (extra.length && kind.indexOf('extract:') === 0) {
+      names = names.slice(0, 2).concat(extra, names.slice(2));
+    }
     $('jobSteps').innerHTML = names.map(function (n, i) {
       return '<span class="step-pill" data-i="' + i + '">' + (i + 1) + '. ' + esc(n) + '</span>';
     }).join('');
@@ -676,9 +708,10 @@
     if (f) { pick(f); }
   });
   Array.prototype.forEach.call(document.querySelectorAll('.mode'), function (el) {
+    if (el.dataset.path) { return; }        // 三档内容路径另有一套（见下）
     el.onclick = function () {
       Array.prototype.forEach.call(document.querySelectorAll('.mode'), function (o) {
-        o.classList.remove('on');
+        if (!o.dataset.path) { o.classList.remove('on'); }
       });
       el.classList.add('on');
       ST.mode = el.dataset.mode;
@@ -686,6 +719,24 @@
         ? '快速版：约 1~2 分钟，出 MIDI + 可试听成品（不做力度/段级精修）'
         : '完整还原：内容整形 + 力度 + 段级编配 + 渲染 + 体检，十分钟级';
     };
+  });
+  // 三档内容路径（`pure` / `partial` / `all`）—— 只有 `partial` 需要"把哪几层换成去鼓混音"
+  Array.prototype.forEach.call(document.querySelectorAll('.mode.path'), function (el) {
+    el.onclick = function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.mode.path'), function (o) {
+        o.classList.remove('on');
+      });
+      el.classList.add('on');
+      ST.path = el.dataset.path;
+      $('partsField').classList.toggle('hidden', ST.path !== 'partial');
+      $('pathHint').textContent = ST.path === 'pure' ? '分轨只用来量力度（推荐）'
+        : (ST.path === 'partial' ? '去鼓混音 + 换点选的几层（按曲标定）'
+                                 : '其它：效果不好，仅对照');
+    };
+  });
+  // ② 档的**轨名按钮**（可多选；点一下切换）
+  Array.prototype.forEach.call(document.querySelectorAll('#extParts .part'), function (el) {
+    el.onclick = function () { el.classList.toggle('on'); };
   });
 
   boot();

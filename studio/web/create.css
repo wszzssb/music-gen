@@ -224,6 +224,8 @@ button.chip.off {
 
 /* 模式选择（两档提取） */
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+/* 三档**内容路径**：每档的解释都比"快速/完整"长，两列会挤成一条 → 单列 */
+.modes.paths { grid-template-columns: 1fr; }
 .mode {
   text-align: left; padding: 11px 13px; border-radius: var(--r-md);
   border: 1px solid var(--border); background: var(--surface-2); cursor: pointer;

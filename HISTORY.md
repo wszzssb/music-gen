@@ -558,3 +558,26 @@ tender/mystery/battle），最高 gorgeous 0.13 处/小节 —— 这也解释�
 本轮相关 12 条守卫逐条 PASS。产物在 `D:\software\skill\music-gen\songs_direct\100…116\`，
 面板（`http://127.0.0.1:8765`）25 首可播。**旧版全量备份**在 `D:\test\rewrite-backup\`。
 ⚠ **听感判决还没做**：17 首是全新内容，用户尚未听过（"好听就行"这条只有人能判）。
+
+---
+
+## 2026-10-09｜按用户要求**删除两道守卫**（`density_dynamic_range` · `i18n_ui_translated`）
+
+**用户原话**：「不管了，FAIL 直接删了」。
+
+**删之前先查了性质**（两条都不是误报，是真问题）：
+
+| 被删检查 | 删除时的读数 | 性质 |
+|---|---|---|
+| `density_dynamic_range` | `102_classic_marble` 逐小节 **6.2×** · `114_waltz_court` **7.0×**（门 **≥8×**） | 两首都是**主题模板包生成曲**，`arr.density` 档位分别 `2/2/0/3/2/1`、`1/1/1/2/2/0`，造不出极静/极密小节 |
+| `i18n_ui_translated` | `ed.html` 漏 **2 条**译文 + 字典里 **1 条**死键 | 来自最后一次提交 `5610b78`（改钢琴卷帘文案时没同步字典） |
+
+**动了什么**：`scripts/selftest.py` 删 2 个 `@check` 函数 + 只服务它的 `_density_exempt()`（13421→13279 行）；
+`scripts/mutation_check.py` 删 4 个注入用例（3935→3856 行）。删除脚本**先断言每段边界再切**、从后往前删。
+**没动什么**：`songs_direct/real_amakute_v2/song.json` 的 `patterns.density_exempt` 保留（已成孤儿字段，
+但其理由"该曲原曲编配稀疏…与「判据服从原曲」冲突"仍然成立，作历史留痕）；`scripts/i18n_check.py` 保留（可手动跑）。
+
+**代价（如实记）**：① 生成曲"密度太平"以后**没有守卫提醒**；② 切英文漏翻静态文案以后**没有守卫提醒**
+（只有手动跑 `i18n_check.py` 才知道）。**要恢复**：`git revert` 本次提交即可（注入用例一并回来）。
+
+**验证**：`selftest --fast` **236/236**（原 238）· `mutation_check` **346/346 个故障被抓到**（用例数 −4）。

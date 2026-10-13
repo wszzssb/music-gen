@@ -288,20 +288,6 @@ def main():
         return Mut(st, '_ymt3_steps_ok', lambda src: True)
     results.append(case('YMT3 不再自报解码步数', 'ymt3_reports_decode_steps', _ymt3_steps_silent))
 
-    # 0b2c. 密度豁免"写了代码没接"（2026-09-26）：把 `_density_exempt` 换成"永不豁免"，
-    #       那首已声明豁免的还原曲会被重新点名 → 检查必须红。
-    #       ⚠ 这**只能证明豁免被接上了**，证明不了"无条件放行"（库里目前只有那一首低于门、
-    #       而它正是被豁免的那首 → 过度豁免观测不到）—— 这条限制如实记在这里。
-    def _density_exempt_ignored():
-        p = os.path.join(ROOT, 'songs', 'princess_charm', 'song.json')
-        if not os.path.exists(p):
-            raise SkipCase('没有声明 density_exempt 的夹具曲目（princess_charm）')
-        _d = json.load(open(p, encoding='utf-8'))
-        if not ((_d.get('patterns') or {}).get('density_exempt') or {}).get('per_bar'):
-            raise SkipCase('夹具曲目没有 patterns.density_exempt.per_bar')
-        return Mut(st, '_density_exempt', lambda j2: {})
-    results.append(case('密度豁免没接上代码', 'density_dynamic_range', _density_exempt_ignored))
-
     # 0b2d. **同音色旋律的跳过口径接通了**（2026-10-07 改写）：让 `_prog_of_track` **恒返回同一个值**
     #       ⇒ 全库每一首都判成"同音色旋律" ⇒ ③ 音区分离的样本被清空 ⇒ 命中守卫里那句
     #       `assert len(sep) >= 200`（"音区分离的样本太少 —— 这条检查会空转"）。
@@ -344,24 +330,6 @@ def main():
         import report_sections as R
         return Mut(R, 'section_spans', lambda s, bpm=None: [0.0, 176.7])
     results.append(case('逐段读数退化成整曲一段', 'sections_not_whole_song', _whole_song))
-
-    # 0c. 密度起伏被抹平（2026-09-19 修口径后补：判据改量逐小节，注入要能红）
-    def _flat_density():
-        src = os.path.join(ROOT, 'songs', '41_imitate_b16', 'song.json')
-        if not os.path.exists(src):
-            raise SkipCase('没有 41_imitate_b16 当夹具')
-        td = os.path.join(TMP, 'flat_density')
-        os.makedirs(td, exist_ok=True)
-        j = json.load(open(src, encoding='utf-8'))
-        for s in j['sections']:
-            s.setdefault('arr', {})['density'] = 2      # 全段抹平
-        json.dump(j, open(os.path.join(td, 'song.json'), 'w', encoding='utf-8'),
-                  ensure_ascii=False, indent=1)
-        real_glob = st.glob.glob
-        return Mut(st.glob, 'glob',
-                   lambda pat, **kw: [os.path.join(td, 'song.json')]
-                   if str(pat).endswith('song.json') else real_glob(pat, **kw))
-    results.append(case('密度抹平（全段 density=2）', 'density_dynamic_range', _flat_density))
 
     # 1. 和弦音写错
     d = temp_song_dir(lambda x: x['chords'].__setitem__('D', [38, [57, 62, 66, 69, 75]]))
@@ -2161,20 +2129,6 @@ def main():
                         'section_transition',
                         lambda: MutMany([(st, 'TRANSITION_FADE_MIN', 99.0),
                                          (st, 'TRANSITION_JUMP_MAX', -99.0)])))
-    # ㉓ 段级密度被压平（`build_events` 忽略 `arr.density`）→ 带 density 的曲目会被
-    #    `t_density_dynamic_range` 跳过，导致 `checked == 0` 断言失败 —— 必须被抓到。
-    #    它守的是"BGM35 那种 66 倍起伏"（我们原来只有 1.5–2.8 倍）。
-    _be3 = _se.build_events
-
-    def _flat_density(d, *a, **kw):
-        import copy as _c3
-        d2 = _c3.deepcopy(d)
-        for s in d2.get('sections') or []:
-            (s.get('arr') or {}).pop('density', None)
-        return _be3(d2, *a, **kw)
-    results.append(case('段级密度：density 被忽略（压平）',
-                        'density_dynamic_range',
-                        lambda: Mut(_se, 'build_events', _flat_density)))
     # ⑰ 吉他换回"每小节同一个音型"（关掉相位轮换）→ 同和弦的小节逐音复读 →
     #    `guitar_variation` 必须抓到（用户听感"每首曲子的刚弦吉他都是这个节奏音调"）
     results.append(case('吉他：关掉音型轮换（逐小节复读）',
@@ -2249,39 +2203,6 @@ def main():
     # ㉔ 面板委托被拆掉（生成又回到"绕开面板"）→ `panel_is_only_entry` 必须抓到。
     #    夹具同上（拷全 + 抹掉 delegate_* 接线）。
     results.append(case('生成脚本绕开面板唯一入口', 'panel_is_only_entry', _no_panel_wiring))
-
-    # 面板漏翻一条静态文案（把字典里的 `💾 保存` 抹掉）→ `i18n_ui_translated` 必须抓到。
-    # 变异的是 i18n.js（不是 .py），所以夹具要连 `studio/web` 一起搬到临时目录，并按
-    # i18n_check.py 的 `WEB = dirname(HERE)/studio/web` 布局摆成两层：
-    #     <base>/scripts/*.py  +  <base>/studio/web/{index,ed}.html,i18n.js
-    # 摆错层的症状是"抓到"但理由是"文件不存在"，等于这条用例在替另一件事报警
-    # （`_no_panel_wiring` 的注释里记着同一类坑）。
-    @contextlib.contextmanager
-    def _i18n_missing_entry():
-        import glob as _g
-        import shutil as _sh
-        old_here, old_root = st.HERE, st.ROOT
-        base = tempfile.mkdtemp(dir=TMP)
-        d = os.path.join(base, 'scripts')
-        os.makedirs(d)
-        for p in _g.glob(os.path.join(old_here, '*.py')):
-            _sh.copy2(p, d)
-        web = os.path.join(base, 'studio', 'web')
-        os.makedirs(web)
-        for nm in ('index.html', 'ed.html', 'i18n.js'):
-            _sh.copy2(os.path.join(old_root, 'studio', 'web', nm), web)
-        p = os.path.join(web, 'i18n.js')
-        s = open(p, encoding='utf-8').read()
-        victim = "'💾 保存': '💾 Save',"
-        assert victim in s, '变异夹具失效：i18n.js 里找不到 %s' % victim
-        open(p, 'w', encoding='utf-8', newline='\n').write(s.replace(victim, ''))
-        st.HERE, st.ROOT = d, base
-        try:
-            yield
-        finally:
-            st.HERE, st.ROOT = old_here, old_root
-    results.append(case('面板漏翻一条文案（切英文时仍是中文）',
-                        'i18n_ui_translated', _i18n_missing_entry))
 
     # ㉓ 时值下限被关掉（`mb=_DF` → `mb=0`）→ `dur_floor_wired` 必须抓到。
     #    这条参数是"听感 = 杂乱 / 不流畅"那轮的产物（PITFALLS 206），最容易被
@@ -3853,16 +3774,23 @@ def main():
     import extract_finish as _EF
 
     class _ChainNoFinishMut:
-        """把 `extract_plan` 里那步收尾摘掉（模拟"没接进链路"）。"""
+        """把步骤表里那步收尾摘掉（模拟"没接进链路"）。
+
+        ⚠ 2026-10-13：三档内容路径落地后**步骤表搬到了 `scripts\\extract_paths.py` 的
+          `_tail()`**（`server.extract_plan` 只剩"转发 + 替换 `-c` 占位"）—— 锚点原来指的是
+          `studio\\server.py` 里那三行 `cmds.append([...])`，搬走之后这条注入**当场炸**
+          （`AssertionError: 注入锚点不在了`）；而它一炸就把它**后面的用例全带走**
+          （变异跑不完 ⇒ 后半段没人守，比单条失效更坏）。**锚点必须跟着判据走**。
+        """
 
         def __init__(self):
-            self.p = os.path.join(ROOT, 'studio', 'server.py')
+            self.p = os.path.join(ROOT, 'scripts', 'extract_paths.py')
 
         def __enter__(self):
             self.text = open(self.p, encoding='utf-8').read()
             new = self.text.replace(
-                "    cmds.append([py_exe(), os.path.join(_SCRIPTS, 'extract_finish.py'), name,\n"
-                "                 '--audio', src, '--stems-dir', h6, '--mode', mode])\n", '')
+                "        [py_exe, os.path.join(scripts, 'extract_finish.py'), name,\n"
+                "         '--audio', audio, '--stems-dir', h6, '--mode', mode],\n", '')
             assert new != self.text, '注入锚点不在了（收尾步改过？）'
             with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
                 fh.write(new)
@@ -3923,6 +3851,237 @@ def main():
 
     results.append(case('参考曲：ref_audio 接不住 SystemExit（进程退出 ⇒ 面板空响应）',
                         'scorecard_missing_ref', lambda: _RefAudioMut()))
+
+    # 99. **面板提取的三档内容路径**（2026-10-13 接）。三条注入都对着"悄悄退化"那类形态：
+    #     ① 用户选了 `pure`（默认）却实际吃了去鼓混音 —— 那就不是"纯单来源"了；
+    #     ② `partial` 静默退回 `pure`（选了 A 跑的是 B，产物上只能听出来）；
+    #     ③ `partial`/`all` 的装配**没钉死 bpm** —— 去鼓输入会让 `--auto` 的节拍判定翻倍
+    #        （实测 71.0 → 141.6），不钉就整曲时间轴错一倍（上一轮据此得出过假读数）；
+    #     ④ 取轨表写成"装配指的名字"与"转录产出的名字"不一致 ⇒ 静默少一层；
+    #     ⑤ server 没把 `path` 转发给 `extract_plan` ⇒ 面板三档变成摆设。
+    import extract_paths as _EP2
+    import transcribe_to_song as _TS
+
+    class _PathNotWiredMut:
+        """把 `server.extract_plan` 里转发的那一处改掉（模拟"dropdown 是摆设"）。"""
+
+        def __init__(self):
+            self.p = os.path.join(ROOT, 'studio', 'server.py')
+
+        def __enter__(self):
+            self.text = open(self.p, encoding='utf-8').read()
+            new = self.text.replace('path=path', "path='pure'", 1)
+            assert new != self.text, '注入锚点不在了（`extract_plan` 的转发改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    class _PureDrumlessMut:
+        """把 `pure` 包一层，多接一步去鼓混音（模拟"纯单来源"被改坏）。
+
+        ⚠ **必须打属性、不能改源码文本再指望重新 import**：`plan('pure', …)` 内部解析的是
+        模块全局的 `pure`，而 `import extract_paths as EP` 在进程里已经被别处导入过 ⇒
+        改文件不会重新加载（实测：文本注入 + 不 reload ⇒ 判据**永远抓不到**，那是**假漏**）。
+        """
+
+        def __init__(self):
+            self.old = _EP2.pure
+
+        def __enter__(self):
+            def patched(name, W, flat, h6, audio, mode, scripts, py_exe, py_ml,
+                        songs=None):
+                cmds = self.old(name, W, flat, h6, audio, mode, scripts, py_exe, py_ml,
+                                songs=songs)
+                return cmds[:2] + [[py_exe, os.path.join(scripts, 'drumless_mix.py'),
+                                    'mix', '--stems', h6,
+                                    '-o', os.path.join(W, 'nd.wav')]] + cmds[2:]
+            _EP2.pure = patched
+            return patched
+
+        def __exit__(self, *a):
+            _EP2.pure = self.old
+
+    class _NodrumsNameMut:
+        """把去鼓那次转录的 `--name` 改掉（产物名与装配 `--mid` 就对不上了）。
+
+        打 `NODRUMS_NAME` 这个常量 —— 装配那侧的 `--mid` 路径由它派生 ⇒ 一边变、一边不变。
+        """
+
+        def __init__(self):
+            self.old = _EP2.NODRUMS_NAME
+
+        def __enter__(self):
+            _EP2.NODRUMS_NAME = 'nodrums2'
+            return _EP2.NODRUMS_NAME
+
+        def __exit__(self, *a):
+            _EP2.NODRUMS_NAME = self.old
+
+    results.append(case('三档：pure 里冒出"去鼓混音"', 'extract_paths_contracts',
+                        lambda: _PureDrumlessMut()))
+    results.append(case('三档：partial 静默退回 pure（选了 A 跑了 B）', 'extract_paths_contracts',
+                        lambda: Mut(_EP2, 'partial',
+                                    lambda name, W, flat, h6, audio, mode, scripts, py_exe, py_ml,
+                                    parts=_EP2.DEFAULT_PARTS, songs=None:
+                                    _EP2.pure(name, W, flat, h6, audio, mode, scripts,
+                                              py_exe, py_ml, songs=songs))))
+    results.append(case('三档：装配没钉死 bpm（时间轴会错一倍）', 'extract_paths_contracts',
+                        lambda: Mut(_EP2, '_asm',
+                                    lambda py_exe, scripts, name, W, ymt, audio, h6, mids,
+                                    drums_mid=None, songs=None:
+                                    _EP2._render(name, W, audio, 'fast', scripts, py_exe,
+                                                 ymt, h6))))
+    # ⑳ **装配后不回灌**（2026-10-13 三首全长实测的静默丢内容）：装配只喂"存在的逐轨 MIDI"，
+    #    合并转录里才有、没有独立逐轨文件的那几层（实测 Melody/Glock）会整片消失，
+    #    而任务 rc=0。注入：让 `_post_cmds` 只返回[留底, 装配]（把回灌那步摘掉）。
+    class _NoGapMut:
+        def __init__(self):
+            self.old = _EP2._post_cmds
+
+        def __enter__(self):
+            def patched(py_exe, asm_argv, sj):
+                return self.old(py_exe, asm_argv, sj)[:2]
+            _EP2._post_cmds = patched
+            return patched
+
+        def __exit__(self, *a):
+            _EP2._post_cmds = self.old
+
+    results.append(case('三档：装配后不回灌（丢掉的轨静默消失）',
+                        'extract_paths_contracts', lambda: _NoGapMut()))
+    # ㉑ **② 档的轨名按钮被摘掉**（用户 2026-10-13 要求：Hook/Pad 那种输入框改按钮）——
+    #    面板少一个按钮 = 那一层用户点不了，而代码里一切正常（静默失效）。
+    class _ChipGoneMut:
+        def __init__(self):
+            self.p = os.path.join(ROOT, 'studio', 'web', 'create.html')
+
+        def __enter__(self):
+            self.text = open(self.p, encoding='utf-8').read()
+            new = self.text.replace('data-part="Bass"', 'data-part="BassGone"', 1)
+            assert new != self.text, '注入锚点不在了（Bass 按钮改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('三档：② 档的轨名按钮少一个（那层点不了）',
+                        'extract_paths_contracts', lambda: _ChipGoneMut()))
+    # ㉒ 后端多认一个**面板上没有按钮**的轨名（两侧脱节的反方向）
+    results.append(case('三档：后端多认一个面板没有的轨名',
+                        'extract_paths_contracts',
+                        lambda: Mut(_EP2, 'PART_CHOICES',
+                                    tuple(_EP2.PART_CHOICES) + (('Reed', 'Reed 簧管'),))))
+    # ㉓ 效果不好的那档**名字改回"全部分轨"**（用户口径：统一叫「其它」并写明效果不好）
+    results.append(case('三档：效果不好的那档改回"全部分轨"（不叫其它了）',
+                        'extract_paths_contracts',
+                        lambda: Mut(_EP2, 'PATHS', dict(
+                            _EP2.PATHS,
+                            all=dict(_EP2.PATHS['all'],
+                                     label='③ 全部分轨（每轨各自转录）')))))
+    # ㉔ "效果不好"的标记被清掉（面板于是不再提示）
+    results.append(case('三档：清掉"效果不好"的标记（面板不再提示）',
+                        'extract_paths_contracts',
+                        lambda: Mut(_EP2, 'PATHS', {
+                            k: {kk: vv for kk, vv in v.items() if kk != 'worse'}
+                            for k, v in _EP2.PATHS.items()})))
+    results.append(case('三档：去鼓转录的 --name 被改（产物名与装配对不上）',
+                        'extract_paths_contracts', lambda: _NodrumsNameMut()))
+    results.append(case('三档：server 没把 path 转发给 extract_plan（面板摆设）',
+                        'extract_paths_contracts', lambda: _PathNotWiredMut()))
+    # ⑯ 两个目录混用（本轮**端到端跑出来**的真 bug）：让 `h6_of` 退化成"分轨根目录" ⇒
+    #    `stem_split -o` 与 `--stems-dir` 指到同一处 ⇒ 双层嵌套 + 力度一条配不上 +
+    #    partial 第三步「没有可用轨」直接死。⚠ 改 `MODEL=''` 不行：那会**先抛 ValueError**
+    #    （守卫里的口径自检），算"崩了"不算"抓到" —— 要注入的是"目录被混"，不是"参数非法"。
+    results.append(case('三档：六轨目录与分轨根目录被混成一回事',
+                        'extract_paths_contracts',
+                        lambda: Mut(_EP2, 'h6_of', lambda flat, audio: flat)))
+    # ⑰ 去鼓那次退回旧的"只出 MIDI"写法（**端到端三首全挂在这条上**）：`transcribe_ymt3`
+    #    的逐轨切分发生在"写 song.json"那条支路 ⇒ 带 `--no-song` 就**没有 `nodrums_<轨>.mid`**
+    #    ⇒ 装配 exit 3。注入：把去鼓那步换回带 `--no-song` 的旧命令行。
+    class _NoSongMut:
+        def __init__(self):
+            self.old = _EP2.partial
+
+        def __enter__(self):
+            def patched(name, W, flat, h6, audio, mode, scripts, py_exe, py_ml,
+                        parts=_EP2.DEFAULT_PARTS, songs=None):
+                cmds = self.old(name, W, flat, h6, audio, mode, scripts, py_exe, py_ml,
+                                parts=parts, songs=songs)
+                out = []
+                for c in cmds:
+                    if any(str(x).endswith('transcribe_ymt3.py') for x in c) and '--stems-dir' in c:
+                        c = [x for x in c if x not in ('--song-name', name + _EP2.NODRUMS_SUFFIX)]
+                        c = c + ['--no-song']
+                    out.append(c)
+                return out
+            _EP2.partial = patched
+            return patched
+
+        def __exit__(self, *a):
+            _EP2.partial = self.old
+
+    results.append(case('三档：去鼓那次退回 `--no-song`（不切轨 ⇒ 装配必挂）',
+                        'extract_paths_contracts', lambda: _NoSongMut()))
+    # ⑲ 去鼓那次的 `--song-name` 被写死成主曲名 ⇒ 它那份 **bpm 翻倍** 的 song.json
+    #    会覆盖掉装配的 bpm 基准（时间轴错一倍）。注入：把 `--song-name` 的值换回主曲名。
+    results.append(case('三档：去鼓那次的 song-name 写死成主曲名（覆盖 bpm 基准）',
+                        'extract_paths_contracts',
+                        lambda: Mut(_EP2, 'NODRUMS_SUFFIX', '')))
+    # ⑱ **装配只带被替换的那两轨**（把 pure 那版其余轨整片覆盖掉）——2026-10-13 端到端实测：
+    #    成品 2781 音 → **567 音**，而任务 rc=0（静默丢内容）。注入：让 `partial` 的装配只喂 parts。
+    results.append(case('三档：装配只带替换轨（把其余轨覆盖掉，音数腰斩）',
+                        'extract_paths_contracts',
+                        lambda: Mut(_EP2, '_pure_track_mids',
+                                    lambda name, ymt, scripts: {})))
+
+    # 100. **和弦补齐用的那个和弦必须有定义**（2026-10-13 端到端跑出来的真 bug）：
+    #      `transcribe_to_song.py` 在和弦行数 < 小节数时补 `PAD_CHORD`，而 `chords` 是从 log 里
+    #      实际出现的和弦建的 —— 实测 z_bgm21（log 28 行 / 29 小节）补出未定义的 'C'，
+    #      引擎当场「引用了未定义的和弦」作曲失败。注入：把那段兜底从源码里删掉。
+    class _PadNoDefMut:
+        def __init__(self):
+            self.p = os.path.join(ROOT, 'scripts', 'transcribe_to_song.py')
+
+        def __enter__(self):
+            self.text = open(self.p, encoding='utf-8').read()
+            new = self.text.replace(
+                "    if PAD_CHORD not in chords:\n", "    if False:      # 注入：兜底被删\n", 1)
+            assert new != self.text, '注入锚点不在了（那段兜底改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('和弦补齐：兜底定义被删（补出未定义和弦 ⇒ 作曲失败）',
+                        'chord_table_guards', lambda: _PadNoDefMut()))
+    results.append(case('和弦补齐：兜底和弦自己解析不出音（空兜底）',
+                        'chord_table_guards',
+                        lambda: Mut(_TS, 'chord_tones', lambda n: None)))
+    # 短片段门槛退回 8 行（实测：12 秒片段的 analyze_chords 只出 3 行 ⇒ 真片段被判失败）
+    class _ChordMinMut:
+        def __init__(self):
+            self.p = os.path.join(ROOT, 'scripts', 'transcribe_to_song.py')
+
+        def __enter__(self):
+            self.text = open(self.p, encoding='utf-8').read()
+            new = self.text.replace('if len(rows) < 2:', 'if len(rows) < 8:', 1)
+            assert new != self.text, '注入锚点不在了（门槛改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('和弦表：行数门槛退回 8（短片段直接被判失败）',
+                        'chord_table_guards', lambda: _ChordMinMut()))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):

@@ -180,16 +180,35 @@ winget install --id Microsoft.EdgeWebView2Runtime        # ⚠ 要**管理员**�
 | ① 提要求 | 中文口语 → 生成参数（主题 / 能量 / 乐器 / 时长 / 种子），**逐项摊开可改**；解析只给建议、不直接出声 | `scripts/ask_parse.py`（纯本地规则、离线） |
 | ↳ 速度 / 风格 / 时长 | 主题画像里的**实测值**直接摆在界面上：`bpm`（中位，可改）· `engine_style` · 拍号 · 总小节数 · **预计时长**（总拍数 ÷ BPM，随 BPM 实时变）。改 BPM 是**真生效**的 —— 生成时写回 `song.json` 的 `bpm`，引擎就是拿它做拍→秒换算（实测：138→180 BPM 让成品 212 秒变 165.7 秒）；说「要 90 秒」会反算出建议 BPM 并填进去，超出 50~220 就只提示、不硬填（段落结构本版不动）。⚠ **风格（引擎预设）是"跟随主题"的、不单独改**：主题路径会把音色/织体显式写进 `song.json`，单改 `style` 字段会被盖住 —— 要换风格就换主题 | `GET /api/create/themes` 带画像参数 · 写回走 `POST /api/song` |
 | ↳ 导出 | 产物卡上的「📦 合并导出」→ MIDI + OGG + WAV + notes + song.json 拷到 `<曲库>/export/<曲目>/` | `POST /api/job?kind=export` |
-| ② 扒谱提取 | 拖入音频 → 选两档之一 → 起任务 | 见下表 |
+| ② 扒谱提取 | 拖入音频 → 选**档位**（快速/完整还原）+ **内容来源三档** → 起任务 | 见下表 |
 | ③ 任务 | 阶段 pills（按日志里的 `=== [i/N]` 点亮）+ 实时日志 + ⏹ 停止（1 秒轮询 `/api/job`） | `server._new_job` |
 | ④ 产物 | 试听 + 下载 MIDI/OGG + 跳 MIDI 编辑器 / 引擎面板 | `/api/files` · `/api/dl` |
 
-**两档提取**（都走引擎正路，不手工拼 MIDI —— 手工链会丢编配/音色/段落控制，见 SKILL §8）：
+**两档位 × 三内容路径**（都走引擎正路，不手工拼 MIDI —— 手工链会丢编配/音色/段落控制，见 SKILL §8）：
 
-| 档 | 命令序列（`server.extract_plan`） | 产物 | 耗时（本机） |
+| 档位 | 命令序列（`server.extract_plan` → `scripts\extract_paths.py`） | 产物 | 耗时（本机） |
 |---|---|---|---|
 | ⚡ 快速版 | `stem_split -m htdemucs_6s` → `transcribe_ymt3`（转录 → 切轨 → `transcribe_to_song --auto` → `song.json`）→ `make_song --no-tune`（作曲 + 渲染，**不调参**）→ `extract_notes.py` | `song.json` · `compose.py` · `notes.md` · `render.json` · `<名>.mid` · `<名>_sf.ogg` | **实测 60 秒**（98.8s 音频：分轨 3.9s · 转录 11.6s · 其余是切轨/和弦/编配/作曲/渲染） |
-| 💎 完整还原 | 同上 + **摊平成 `h6_*.wav`** → `restore_oneshot` 六阶段（probe/repair/vel/arrange/render/audit，`--render`）→ `extract_notes.py` | 同上 4 件套 + 精修成品与三把尺子的体检读数（中间产物在 `<曲目>/_oneshot/`，每步留 `.pre_*.bak`） | **实测 100 秒**（同一首 98.8s 音频；六阶段里 `vel` 把逐段力度写回谱面、`audit` 出逐段 RMS/chroma/嘶声表） |
+| 💎 完整还原 | 同上 + **摊平成 `h6_*.wav`** → `restore_oneshot` 六阶段（probe/repair/vel/arrange/render/audit，`--render`）→ `extract_finish` → `extract_notes.py` | 同上 4 件套 + 精修成品与三把尺子的体检读数（中间产物在 `<曲目>/_oneshot/`，每步留 `.pre_*.bak`） | **实测 100 秒**（同一首 98.8s 音频；六阶段里 `vel` 把逐段力度写回谱面、`audit` 出逐段 RMS/chroma/嘶声表） |
+
+**内容来源三档**（2026-10-13 加，用户点名要；真差别**只在转录吃什么**）：
+
+| 三档 | 转录吃什么 | 实测（`D:\test\BGM23_装配提取_交付\notes.md`） | 代价 |
+|---|---|---|---|
+| ① **纯单来源**（默认·推荐） | **整段混音**；分轨只用来量逐音力度 | 独立尺子（谱峰法，**不依赖分离**）：有基音峰 46.0% / 无峰 **54.0%** —— **当前用户听感认可的版本** | 1× |
+| ② **部分分轨** | 整段混音 + **指定轨**（面板可填，默认 `Hook,Pad`）改从**去鼓混音**单独转录，再混合装配 | 只值 **2 轨**：Hook 19.5%→**28.2%** · Pad 12.2%→**13.6%**（其余 6 轨纯单来源更好），代价 **+1447 音** | **≈2×** |
+| ③ **其它**（每轨各自转录） | **每条分轨各自转录**再装配 | ⚠ **效果不好，不建议用**：实测每项都比 ① 差（无峰 **56.3%** vs 54.0%；每轨各自转录 = 6 次分布外输入，模型对单条分轨最容易失控） | **3~6×** |
+
+**② 档的"换哪几层"是按钮**（2026-10-13 用户要求，可多选，默认 Hook+Pad）：轨名清单的唯一真源在
+`scripts\extract_paths.py` 的 `PART_CHOICES`（面板按钮与后端逐字核对，守卫盯着）；**一层都不点会被拒绝**
+（跑出来跟 ① 一样 —— 不给"看着选了②、实际跑①"留口子）。⚠ 按钮上的百分比来自 **BGM23 一首**（n=1），
+**不是通用配方**：别的曲子先用 `python scripts\audit_stems.py <曲目> --stems <分轨目录> --ref <原曲>` 量自己的逐轨表。
+⚠ **效果明确不好的那档统一叫「其它（效果不好）」**（用户口径）：`PATHS[...]["worse"]=True` 的那档，
+按钮名与说明都必须写明"效果不好"，守卫会核对。
+⚠ **装配必须钉死 bpm**：去鼓输入会让 `--auto` 的节拍判定**翻倍**
+（实测 71.0 → 141.6），不钉就整曲时间轴错一倍（上一轮因此得出过"独立基音仅 6.1%"的假读数，真值 19.9%）
+—— 这一步由 `scripts\drumless_mix.py`（去鼓混音 + `patch-bpm`）与装配步里的运行时 `--bpm` 共同保证，
+守卫 `t_extract_paths_contracts` + 变异用例第 99 组盯着它。
 
 ⚠ 完整还原那档为什么多一步"摊平"（2026-10-07 实测）：`probe_instruments.load_stems` 按 `h4_`/`h6_`
 **前缀**过滤，而 demucs 标准输出是**无前缀**的 `piano.wav` —— 直接给标准目录，编制表会**只剩"
@@ -206,7 +225,9 @@ winget install --id Microsoft.EdgeWebView2Runtime        # ⚠ 要**管理员**�
 ⚠ **快速版是"未精修"的半成品**：它不写 `patterns.velocity_exempt` / `perc_exempt`，所以全量自检里
 `velocity_measured`（某轨力度仍是恒 100）与 `perc_declared_for_restore`（打击乐占比偏高）**可能点名
 这首曲子** —— 那是**精修没做**（完整还原那档才做），不是提取失败；`notes.md` 里也逐条写了"没验证什么"。
-新增路由：`GET /create` · `GET /api/create/themes` · `POST /api/ask|/api/upload|/api/extract`；
+新增路由：`GET /create` · `GET /api/create/themes` · `POST /api/ask|/api/upload|/api/extract`（`/api/extract` 收
+`mode=fast|full` + **`path=pure|partial|all`** + `parts=<走分轨的轨，逗号分隔>`；未知 `path`/轨名**直接报错**，
+不静默退回 `pure`）；
 新增任务类型：`extract:fast` · `extract:full` · `render-tune-solo`（生成 → 单乐器独奏化，只跑一次渲染）。
 
 ⚠ **语言**：创作台目前**只有中文** —— 中英切换的字典由 `i18n_check.py` 守，而它只覆盖 `index.html`
