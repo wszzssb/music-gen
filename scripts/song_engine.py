@@ -367,6 +367,26 @@ PAT_KEYS = (
     # 钢琴反拍短音的力度/时值（opt-in，缺省 = 老行为逐字节不变）——
     # 只影响钢琴轨的**反拍和弦短音**，见 `piano_part` 的 docstring 与 2026-09-22 消融
     'piano_stab_dur', 'piano_stab_vel', 'hook_stab_vel',
+    # **联合句法层**（2026-10-13，M1 第一步；opt-in，缺省关 = 老行为逐字节不变）：
+    # 用户口径"生成要**全部分轨一起做**（分开做 → 音乐性不够）"。只做一件能独立量的事 ——
+    # **乐句句尾收束**：每 `joint_phrase_bars` 小节为一个乐句，句尾那一拍除 `joint_keep`
+    # （默认 Bass/Perc）外**不发起音**（让位），主奏最后一个音延长到句尾。
+    # ⚠ 漏登记 = 引擎打印"不认识这个键"（会误导成"没生效"）—— 本轮实测踩到一次。
+    # 全部依据与读数 → `scripts/joint_arrange.py` docstring。
+    'joint_cadence', 'joint_phrase_bars', 'joint_keep',
+    # **伴奏逐句换句型**（2026-10-13，A 步；opt-in，缺省关 = 老行为逐字节不变）：
+    # 用户听感"**感觉背景一直重复**"。实测：我方 15 首生成曲里一个 4 小节句型占全曲 20~40%、
+    # 句型去重只有 0.26~0.60，而真人扒谱版去重 0.99~1.00；根因是 `piano_part` 的小节内容是
+    # 写死的两个反拍落点、`bass_part` 整曲一套 `bass_style`。0=关 · 1=钢琴逐乐句换落点 ·
+    # 2=再+贝斯句末轻变化。全部口径与安全边界 → `scripts/phrase_vary.py` docstring。
+    'phrase_vary',
+    # **内声部补满空隙**（2026-10-13，A2 步；opt-in，缺省关 = 老行为逐字节不变）：
+    # 用户听感"**有时候连续有时候不连续也没有衔接好**" + "**是中间的音符**"。
+    # 实测我方 Bass 音长中位 **0.18 拍**（极短音 87%）、Piano **0.28 拍**（79%），
+    # 而真人 `BGM29` 是 **0.51 / 0.51 拍**（极短音 3.9% / 28.3%）⇒ 内声部是一串"点"。
+    # 值 = 最多补到多少拍（`0.5` 与真人同量级）；只延长不缩短不重叠，**打击乐不补**。
+    # 全部口径 → `scripts/legato_fill.py` docstring。
+    'legato_fill',
 )
 
 
@@ -2092,6 +2112,23 @@ def build_events(d):
     # **伴奏逐句变化**（opt-in `patterns.comp_vary`，见 `vary_comp`）：曲名 seed 决定
     # 每个 4 小节乐句用哪种"说法"，与 `_pseed`（鼓）同源。
     _cv = bool(pat.get('comp_vary'))
+    # **伴奏逐句换句型**（opt-in `patterns.phrase_vary` 0/1/2，见 `phrase_vary.py`）：2026-10-13 A 步，
+    # 治用户口径"**感觉背景一直重复**"。与 `comp_vary` 的区别：后者每个乐句最多只动**一个短音**
+    # （实测整首 ~25 音，等于没改），本层是**整组落点逐乐句轮换**（钢琴）/句末轻变化（贝斯）。
+    _pv = int(pat.get('phrase_vary') or 0)
+    if _pv:
+        import phrase_vary as _PV
+    else:
+        _PV = None
+    # **内声部补满空隙**（opt-in `patterns.legato_fill` = 最多补到多少拍；缺省 0 = 关）：
+    # 用户"有时候连续有时候不连续也没有衔接好 / 是中间的音符"。实测我方内声部是 0.18~0.28 拍的
+    # "点"（真人 0.51 拍）；见 `legato_fill.py`。**在段末合并前按轨补**（那时 bucket 里已是全局拍）。
+    _lf = float(pat.get('legato_fill') or 0.0)
+    if _lf:
+        import legato_fill as _LF
+    else:
+        _LF = None
+    _lf_tot = {'tracks': set(), 'grown': 0, 'add': 0.0}
     _cseed = _song_seed(d)
     bar0 = 0
     bar_chord = {}                   # 全局小节号 → 和弦标识（伴奏避让主奏要用，见文件末尾）
@@ -2172,6 +2209,8 @@ def build_events(d):
                     _ev = _ev[:1]
                 elif _cv:
                     _ev = vary_comp(_ev, i, B, _cseed)
+                if _PV and not _bare:
+                    _ev = _PV.vary_bass(_ev, i, B, _cseed, d.get('meter'), level=_pv)
                 for (b, dd, m, v) in _ev:
                     bucket['Bass'].append((t0 + b, dd, m, v))
             if arr.get('uku') and not _bare:
@@ -2210,6 +2249,8 @@ def build_events(d):
                         _pev = _pev[:1]          # 极简：一小节只留一个钢琴长音
                     elif _cv:
                         _pev = vary_comp(_pev, i, B, _cseed)
+                    if _PV and not _bare:
+                        _pev = _PV.vary_piano(_pev, i, B, _cseed, d.get('meter'), level=_pv)
                     for (b, dd, m, v) in _pev:
                         bucket[tr].append((t0 + b, dd * sc, m, v))
             # **长音层的逐小节力度**（`patterns.dyn_vel`，opt-in；缺省 = 老行为逐字节不变）：
@@ -2611,6 +2652,12 @@ def build_events(d):
             elif _st:
                 print('  [引子] %s 手法 %-16s → 无事可做（该手法在此段没有可加的位置）'
                       % (_kind, _st))
+        if _LF and _lf:
+            _st = _LF.stats(bucket, _lf)
+            _lf_tot['tracks'] |= set(_LF.TARGETS)
+            _lf_tot['grown'] += _st['grown']
+            _lf_tot['add'] += _st['add_beats']
+            bucket = _LF.fill(bucket, _lf)
         for k in bucket:
             # `song.json` 的 `tr_shift` 可按轨覆盖本表（opt-in；不给该字段 = 行为与原来逐字节一致）。
             # 用途：还原曲要给某轨指定**独奏乐器音色**（如小提琴 GM40 / 中提琴 GM41）时，
@@ -3000,6 +3047,9 @@ def build_events(d):
                 _lst[_i] = (_t, _dd, _m2, _v)
     if _n_oct0:
         print('  音域夹取（build_events 出口）：移八度 %d 个' % _n_oct0)
+    if _lf_tot['grown']:
+        print('  内声部补空隙（legato_fill=%.2f 拍）：补长 %d 个音 · 共 +%.1f 拍（打击乐不补）'
+              % (_lf, _lf_tot['grown'], _lf_tot['add']))
     return ev, bar0
 
 
@@ -3096,6 +3146,15 @@ def section_shifts(d, track, base):
 
 
 def write_midi(d, ev, path):
+    # **联合句法层**（opt-in `patterns.joint_cadence`，默认关 = 全库逐字节不变）。
+    # 2026-10-13：用户口径"生成要**全部分轨一起做**"（分开做 → 音乐性不够）。这是 M1 第一步，
+    # 只做一件能独立量的事：**乐句句尾收束**（我方中位 0.00 vs 真人 MIDI 0.32 · 扒谱版 0.68，
+    # 量法 `D:\test\_tmp\gen-joint\m0_summary.py`）。放在**所有其它 opt-in 之前**：
+    # 它是结构性改动（删起音 / 延长时值），后面几个（range_fix / swing / legato_trim / seg_fade）
+    # 都要求看到最终的音符表。全部口径与依据见 `scripts/joint_arrange.py` 的 docstring。
+    if (d.get('patterns') or {}).get('joint_cadence'):
+        import joint_arrange as _JA
+        _JA.apply(ev, d, quiet=False)
     # **音区修正 + 弱起音修正**（opt-in `patterns.range_fix`，默认关 = 全库逐字节不变）。
     # 为什么需要：引擎自检 `track_ranges_musical` 只**报警**不修，而实测 BGM35 的
     # v17 版本有 **382 个音**落在 `TR_RANGE` 之外（Arp 低到 F1=29 / Hook 高到 B6=95 /

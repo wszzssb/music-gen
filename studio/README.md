@@ -179,9 +179,10 @@ winget install --id Microsoft.EdgeWebView2Runtime        # ⚠ 要**管理员**�
 |---|---|---|
 | ① 提要求 | 中文口语 → 生成参数（主题 / 能量 / 乐器 / 时长 / 种子），**逐项摊开可改**；解析只给建议、不直接出声 | `scripts/ask_parse.py`（纯本地规则、离线） |
 | ↳ 速度 / 风格 / 时长 | 主题画像里的**实测值**直接摆在界面上：`bpm`（中位，可改）· `engine_style` · 拍号 · 总小节数 · **预计时长**（总拍数 ÷ BPM，随 BPM 实时变）。改 BPM 是**真生效**的 —— 生成时写回 `song.json` 的 `bpm`，引擎就是拿它做拍→秒换算（实测：138→180 BPM 让成品 212 秒变 165.7 秒）；说「要 90 秒」会反算出建议 BPM 并填进去，超出 50~220 就只提示、不硬填（段落结构本版不动）。⚠ **风格（引擎预设）是"跟随主题"的、不单独改**：主题路径会把音色/织体显式写进 `song.json`，单改 `style` 字段会被盖住 —— 要换风格就换主题 | `GET /api/create/themes` 带画像参数 · 写回走 `POST /api/song` |
+| ↳ **表现层**（2026-10-13 加） | 三个开关**默认全开**，治用户点名的三条听感毛病：**🎵 句尾收束**（`patterns.joint_cadence`）· **🔁 伴奏逐句变化**（`patterns.phrase_vary`）· **🌊 内声部连奏**（`patterns.legato_fill`，旁边选 0.35/0.5/0.75 拍）。关掉任一项，提示行会写清"回到什么样子"；三项全关 = 与 2026-10-13 之前的生成结果一致。⚠ 面板只在**与默认不同**时才把字段发给 `/api/new`（传 = 覆盖，不传 = 生成端默认），坏值**直接报 400**、不静默退回默认 | `POST /api/new` → `new_song --joint-cadence/--phrase-vary/--legato-fill` → `song.json`；三个引擎层见 `scripts/joint_arrange.py` / `phrase_vary.py` / `legato_fill.py` |
 | ↳ 导出 | 产物卡上的「📦 合并导出」→ MIDI + OGG + WAV + notes + song.json 拷到 `<曲库>/export/<曲目>/` | `POST /api/job?kind=export` |
 | ② 扒谱提取 | 拖入音频 → 选**档位**（快速/完整还原）+ **内容来源三档** → 起任务 | 见下表 |
-| ③ 任务 | 阶段 pills（按日志里的 `=== [i/N]` 点亮）+ 实时日志 + ⏹ 停止（1 秒轮询 `/api/job`） | `server._new_job` |
+| ③ 任务 | 阶段 pills（按 `=== [i/N]` 点亮）+ 实时日志 + ⏹ 停止（1 秒轮询 `/api/job`）。**三道保险**（2026-10-14 修用户报障"提取**重名会卡住只能重启**"）：**同名并发闸** · **墙钟上限**（超时杀进程树） · **任务账本落盘**（重启后 `running` → `interrupted`，前端给终态；`GET /api/jobs` 列最近 40 条）；**覆盖重建**前清掉同一目录里别的曲子的残留。判据 → `server.py`；守卫 `t_job_lifecycle_contracts` + 变异 105 组 | `server._new_job` |
 | ④ 产物 | 试听 + 下载 MIDI/OGG + 跳 MIDI 编辑器 / 引擎面板 | `/api/files` · `/api/dl` |
 
 **两档位 × 三内容路径**（都走引擎正路，不手工拼 MIDI —— 手工链会丢编配/音色/段落控制，见 SKILL §8）：

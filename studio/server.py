@@ -83,6 +83,20 @@ JOBS = {}
 JOB_SEQ = [0]
 RENDER_TASKS = {}              # 编辑器真音源渲染任务（id → {done, r|err}）
 LOCK = threading.Lock()
+# **任务账本落盘**（2026-10-14 修用户报障"提取 midi 重名会卡住只能重启"的第二半）。
+# 为什么必须有：`JOBS` 是**纯内存**的，面板一重启（或换个 server 实例）它就被清空 ⇒
+# 前端还在轮询旧 job id，`/api/job` 返回 404 ⇒ `watchJob` 的 `catch` 只弹一句提示、
+# **界面永远停在"运行中"**，⏹ 也停不动（同样 404）—— 用户唯一的出路就是重启面板，
+# 重启后又看不到"上一次到底跑完没有"。现在：① 状态一变就写盘；② 启动时把账本里
+# 仍写 `running` 的任务标成 `interrupted`（进程已随面板退出，**这是唯一的可能**）；
+# ③ `/api/job` 在内存里找不到时**回落到账本**，于是前端总能拿到一个终态。
+# ⚠ 文件名**必须以 `.` 开头**：`prune_tmp_audio` 在启动时删 `TMP_AUDIO` 下的直接子项
+#    （白名单只有 stems/preview/mixfit + 跳过 `.` 开头的），叫 `jobs.json` 会被当缓存删掉。
+JOBS_FILE = os.path.join(TMP_AUDIO, '.jobs.json')
+JOBS_KEEP = 40                 # 账本只留最近 N 条（日志只留尾巴 40 行，防无限长大）
+#: 账本读回时给"还在 running"的任务用的终态名。**提成常量**是为了能被**属性注入**测到 ——
+#: 2026-10-14 实测教训：文本注入改源码对**已经 import 的模块**无效，那条变异用例当场"漏了"。
+INTERRUPTED_STATE = 'interrupted'
 
 # 面板的音频缓存预算（`prune_tmp_audio` 用）：试听/搜索/配平/分轨每次都往里丢文件，
 # **以前从不清理** —— 实测 `%TEMP%\bgm-studio-audio` 涨到 0.93GB（含 12 个 search_* job 目录）。
@@ -311,6 +325,53 @@ def songs_base():
     except Exception:                                               # noqa: BLE001
         pass
     return os.path.join(TOOLCHAIN, 'songs')
+
+
+def clean_stale_song_artifacts(sid, verbose=True, d=None):
+    """**覆盖重建前**清掉同一目录里**别的曲子**留下的产物，返回清掉的条目数。
+
+    为什么必须做（2026-10-14 实测）：拿 A 的音频去"覆盖重建" B 时，目录里会**同时**留着
+    B 的 `<旧名>.mid` / `<旧名>_sf.ogg` / `<旧名>_sf.wav` 与新的 `<新名>.*` ——
+    面板试听按 `render.json` 的 `mid/out` 取文件，于是可能把**上一首**放出来；
+    排查时也分不清"哪个文件是这一版的"。实测我的复现目录正是这样：
+    `songs/zz_dup_probe/` 里既有 `已至.mid` 又有新写入的产物。
+
+    安全边界（**只碰明显属于别的曲子的东西**）：
+      · 只删音频/MIDI 产物里**文件名不以本曲名开头**的那些；
+      · `render.json` 只有当它的 `mid`/`out` **不指向本曲名**时才删（指向本曲的留着）；
+      · **绝不删** `song.json` / `compose.py`（复现依据）/ 目录本身。
+    """
+    d = d or os.path.join(songs_base(), sid)
+    if not os.path.isdir(d):
+        return 0
+    n = 0
+    for fn in list(os.listdir(d)):
+        p = os.path.join(d, fn)
+        if not os.path.isfile(p):
+            continue
+        if fn.endswith(('.mid', '.ogg', '.wav')):
+            if fn.startswith(sid + '.') or fn.startswith(sid + '_'):
+                continue                     # 本曲自己的产物（马上会被重写）
+            try:
+                os.remove(p)
+                n += 1
+            except OSError:
+                pass
+        elif fn == 'render.json':
+            try:
+                cfg = json.load(open(p, encoding='utf-8')) or {}
+            except Exception:                                       # noqa: BLE001
+                cfg = {}
+            if str(cfg.get('mid') or '').startswith(sid) or str(cfg.get('out') or '') == sid + '_sf':
+                continue
+            try:
+                os.remove(p)
+                n += 1
+            except OSError:
+                pass
+    if verbose and n:
+        print('  [覆盖重建] 清掉上一版残留产物 %d 个：%s' % (n, d))
+    return n
 
 
 def song_dir(sid, need_json=True):
@@ -748,6 +809,124 @@ def _argv_of(c):
     return [py_exe(), '-X', 'utf8'] + [str(x) for x in c]
 
 
+#: **任务墙钟上限**（秒）—— 一条命令跑过它就**杀进程树**、任务判 failed。
+#: 为什么必须有（2026-10-14 用户报障原话："提取 midi 重名会卡住只能重启"）：
+#: `_new_job` 原来**没有任何超时**，一条命令只要不返回，面板就永远显示 `running` ——
+#: 用户既看不到进度也没法恢复，**只能重启面板**。上限按本机实测耗时留足余量。
+JOB_DEADLINE = {
+    'extract:fast': 1800.0,      # 实测 60~120 秒；并发/慢盘留足
+    'extract:full': 3600.0,      # 实测 ~100 秒起，十分钟级精修留 1 小时
+    'render': 900.0,
+    'render-raw': 900.0,
+    'render-tune': 1800.0,
+    'render-tune-solo': 1200.0,
+    'search': 1800.0,
+    'mixfit': 1800.0,
+    'export': 900.0,
+    'export:stems': 900.0,
+    'compose': 600.0,
+}
+JOB_DEADLINE_DEFAULT = 1800.0
+
+
+def job_deadline(kind):
+    """该任务类型**一条命令**的墙钟上限（秒）。口径唯一真源 = 上面的 `JOB_DEADLINE`。"""
+    return float(JOB_DEADLINE.get(kind, JOB_DEADLINE_DEFAULT))
+
+
+def save_jobs():
+    """把任务账本写盘（**状态一变就写**）。失败只提示、不影响任务本身。"""
+    try:
+        os.makedirs(os.path.dirname(JOBS_FILE), exist_ok=True)
+        with LOCK:
+            rows = [{k: j.get(k) for k in ('id', 'song', 'kind', 'state', 'rc', 'out',
+                                           'started', 'ended')} |
+                    {'tail': (j.get('log') or [])[-40:]}
+                    for j in list(JOBS.values())[-JOBS_KEEP:]]
+        tmp = JOBS_FILE + '.tmp'
+        with open(tmp, 'w', encoding='utf-8', newline='\n') as f:
+            json.dump(rows, f, ensure_ascii=False)
+        os.replace(tmp, JOBS_FILE)
+    except Exception as e:                                        # noqa: BLE001
+        sys.stderr.write('[studio] 任务账本写盘失败：%s\n' % e)
+
+
+def load_jobs():
+    """启动时把账本读回内存；**仍写 `running` 的一律标成 `interrupted`**。
+
+    判据不是猜的：任务进程是面板的子进程，面板退出后它们**不可能还活着**
+    （`taskkill /T` 与进程组语义都保证这一点）⇒ "还在 running" = 状态丢了，不是任务还在跑。
+    """
+    try:
+        with open(JOBS_FILE, encoding='utf-8') as f:
+            rows = json.load(f)
+    except Exception:                                             # noqa: BLE001
+        return 0
+    n = 0
+    with LOCK:
+        for r in rows if isinstance(rows, list) else []:
+            jid = r.get('id')
+            if not jid:
+                continue
+            if r.get('state') == 'running':
+                r['state'] = INTERRUPTED_STATE
+                r['rc'] = -3
+                r.setdefault('tail', []).append(
+                    '⚠ 面板重启过：这条任务的状态随之丢失（进程已随面板退出）——'
+                    '产物请点「刷新曲库」后核对')
+            r['log'] = list(r.get('tail') or [])
+            JOBS.setdefault(jid, r)
+            n += 1
+            try:
+                JOB_SEQ[0] = max(JOB_SEQ[0], int(str(jid).rsplit('-', 1)[-1]))
+            except ValueError:
+                pass
+    if n:
+        sys.stderr.write('[studio] 任务账本：读回 %d 条\n' % n)
+    return n
+
+
+def run_job_cmd(argv, env, job, deadline, lock=None):
+    """跑一条任务命令：逐行写 `job['log']`，**到点杀进程树**；返回 rc（**超时 = -2**）。
+
+    超时与"命令自己失败"（非零 rc）**分开记**：日志里明说「⏱ 超时」，状态记 `failed`，
+    这样用户看到的是"任务超时被杀"，而不是一个永远 `running` 的黑洞。
+    """
+    lock = lock if lock is not None else LOCK
+    p = subprocess.Popen(argv, cwd=ROOT, env=env, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, text=True, encoding='utf-8',
+                         errors='replace', bufsize=1)
+    with lock:
+        job['proc'] = p
+    timed_out = {'v': False}
+
+    def _kill():
+        timed_out['v'] = True
+        try:
+            subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)], capture_output=True)
+        except Exception:                                       # noqa: BLE001
+            pass
+
+    t = threading.Timer(max(1.0, float(deadline)), _kill)
+    t.daemon = True
+    t.start()
+    try:
+        for line in p.stdout:
+            with lock:
+                job['log'].append(line.rstrip('\n'))
+                if len(job['log']) > 500:
+                    del job['log'][:200]
+        p.wait()
+    finally:
+        t.cancel()
+    if timed_out['v']:
+        with lock:
+            job['log'].append('⏱ 超时：这条命令跑过 %.0f 秒仍未结束，已杀进程树'
+                              '（保护：不让面板停在 running 只能重启）' % float(deadline))
+        return -2
+    return p.returncode
+
+
 def _new_job(sid, kind, cmds, outs):
     """注册并启动一个后台任务（日志尾巴 / 进程句柄 / 状态都挂在 JOB 上，前端 1 秒轮询）。
 
@@ -772,18 +951,7 @@ def _new_job(sid, kind, cmds, outs):
                     with LOCK:
                         JOB['log'].append('=== [%d/%d] %s ==='
                                           % (i + 1, len(cmds), ' '.join(argv[-2:])))
-                p = subprocess.Popen(argv, cwd=ROOT, env=env,
-                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                     text=True, encoding='utf-8', errors='replace', bufsize=1)
-                with LOCK:
-                    JOB['proc'] = p
-                for line in p.stdout:
-                    with LOCK:
-                        JOB['log'].append(line.rstrip('\n'))
-                        if len(JOB['log']) > 500:
-                            del JOB['log'][:200]
-                p.wait()
-                rc = p.returncode
+                rc = run_job_cmd(argv, env, JOB, job_deadline(kind))
                 if rc != 0:
                     break
             JOB['rc'] = rc
@@ -794,8 +962,10 @@ def _new_job(sid, kind, cmds, outs):
             JOB['log'].append('启动失败: %s' % e)
             JOB['rc'] = -1
         JOB['ended'] = time.time()
+        save_jobs()                       # 状态一变就落盘（面板重启后前端也能拿到终态）
 
     threading.Thread(target=worker, daemon=True).start()
+    save_jobs()                           # 起手就记一条（万一马上重启，账本里已有 running → 会被标 interrupted）
     return jid
 
 
@@ -925,12 +1095,28 @@ def _sync_notes_speed(d):
 def start_job(sid, kind, opts=None):
     """起后台任务；返回 jobId。kind: compose / render / render-tune / solo:<轨> / export[:stems]"""
     opts = opts or {}
+    # **同名并发闸**（2026-10-14 修用户报障"提取 midi 重名会卡住只能重启"）。
+    # 现场：同名提取被连点两次（或第一次失败后重试 + 上一次其实还在跑）⇒ 两个任务**同时**写
+    # 同一份 `songs/<名>/song.json` 与同一个渲染输出，两套 demucs/转录并发互抢 CPU/GPU，
+    # 面板上两个任务都长时间停在 running，用户既看不到进度也没法恢复 ⇒ **只能重启**。
+    # 实测（本轮复现）：同名两次请求各自跑起一条完整链，`.venv-ml` 同时 4 个进程。
+    # 判据：**同一首曲目 + state == running** 就算占用（不同曲目照样并行，不受影响）。
+    with LOCK:
+        _busy = [j for j in JOBS.values()
+                 if j.get('song') == sid and j.get('state') == 'running']
+    if _busy:
+        raise ValueError('同名任务还在跑：%s（kind=%s，起于 %s）—— 等它结束，或先点 ⏹ 停止'
+                         % (_busy[0]['id'], _busy[0]['kind'],
+                            time.strftime('%H:%M:%S', time.localtime(_busy[0]['started']))))
     if kind.startswith('extract:'):
         # **提取任务在曲目还不存在时就要能起**（`song_dir` 对不存在的曲目会抛）
         mode = kind.split(':', 1)[1]
         src = os.path.abspath(str(opts.get('audio') or ''))
         if not os.path.isfile(src):
             raise ValueError('参考音频不存在：%s' % src)
+        # **覆盖重建**：先把上一版残留清掉（否则目录里混着上一首的 .mid/.ogg，试听会放错文件）
+        if opts.get('force'):
+            clean_stale_song_artifacts(sid)
         return _new_job(sid, kind,
                         extract_plan(sid, src, mode, opts.get('seconds'),
                                      path=opts.get('path') or 'pure',
@@ -1069,6 +1255,8 @@ class Handler(BaseHTTPRequestHandler):
                 subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)],
                                capture_output=True)
             j['state'] = 'stopped'
+            j['ended'] = time.time()
+            save_jobs()
         except Exception as e:                                  # noqa: BLE001
             return self._err('停止失败: %s' % e, 500)
         return self._json({'ok': True, 'job': jid, 'state': 'stopped'})
@@ -1170,10 +1358,24 @@ class Handler(BaseHTTPRequestHandler):
                 jid = (q.get('id') or [''])[0]
                 j = JOBS.get(jid)
                 if not j:
-                    return self._err('没有这个任务', 404)
-                return self._json({'ok': True, 'job': {k: j[k] for k in
-                                                       ('id', 'song', 'kind', 'state', 'rc', 'out')},
-                                   'log': '\n'.join(j['log'][-200:])})
+                    return self._err('没有这个任务（面板重启过且账本里也没留下它）: %s' % jid, 404)
+                # ⚠ **一律 `j.get(k)`**：账本里读回来的条目字段可能比内存里少
+                #   （2026-10-14 实测：账本没存 `out`，而这里原来是 `j[k]` 硬索引 ⇒
+                #    `/api/job` 直接 500 —— 前端 `watchJob` 于是走 catch 分支，
+                #    界面又变成"卡住"）。宽容取值 + 下面给默认值。
+                return self._json({'ok': True,
+                                   'job': {k: j.get(k) for k in ('id', 'song', 'kind',
+                                                                 'state', 'rc', 'out')},
+                                   'log': '\n'.join((j.get('log') or [])[-200:])})
+            if u.path == '/api/jobs':
+                # 最近任务一览（**账本里的也在**）：面板/排查都能看出"上一次到底跑完没有"，
+                # 而不是像以前那样——重启一次就什么都不知道了。
+                with LOCK:
+                    rows = sorted(JOBS.values(), key=lambda x: x.get('started') or 0,
+                                  reverse=True)[:JOBS_KEEP]
+                    out = [{k: r.get(k) for k in ('id', 'song', 'kind', 'state', 'rc',
+                                                  'started', 'ended')} for r in rows]
+                return self._json({'ok': True, 'jobs': out})
             if u.path == '/api/audio':
                 kind = (q.get('kind') or ['mix'])[0]
                 if kind == 'mix':
@@ -1431,6 +1633,32 @@ class Handler(BaseHTTPRequestHandler):
                     if not 10 <= secs <= 600:
                         return self._err('seconds 要在 10~600 秒之间（给的是 %s）' % secs)
                     args += ['--seconds', '%.1f' % secs]
+                # **表现层三件套**（2026-10-13 接；用户听感认可后落到面板）：
+                #   `joint_cadence`（句尾让位 + 主奏收束）· `phrase_vary`（0/1/2 伴奏逐句换句型）·
+                #   `legato_fill`（内声部补空隙的拍数，0 = 关）。
+                # ⚠ **三个都在这里按关键字转发**：缺一个就是"面板上点了、产物没变"（静默失效），
+                #   守卫 `t_express_panel_contracts` 逐字核对；未知值**直接报错**，不静默退回默认。
+                for _k, _flag, _ok in (('joint_cadence', '--joint-cadence', (0, 1)),
+                                       ('phrase_vary', '--phrase-vary', (0, 1, 2))):
+                    _v = body.get(_k)
+                    if _v in (None, '', 'null'):
+                        continue
+                    try:
+                        _v = int(_v)
+                    except (TypeError, ValueError):
+                        return self._err('%s 要是 %s 之一（给的是 %r）' % (_k, _ok, body.get(_k)))
+                    if _v not in _ok:
+                        return self._err('%s 要是 %s 之一（给的是 %r）' % (_k, _ok, _v))
+                    args += [_flag, str(_v)]
+                _lf = body.get('legato_fill')
+                if _lf not in (None, '', 'null'):
+                    try:
+                        _lf = float(_lf)
+                    except (TypeError, ValueError):
+                        return self._err('legato_fill 要是 0~2.0 的拍数（给的是 %r）' % body.get('legato_fill'))
+                    if not 0.0 <= _lf <= 2.0:
+                        return self._err('legato_fill 要在 0~2.0 拍之间（给的是 %s）' % _lf)
+                    args += ['--legato-fill', '%.2f' % _lf]
                 # 能量：创作台的「提要求」会给一个 0.8~1.3 的建议值（`ask_parse` 推的）
                 try:
                     eg = float(body.get('energy_gain') or 0)
@@ -1566,7 +1794,11 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     jid = start_job(nid, 'extract:%s' % mode,
                                     {'audio': src, 'seconds': secs,
-                                     'path': path, 'parts': parts})
+                                     # ⚠ **`force` 必须带进来**（2026-10-14 实测的静默失效）：
+                                     #   它原来只在"重名检查"里用，没进 opts ⇒ `start_job` 里
+                                     #   "覆盖重建前清残留"那段**从来没执行过**（守卫也没盯这条）。
+                                     'path': path, 'parts': parts,
+                                     'force': bool(body.get('force'))})
                 except ValueError as e:
                     return self._err(str(e))
                 return self._json({'ok': True, 'job': jid, 'id': nid, 'mode': mode,
@@ -1722,6 +1954,9 @@ def main():
     # （实测涨到 0.93GB / 12 个 job 目录）。`--keep-tmp-audio` 可跳过（排查缓存相关问题时用）。
     if not a.keep_tmp_audio:
         prune_tmp_audio()
+    # **读回任务账本**（放在 `prune_tmp_audio()` 之后：账本是 `.` 开头、pruner 会跳过它，
+    # 但仍按"先清理、再读状态"的顺序，免得读到正要被删的东西）
+    load_jobs()
     PY = py_exe()
     srv = ThreadingHTTPServer(('127.0.0.1', a.port), Handler)
     url = 'http://127.0.0.1:%d/' % a.port

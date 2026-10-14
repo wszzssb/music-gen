@@ -13621,6 +13621,378 @@ def t_pitfall_index():
            % (len(items), declared[0], declared[1])
 
 
+@check
+def t_joint_cadence_contracts():
+    r"""**联合句法层（`patterns.joint_cadence`）不许悄悄退化**（2026-10-13 接，M1 第一步）。
+
+    用户口径："生成音乐功能看看能不能直接**全部分轨一起做**，发现分开做的效果没达到预期
+    （**音乐性不够**）"。引擎原来是**逐层各写各的音**，跨轨耦合只有 4 处 —— 这一层是
+    "一次看全部轨"的第一步，只做一件**能独立量**的事：**乐句句尾收束**。
+
+    依据（本机实测 `D:\test\_tmp\gen-joint\m0_summary.py`）：我方 15 首生成曲的
+    "每 4 小节句尾那一拍**主奏没有起音**"比例中位 **0.00**，而真人多轨 MIDI 中位 **0.32**、
+    扒谱版中位 **0.68**；其余 5 条候选判据（呼应指数/动机重复/乐句周期/休止补位/在响密度）
+    **当场作废**（我方与真人的分布重叠，无分辨力）—— 只留这一条。
+
+    断言（全部是**纯函数**，不跑模型、不建曲目、不渲染）：
+      ① 句尾那一拍：非保留层（默认 Bass/Perc 之外）**不再有起音**
+      ② 保留层在句尾拍**没被删**（低频与鼓是节奏锚点）
+      ③ 主奏在句尾拍**不再起音**（= 收束），且**前一个音被延长到句尾**
+      ④ 句尾拍本来就空时**不新增任何音**（负控：不许"凭空造音"）
+      ⑤ **段界上"主奏早停留白、伴奏不动"**：乐句末落在段落边界上时伴奏一个音都不动、
+         主奏末音撤下但**不延长** —— 这条是**真回归**换来的（守卫 `section_transition` 先抓到
+         `_ab_joint_sorrow` 边界硬切 7.2dB；而整句跳过又会让效果全丢：47.1% → 5.9%）
+      ⑥ 引擎侧**真的接上了**：`song_engine` 的 `PAT_KEYS` 里有三个键（漏登记 = 引擎打印
+         "不认识这个键"、读数纹丝不动 —— 本轮实测踩到一次），且 `write_midi` 里在
+         `range_fix` **之前**调用（结构性改动必须先于音区/时值修正）
+      ⑦ 默认关是**惰性**的：`apply` 只在 `joint_cadence` 为真时被调用（源码断言）
+    """
+    import joint_arrange as JA
+
+    d = {'bar_beats': 4.0, 'sections': [{'bars': 8}], 'patterns': {'joint_cadence': True}}
+    ev = {'Melody': [(14.0, 1.0, 72, 90), (15.0, 0.5, 74, 90), (17.0, 1.0, 76, 90)],
+          'Piano': [(14.0, 1.0, 60, 80), (15.5, 0.5, 64, 80)],
+          'Bass': [(14.0, 1.0, 40, 90), (15.5, 0.5, 43, 90)],
+          'Arp': [(15.5, 0.25, 79, 70)]}
+    st = JA.apply(ev, d, quiet=True)
+
+    # ① 非保留层让位
+    assert all(not (15.0 <= n[0] < 16.0) for n in ev['Piano'] + ev['Arp']), \
+        '句尾那一拍还有非保留层在起音 —— 让位没生效（句尾收束全靠这一步）'
+    # ② 保留层不动
+    assert any(15.0 <= n[0] < 16.0 for n in ev['Bass']), \
+        '保留层（Bass）在句尾拍被删了 —— 低频锚点没了，句尾会"空掉"'
+    # ③ 主奏收束 + 延长到句尾
+    assert all(not (15.0 <= n[0] < 16.0) for n in ev['Melody']), \
+        '主奏在句尾拍仍在起音 —— 句尾收束率不会上升'
+    hold = [n for n in ev['Melody'] if n[0] < 15.0 and n[1] > 1.0 + 1e-6]
+    assert hold and abs(hold[0][0] + hold[0][1] - 16.0) < 1e-6, \
+        '主奏的最后一个音没有延长到句尾（收束没落地）：%r' % (hold,)
+    assert st['phrases'] == 1 and st['yield'] == 2 and st['hold'] == 1, \
+        '统计口径漂了：%r（应 phrases=1 / yield=2 / hold=1）' % (st,)
+
+    # ④ 负控：句尾本来是空的 → 一个音都不许新增
+    ev2 = {'Melody': [(0.0, 1.0, 72, 90)], 'Piano': [(0.0, 1.0, 60, 80)],
+           'Bass': [(0.0, 1.0, 40, 90)]}
+    n0 = sum(len(v) for v in ev2.values())
+    JA.apply(ev2, d, quiet=True)
+    assert sum(len(v) for v in ev2.values()) == n0, \
+        '负控失败：句尾本来是空的，却凭空多出了音（这一层只许删起音/延长时值，不许造音）'
+
+    # ⑤ **段界上"主奏早停留白、伴奏不动"**（2026-10-13 三轮实测换来的真契约，守卫
+    #    `section_transition` 先抓到回归）：乐句末落在段落边界上时 —— 伴奏一个音都不许动
+    #    （段界的渐弱/留白归 `seg_fade`/`section_gap`），主奏**不许延长**（延长会让边界前
+    #    窗口更响 ⇒ 渐弱读数掉、跳变变大：实测 7.2dB / 3.5dB），但**末音仍要撤下**（早停
+    #    = 留白，守卫允许的形态）。⚠ 整句跳过的版本效果几乎全丢（battle 47.1% → 5.9%）。
+    d2 = {'bar_beats': 4.0, 'sections': [{'bars': 4}, {'bars': 4}],
+          'patterns': {'joint_cadence': True}}
+    ev3 = {'Melody': [(14.0, 1.0, 72, 90), (15.0, 0.5, 74, 90)],
+           'Piano': [(15.5, 0.5, 64, 80)], 'Bass': [(15.5, 0.5, 43, 90)]}
+    st3 = JA.apply(ev3, d2, quiet=True)
+    assert st3['at_section_end'] == 1 and st3['rest_at_section_end'] == 1, \
+        '段界上的乐句末没被识别成"早停"（at_section_end=%d rest=%d，都该是 1）' \
+        % (st3['at_section_end'], st3['rest_at_section_end'])
+    assert ev3['Piano'] == [(15.5, 0.5, 64, 80)] and ev3['Bass'] == [(15.5, 0.5, 43, 90)], \
+        '段界上伴奏被改动了：%r / %r —— 段界必须原样交给 seg_fade/section_gap' \
+        % (ev3['Piano'], ev3['Bass'])
+    assert ev3['Melody'] == [(14.0, 1.0, 72, 90)], \
+        '段界上的主奏该"早停"（末音撤下、**不延长**），实得 %r' % (ev3['Melody'],)
+
+    # ⑥ 引擎侧接线（PAT_KEYS 漏登记 = 有读数却"引擎不认识这个键"）
+    SE_src = open(os.path.join(ROOT, 'scripts', 'song_engine.py'), encoding='utf-8').read()
+    for k in ('joint_cadence', 'joint_phrase_bars', 'joint_keep'):
+        assert "'%s'" % k in SE_src, \
+            '`%s` 没进 `song_engine.PAT_KEYS` —— 引擎会打印"不认识这个键、会被静默忽略"' % k
+    assert 'import joint_arrange as _JA' in SE_src, \
+        '`song_engine` 没把 `joint_arrange` 接进 `write_midi`（这一层等于不存在）'
+    i_ja = SE_src.index('import joint_arrange as _JA')
+    i_rf = SE_src.index("patterns') or {}).get('range_fix')")
+    assert i_ja < i_rf, \
+        '`joint_arrange` 被放在 `range_fix` **之后**了 —— 结构性改动（删起音/延长时值）' \
+        '必须先于音区与时值修正，否则"延长到句尾"会被后面的修剪改掉'
+    assert "get('joint_cadence')" in SE_src.split('import joint_arrange as _JA')[0][-400:], \
+        '接线处没有 `joint_cadence` 开关判断 —— 默认关就不惰性了（老路径会被改）'
+    return '联合句法层：6 组断言通过（让位/保留层/收束/负控/接线/惰性）· 依据 我方中位 0.00 vs 真人 0.32'
+
+
+@check
+def t_phrase_vary_contracts():
+    r"""**伴奏逐句换句型（`patterns.phrase_vary`）不许悄悄退化**（2026-10-13 接，A 步）。
+
+    用户口径：**"感觉背景一直重复"** + "整体节奏还是这样的"。本机实测（`D:\test\_tmp\gen-joint\bg_repeat.py`，
+    **节奏与音高分开量** —— 第一版把两者混在一起，对纯节奏变化完全不敏感）：
+
+      · 我方 15 首生成曲：一个节奏型占全曲乐句的 **38~62%**、节奏去重 **0.23~0.88**、
+        逐句重复 **13~19%**、最长重复串 **2~6**；
+      · 真人扒谱版（bgm23/bgm35/BGM29/已至）：逐句重复 **0~1%**、节奏去重 **0.99~1.00**；
+      · 根因（读代码，不是猜）：`piano_part` 的小节内容写死两个反拍落点（`ALT` 只让第 4 小节动半拍）、
+        `bass_part` 整曲一套 `bass_style`；已有 `vary_comp` 每句最多只动**一个短音**
+        （实测整首 ~25 音，用户听不出）。
+
+    断言（纯函数 + 源码接线，不渲染）：
+      ① `level=0` 惰性：逐字节不动
+      ② **锚点音（t=0 / 强拍）原样保留**，只换其余落点组 —— 第一版写成"第一拍上有音就整层返回"，
+         而真实钢琴小节里**每小节都有一条 t=0 的持续高音** ⇒ **20 次调用 0 次改动、
+         产物与关掉时逐字节相同**（读回验证才发现）
+      ③ 不改音高（只减不增）· 落点仍在本小节内
+      ④ **逐句有变化**（≥2 种节奏型）—— 这一层存在的意义
+      ⑤ 贝斯：**只在乐句末小节**动、强拍一个都不动（它是律动/和声锚点）
+      ⑥ **强拍表与 `song_engine.strong_beats` 逐拍号一致**（口径两处写就会漂）
+      ⑦ 接线：`PAT_KEYS` 里有 `phrase_vary`；`build_events` 里钢琴/贝斯两处都调了；
+         `_pv` 为 0 时**不 import**（默认关 = 老路径不变）
+    """
+    import phrase_vary as PV
+
+    ok = []
+    B = 4.0
+    base = [(0.5, 0.28, 60, 58), (0.5, 0.28, 64, 58), (0.5, 0.28, 67, 58),
+            (2.5, 0.28, 60, 58), (2.5, 0.28, 64, 58), (2.5, 0.28, 67, 58)]
+    assert PV.vary_piano(base, 0, B, 7, level=0) == base, 'level=0 不是惰性的（老路径会被改）'
+    ok.append('level=0 惰性')
+    real = base + [(0.0, 1.5, 72, 54)]
+    got = PV.vary_piano(real, 0, B, 7, level=1)
+    assert (0.0, 1.5, 72, 54) in got, \
+        '锚点音（t=0 的持续高音）被动了 —— 真实钢琴小节每小节都有它，这条一错整层等于没生效'
+    assert got != real, '反拍落点没被换（逐句换句型没生效）'
+    assert all(got.count(x) <= real.count(x) for x in set(got)), \
+        '音高被新增了（只许减不许增）—— 对照必须是**输入那一份**（real 比 base 多一条 t=0 锚点音）'
+    assert all(0.0 <= x[0] < B for x in got), \
+        '落点跑到小节外了（锚点音可以在 t=0，其余必须落在 [0, B) 内）'
+    ok.append('锚点保留 + 只换落点 + 音高不增 + 落点在格内')
+    seen = {tuple(sorted({round(x[0], 4) for x in PV.vary_piano(base, p * 4, B, 7, level=1)}))
+            for p in range(10)}
+    assert len(seen) >= 2, '逐句抽到的落点完全一样（"逐句换句型"名不副实）'
+    ok.append('逐句有变化（%d 种落点）' % len(seen))
+    bs = [(0.0, 1.0, 40, 90), (1.0, 0.5, 43, 90), (2.0, 1.0, 45, 90), (3.0, 1.5, 47, 90)]
+    assert PV.vary_bass(bs, 0, B, 7, level=2) == bs, '贝斯在非句末小节也动了（律动骨架不许动）'
+    bv = PV.vary_bass(bs, 3, B, 7, level=2)
+    assert bv != bs, '贝斯句末该有轻变化，实际没动'
+    assert all(any(abs(x[0] - s) < 1e-6 for s in (0.0, 2.0)) for x in bv if x[2] in (40, 45)), \
+        '贝斯的强拍音被移动了（40/45 应在 0/2 拍上）'
+    assert sorted(x[2] for x in bv) == sorted(x[2] for x in bs), '贝斯改了音高'
+    ok.append('贝斯：只动句末非强拍、不改音高')
+    import song_engine as SE
+    for m in ((4, 4), (3, 4), (6, 8), (5, 4), (2, 4)):
+        a, b = list(PV.strong_beats(m)), list(SE.strong_beats(m))
+        assert a == b, '强拍表与 song_engine 不一致：%s → 我 %s / 引擎 %s' % (m, a, b)
+    ok.append('强拍表与引擎一致（5 个拍号）')
+    src = open(os.path.join(ROOT, 'scripts', 'song_engine.py'), encoding='utf-8').read()
+    assert "'phrase_vary'" in src, '`phrase_vary` 没进 `song_engine.PAT_KEYS`（引擎会说不认识这个键）'
+    assert '_PV.vary_piano(' in src and '_PV.vary_bass(' in src, \
+        '钢琴/贝斯两处有哪一处没接上 —— 那就只有一半生效（而且听不出来是哪一半）'
+    assert 'if _pv:' in src and 'import phrase_vary as _PV' in src, \
+        '`_pv` 为 0 时也 import（默认关应当连模块都不加载）'
+    ok.append('接线：PAT_KEYS + 两处调用 + 默认不 import')
+    return '伴奏逐句换句型：' + ' · '.join(ok)
+
+
+@check
+def t_legato_fill_contracts():
+    r"""**内声部补空隙（`patterns.legato_fill`）不许悄悄退化**（2026-10-13 接，A2 步）。
+
+    用户口径：**"有时候连续有时候不连续也没有衔接好"** + **"是中间的音符"**。
+    本机实测（`D:\test\_tmp\gen-joint\inner_notes.py`）：我方内声部是"点" ——
+    Bass 音长中位 **0.18 拍**（极短音 ≤0.3 拍占 **87%**）、Piano **0.28 拍**（**79%**）；
+    真人 `BGM29` 是 **0.51 / 0.51 拍**（极短音 **3.9% / 28.3%**）。
+    而 `staccato` / `piano_stab_dur` 只会"更短"，**没有一个把空隙补满**。
+
+    断言（纯函数 + 源码接线，不渲染）：
+      ① `cap=0` 惰性（返回原对象 = 老路径逐字节不变）
+      ② 补到 `min(起音+cap, 下一个起音−1ms)`：贝斯 0.25 网格 → 0.249；末音 → cap
+      ③ **只增不减**（长音 Pad 4.05 拍不许被缩短）
+      ④ **绝不重叠**（同轨 t+dur ≤ 下一音 t）—— 否则 `legato_trim` 会在别处再切一刀
+      ⑤ **打击乐一个都不许动**（Perc/Drums 补长 = 铃鼓/镲糊成一片）
+      ⑥ 接线：`PAT_KEYS` 有 `legato_fill`；在**段末合并前**按轨补一次（不是每个 call site 各补一遍）；
+         `_lf` 为 0 时不 import；**必须打印**（红线 5：不许静默）
+    """
+    import legato_fill as LF
+
+    ev = {'Bass': [(0.0, 0.18, 40, 90), (0.25, 0.18, 40, 80), (0.5, 0.18, 43, 80)],
+          'Piano': [(0.5, 0.28, 60, 58), (2.5, 0.28, 64, 58)],
+          'Perc': [(0.0, 0.12, 36, 90), (0.5, 0.12, 42, 90)],
+          'Pad': [(0.0, 4.05, 60, 40)]}
+    assert LF.fill(ev, 0) is ev, 'cap=0 不是惰性的（老路径会被改）'
+    got = LF.fill(ev, 0.5)
+    assert abs(got['Bass'][0][1] - 0.249) < 1e-6, \
+        '贝斯没补到"下一个起音前 1ms"（实得 %.3f）—— 补到 cap 就会和后面的音重叠' % got['Bass'][0][1]
+    assert abs(got['Bass'][2][1] - 0.5) < 1e-6, '末音没补到 cap（实得 %.3f）' % got['Bass'][2][1]
+    assert got['Pad'][0][1] == 4.05, '长音被缩短了（只许增不许减）'
+    assert got['Perc'] == ev['Perc'], '打击乐被补长了（会糊成铃鼓/镲）'
+    for k in ('Bass', 'Piano'):
+        s = sorted(got[k])
+        assert all(s[i][0] + s[i][1] <= s[i + 1][0] + 1e-9 for i in range(len(s) - 1)), \
+            '%s 补出重叠了（同轨后一个音还没松键）' % k
+    st = LF.stats(ev, 0.5)
+    assert st['grown'] == 5, '统计口径漂了：grown=%d（该 5）' % st['grown']
+    src = open(os.path.join(ROOT, 'scripts', 'song_engine.py'), encoding='utf-8').read()
+    assert "'legato_fill'" in src, '`legato_fill` 没进 `song_engine.PAT_KEYS`（引擎会说不认识这个键）'
+    assert '_LF.fill(bucket, _lf)' in src, '`build_events` 里没接 `legato_fill`（这一层等于不存在）'
+    assert 'if _lf:' in src and 'import legato_fill as _LF' in src, \
+        '`_lf` 为 0 时也 import（默认关应当连模块都不加载）'
+    assert '内声部补空隙' in src, '补空隙没打印（红线 5：不许静默）'
+    assert src.index('_LF.fill(bucket, _lf)') < src.index('for k in bucket:'), \
+        '补空隙不在"段末合并前"—— 合并后再补会漏掉已经写进 ev 的音（且听不出是哪一段漏）'
+    return '内声部补空隙：6 组断言通过（惰性/补法/只增/不重叠/打击乐/接线+打印）· 依据 贝斯 0.18→0.50 拍'
+
+
+@check
+def t_express_panel_contracts():
+    r"""**面板「表现层」三件套这条链不许断**（2026-10-13 接；用户："好了，可以落实到面板了"）。
+
+    链路：`studio/web/create.html`（三个 chip + 连奏量）→ `create.js`（`/api/new` 三个字段）→
+    `studio/server.py`（转 `--joint-cadence/--phrase-vary/--legato-fill` + **坏值报错**）→
+    `new_song.py`（`express` 透传进 `build_from_theme`，**覆盖写在默认之后**）→ `song.json`。
+
+    为什么必须守（本仓库的老坑，`arr_only_whitelist` / `lead_override_contracts` 同族）：
+    **面板上点了、后端没转发 = 静默失效** —— 用户看到的界面是对的，产物却一字未变；
+    而这条链跨了 4 个文件，任何一处改名都听不出来。
+
+    断言（源码接线 + 签名，全部可被属性/文本注入打坏；见变异第 104 组）：
+      ① `create.html` 三个 chip（`data-ex`）× 连奏量选择器 × 提示行都在
+      ② `create.js` 在 `/api/new` 体里**逐个**带 `joint_cadence` / `phrase_vary` / `legato_fill`
+      ③ `server.py` **逐个**转发三个命令行开关，且**坏值直接报错**（不静默退回默认）
+      ④ `new_song.build_from_theme` **收 `express` 形参**，且默认三键写在里、
+         `**(_express or {})` **在默认之后**（顺序反了 = 面板永远覆盖不了默认）
+    """
+    web = os.path.join(ROOT, 'studio', 'web')
+    html = open(os.path.join(web, 'create.html'), encoding='utf-8').read()
+    js = open(os.path.join(web, 'create.js'), encoding='utf-8').read()
+    srv = open(os.path.join(ROOT, 'studio', 'server.py'), encoding='utf-8').read()
+    ns = open(os.path.join(ROOT, 'scripts', 'new_song.py'), encoding='utf-8').read()
+
+    for k in ('joint', 'phrase', 'legato'):
+        assert ('data-ex="%s"' % k) in html, '面板少了 `data-ex="%s"` 这个开关（用户点不到）' % k
+    assert 'id="exChips"' in html and 'id="exLegatoAmt"' in html and 'id="exHint"' in html, \
+        '面板少了表现层的容器/连奏量/提示行之一'
+    for k in ('joint_cadence', 'phrase_vary', 'legato_fill'):
+        assert ('%s:' % k) in js, '`create.js` 没把 `%s` 放进 `/api/new` 的请求体（点了不生效）' % k
+    for fl in ('--joint-cadence', '--phrase-vary', '--legato-fill'):
+        assert ("'%s'" % fl) in srv, '`server.py` 没转发 `%s`（面板是摆设）' % fl
+    assert '要是 %s 之一' in srv, '`server.py` 对坏值没有报错分支（会静默用默认值）'
+    import new_song as NS
+    import inspect
+    assert 'express' in inspect.signature(NS.build_from_theme).parameters, \
+        '`build_from_theme` 不收 `express` 形参 —— 面板传了也没人接'
+    i_def = ns.find("'phrase_vary': 2")
+    i_ovr = ns.find('**(_express or {})')
+    assert i_def != -1, '`new_song` 里找不到默认三键（`\'phrase_vary\': 2`）—— 默认被谁删了？'
+    assert i_ovr != -1, '`**(_express or {})` 不见了 —— 面板传的覆盖**没有落点**（点了不生效）'
+    assert i_ovr > i_def, \
+        '`**(_express or {})` 写在了默认三键**之前** —— 面板的覆盖会被默认值盖掉（点了没用）'
+    return '表现层面板链：3 chip + 3 字段 + 3 转发 + 坏值报错 + 覆盖顺序，全部就位'
+
+
+@check
+def t_job_lifecycle_contracts():
+    r"""**面板任务的生命周期不许退回"卡住只能重启"**（2026-10-14 接用户报障）。
+
+    用户原话：**"提取 midi 重名会卡住只能重启"**。查下来是三个独立缺陷叠在一起
+    （每个都能单独让面板永久停在 running）：
+
+      ① **没有同名并发闸**：同一首曲目可以同时起两个任务（实测：两次同名提取请求都返回 200，
+         两套 demucs/转录并发跑，互相抢 CPU/GPU，界面长时间没有可判断的进展）；
+      ② **任务没有墙钟上限**：`_new_job` 里一条命令不返回 ⇒ 面板永远 `running`，
+         ⏹ 也救不回来（没有超时，就没有"自己结束"这条路）；
+      ③ **任务账本只在内存**：面板一重启 `JOBS` 就空了 ⇒ `/api/job` 404/500 ⇒ 前端
+         `watchJob` 只弹一句提示、**界面永远停在"运行中"** —— 用户唯一的出路就是重启，
+         而重启后又看不到"上一次到底跑完没有"。
+
+    断言（**含行为测试**，不是只看源码）：
+      ① 闸：`start_job` 里有"同名 + running"判据，且**排在注册任务之前**；
+      ② 超时：`JOB_DEADLINE` 覆盖 extract:fast/full；`run_job_cmd` **真的**到点杀进程树
+         （行为：跑一个 `sleep 30` 的进程、deadline=2 秒 → rc 必须是 -2、日志要有「超时」）；
+      ③ 账本：`JOBS_FILE` 以 `.` 开头（`prune_tmp_audio` 会跳过 `.` 开头的，否则启动即被当缓存删）；
+         行为：写一份含 `running` 的假账本 → `load_jobs()` 必须把它标成 `interrupted`；
+      ④ `/api/job` 对账本条目**宽容取值**（`j.get(k)`，不许 `j[k]` 硬索引 ——
+         实测硬索引直接 500，前端又变回"卡住"）；
+      ⑤ 覆盖重建：`force` **真的进了 opts**（实测漏带 ⇒ 清残留那段从来没执行过，静默失效），
+         且 `clean_stale_song_artifacts` 只删"别的曲子"的产物、保住 `song.json`/`compose.py`。
+    """
+    import json as _json
+    import tempfile as _tf
+    import time as _time
+    import shutil as _sh
+    import subprocess as _sp
+    # `studio/` 不在 sys.path 里（selftest 是 scripts/ 下的脚本）—— 显式加进去再 import。
+    # ⚠ 该模块**导入时没有副作用**（只有常量定义；`main()` 才起服务），实测导入 <0.1s。
+    if os.path.join(ROOT, 'studio') not in sys.path:
+        sys.path.insert(0, os.path.join(ROOT, 'studio'))
+    import server as SV
+
+    ok = []
+    src = open(os.path.join(ROOT, 'studio', 'server.py'), encoding='utf-8').read()
+    i_gate = src.find('同名任务还在跑')
+    i_reg = src.find('JOBS[jid] = JOB')
+    assert i_gate != -1, '`start_job` 里没有同名并发闸（同一首曲子能同时起两个任务）'
+    assert i_reg != -1, '找不到任务注册那行（判据要跟着实现走）'
+    # 闸必须在**函数体**里（`start_job` 定义之后），且逻辑是"同名 + running"
+    i_start = src.find('def start_job(')
+    assert i_start != -1 and i_gate > i_start, '同名闸不在 `start_job` 里'
+    assert "j.get('song') == sid and j.get('state') == 'running'" in src, \
+        '同名闸的判据不是"同名 + running"（改宽了会误伤并行、改窄了拦不住重名）'
+    ok.append('同名并发闸')
+
+    assert 'extract:fast' in SV.JOB_DEADLINE and 'extract:full' in SV.JOB_DEADLINE, \
+        '`JOB_DEADLINE` 没覆盖提取两档 —— 提取正是用户报障的那条链'
+    job = {'log': [], 'proc': None}
+    t0 = _time.time()
+    rc = SV.run_job_cmd([sys.executable, '-c', 'import time; time.sleep(30)'],
+                        dict(os.environ), job, 2.0)
+    el = _time.time() - t0
+    assert rc == -2, '超时没被识别成 -2（实得 %s）—— 任务会永远 running' % rc
+    assert el < 20, '超时后没有及时返回（实测 %.1fs）—— 进程树没被杀干净' % el
+    assert any('超时' in x for x in job['log']), '超时没写进日志（用户看不到为什么结束）'
+    ok.append('墙钟超时（%.1fs 内杀掉 sleep 30，rc=-2）' % el)
+
+    assert os.path.basename(SV.JOBS_FILE).startswith('.'), \
+        '任务账本文件名不以 `.` 开头 —— `prune_tmp_audio` 启动时会把它当缓存删掉'
+    tmp = _tf.mkdtemp(prefix='jobs_ledger_')
+    old_file, old_jobs = SV.JOBS_FILE, dict(SV.JOBS)
+    try:
+        SV.JOBS_FILE = os.path.join(tmp, '.jobs.json')
+        _json.dump([{'id': 'probe-1', 'song': 'probe', 'kind': 'extract:fast',
+                     'state': 'running', 'rc': None, 'started': 1.0, 'ended': None,
+                     'tail': ['...']}], open(SV.JOBS_FILE, 'w', encoding='utf-8'))
+        SV.JOBS.clear()
+        SV.load_jobs()
+        st = (SV.JOBS.get('probe-1') or {}).get('state')
+        assert st == 'interrupted', \
+            '账本里 `running` 的任务读回时没被标成 `interrupted`（实得 %r）—— ' \
+            '前端于是永远停在"运行中"' % st
+    finally:
+        SV.JOBS_FILE = old_file
+        SV.JOBS.clear()
+        SV.JOBS.update(old_jobs)
+        _sh.rmtree(tmp, ignore_errors=True)
+    ok.append('账本：running → interrupted')
+
+    assert "'job': {k: j.get(k) for k in" in src, \
+        '`/api/job` 又在用 `j[k]` 硬索引 —— 账本条目少一个键就 500（实测踩过）'
+    assert "'force': bool(body.get('force'))" in src, \
+        '`/api/extract` 没把 `force` 传进 `start_job` 的 opts —— 清残留那段会**静默不执行**'
+    assert "if opts.get('force'):" in src and 'clean_stale_song_artifacts(sid)' in src, \
+        '覆盖重建没有调用残留清理'
+    d = _tf.mkdtemp(prefix='stale_art_')
+    try:
+        sid = 'probe_song'
+        open(os.path.join(d, sid + '.mid'), 'wb').write(b'x')          # 本曲产物
+        open(os.path.join(d, 'other.mid'), 'wb').write(b'x')           # 别的曲子
+        open(os.path.join(d, 'other_sf.ogg'), 'wb').write(b'x')
+        open(os.path.join(d, 'song.json'), 'w', encoding='utf-8').write('{}')
+        open(os.path.join(d, 'compose.py'), 'w', encoding='utf-8').write('#')
+        _json.dump({'mid': 'other.mid', 'out': 'other_sf'},
+                   open(os.path.join(d, 'render.json'), 'w', encoding='utf-8'))
+        n = SV.clean_stale_song_artifacts(sid, verbose=False, d=d)
+        left = sorted(os.listdir(d))
+        assert n == 3, '清残留的计数不对（实得 %d，该 3：other.mid/other_sf.ogg/render.json）' % n
+        assert sid + '.mid' in left, '把**本曲自己**的产物删了（那只该被重写，不该被清理）'
+        assert 'song.json' in left and 'compose.py' in left, '动了 song.json / compose.py（复现依据）'
+    finally:
+        _sh.rmtree(d, ignore_errors=True)
+    ok.append('覆盖重建清残留（只删别的曲子）')
+    return '任务生命周期：' + ' · '.join(ok)
+
+
 import cli_utf8 as _cu; _cu.setup()   # 控制台编码兜底（GBK 下打印 ✓ 会崩）
 if __name__ == '__main__':
     sys.exit(main())

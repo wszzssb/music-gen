@@ -127,6 +127,26 @@
             <button type="button" class="chip" data-use="arr">生成时只用这几件</button>
           </div>
         </div>
+        <!-- **表现层三件套**（2026-10-13）：治用户点名的三条听感毛病 ——
+             ①"音乐性不够" → 句尾收束（`patterns.joint_cadence`）
+             ②"背景一直重复" → 伴奏逐句换句型（`patterns.phrase_vary`）
+             ③"有时候连续有时候不连续 / 是中间的音符" → 内声部补空隙（`patterns.legato_fill`）
+             三项默认全开（= 生成端默认）；**关掉任何一项都会在提示行里写清"回到什么样子"**。
+             全关 = 与 2026-10-13 之前的生成结果一致。 -->
+        <div class="field">
+          <label>表现层 <span class="muted" id="exHint"></span></label>
+          <div class="chips" id="exChips">
+            <button type="button" class="chip on" data-ex="joint">🎵 句尾收束</button>
+            <button type="button" class="chip on" data-ex="phrase">🔁 伴奏逐句变化</button>
+            <button type="button" class="chip on" data-ex="legato">🌊 内声部连奏</button>
+            <select id="exLegatoAmt" class="mini" style="max-width:120px"
+                    title="内声部补到多少拍（真人贝斯/钢琴实测 0.51 拍）">
+              <option value="0.35">连奏 0.35 拍</option>
+              <option value="0.5" selected>连奏 0.5 拍（推荐）</option>
+              <option value="0.75">连奏 0.75 拍</option>
+            </select>
+          </div>
+        </div>
         <div class="chips" id="themeMeta"></div>
         <div class="row">
           <button class="btn primary" id="btnGen">🎼 开始生成</button>
@@ -233,6 +253,6 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="/gm.js?v=1"></script>
-<script src="/create.js?v=18"></script>
+<script src="/create.js?v=20"></script>
 </body>
 </html>

@@ -4118,6 +4118,193 @@ def main():
     results.append(case('和弦表：行数门槛退回 8（短片段直接被判失败）',
                         'chord_table_guards', lambda: _ChordMinMut()))
 
+    # 101. **联合句法层（`patterns.joint_cadence`）的三种坏法**（2026-10-13 接，M1 第一步）。
+    #      用户口径"生成要全部分轨一起做（分开做 → 音乐性不够）"，这一层只做一件能独立量的事：
+    #      乐句句尾收束。它要是坏掉，读数与**听感**都会退回"每层各写各的"，而**其它守卫全绿**。
+    import joint_arrange as _JA          # noqa: E402
+    # ① 保留层被放大成"谁都不让位" ⇒ 句尾那一拍照旧满编（收束根本不存在）
+    results.append(case('联合句法：保留层被放大（谁都不让位，句尾照旧满编）',
+                        'joint_cadence_contracts',
+                        lambda: Mut(_JA, 'KEEP_DEFAULT',
+                                    ('Bass', 'Perc', 'Piano', 'Arp', 'Melody'))))
+    # ② 收束上限归零 ⇒ 主奏不再"延长到句尾"（只有让位、没有落住）
+    results.append(case('联合句法：收束上限归零（主奏不再延长到句尾）',
+                        'joint_cadence_contracts',
+                        lambda: Mut(_JA, 'MAX_HOLD', 0.0)))
+    # ③ 三个键从 `song_engine.PAT_KEYS` 里摘掉 ⇒ 引擎打印"不认识这个键、会被静默忽略"
+    #    （本轮实测踩过：读数没变，却以为功能没生效）。判据读的是**源码文本**，
+    #    所以这里必须做**文本注入**（属性注入打不到源码断言）。
+    class _PatKeysGoneMut:
+        def __init__(self):
+            self.p = os.path.join(ROOT, 'scripts', 'song_engine.py')
+
+        def __enter__(self):
+            self.text = open(self.p, encoding='utf-8').read()
+            new = self.text.replace("    'joint_cadence', 'joint_phrase_bars', 'joint_keep',\n",
+                                    "    'joint_cadence_XX',\n", 1)
+            assert new != self.text, '注入锚点不在了（PAT_KEYS 那行改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('联合句法：PAT_KEYS 漏登记（引擎会说"不认识这个键"）',
+                        'joint_cadence_contracts', lambda: _PatKeysGoneMut()))
+    # ④ **段界上不再"只收束、不让位"**（真回归的防回退）：段界处的伴奏也被撤 ⇒ 段界的渐弱
+    #    被打乱（实测 `117_sorrow_joint` 边界「A」跳 7.2dB、两端渐弱只 3.6dB，
+    #    守卫 `section_transition` 留红）。
+    results.append(case('联合句法：段界上也撤伴奏（段界渐弱被打乱）',
+                        'joint_cadence_contracts',
+                        lambda: Mut(_JA, 'SKIP_SECTION_ENDS', False)))
+
+    # 102. **伴奏逐句换句型（`patterns.phrase_vary`）的三种坏法**（2026-10-13 接，A 步）：
+    #      用户口径"**感觉背景一直重复**"。这一层要是坏掉，伴奏就退回"每小节一字不差"，
+    #      而**其它守卫全绿**（节奏重复没有别的检查在看）。
+    import phrase_vary as _PVm          # noqa: E402
+    # ① 落点库只剩"原样"一个 ⇒ 逐句不再有变化（名不副实）
+    results.append(case('逐句换句型：落点库只剩原样（等于没换）',
+                        'phrase_vary_contracts',
+                        lambda: Mut(_PVm, 'COMP_BANK_44', ((0.5, 2.5),))))
+    # ② 强拍表口径与引擎脱节（4/4 只把第 1 拍当强拍）⇒ 锚点音会被当"可换落点"搬走
+    results.append(case('逐句换句型：强拍表与引擎脱节（锚点会被搬走）',
+                        'phrase_vary_contracts',
+                        lambda: Mut(_PVm, 'strong_beats', lambda meter: (0.0,))))
+    # ③ 钢琴那一处接线被摘掉 ⇒ 只改贝斯（一半生效，耳朵听不出是哪一半）
+    class _PvPianoGoneMut:
+        def __init__(self):
+            self.p = os.path.join(ROOT, 'scripts', 'song_engine.py')
+
+        def __enter__(self):
+            self.text = open(self.p, encoding='utf-8').read()
+            new = self.text.replace(
+                "_pev = _PV.vary_piano(_pev, i, B, _cseed, d.get('meter'), level=_pv)",
+                "pass  # 注入：钢琴那处接线被摘掉", 1)
+            assert new != self.text, '注入锚点不在了（钢琴接线改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('逐句换句型：钢琴那处接线被摘掉（只改贝斯）',
+                        'phrase_vary_contracts', lambda: _PvPianoGoneMut()))
+
+    # 103. **内声部补空隙（`patterns.legato_fill`）的三种坏法**（2026-10-13 接，A2 步）：
+    #      用户口径"**有时候连续有时候不连续也没有衔接好 / 是中间的音符**"。
+    import legato_fill as _LFm          # noqa: E402
+    # ① 打击乐也被补长 ⇒ 铃鼓/镲糊成一片（这是最容易被"顺手统一处理"毁掉的一条）
+    results.append(case('补空隙：打击乐也被补长（铃鼓/镲会糊）',
+                        'legato_fill_contracts',
+                        lambda: Mut(_LFm, 'TARGETS',
+                                    ('Bass', 'Piano', 'Hook', 'Arp', 'Glock',
+                                     'Strings', 'Pad', 'Perc', 'Drums'))))
+    # ② 补法错成"补到 cap"（不减去到下一音的距离）⇒ 同轨前后音重叠
+    results.append(case('补空隙：补到 cap 而与后音重叠',
+                        'legato_fill_contracts',
+                        lambda: Mut(_LFm, 'EPS', 5.0)))
+    # ③ 接线被摘掉 ⇒ 有开关、没效果（而且读数一字未变，最难发现）
+    class _LfGoneMut:
+        def __init__(self):
+            self.p = os.path.join(ROOT, 'scripts', 'song_engine.py')
+
+        def __enter__(self):
+            self.text = open(self.p, encoding='utf-8').read()
+            new = self.text.replace('bucket = _LF.fill(bucket, _lf)',
+                                    'pass  # 注入：补空隙接线被摘掉', 1)
+            assert new != self.text, '注入锚点不在了（补空隙接线改过？）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(new)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('补空隙：接线被摘掉（有开关没效果）',
+                        'legato_fill_contracts', lambda: _LfGoneMut()))
+
+    # 104. **面板「表现层」这条链的四种断法**（2026-10-13，用户"落实到面板"）。
+    #      跨 4 个文件，任何一处改名都**听不出来**（界面照旧、产物一字未变）。
+    def _text_mut(relpath, old, new, tag):
+        class _M:
+            def __enter__(self):
+                self.p = os.path.join(ROOT, relpath)
+                self.text = open(self.p, encoding='utf-8').read()
+                rep = self.text.replace(old, new, 1)
+                assert rep != self.text, '注入锚点不在了（%s）' % tag
+                with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                    fh.write(rep)
+
+            def __exit__(self, *a):
+                with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                    fh.write(self.text)
+        return _M()
+
+    results.append(case('表现层面板：① 面板少一个 chip（用户点不到）',
+                        'express_panel_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'web', 'create.html'),
+                                          'data-ex="legato"', 'data-ex="legatoX"', 'html chip')))
+    results.append(case('表现层面板：② create.js 少传一个字段（点了不生效）',
+                        'express_panel_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'web', 'create.js'),
+                                          'legato_fill:', 'legatoFillX:', 'js field')))
+    results.append(case('表现层面板：③ server 少转发一个开关（面板成摆设）',
+                        'express_panel_contracts',
+                        lambda: _text_mut('studio/server.py' if os.path.isabs(ROOT) is False else
+                                          os.path.join('studio', 'server.py'),
+                                          "'--phrase-vary'", "'--phrase-varyX'", 'server flag')))
+    # ④ 覆盖顺序反了（默认写在覆盖之后）⇒ 面板永远覆盖不了默认
+    class _OrderMut:
+        def __enter__(self):
+            self.p = os.path.join(ROOT, 'scripts', 'new_song.py')
+            self.text = open(self.p, encoding='utf-8').read()
+            rep = self.text.replace('**(_express or {})}', "**_express}", 1)
+            rep = rep.replace("'patterns': {'bass_style'", "'patterns': {**_express, 'bass_style'", 1)
+            assert rep != self.text, '注入锚点不在了（覆盖顺序）'
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(rep)
+
+        def __exit__(self, *a):
+            with open(self.p, 'w', encoding='utf-8', newline='\n') as fh:
+                fh.write(self.text)
+
+    results.append(case('表现层面板：④ 覆盖写在默认之前（点了被默认盖掉）',
+                        'express_panel_contracts', lambda: _OrderMut()))
+
+    # 105. **面板任务生命周期（"重名卡住只能重启"的三处修复）的坏法**（2026-10-14）。
+    #      用户报障原话："提取 midi 重名会卡住只能重启"。三处修复各自都能被改坏，
+    #      而**改坏后界面症状一模一样**（永远 running），所以必须有注入用例盯着。
+    import server as _SVm               # noqa: E402  （studio/ 已在 sys.path 里）
+    # ① 同名并发闸没了（同一首曲子能同时起两个任务 ⇒ 两条链抢同一个目录）
+    results.append(case('任务：同名并发闸失效（同名能起两个任务）',
+                        'job_lifecycle_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'server.py'),
+                                          "j.get('song') == sid and j.get('state') == 'running'",
+                                          "j.get('song') == sid and False", '并发闸')))
+    # ② 超时表被清空（提取两档没有上限 ⇒ 卡住没人管）
+    results.append(case('任务：超时表被清空（提取没有墙钟上限）',
+                        'job_lifecycle_contracts',
+                        lambda: Mut(_SVm, 'JOB_DEADLINE', {})))
+    # ③ `force` 不再进 opts（清残留静默不执行 —— 本轮实测踩到的真静默失效）
+    results.append(case('任务：force 不进 opts（清残留静默不执行）',
+                        'job_lifecycle_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'server.py'),
+                                          "'force': bool(body.get('force'))",
+                                          "'forceX': bool(body.get('force'))", 'force 透传')))
+    # ④ 账本文件名不以 `.` 开头（启动时被 prune_tmp_audio 当缓存删掉）
+    results.append(case('任务：账本文件名不以 . 开头（启动即被当缓存删）',
+                        'job_lifecycle_contracts',
+                        lambda: Mut(_SVm, 'JOBS_FILE',
+                                    os.path.join(_SVm.TMP_AUDIO, 'jobs.json'))))
+    # ⑤ 读回账本时不再把 running 标成 interrupted（前端永远停在"运行中"）。
+    #    ⚠ **属性注入**，不改源码文本 —— `server` 在 mutation_check 里**已经 import**，
+    #    文本注入打不进内存里的模块（2026-10-14 实测：那条用例当场"漏了"，就是踩这个）。
+    results.append(case('任务：账本读回不标 interrupted（前端永远 running）',
+                        'job_lifecycle_contracts',
+                        lambda: Mut(_SVm, 'INTERRUPTED_STATE', 'running')))
+
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):
         print('漏掉的故障意味着对应的自检项是坏的 —— 必须先修检查，而不是继续写歌')

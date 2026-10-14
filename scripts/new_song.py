@@ -996,16 +996,21 @@ def harmony_tension_levels(pack, secs):
 
 
 def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=None, lead=None,
-                     seconds=None):
+                     seconds=None, express=None):
     """主题模板包 → song.json 数据（**作曲依据全在包里**）。
 
     `seconds`（2026-10-08 第二轮④）：**想让它多长**（秒）。给了就由 `duration_plan` 联合解
     `(段数, BPM)` —— BPM 尽量留在主题模板实测区间内、段数离原 plan 最近；段数真的动了就写
     `basis.structure_source = 'duration:<N>s/plan<原段数>'`（留痕，`t_imitate_path_marked` 认这个前缀）。
+
+    `express`（2026-10-13）：**表现层三件套的逐项覆盖** —— `{'joint_cadence': bool,
+    'phrase_vary': 0|1|2, 'legato_fill': float}`。不给 = 用函数里写死的默认（新歌全开）。
+    面板（`/api/new`）与 CLI（`--joint-cadence/--phrase-vary/--legato-fill`）都走这里。
     """
     import build_song
     import song_engine
     import theme_pack
+    _express = dict(express or {})
     arr_by_role = True          # 新歌默认按段落角色差异化编制（见下）
     gtr_arp = theme_guitar_arp(pack)
     gtr_beats = song_engine.guitar_beats((pack.get('rhythm') or {}).get('high_slot_share'),
@@ -1352,7 +1357,25 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
                       'legato_trim': True,
                       # **长音层逐小节力度**（opt-in `patterns.dyn_vel`）：Pad/Strings/Glock
                       # 这些长音轨原本力度只有 **1 种**（实测最平轨 Pad:1，AUDIT 管这叫"打字机"）。
-                      'dyn_vel': 8.0},
+                      'dyn_vel': 8.0,
+                      # ───────── **表现层三件套**（2026-10-13，用户听感认可后接进面板） ─────────
+                      # 三件都是**引擎侧的 opt-in 层**，默认关（老曲逐字节不变）；
+                      # **新歌默认全开**（用户三条听感抱怨就是冲它们来的），面板上可逐个关：
+                      #   ① "音乐性不够" → `joint_cadence`：乐句句尾让位 + 主奏收束
+                      #      （实测句尾收束率 0%→47% / 24%→64% / 0%→37%）
+                      #   ② "背景一直重复" → `phrase_vary`：伴奏逐句换句型（2 = 钢琴 + 贝斯句末）
+                      #      （实测最常见的那个节奏型占全曲 62%→31%）
+                      #   ③ "有时候连续有时候不连续 / 是中间的音符" → `legato_fill`：
+                      #      内声部补空隙到 0.5 拍（实测 Bass 0.18→0.50 拍、极短音 87%→4%，
+                      #      真人 0.51 拍 / 3.9%）
+                      # 三者的依据/安全边界/守卫 → `scripts/joint_arrange.py` /
+                      # `phrase_vary.py` / `legato_fill.py` 的 docstring。
+                      'joint_cadence': True,
+                      'phrase_vary': 2,
+                      'legato_fill': 0.5,
+                      # 面板/CLI 的**逐项覆盖**（`--joint-cadence` / `--phrase-vary` /
+                      # `--legato-fill`）：**放最后**，这样显式传值优先于上面的默认。
+                      **(_express or {})},
          'chords': chords, 'melody': melody, 'sections': secs,
          # **模板依据留痕**：check_song / 自检照这份核对"是不是白名单来源、够不够多"
          'theme': {'name': pack['theme'], 'label': pack.get('label'),
@@ -2028,7 +2051,7 @@ def breath_point_arr(arr, allow=None):
 
 
 def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
-                force=False, bpm=None, arr_only=None, lead=None, seconds=None):
+                force=False, bpm=None, arr_only=None, lead=None, seconds=None, express=None):
     """`--theme` 路径：按主题模板包生成一首新歌"""
     import theme_pack as tp
     # **没给 seed 就按曲名派生**（2026-10-01）：不给的话默认 7 → 同一主题每首一样，
@@ -2069,7 +2092,7 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
         shutil.rmtree(dst)
     os.makedirs(dst)
     data = build_from_theme(pack, short, seed=seed, ncand=ncand, energy_gain=energy_gain,
-                            arr_only=arr_only, lead=lead, seconds=seconds)
+                            arr_only=arr_only, lead=lead, seconds=seconds, express=express)
     song_json = os.path.join(dst, 'song.json')
     json_io.save(song_json, data)
     print('已创建 songs\\%s\\song.json' % new)
@@ -2417,10 +2440,44 @@ def main():
         print('  ⚠ `--bpm` 与 `--seconds` 同时给了：以 `--seconds` 为准'
               '（它会自己解 BPM，并尽量留在主题模板速度区间内）')
     force = '--force' in sys.argv
+    # **表现层三件套**（2026-10-13，面板「表现层」那一组也走这三个参数；见 `build_from_theme`）：
+    #   `--joint-cadence 1|0`（句尾让位 + 主奏收束）· `--phrase-vary 0|1|2`（伴奏逐句换句型）·
+    #   `--legato-fill <拍>`（内声部补空隙，0 = 关）。
+    # ⚠ **坏值一律报错退出**，不许静默用默认值 —— 面板上选了"关"却照样打开，是这类接线最常见的坏法。
+    express = {}
+    for flag, key in (('--joint-cadence', 'joint_cadence'), ('--phrase-vary', 'phrase_vary'),
+                      ('--legato-fill', 'legato_fill')):
+        if flag not in sys.argv:
+            continue
+        try:
+            raw = sys.argv[sys.argv.index(flag) + 1]
+        except IndexError:
+            print('✗ %s 后面要给值' % flag)
+            return 1
+        try:
+            if key == 'joint_cadence':
+                express[key] = bool(int(raw))
+            elif key == 'phrase_vary':
+                v = int(raw)
+                if v not in (0, 1, 2):
+                    raise ValueError
+                express[key] = v
+            else:
+                v = float(raw)
+                if not (0.0 <= v <= 2.0):
+                    raise ValueError
+                express[key] = v
+        except ValueError:
+            print('✗ %s 的值不合法：%r（%s）'
+                  % (flag, raw, {'joint_cadence': '0 或 1', 'phrase_vary': '0/1/2',
+                                 'legato_fill': '0~2.0 的拍数'}[key]))
+            return 1
+    if express:
+        print('  表现层覆盖：%s' % ', '.join('%s=%s' % (k, v) for k, v in sorted(express.items())))
     if theme:
         rc = theme_mode(new, theme, ref_name=ref_name, seed=seed, ncand=ncand,
                         energy_gain=egain, force=force, bpm=cli_bpm, arr_only=arr_only,
-                        lead=lead, seconds=cli_seconds)
+                        lead=lead, seconds=cli_seconds, express=express)
         # ⚠ **挂曲库必须跟着 `theme_mode` 的出口**：main 末尾那处调用**走不到这里**
         #   —— `--theme` 路径在下面这样一行就 return 了。第一版我把调用写在 main 末尾，
         #   实测 3 首变体全是 404、日志里也没有"已挂面板曲库"（加了 ≠ 生效）。

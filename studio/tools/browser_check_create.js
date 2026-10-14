@@ -126,6 +126,9 @@ function cdp(wsUrl, onEvent) {
         themes: q('#genTheme') ? q('#genTheme').options.length : 0,
         songs: document.querySelectorAll('#songList .song-item').length,
         modes: document.querySelectorAll('.mode').length,
+        paths: document.querySelectorAll('.mode.path').length,
+        ex: document.querySelectorAll('#exChips .chip').length,
+        exLegato: q('#exLegatoAmt') ? q('#exLegatoAmt').value : null,
         engine: (q('#engineInfo')||{}).textContent,
         dot: (q('#engineDot')||{}).className,
         bpm: q('#genBpm') ? q('#genBpm').value : null,
@@ -139,12 +142,23 @@ function cdp(wsUrl, onEvent) {
     console.log('  主题元信息:', stat.meta);
     if (stat.themes < 10) bad.push('主题下拉只有 ' + stat.themes + ' 项');
     if (stat.songs < 1) bad.push('曲库列表是空的');
-    if (stat.modes !== 2) bad.push('提取档位不是 2 个（实际 ' + stat.modes + '）');
+    // ⚠ **2026-10-13 起 `.mode` 是 5 个**：2 个档位（快速版/完整还原）+ **3 个内容来源路径**
+    //    （纯单来源/部分分轨/其它，见 `scripts/extract_paths.py`）。检查原先写死 2，
+    //    三档落地后就一直**假红**（实测 2026-10-13 跑出来 "提取档位不是 2 个（实际 5）"，
+    //    而页面本身是干净的：console 无报错、其它断言全过）。这里按"2 + 路径按钮数"判，
+    //    路径按钮数从页面文案取（`data-path`），免得以后再落地一档又假红一次。
+    if (stat.modes !== 2 + stat.paths) {
+      bad.push('提取档位不是 2 档 + ' + stat.paths + ' 条内容路径（实际 ' + stat.modes + '）');
+    }
     if (!/就绪/.test(stat.engine || '')) bad.push('引擎状态没变成「就绪」：' + stat.engine);
     // 三个"可见可改"的维度（BPM / 风格 / 时长）必须真的在界面上有依据地填出来
     if (!stat.bpm) bad.push('BPM 没被主题画像的实测值填上（拿到 ' + stat.bpm + '）');
     if (!/引擎预设/.test(stat.meta || '')) bad.push('主题元信息里没有「引擎预设」：' + stat.meta);
     if (!/预计时长/.test(stat.meta || '')) bad.push('主题元信息里没有「预计时长」：' + stat.meta);
+    // **表现层三件套**（2026-10-13）：三个开关默认全开 + 连奏量选择器要有值 ——
+    // 面板上少一个 = 用户点不到（后端再对也没用）。
+    if (stat.ex !== 3) bad.push('表现层开关不是 3 个（实际 ' + stat.ex + '）');
+    if (!stat.exLegato) bad.push('内声部连奏量选择器没有值');
 
     // ③ **真的点一次「读一下我的要求」**（前端→/api/ask→前端 全链路）
     const asked = await c.evaljs(`(async ()=>{
@@ -223,6 +237,21 @@ function cdp(wsUrl, onEvent) {
       console.log('  点「创作台」回到:', back);
       if (back !== '/create') bad.push('从引擎面板点「创作台」没回到 /create（当前 ' + back + '）');
     }
+
+    // **截图前重新展开表单**（2026-10-13）：`#genForm`（含「表现层」三件套）要点过
+    // 「读一下我的要求」才出现，而上面那几步最后停在"刚回 /create" ⇒ 旧截图里看不到表单，
+    // 排版问题（换行/挤压/选择器错位）也就复核不到。这里重进一次、点一下、滚到表现层。
+    try {
+      await c.send('Page.navigate', { url: URL_BASE + '/create' });
+      await sleep(1200);
+      await c.evaljs("var t=document.getElementById('askText');"
+        + "if(t){t.value='来一首欢快的曲子';}"
+        + "document.getElementById('btnAsk').click(); 1");
+      await sleep(1500);
+      await c.evaljs("var e=document.getElementById('exChips');"
+        + "if(e){e.scrollIntoView({block:'center'});} 1");
+      await sleep(400);
+    } catch (e) { console.log('  截图前展开表单失败:', e.message); }
 
     try {
       const shot = await c.send('Page.captureScreenshot', { format: 'png' });

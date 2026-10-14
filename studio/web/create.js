@@ -86,7 +86,12 @@
 
   /* ------------------------------------------------------------ 状态 */
   var ST = { themes: [], songs: [], mode: 'fast', path: 'pure', picked: null, jid: null,
-             cur: '', themeMap: {}, bpmTouched: false };
+             cur: '', themeMap: {}, bpmTouched: false,
+             // **表现层三件套**（2026-10-13）：默认全开 —— 这三层就是治用户那三条听感抱怨的
+             // ①"音乐性不够"（句尾收束）②"背景一直重复"（伴奏逐句换句型）
+             // ③"有时候连续有时候不连续 / 是中间的音符"（内声部补空隙）。
+             // 用户点掉哪一项，`/api/new` 就少转发哪个参数（**不传 = 用生成端默认**）。
+             exJoint: true, exPhrase: 2, exLegato: 0.5 };
   // 三档内容路径的**人话标签**（口径与 `scripts/extract_paths.py` 的 `PATHS` 一致；
   // 那边是唯一真源，这里只做显示 —— 别在这儿另写一套判据）。
   var PATH_LABEL = { pure: '① 纯单来源', partial: '② 部分分轨', all: '③ 其它' };
@@ -330,6 +335,13 @@
         // 该主题模板的实测区间内（`new_song.duration_plan`）。给了它就不再走下面
         // "生成后回写 bpm"那条路 —— 那条只改速度、不改结构。
         seconds: Number($('genSecs').value) || null,
+        // **表现层三件套**（2026-10-13）：三个都**只在"与生成端默认不同"时才传** ——
+        // 传了就是**覆盖**（`new_song --joint-cadence/--phrase-vary/--legato-fill`），
+        // 不传就走生成端默认（默认也是这三项全开，所以"不动它"= 与推荐一致）。
+        // ⚠ 三个字段名必须与 `studio/server.py` 逐字一致（守卫 `t_express_panel_contracts` 核对）。
+        joint_cadence: ST.exJoint ? null : 0,
+        phrase_vary: (ST.exPhrase === 2) ? null : ST.exPhrase,
+        legato_fill: (Math.abs(Number(ST.exLegato) - 0.5) < 1e-9) ? null : Number(ST.exLegato),
         render: false
       });
       // 速度：与主题画像的默认值不同才写回 song.json —— 引擎就是拿 `bpm` 做 拍→秒 换算的，
@@ -486,12 +498,19 @@
         markSteps(r.log);
         var st = r.job.state;
         if (st !== 'running') {
-          $('jobState').textContent = st === 'done' ? '✅ 完成' :
-            (st === 'stopped' ? '⏹ 已停止' : '❌ 失败（看上面日志最后几行）');
+          // `interrupted`（2026-10-14 加）= **面板重启过、这条任务的状态随之丢失**：
+          // 账本里把它标成终态，让界面能收场，而不是永远停在"运行中"（那就是用户报的
+          // "卡住只能重启"）。文案要写清"产物未知、去刷新曲库核对"，别谎报成功或失败。
+          $('jobState').textContent =
+            st === 'done' ? '✅ 完成' :
+              (st === 'stopped' ? '⏹ 已停止' :
+                (st === 'interrupted' ? '⚠ 面板重启过 · 状态丢失（请刷新曲库核对产物）'
+                  : '❌ 失败（看上面日志最后几行）'));
           $('jobBar').className = 'bar';
           $('jobBar').firstElementChild.style.width = '100%';
           $('jobBar').firstElementChild.style.background =
-            st === 'done' ? 'var(--ok)' : (st === 'stopped' ? 'var(--text-3)' : 'var(--err)');
+            st === 'done' ? 'var(--ok)'
+              : ((st === 'stopped' || st === 'interrupted') ? 'var(--text-3)' : 'var(--err)');
           Array.prototype.forEach.call($('jobSteps').querySelectorAll('.step-pill'), function (el) {
             if (st === 'done') { el.className = 'step-pill done'; }
           });
@@ -499,12 +518,23 @@
           await loadSongs();
           // 失败时曲目目录可能压根没建出来 —— 这时去读产物只会再报一个 404
           if (st === 'done') { showOuts(ST.cur); }
-          toast(st === 'done' ? '做完啦：' + ST.cur : '任务结束：' + st, st !== 'done');
+          toast(st === 'done' ? '做完啦：' + ST.cur
+            : (st === 'interrupted' ? '面板重启过，这条任务状态丢了 —— 产物请刷新曲库核对'
+              : '任务结束：' + st), st !== 'done');
           break;
         }
         await new Promise(function (r2) { setTimeout(r2, 1000); });
       }
     } catch (e) {
+      // **轮询本身失败也要收场**（2026-10-14）：原来只弹一句 toast，**界面永远停在"运行中"**、
+      // ⏹ 也停不动（同样 404）⇒ 用户只能重启面板（他报障的原话）。现在给出明确的终态文案
+      // + 放开 ⏹ + 刷新曲库，让用户有事可做、也能看出"任务状态丢了"而不是"还在跑"。
+      $('jobState').textContent = '⚠ 轮询中断（' + e.message + '）—— 状态未知，请刷新曲库核对产物';
+      $('jobBar').className = 'bar';
+      $('jobBar').firstElementChild.style.width = '100%';
+      $('jobBar').firstElementChild.style.background = 'var(--text-3)';
+      $('btnStopJob').disabled = true;
+      try { await loadSongs(); } catch (e2) { /* 曲库也读不到就只留上面那句 */ }
       toast('轮询任务失败：' + e.message, true);
     } finally {
       clearInterval(timer);
@@ -687,6 +717,36 @@
     renderThemeMeta();
   };
   $('genSecs').oninput = applySecs;
+  // **表现层三件套**（2026-10-13）：三个控件都只改 `ST`，生成时由 `/api/new` 转发。
+  // ⚠ 文案里写清"关掉会回到什么" —— 这三层治的就是用户点名的三条听感毛病，
+  //   不写清的话关掉之后没人知道自己在关什么。
+  Array.prototype.forEach.call(document.querySelectorAll('#exChips .chip'), function (el) {
+    el.onclick = function () {
+      var k = el.dataset.ex;
+      el.classList.toggle('on');
+      var on = el.classList.contains('on');
+      if (k === 'joint') { ST.exJoint = on; }
+      if (k === 'phrase') { ST.exPhrase = on ? 2 : 0; }
+      if (k === 'legato') { ST.exLegato = on ? 0.5 : 0; }
+      exHint();
+    };
+  });
+  $('exLegatoAmt').onchange = function () {
+    ST.exLegato = Number(this.value) || 0;
+    var b = $('exChips').querySelector('[data-ex="legato"]');
+    if (b) { b.classList.toggle('on', ST.exLegato > 0); }
+    exHint();
+  };
+  function exHint() {
+    var bits = [];
+    bits.push(ST.exJoint ? '句尾收束：开' : '句尾收束：关（乐句句尾不再让位/收住）');
+    bits.push('伴奏逐句变化：' + (ST.exPhrase ? '开（钢琴 + 贝斯句末）' : '关（每小节一字不差）'));
+    bits.push(ST.exLegato > 0
+      ? ('内声部连奏：开（补到 ' + ST.exLegato + ' 拍）')
+      : '内声部连奏：关（贝斯/钢琴回到 0.18~0.28 拍的"点"）');
+    $('exHint').textContent = bits.join(' · ');
+  }
+  exHint();
   $('btnToggleLog').onclick = function () {
     var h = $('jobLog').classList.toggle('hidden');
     this.textContent = h ? '展开日志' : '收起日志';
