@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>BGM Studio — 按音轨制作 / 可视化编曲 / 合并导出</title>
-<link rel="stylesheet" href="/style.css?v=15">
+<link rel="stylesheet" href="/style.css?v=16">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>♪</text></svg>">
 </head>
 <body>
@@ -102,6 +102,32 @@
   <div id="strips"></div>
 </section>
 
+<section id="auto" class="panel">
+  <h2>自动化 <span class="dim" id="autoHint">（点=添加 · 拖=移动 · 右键=删除 · Shift+拖=框选 · Del=删选中 · Ctrl+Z/Y=撤销/重做）</span>
+    <button id="btnAutoUndo" class="mini" title="撤销上一次自动化编辑（Ctrl+Z）">↶ 撤销</button>
+    <button id="btnAutoRedo" class="mini" title="重做（Ctrl+Y）">↷ 重做</button>
+    <button id="btnAutoSave" class="mini" title="把当前自动化写回 song.json（不动音符）">💾 保存自动化</button>
+  </h2>
+  <div class="row">
+    <label class="dim">轨 <select id="autoTrack"></select></label>
+    <label class="dim">参数 <select id="autoParam">
+      <option value="bend">弯音（-8192..8191）</option>
+      <option value="cc7">CC7 音量</option>
+      <option value="cc11">CC11 表情</option>
+      <option value="cc1">CC1 调制</option>
+      <option value="cc2">CC2 呼吸</option>
+      <option value="cc10">CC10 声像</option>
+      <option value="cc71">CC71 共振</option>
+      <option value="cc74">CC74 亮度</option>
+      <option value="cc91">CC91 混响</option>
+      <option value="cc93">CC93 合唱</option>
+      <option value="cc64">CC64 延音（开关，不插值）</option>
+    </select></label>
+    <span class="dim" id="autoCount">—</span>
+  </div>
+  <div id="autoWrap"><canvas id="autoCanvas" width="1200" height="180" tabindex="0"></canvas></div>
+</section>
+
 <section id="search" class="panel">
   <h2>🧬 候选搜索 <span class="dim" id="searchHint">（只渲染 8 小节切片 + 多路并行 → 秒级/轮；用指标当适应度）</span></h2>
   <div class="row">
@@ -128,10 +154,10 @@
      从不 play()，且用户点过 ⏹ 后它是 null，`S.player.src=` 会抛异常）。
      试听/播放统一走 WebAudio 引擎（`engine.js`），所以删掉了。 -->
 <script src="/engine.js?v=14"></script>
-<script src="/app.js?v=29"></script>
+<script src="/app.js?v=34"></script>
 <!-- 中英切换：i18n.js 按系统语言自动选（localStorage bgmLang → navigator.language），
      右上角 🌐 按钮手动切。放在 app.js 之后，靠 MutationObserver 兜住动态生成的文案。 -->
-<script src="/i18n.js?v=3"></script>
+<script src="/i18n.js?v=4"></script>
 <script>
 /* 启动自检：把"跑的是哪一版 + 有没有早期报错"直接写进日志区。
  * 为什么要它（实测踩过）：用户报"卷帘是空的"，我改了代码让他刷新，结果他跑的还是旧 JS，

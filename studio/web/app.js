@@ -51,6 +51,11 @@ async function loadSongs(){
       : s.id+'  · '+s.bpm+'BPM · '+s.bars+'小节 · '+(s.has_ogg?'有成品':'未渲染');
     sel.appendChild(o);
   }
+  // 深链接：`/?song=<曲目>` 直接选中（分享/排查时不用手点下拉）
+  try {
+    const qs = new URLSearchParams(location.search).get('song');
+    if (qs && S.songs.some(s => s.id === qs)) S.sid = qs;
+  } catch (e) { /* 老浏览器没有 URLSearchParams 时忽略 */ }
   if(!S.sid && S.songs.length) S.sid = S.songs[0].id;
   sel.value = S.sid||'';
   sel.onchange = ()=>{S.sid=sel.value; fillMids(); loadSong();};
@@ -141,7 +146,7 @@ async function loadSong(){
 function renderAll(){
   S.drawErrs = [];
   for (const fn of [renderTracks, renderStrip, renderSecEdit, renderRoll,
-                    renderStrips, drawWave, renderSearchSec]) {
+                    renderStrips, drawWave, renderSearchSec, renderAuto]) {
     try { fn(); } catch (e) {
       S.drawErrs.push(((fn.name||'?')+': '+(e&&e.message?e.message:e)).slice(0,160));
     }
@@ -1374,6 +1379,299 @@ function openChordEditor(){
       });
     });
     S.dirty=true; close(); renderAll(); log('和弦表已更新（'+Object.keys(out).length+' 个）——记得💾保存');
+  };
+  bindAuto();
+}
+
+/* ---------------- 自动化编辑器（弯音 / CC，2026-10-17） ----------------
+ * 数据：`song.json` 的 `automation = {轨: {ccs:[[全局拍,CC,值]], pitch_bends:[[全局拍,值]]}}`。
+ * 口径与引擎一致：**全局拍**（0..总小节×每小节拍数）· 弯音 -8192..8191 · CC 0..127。
+ * 交互：左键空白=加点 · 拖点=移动 · 右键点=删除 · **Shift+拖=框选** · **Del=删选中** ·
+ *       **Ctrl+Z/Y=撤销/重做**（2026-10-17 补：原来只有单点拖拽，改错只能重画）。 */
+S.auto = {track: '', param: 'bend', dragKey: null, undo: [], redo: [], sel: [], rect: null,
+          base: null, over: false};
+
+/** 当前自动化数据的快照（null = 没有 automation 键）。撤销/重做只回滚**自动化**，不动音符。 */
+function autoSnap() {
+  return JSON.stringify((S.song && S.song.automation) || null);
+}
+function autoPushUndo() {
+  if (!S.song) return;
+  S.auto.undo.push(autoSnap());
+  if (S.auto.undo.length > 60) S.auto.undo.shift();
+  S.auto.redo = [];
+}
+function autoApplySnap(s) {
+  if (!S.song) return;
+  const v = JSON.parse(s);
+  if (v && Object.keys(v).length) S.song.automation = v;
+  else delete S.song.automation;
+}
+function autoUndo() {
+  if (!S.auto.undo.length) { log('自动化：没有可撤销的步骤'); return; }
+  S.auto.redo.push(autoSnap());
+  autoApplySnap(S.auto.undo.pop());
+  S.auto.sel = []; S.auto.rect = null; S.auto.base = null;
+  S.dirty = true; renderAuto(); log('↶ 自动化撤销');
+}
+function autoRedo() {
+  if (!S.auto.redo.length) { log('自动化：没有可重做的步骤'); return; }
+  S.auto.undo.push(autoSnap());
+  autoApplySnap(S.auto.redo.pop());
+  S.auto.sel = []; S.auto.rect = null; S.auto.base = null;
+  S.dirty = true; renderAuto(); log('↷ 自动化重做');
+}
+
+function autoBarBeats() {
+  const m = (S.song && S.song.meter) || [4, 4];
+  return (Number(m[0]) * 4) / (Number(m[1]) || 4);
+}
+function autoTotal() {
+  const bars = S.events && S.events.bars ? Number(S.events.bars) : 0;
+  return Math.max(1, bars * autoBarBeats());
+}
+function autoRange(param) { return param === 'bend' ? [-8192, 8191] : [0, 127]; }
+function autoKey(param) {
+  return param === 'bend' ? ['pitch_bends', null] : ['ccs', Number(param.slice(2))];
+}
+function autoTracks() {
+  const e = (S.events && S.events.tracks) || {};
+  const ks = Object.keys(e);
+  // 合并 song.json 的 programs：`song_events` 只含有音符的轨（空轨 Melody 会被跳过），
+  // 而 automation 完全可以挂在当前没有音符的轨上（例：导入曲给 Melody 写了弯音）。
+  const pk = Object.keys((S.song && S.song.programs) || {});
+  return ks.concat(pk.filter(k => ks.indexOf(k) < 0));
+}
+function autoTrackName() {
+  const trs = autoTracks();
+  if (S.auto.track && trs.indexOf(S.auto.track) >= 0) return S.auto.track;
+  // 打开曲目时优先选"当前参数真的有曲线"的轨（否则用户看到空的会以为没数据）
+  const auto = (S.song && S.song.automation) || {};
+  const [k, cc] = autoKey(S.auto.param);
+  const hit = trs.find(t => {
+    const raw = ((auto[t] || {})[k]) || [];
+    return k === 'ccs' ? raw.some(x => Number(x[1]) === cc) : raw.length > 0;
+  });
+  return hit || trs[0] || '';
+}
+function autoPoints() {
+  if (!S.song) return [];
+  const tr = autoTrackName();
+  const a = ((S.song.automation || {})[tr]) || {};
+  const [k, cc] = autoKey(S.auto.param);
+  const raw = a[k] || [];
+  return k === 'ccs'
+    ? raw.filter(x => Number(x[1]) === cc).map(x => [Number(x[0]), Number(x[2])])
+    : raw.map(x => [Number(x[0]), Number(x[1])]);
+}
+function autoSetPoints(pts) {
+  if (!S.song) return;
+  const tr = autoTrackName();
+  if (!tr) return;
+  S.song.automation = S.song.automation || {};
+  const a = S.song.automation[tr] || {};
+  const [k, cc] = autoKey(S.auto.param);
+  const kept = (a[k] || []).filter(x => k !== 'ccs' || Number(x[1]) !== cc);
+  const mine = pts.map(([t, v]) => k === 'ccs'
+    ? [Math.round(t * 1000) / 1000, cc, Math.max(0, Math.min(127, Math.round(v)))]
+    : [Math.round(t * 1000) / 1000, Math.max(-8192, Math.min(8191, Math.round(v)))]);
+  const all = kept.concat(mine).sort((x, y) => x[0] - y[0]);
+  if (all.length) a[k] = all; else delete a[k];
+  if (Object.keys(a).length) S.song.automation[tr] = a;
+  else delete S.song.automation[tr];
+  if (Object.keys(S.song.automation).length === 0) delete S.song.automation;
+}
+function autoGeom() {
+  const cv = $('autoCanvas'), wrap = $('autoWrap');
+  const w = Math.max(320, (wrap && wrap.clientWidth ? wrap.clientWidth : 1200) - 2);
+  if (cv.width !== w) cv.width = w;
+  const h = cv.height || 180;
+  const total = autoTotal(), [lo, hi] = autoRange(S.auto.param);
+  return {cv, w, h, total, lo, hi,
+    x: t => 6 + (t / total) * (w - 12),
+    y: v => (h - 14) - ((v - lo) / (hi - lo)) * (h - 28)};
+}
+function renderAuto() {
+  const cv = $('autoCanvas');
+  if (!cv || !$('autoWrap')) return;
+  if (!S.song) { $('autoCount').textContent = '（没有曲目）'; return; }
+  const G = autoGeom(), g = cv.getContext('2d');
+  g.clearRect(0, 0, G.w, G.h);
+  g.fillStyle = '#0c0e12'; g.fillRect(0, 0, G.w, G.h);
+  const bb = autoBarBeats();
+  g.strokeStyle = '#262b38'; g.lineWidth = 1;
+  for (let b = 0; b * bb <= G.total + 1e-6; b++) {
+    const px = G.x(b * bb);
+    g.beginPath(); g.moveTo(px, 6); g.lineTo(px, G.h - 6); g.stroke();
+  }
+  g.strokeStyle = '#1e2530';
+  g.beginPath();
+  g.moveTo(6, G.y((G.lo + G.hi) / 2)); g.lineTo(G.w - 6, G.y((G.lo + G.hi) / 2)); g.stroke();
+  const pts = autoPoints();
+  const sel = S.auto.sel;
+  if (pts.length) {
+    g.strokeStyle = '#5cc8ff'; g.lineWidth = 1.5;
+    g.beginPath();
+    pts.forEach(([t, v], i) => {
+      const px = G.x(t), py = G.y(v);
+      i ? g.lineTo(px, py) : g.moveTo(px, py);
+    });
+    g.stroke();
+    pts.forEach(([t, v]) => {
+      const on = sel.indexOf(Math.round(t * 1000) / 1000) >= 0;
+      g.fillStyle = on ? '#ff6b6b' : '#ffc857';
+      g.beginPath();
+      g.arc(G.x(t), G.y(v), on ? 4.5 : 3.5, 0, Math.PI * 2); g.fill();
+      if (on) {
+        g.strokeStyle = 'rgba(255,107,107,.55)'; g.lineWidth = 1;
+        g.beginPath(); g.arc(G.x(t), G.y(v), 7, 0, Math.PI * 2); g.stroke();
+      }
+    });
+  }
+  // 框选中的矩形
+  if (S.auto.rect) {
+    const r = S.auto.rect;
+    g.strokeStyle = 'rgba(92,200,255,.9)'; g.lineWidth = 1;
+    g.fillStyle = 'rgba(92,200,255,.10)';
+    const x0 = Math.min(r.x0, r.x1), y0 = Math.min(r.y0, r.y1);
+    const w = Math.abs(r.x1 - r.x0), h = Math.abs(r.y1 - r.y0);
+    g.fillRect(x0, y0, w, h); g.strokeRect(x0, y0, w, h);
+  }
+  g.fillStyle = '#8b93a7'; g.font = '11px sans-serif';
+  g.fillText(autoTrackName() + ' · ' + S.auto.param + ' · ' + pts.length + ' 点', 8, 14);
+  $('autoCount').textContent = pts.length + ' 点'
+    + (sel.length ? ' · 选中 ' + sel.length : '') + ' · ' + G.total.toFixed(0) + ' 拍';
+  const selEl = $('autoTrack'), trs = autoTracks(), sig = trs.join('|');
+  if (selEl.dataset.sig !== sig) {
+    selEl.innerHTML = trs.map(t => '<option>' + t + '</option>').join('');
+    selEl.dataset.sig = sig;
+  }
+  if (trs.indexOf(S.auto.track) < 0) S.auto.track = trs[0] || '';
+  selEl.value = S.auto.track || '';
+}
+function bindAuto() {
+  const cv = $('autoCanvas');
+  if (!cv) return;
+  const pick = ev => {
+    const r = cv.getBoundingClientRect();
+    const px = ev.clientX - r.left, py = ev.clientY - r.top;
+    const G = autoGeom();
+    return {px, py,
+      t: Math.max(0, Math.min(G.total, (px - 6) / (G.w - 12) * G.total)),
+      v: Math.max(G.lo, Math.min(G.hi,
+        G.lo + ((G.h - 14 - py) / (G.h - 28)) * (G.hi - G.lo)))};
+  };
+  const hit = p => {
+    const G = autoGeom(), pts = autoPoints();
+    for (let i = 0; i < pts.length; i++) {
+      if (Math.hypot(G.x(pts[i][0]) - p.px, G.y(pts[i][1]) - p.py) <= 8) return i;
+    }
+    return -1;
+  };
+  const r3 = x => Math.round(x * 1000) / 1000;
+  cv.addEventListener('mousedown', ev => {
+    cv.focus();
+    if (ev.button !== 0) return;
+    const p = pick(ev), pts = autoPoints(), i = hit(p);
+    if (ev.shiftKey) {                       // 框选：从空白或点上都能拉（先清旧选择）
+      S.auto.rect = {x0: p.px, y0: p.py, x1: p.px, y1: p.py};
+      S.auto.sel = [];
+      return;
+    }
+    if (i >= 0) {
+      const t0 = r3(pts[i][0]);
+      if (S.auto.sel.indexOf(t0) < 0) S.auto.sel = [t0];    // 拖未选中的点 = 只拖它
+      autoPushUndo();
+      S.auto.base = {key: t0, t: pts[i][0], v: pts[i][1],
+        pts: pts.map(q => [q[0], q[1], S.auto.sel.indexOf(r3(q[0])) >= 0])};
+      S.auto.dragKey = t0;
+      return;
+    }
+    autoPushUndo();
+    pts.push([p.t, p.v]); pts.sort((a, b) => a[0] - b[0]);
+    S.auto.sel = [r3(p.t)];
+    autoSetPoints(pts); S.dirty = true; renderAuto();
+  });
+  cv.addEventListener('mousemove', ev => {
+    if (S.auto.rect) {
+      const p = pick(ev);
+      S.auto.rect.x1 = p.px; S.auto.rect.y1 = p.py;
+      renderAuto();
+      return;
+    }
+    if (S.auto.dragKey === null || !S.auto.base) return;
+    const p = pick(ev), B = S.auto.base, G = autoGeom();
+    const dt = p.t - B.t, dv = p.v - B.v;
+    const moved = B.pts.map(([t, v, on]) => [r3(Math.max(0, Math.min(G.total, t + dt))),
+      Math.max(G.lo, Math.min(G.hi, v + dv)), on]);
+    moved.sort((a, b) => a[0] - b[0]);
+    S.auto.sel = moved.filter(q => q[2]).map(q => q[0]);
+    autoSetPoints(moved.map(q => [q[0], q[1]]));
+    S.dirty = true; renderAuto();
+  });
+  window.addEventListener('mouseup', () => {
+    if (S.auto.rect) {
+      const r = S.auto.rect, G = autoGeom();
+      const x0 = Math.min(r.x0, r.x1), x1 = Math.max(r.x0, r.x1);
+      const y0 = Math.min(r.y0, r.y1), y1 = Math.max(r.y0, r.y1);
+      S.auto.sel = autoPoints()
+        .filter(([t, v]) => {
+          const px = G.x(t), py = G.y(v);
+          return px >= x0 && px <= x1 && py >= y0 && py <= y1;
+        })
+        .map(([t]) => r3(t));
+      S.auto.rect = null;
+      log(S.auto.sel.length ? '选中 ' + S.auto.sel.length + ' 个点（拖它们可整体移动 · Del 删除）'
+        : '框选：没有选中任何点');
+      renderAuto();
+    }
+    S.auto.dragKey = null; S.auto.base = null;
+  });
+  window.addEventListener('resize', () => { try { renderAuto(); } catch (e) {} });
+  cv.addEventListener('contextmenu', ev => {
+    ev.preventDefault();
+    const p = pick(ev), pts = autoPoints(), i = hit(p);
+    if (i < 0) return;
+    autoPushUndo();
+    const key = r3(pts[i][0]);
+    pts.splice(i, 1);
+    S.auto.sel = S.auto.sel.filter(k => k !== key);
+    autoSetPoints(pts); S.dirty = true; renderAuto();
+  });
+  cv.addEventListener('keydown', ev => {
+    const k = ev.key;
+    if ((ev.ctrlKey || ev.metaKey) && (k === 'z' || k === 'Z')) {
+      ev.preventDefault(); ev.shiftKey ? autoRedo() : autoUndo(); return;
+    }
+    if ((ev.ctrlKey || ev.metaKey) && (k === 'y' || k === 'Y')) {
+      ev.preventDefault(); autoRedo(); return;
+    }
+    if (k === 'Escape') { S.auto.sel = []; renderAuto(); return; }
+    if (k === 'Delete' || k === 'Backspace') {
+      if (!S.auto.sel.length) return;
+      ev.preventDefault();
+      autoPushUndo();
+      const sel = S.auto.sel;
+      const kept = autoPoints().filter(([t]) => sel.indexOf(r3(t)) < 0);
+      S.auto.sel = [];
+      autoSetPoints(kept); S.dirty = true; renderAuto();
+      log('删掉 ' + sel.length + ' 个选中的点（Ctrl+Z 可撤销）');
+    }
+  });
+  $('autoParam').onchange = () => {
+    S.auto.param = $('autoParam').value; S.auto.sel = []; renderAuto();
+  };
+  $('autoTrack').onchange = () => {
+    S.auto.track = $('autoTrack').value; S.auto.sel = []; renderAuto();
+  };
+  if ($('btnAutoUndo')) $('btnAutoUndo').onclick = () => autoUndo();
+  if ($('btnAutoRedo')) $('btnAutoRedo').onclick = () => autoRedo();
+  $('btnAutoSave').onclick = async () => {
+    const ok = await saveSong(true);
+    if (ok) {
+      const n = Object.keys(S.song.automation || {}).length;
+      log('💾 自动化已保存：' + n + ' 轨（点 🔊 渲染才进成品）');
+    }
   };
 }
 

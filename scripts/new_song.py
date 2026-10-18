@@ -230,11 +230,20 @@ def theme_progressions(pack, seed=None):
 
 
 def prog_index_for_section(pack, seed, name, pi, n_progs):
-    """**非 A 段的进行下标**：按 `(主题, seed, 段名)` 的哈希在"非 0 候选内容池"里**选内容**。
+    """**非 A 段的进行下标**：按 `(主题, seed, 段基名)` 的哈希在"非 0 候选内容池"里**选内容**。
 
     ⚠ 特意提成**模块级函数**（2026-10-07）：`selftest.t_theme_progression_seed_varies`
       要用**同一口径**判这件事（`CONVENTION.md` §1：同一口径只写一处），
       而且变异测试要能注入到它 —— 守卫自己重抄一份的话，注入永远抓不到。
+
+    ⚠⚠ **必须按"段基名"哈希、不能按完整段名**（2026-10-18 修，用户听感"不协调"的根因）：
+      `B` / `B2` / `B3` 是**同一条旋律**（`song.json` 的 `sections[i].melody` 指同一个组），
+      但完整段名不同 ⇒ 哈希给出**三套不同的和弦进行** ⇒ 同一条旋律在 B2 上只有
+      **39%**、B3 上 **50%** 的音还在弦内（B 自己是 94%）。现场证据：
+      用户那首 `123`（gorgeous）B 段 `F6 Gm7 G#maj7 Csus4…`、B2 `G6 C6 Fmaj7…`、B3 `G7 C6 G7 C6…`，
+      旋律没变、和声换了 —— 听起来就是"旋律和周围不协调"。
+      修法：`re.sub(r'\\d+$', '', name)` 取基名（`B2`→`B`）；**B 与 C 之间仍各走各的进行**
+      （变的是"重复段"，不是"不同段"）。
 
     三条踩过的坑（都别退回）：
       ① 只押 `crc32(seed)` → `gorgeous` 的两个 seed（10163/74894）**撞同一偏移**，
@@ -247,10 +256,12 @@ def prog_index_for_section(pack, seed, name, pi, n_progs):
     """
     if seed is None or not pi or n_progs <= 1:
         return pi
+    import re
     import zlib
     nz = list(range(1, n_progs))
+    base = re.sub(r'\d+$', '', str(name or ''))        # B2/B3 → B（共用旋律 = 共用和声）
     mix = 'progidx|%s|%d|%s' % (pack.get('theme') or '?',
-                                int(seed) & 0xFFFFFFFF, name)
+                                int(seed) & 0xFFFFFFFF, base)
     return nz[zlib.crc32(mix.encode('utf-8')) % len(nz)]
 
 
@@ -304,6 +315,24 @@ POOL_TO_TRACK = (('ep', 'Melody'), ('uku', 'Hook'), ('piano', 'Piano'),
 #   从这一层进来，所以过滤必须写在这里，否则能绕过守卫。
 SLOW_ATTACK = frozenset(list(range(16, 24)) + list(range(40, 52))
                         + list(range(52, 56)) + list(range(88, 96)) + [11])
+# **实测的"到峰值起音"毫秒数**（2026-10-18，`render_midi` 渲染同一条旋律的同一个 F5 量出来的）：
+# 用来在用户手工点名慢起音主奏时给出**具体数字**，而不是只说"慢"。
+# 复现口径：只渲染 Melody 轨 → 取第一个音（232ms 的 F5）→ 包络到 90% 峰值的时间；
+# 成品混音里量到的 123（小提琴）= **635.8ms**（同段 123e 长笛 91.1 / 123f 小号 42.4）。
+LEAD_ATTACK_MS = {40: 469, 48: 352, 11: 269, 0: 46, 73: 74, 56: 42}
+# **已被用户点名"太垃圾"、默认不许当主奏的音色**（2026-10-18，用户原话：
+# "**GM 音源小提琴太垃圾了标记一下**"）。
+# 依据（单音口径，只渲染一个 F5、1 拍，量到 90% 峰值）：**GM40 小提琴 418.5ms**、
+# GM110 民间提琴 415.7ms —— 而用户那首 `123` 开头第一个音只有 **232ms**，
+# 音符结束了音色还没起来，听起来就是"一声怪响"（他原始描述："高音那个音轨很奇怪，
+# 开头 2 秒就出现了"）。同族里唯一快的是 **GM41 中提琴 62.7ms**（他最后选了它）。
+# ⇒ 自动挑选那条路已由 `SLOW_ATTACK` 挡住；这里是**手工指定**的口子，默认**拒绝**，
+#   要覆盖必须显式 `allow_bad_lead=True`（CLI：`--allow-bad-lead`），
+#   并在输出里说清"为什么禁、实测多少、换谁"。
+LEAD_BLOCKED = {
+    40: 'GM40 小提琴（单音起音 418.5ms；用户 2026-10-18："太垃圾了"）',
+    110: 'GM110 民间提琴（与 40 同一族采样，起音 415.7ms）',
+}
 # `uku`（Hook 轨 = 拨弦/分解和弦角色）不许用的音色：`theme_pack.ROLE_BY_PROGRAM`
 # 把 ethnic 族 104-111 整体归给 guitar，但其中 **109 风笛 / 110 小提琴 / 111 唢呐
 # 不是拨弦**（守卫第一次跑就抓到 daily 的 uku 池首位是 111）—— 弓弦/簧管塞进分解
@@ -996,7 +1025,7 @@ def harmony_tension_levels(pack, secs):
 
 
 def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=None, lead=None,
-                     seconds=None, express=None):
+                     seconds=None, express=None, allow_bad_lead=False):
     """主题模板包 → song.json 数据（**作曲依据全在包里**）。
 
     `seconds`（2026-10-08 第二轮④）：**想让它多长**（秒）。给了就由 `duration_plan` 联合解
@@ -1243,9 +1272,32 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
         if not _want:
             raise SystemExit('--lead 里没有可用的乐器名：%r（例：`--lead sax` 或 `--lead 65,40`；'
                              '可用别名见 `solo_instrument.INSTRUMENTS`）' % (lead,))
+        # **已被点名禁用的音色默认拒绝**（2026-10-18，见 `LEAD_BLOCKED`）：用户原话
+        # "GM 音源小提琴太垃圾了标记一下"。自动挑选那条路由 `SLOW_ATTACK` 挡，这里是**手工**口子。
+        _bad = [p for p in _want if p in LEAD_BLOCKED and not allow_bad_lead]
+        if _bad:
+            raise SystemExit(
+                '这些音色**已被标记禁用**，不能当主奏：\n'
+                + '\n'.join('  · %s' % LEAD_BLOCKED[p] for p in _bad)
+                + '\n  → 换成同族的快起音音色：`--lead 41`（中提琴 62.7ms，用户 2026-10-18 选了它）'
+                  ' / `--lead 48`（弦乐群 342ms，更厚） / `--lead 73`（长笛 73.9ms）\n'
+                  '  → 确实要用（例如全是长音）：加 `--allow-bad-lead`')
         _MEL_SEQ = [_want[_i % len(_want)] for _i in range(len(secs))]
         print('  主奏音色：**由 --lead 指定** → %s（%d 件，按段轮换）'
               % ('、'.join('GM %d' % p for p in _want), len(_want)))
+        # ⚠ **点到慢起音乐器必须当场说清**（2026-10-18，用户现场"高音那个音轨很奇怪，
+        #   开头 2 秒就出现了"）：`123` 在面板里把主奏点成小提琴（GM 40），全 16 段都是它；
+        #   实测**成品里开头那个 F5（232ms）到峰值要 635.8ms** —— 音符结束了音还没起来，
+        #   所以听起来只有"起音那一下"（像怪声）。同一句换成 长笛 73 = 91ms、小号 56 = 42ms。
+        #   纪律与 `--lead` 一致（用户点名以用户为准，**不拦**），但**不许静默**：
+        #   把"哪件是慢起音 + 实测多少毫秒 + 换成谁会好"全打出来。
+        _slow = [p for p in _want if p in SLOW_ATTACK]
+        if _slow:
+            print('  !! 主奏里有**慢起音**乐器：%s —— 实测到峰值 %s；'
+                  '旋律里短于 0.5 拍的音会"只响起音那一下"（像怪声）。'
+                  '想换快的：--lead 73（长笛 91ms）/ 56（小号 42ms）/ 0（钢琴 46ms，但衰减快）'
+                  % ('、'.join('GM %d（%dms）' % (p, LEAD_ATTACK_MS.get(p, -1)) for p in _slow),
+                     ' / '.join('%dms' % LEAD_ATTACK_MS[p] for p in _slow if p in LEAD_ATTACK_MS) or '未知'))
     for _i, _s in enumerate(secs):
         _s['arr']['melody_prog'] = _MEL_SEQ[_i]
     # **引子渐入**（`arr.perc_in` → `song_engine.perc_part(inbars=…)`）：真实模板里引子是
@@ -1373,6 +1425,12 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
                       'joint_cadence': True,
                       'phrase_vary': 2,
                       'legato_fill': 0.5,
+                      # **段界 CC7 渐变**（opt-in `patterns.mix_ramp`，单位=拍）：
+                      # 2026-10-17 交接 §6 项 4 —— 原来默认关（"要显式开"），于是生成曲的
+                      # `arr.mix` 段界仍是**阶跃**（用户实测"到某个点突然变大声"）。
+                      # 引擎默认仍是 0（老曲逐字节不变，`t_song_mix_ramp` 守着"opt-in"），
+                      # **新歌在这里默认带 0.5 拍**（≈ 半拍内过渡，@120BPM 0.25s）。
+                      'mix_ramp': 0.5,
                       # 面板/CLI 的**逐项覆盖**（`--joint-cadence` / `--phrase-vary` /
                       # `--legato-fill`）：**放最后**，这样显式传值优先于上面的默认。
                       **(_express or {})},
@@ -2051,7 +2109,8 @@ def breath_point_arr(arr, allow=None):
 
 
 def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
-                force=False, bpm=None, arr_only=None, lead=None, seconds=None, express=None):
+                force=False, bpm=None, arr_only=None, lead=None, seconds=None, express=None,
+                allow_bad_lead=False):
     """`--theme` 路径：按主题模板包生成一首新歌"""
     import theme_pack as tp
     # **没给 seed 就按曲名派生**（2026-10-01）：不给的话默认 7 → 同一主题每首一样，
@@ -2092,7 +2151,8 @@ def theme_mode(new, theme, ref_name=None, seed=None, ncand=4, energy_gain=None,
         shutil.rmtree(dst)
     os.makedirs(dst)
     data = build_from_theme(pack, short, seed=seed, ncand=ncand, energy_gain=energy_gain,
-                            arr_only=arr_only, lead=lead, seconds=seconds, express=express)
+                            arr_only=arr_only, lead=lead, seconds=seconds, express=express,
+                            allow_bad_lead=allow_bad_lead)
     song_json = os.path.join(dst, 'song.json')
     json_io.save(song_json, data)
     print('已创建 songs\\%s\\song.json' % new)
@@ -2477,7 +2537,8 @@ def main():
     if theme:
         rc = theme_mode(new, theme, ref_name=ref_name, seed=seed, ncand=ncand,
                         energy_gain=egain, force=force, bpm=cli_bpm, arr_only=arr_only,
-                        lead=lead, seconds=cli_seconds, express=express)
+                        lead=lead, seconds=cli_seconds, express=express,
+                        allow_bad_lead=('--allow-bad-lead' in sys.argv))
         # ⚠ **挂曲库必须跟着 `theme_mode` 的出口**：main 末尾那处调用**走不到这里**
         #   —— `--theme` 路径在下面这样一行就 return 了。第一版我把调用写在 main 末尾，
         #   实测 3 首变体全是 404、日志里也没有"已挂面板曲库"（加了 ≠ 生效）。

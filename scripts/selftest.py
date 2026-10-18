@@ -551,6 +551,48 @@ def t_octave_audit_ruler():
 
 
 @check
+def t_octave_corrector_contracts():
+    """`octave_corrector` 的四条硬契约（2026-10-18 新建工具）。
+
+    ① 规则复刻：合成 110Hz（p45）上，候选 p57 必须判 -12、候选 p45 判 0；
+    ② `hybrid` 语义：规则优先 · 只补规则弃权 · 补的值必须与帧级众数一致 · 无参考不动；
+    ③ 去重：同音高 <20ms 的重复丢前一个（否则移调后重叠会被音源吞音）；
+    ④ 特征宽度：`note_features` 产出的列数 == `FEATURES`（抄一份就会漂，这里钉住）。
+    """
+    import numpy as np
+    import octave_corrector as oc
+
+    sr = oc.SR
+    n = sr * 2
+    f0 = np.full(n // oc.HOP + 1, 110.0)          # A2 = p45
+    vprob = np.full_like(f0, 0.9)
+    ctx = oc.RefCtx(f0, vprob, 0.2)
+    ref57, _ = ctx.rule(0.5, 0.5, 57)
+    ref45, _ = ctx.rule(0.5, 0.5, 45)
+    assert ref57 == 45 and ref45 == 45, \
+        '规则复刻坏了：110Hz 参考应给 p45，实得 p57→%s p45→%s' % (ref57, ref45)
+    assert (57 - ref57) == 12, '规则应把 p57 判成"高一个八度"'
+
+    got = oc.combine_hybrid([-12, 0, 0, 0], [-12, -12, 0, -12], [-12, -12, 12, -12],
+                            [True, True, True, False])
+    assert got == [-12, -12, 0, 0], \
+        ('hybrid 语义坏了（规则优先/众数门/无参考不动）：期望 [-12,-12,0,0]，实得 %s' % got)
+
+    out = oc.dedup_by_pitch([[0.0, 0.5, 45, 90], [0.01, 0.5, 45, 90]])
+    assert len(out) == 1 and abs(out[0][0] - 0.01) < 1e-9, \
+        '去重应丢掉 <20ms 的前一个重复音，实得 %s' % out
+
+    t = np.arange(n) / float(sr)
+    y = (0.3 * np.sin(2 * np.pi * 110.0 * t)).astype('float32')
+    notes = [[0.2, 0.5, 57, 90]]
+    X, ys, meta, mode = oc.note_features(ctx, y, notes, 0.21)
+    assert X.shape[1] == len(oc.FEATURES), \
+        '特征列数 %d ≠ FEATURES %d（加特征时只改了一边）' % (X.shape[1], len(oc.FEATURES))
+    assert int(ys[0]) == -12 and int(meta[0, 4]) == 45, \
+        'p57 对 110Hz 参考应标 -12（实得 %s）' % int(ys[0])
+
+
+@check
 def t_transcribe_to_song_contracts():
     """`transcribe_to_song` 的产物必须过引擎的**五条契约**。
 
@@ -1396,6 +1438,10 @@ def t_docs_paths():
               # ⚠ 它原来只进了 `doc_map.py` / `SKILL.md` / `token_audit.py` 三处，
               #    文档里却已写"files/dokeys ✅ 本轮补的最后一处" —— 是**不实声明**（实测两处都没有）。
               os.path.join(ROOT, 'docs', 'HANDOFF-PERC-CLEAN.md'),
+              # 2026-10-18：同上，八度校正器交接的 `.md` 指针也要能走通
+              os.path.join(ROOT, 'docs', 'HANDOFF-OCTAVE-CORRECTOR.md'),
+              # 2026-10-18：八度校正器交接（引用了 `scripts\transcribe_audit.py` 等，要存在）
+              os.path.join(ROOT, 'docs', 'HANDOFF-OCTAVE-CORRECTOR.md'),
               os.path.join(ROOT, 'docs', 'IMITATE-PATH.md'), files[-1]]
     dead = []
     for p in dokeys:
@@ -1759,6 +1805,155 @@ def t_velocity_measured():
         for x in pending:
             print('          · %s' % x)
     print('        已量力度的扒带曲 %d 首（逐轨力度种类均 ≥4）' % judged)
+
+
+@check
+def t_lead_bad_timbre_blocked():
+    """**被用户点名禁用的音色，默认不许当主奏**（2026-10-18，用户："GM 音源小提琴太垃圾了标记一下"）。
+
+    现场：用户那首 `123` 在面板把主奏点成 GM40 小提琴 → 开头第一个音 232ms，而小提琴
+    **单音到 90% 峰值要 418.5ms**（单音口径）⇒ 音符结束了音色还没起来，他的原话是
+    "高音那个音轨很奇怪，开头 2 秒就出现了"。同族里唯一快的是 GM41 中提琴（62.7ms），
+    他最后选了 41。
+    判据三件：① `--lead 40` 必须**拒绝**，提示里有实测毫秒与替代方案
+              ② 显式 `allow_bad_lead=True` 才放行（用户点名优先，但必须显式）
+              ③ 同族的快音色（41）照常通过（别把整族都拦掉）
+    """
+    import new_song as NS
+    import theme_pack as TP
+
+    pack = TP.load_pack('gorgeous')
+    assert 40 in NS.LEAD_BLOCKED, \
+        'GM40 小提琴没进 LEAD_BLOCKED（用户 2026-10-18 点名"太垃圾"）：%r' % (NS.LEAD_BLOCKED,)
+    try:
+        with redirect_stdout(io.StringIO()):
+            NS.build_from_theme(pack, 'zz_block_probe', seed=7, ncand=1, lead='40')
+    except SystemExit as e:
+        msg = str(e)
+    else:
+        raise AssertionError('--lead 40 没被拒绝（慢起音小提琴又会被选上）')
+    assert '418.5ms' in msg and '41' in msg, \
+        '拒绝时没说清"实测多少毫秒 + 换谁"：%r' % msg[:300]
+    with redirect_stdout(io.StringIO()):
+        d = NS.build_from_theme(pack, 'zz_block_probe', seed=7, ncand=1, lead='40',
+                                allow_bad_lead=True)
+    assert {(s.get('arr') or {}).get('melody_prog') for s in d['sections']} == {40}, \
+        'allow_bad_lead=True 时仍没按用户点名指定 40'
+    with redirect_stdout(io.StringIO()):
+        d2 = NS.build_from_theme(pack, 'zz_block_probe', seed=7, ncand=1, lead='41')
+    assert 41 in {(s.get('arr') or {}).get('melody_prog') for s in d2['sections']}, \
+        '中提琴 41 也被拦了（整族一刀切）'
+    return 'GM40 默认拒（带 418.5ms + 替代 41）· 显式 allow 才放行 · 41 正常'
+
+
+@check
+def t_theme_progression_repeat_consistent():
+    """**共用旋律的段必须共用和弦进行**（2026-10-18，用户"旋律和周围不协调"的根因）。
+
+    现场（用户那首 `123`，gorgeous）：`B`/`B2`/`B3` 指**同一条旋律**（`sections[i].melody`
+    是同一个组），但生成器按**完整段名**哈希挑进行 ⇒ 三段拿到**三套不同和弦** ⇒
+    同一条旋律只有 B 段 94% 的音在弦内、B2 **39%**、B3 **50%** —— 听起来就是"不协调"。
+
+    判据三件：
+      ① 同一旋律组的所有段落，**和弦数组必须逐字相同**（结构判据，不依赖阈值）
+      ② 不同旋律组之间**不许塌成同一条进行**（B 与 C 仍该各走各的 —— 变的是"重复段"）
+      ③ 夹具里必须真有"重复组"（≥3 段），否则这条检查空转
+    """
+    import new_song as NS
+    import theme_pack as TP
+
+    pack = TP.load_pack('gorgeous')
+    with redirect_stdout(io.StringIO()):
+        d = NS.build_from_theme(pack, 'zz_prog_probe', seed=7, ncand=1)
+    groups = {}
+    for s in d['sections']:
+        groups.setdefault(s.get('melody'), []).append(s)
+    assert any(len(v) >= 3 for v in groups.values()), \
+        '夹具里没有"≥3 段共用一条旋律"的组（这条检查会空转）：%r' % (
+            {k: len(v) for k, v in groups.items()},)
+    for g, secs in groups.items():
+        arrs = {tuple(s.get('chords') or []) for s in secs}
+        assert len(arrs) == 1, (
+            '旋律组 %r 的 %d 个段落用了 %d 套不同和弦 → 同一条旋律在重复段上会跑出弦外音'
+            '（用户听感"不协调"）：%s'
+            % (g, len(secs), len(arrs), ' | '.join(' '.join(a[:6]) for a in arrs)))
+    # ② 对照段之间**不许塌成同一条进行**（B 与 C 该各走各的）。
+    #    ⚠ 只看"非 A 的对比组"：把 A 组算进来会让"全塌成进行 1"也满足 ≥2 种
+    #    （A 用 0、B/C 都用 1）—— 实测这条注入就是这么漏掉的，别退回。
+    contrast = [g for g in groups
+                if g not in ('intro', 'outro') and not str(g).upper().startswith('A')]
+    assert len(contrast) >= 2, '夹具缺对比组（B/C）—— 这条检查会空转：%r' % (contrast,)
+    distinct = {tuple(groups[g][0].get('chords') or []) for g in contrast}
+    assert len(distinct) >= 2, \
+        'B/C 等对比组全落到同一条进行（段间和声没有对比）= %r' % (distinct,)
+    return ('旋律组 %r 共用和弦 · 对比组 %r 有 %d 种进行（%d 组 / %d 段）'
+            % (sorted(k for k, v in groups.items() if len(v) >= 3),
+               sorted(contrast), len(distinct), len(groups), len(d['sections'])))
+
+
+@check
+def t_measure_velocity_empty_stem():
+    """**空分轨不许被 `measure_velocity --self-test` 判成"可以校准"**（2026-10-17）。
+
+    现场：BGM36 的 `bass.wav` 整轨 RMS **−82.8 dB**（demucs 把这条留空了，vocals 同样
+    −80.9 dB），逐音峰值中位只有 −57.4 dB —— 旧版只数"有没有音 > −60dB"，于是 6/15 个
+    串音峰就让它输出"结论：**可以**拿它校准力度"。照它做，`calibrate()` 会把噪声底
+    排成"看着正常"的力度（中位一定落在 `--p50`），这是**静默造假**。
+    判据要**正反两面都跑**：空轨必须拒（返回 4 + 说清"没有内容"），有内容的轨必须放行
+    （否则一改就是"一律拒绝"，比不判更坏）。
+    """
+    import measure_velocity as MV
+    import midi_file as _mf
+    import shutil
+    import numpy as _np
+    import soundfile as _sf
+
+    tmp = tempfile.mkdtemp(prefix='vel_')
+    try:
+        sr = 22050
+        dur = 3.5
+        rng = _np.random.default_rng(0)
+        # ① 空轨：−85dB 噪声底 **+ 每个音符位置一小段 −55dB 串音**（5ms）。
+        #    为什么要有那几段串音：BGM36 的真实形态就是这样 —— 整轨 −82.8dB、
+        #    逐音峰值 −57.4dB。只放纯噪声的话，旧版也会因为"全部 < −60dB"而拒，
+        #    这个夹具就**验不出**本次修的那条门槛（实测踩过：变异只炸在文案断言上）。
+        n = int(sr * dur)
+        empty = rng.standard_normal(n) * 10 ** (-85 / 20.0)
+        burst = int(sr * 0.005)
+        for b in range(6):                      # 音符每拍一个（120BPM ⇒ 0.5s）
+            s0 = int(sr * 0.5 * b)
+            empty[s0:s0 + burst] += 10 ** (-55 / 20.0) * _np.hanning(burst)
+        quiet_wav = os.path.join(tmp, 'empty.wav')
+        _sf.write(quiet_wav, empty.astype('float32'), sr)
+        # ② 有内容的轨：−20dB 正弦，音符窗口里一定量到峰值
+        loud_wav = os.path.join(tmp, 'loud.wav')
+        t = _np.arange(n) / float(sr)
+        _sf.write(loud_wav, (0.1 * _np.sin(2 * _np.pi * 220 * t)).astype('float32'), sr)
+        notes = [[0.0, 0.4, 45, 100], [1.0, 0.4, 45, 100], [2.0, 0.4, 45, 100],
+                 [3.0, 0.4, 45, 100], [4.0, 0.4, 45, 100], [5.0, 0.4, 45, 100]]
+        mid = os.path.join(tmp, 'n.mid')
+        _mf.export_midi({'format': 0, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+                         'tracks': [{'name': 'Bass', 'channel': 1, 'program': 33,
+                                     'notes': notes}]}, mid, fmt=0)
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc_bad = MV.self_test(quiet_wav, mid)
+        out_bad = buf.getvalue()
+        assert rc_bad != 0, \
+            '空分轨（RMS ≈ −85dB）被判"可以校准力度"（返回 0）：%r' % out_bad[:300]
+        assert '没有内容' in out_bad and '别拿它校准' in out_bad, \
+            '拒绝了但没说清原因（用户不知道该换分轨）：%r' % out_bad[:300]
+
+        buf2 = io.StringIO()
+        with redirect_stdout(buf2):
+            rc_ok = MV.self_test(loud_wav, mid)
+        out_ok = buf2.getvalue()
+        assert rc_ok == 0 and '可以' in out_ok, \
+            '有内容的分轨（−20dB）也被拒了 —— 门槛过严，会挡住正常用法：%r' % out_ok[:300]
+        return '空分轨拒（返回 4，说明"没有内容"）· 有内容的分轨放行（返回 0）'
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 @check
@@ -3215,6 +3410,25 @@ def t_console_encoding_safe():
         if 'if __name__' in src and '_cu.setup()' not in src:
             missing.append(nm)
     assert not missing, '这些入口脚本没做编码兜底: %s' % ', '.join(missing)
+
+
+@check
+def t_i18n_coverage():
+    """面板中英字典必须覆盖 `index.html` / `ed.html` 的**全部静态文案**。
+
+    为什么放进 selftest（2026-10-18 实测）：`i18n_check.py` 一直是**独立脚本**，
+    全量自检从不跑它 ⇒ 2026-10-17 新加的「自动化面板」（20 条）和「编辑器曲库入口」
+    （8 条）漏翻后，全量自检照样全绿；只有真浏览器 `smoke_i18n.js` 能看见，
+    而它默认只警告、不判 FAIL。这次实测英文态 21 个按钮/选项仍是中文。
+    """
+    import contextlib
+    import io
+    import i18n_check
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = i18n_check.main()
+    assert rc == 0, '面板 i18n 字典有漏项（英文态会显示中文）：\n' + buf.getvalue()[-1800:]
 
 
 @check
@@ -6817,19 +7031,28 @@ def t_harmony_add_contracts():
     """
     import song_engine as SE
     import new_song as NS
-    packs = sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json')))
-    # ⚠ `songs/` 是指向 `songs_direct/` 的 junction（PITFALLS 351），两边同一份内容
-    cand = None
-    for p in packs:
-        try:
-            d0 = json.load(open(p, encoding='utf-8'))
-        except Exception:
-            continue
-        if len(d0.get('sections') or []) >= 4 and (d0.get('programs') or {}):
-            cand = (p, d0)
-            break
-    assert cand, '找不到可用夹具（songs/*/song.json）—— 这条检查会空转'
-    p, d0 = cand
+    # 夹具**自造**（2026-10-17）：原来从曲库挑"≥4 段且有 programs"的曲目，曲库一归档
+    # （只剩 BGM36 这首还原曲）就必然红 —— 还原曲的每层都被 `notes_extra` **整轨覆盖**，
+    # `harmony_add` 本来就无处可加，那是**夹具不对**而不是"接线断了"。自造一条**带生成层**
+    # 的曲子（`arr` 开 piano/pad/strings/arp/bass），判据才只依赖被测特性本身。
+    d0 = {
+        'name': 'harmony_probe', 'bpm': 120.0, 'meter': [4, 4],
+        'chords': {'C': [48, [60, 64, 67]], 'Am': [45, [57, 60, 64]],
+                   'F': [41, [53, 57, 60]], 'G': [43, [55, 59, 62]]},
+        'sections': [
+            {'name': 'A', 'bars': 4, 'chords': ['C', 'C', 'Am', 'Am'], 'melody': 'm',
+             'arr': {'piano': 1, 'pad': 1, 'strings': 1, 'arp': 1, 'bass': 1, 'perc': 0}},
+            {'name': 'B', 'bars': 4, 'chords': ['F', 'F', 'G', 'G'], 'melody': 'm',
+             'arr': {'piano': 1, 'pad': 1, 'strings': 1, 'arp': 1, 'bass': 1, 'perc': 0}},
+            {'name': 'C', 'bars': 4, 'chords': ['C', 'Am', 'F', 'G'], 'melody': 'm',
+             'arr': {'piano': 1, 'pad': 1, 'strings': 1, 'arp': 1, 'bass': 1, 'perc': 0}},
+            {'name': 'D', 'bars': 4, 'chords': ['F', 'G', 'C', 'C'], 'melody': 'm',
+             'arr': {'piano': 1, 'pad': 1, 'strings': 1, 'arp': 1, 'bass': 1, 'perc': 0}},
+        ],
+        # ⚠ `melody` 的小节号是**段内**的（每段从 0 起）；写成全局号会让音静默不发声。
+        'melody': {'m': [[b, bt, 0.9, p, 96] for b in range(4) for bt, p in
+                         ((0.0, 72), (1.5, 74), (2.0, 76), (3.0, 72))]},
+    }
     tmp = os.path.join(TMP, 'harmony_add_probe.json')
 
     def render(level):
@@ -11975,7 +12198,8 @@ def t_restore_oneshot_chain():
     · 力度映射（−20dB→75 · 0dB→110 · 夹 60–118）错 → 亮度的总开关（逐段 |RMS差| 2.56 → 2.07 全靠它）；
     · 静音段筛选的空档门（12dB）错 → 没有双峰也硬筛（拍数字）；
     · 段级 CC7 的换算错（当 dB 直接加）→ 只动 0.35dB，等于没做；
-    · 链路默认**不许**删音、**不许**开段级音色 —— 两条都是实测负结果（删音让 S01 掉 14.4dB；GM40 把 S18 顶到 55.6%）。
+    · 链路默认**不许**删音、**不许**开段级音色 —— 两条都是实测负结果（删音让 S01 掉 14.4dB；GM40 把 S18 顶到 55.6%）；
+    · 力度来源（`velocity_source`）**不许过期** —— `--apply` 必须自己改写它（BGM29：自检把红指到 `Piano: FAILED`，红的是记录）。
     """
     import numpy as _np
     import merge_sustain as MS
@@ -12010,6 +12234,42 @@ def t_restore_oneshot_chain():
         assert _c[_c.index('--vel') + 1] == 'on' and _c[_c.index('--bright-json') + 1].endswith('bright.json'), \
             '有 bright.json 时必须接上 --bright-json 并开 vel：%r' % (_c,)
         assert '--prog' in _c and '--shift' in _c and '--dry' in _c, 'prog/shift/dry 传丢了：%r' % (_c,)
+    # **力度来源必须由本工具自己改写**（2026-10-18，BGM29 实测）：`--apply` 会把整首力度
+    #   重写一遍（`Bass` 85 种 → 10 种），却不动 `velocity_source` ⇒ 全库自检把红指到
+    #   `Piano: FAILED`（那条分轨真的空，但那个值**早已被覆盖**）—— 红的是记录，不是数据。
+    _t1 = VF.tag_source('bass.wav', r'D:\x\source.ogg')
+    assert _t1 == 'bass.wav → vel_from_ref(source.ogg)', '力度来源没记成链式：%r' % (_t1,)
+    assert VF.tag_source(_t1, 'source.ogg') == _t1, \
+        '重复跑会叠加来源（记录越长越没人看）：%r' % (VF.tag_source(_t1, 'source.ogg'),)
+    _t3 = VF.tag_source('FAILED', 'source.ogg')
+    assert not _t3.upper().startswith('FAIL') and 'vel_from_ref' in _t3, \
+        '`FAILED` 没被改写 ⇒ 自检仍按前缀判红：%r' % (_t3,)
+    # 端到端：真跑一次 `main(--apply)`，写盘里的记录必须变（防"函数写了、main 没接线"）
+    with _tf.TemporaryDirectory() as _td:
+        import json as _json
+        import soundfile as _sf
+        _sj = os.path.join(_td, 'song.json')
+        _wav = os.path.join(_td, 'r.wav')
+        _sr = 22050
+        _sf.write(_wav, (0.2 * _np.sin(2 * _np.pi * 440 * _np.arange(_sr) / _sr)).astype('float32'), _sr)
+        _json.dump({'bpm': 120, 'bar_beats': 4,
+                    'sections': [{'name': 'A', 'bars': 1}],
+                    'notes_extra': {'Piano': [[0, 0, 60, 100, 100], [0, 1, 62, 100, 100]]},
+                    'patterns': {'velocity_source': {'Piano': 'FAILED'}}},
+                   open(_sj, 'w', encoding='utf-8'))
+        _argv = sys.argv
+        _buf = io.StringIO()
+        try:
+            sys.argv = ['vel_from_ref.py', '--song-json', _sj, '--ref', _wav, '--apply']
+            with redirect_stdout(_buf):
+                _rc = VF.main()
+        finally:
+            sys.argv = _argv
+        assert _rc == 0, 'vel_from_ref main 跑挂了：%s' % _buf.getvalue()[-300:]
+        _got = _json.load(open(_sj, encoding='utf-8'))
+        _v = ((_got.get('patterns') or {}).get('velocity_source') or {})
+        assert str(_v.get('Piano', '')).startswith('分轨未量到 → vel_from_ref('), \
+            'main(--apply) 没把力度来源改写进盘上的 song.json（红会被指回 `FAILED`）：%r' % (_v,)
     # 负控：两道门各自必须**拦得住**（⚠ 不传 keep/gap_min，走模块默认值 —— 否则变异注入不进来）
     assert MS.should_merge(0.5, 1.0, _np.array([0.01, 0.01]), 1.0, 1.0)[0] is False, \
         '合片闸门放行了"原曲在这里断了"的情况 —— 会把真实的重新起音抹掉'
@@ -12250,7 +12510,13 @@ def t_probe_playable():
         import copy as _copy
         import json as _json
         _a, _b = _pair(_probe_dir)
-        _tol = max(4, int(0.03 * _b['notes']))
+        # ⚠ **容差 3% → 6%**（2026-10-18，实测口径变更，不是"改阈值凑绿"）：
+        #   新歌默认开 `joint_cadence`（删句尾音）/ `legato_fill`（补内声部空隙）/
+        #   `avoid_lead`（挪音），所以 **song.json（源数据）与 .mid（引擎产物）本来就该差**。
+        #   实测用户那首 `123`：json 1512 vs mid 1458 = **3.57%**（旧口径 3% 顶不住）。
+        #   判据的牙齿还在：**删掉一整条轨** = 12.7%（`_drop` 那条自证仍在下面跑，
+        #   要求 > tol 才算抓得住）。要的是"能分辨整轨丢失/口径漂移"，不是"逐字相等"。
+        _tol = max(4, int(0.06 * _b['notes']))
         assert abs(_a['notes'] - _b['notes']) <= _tol, (
             '自证夹具失效：%s 的两个入口本来就差得超容差（json %d vs mid %d，容差 %d）——'
             ' 这条检查会一直红' % (os.path.basename(_probe_dir), _a['notes'], _b['notes'], _tol))
@@ -12273,8 +12539,9 @@ def t_probe_playable():
         if pr is None:
             continue
         a, b = pr
-        # 容差判据：音数差 ≤ max(4, 3%) **且** 同按上限一致
-        if (abs(a['notes'] - b['notes']) <= max(4, int(0.03 * max(1, b['notes'])))
+        # 容差判据：音数差 ≤ max(4, 6%) **且** 同按上限一致
+        # （6% 的依据见上面 `_tol` 那段：生成层的 opt-in 开关让源数据与产物天然有差）
+        if (abs(a['notes'] - b['notes']) <= max(4, int(0.06 * max(1, b['notes'])))
                 and a['poly_max'] == b['poly_max']):
             print('        song.json 与 .mid 读数一致（%s：音 %d · 同按 max %d）'
                   % (os.path.basename(d), a['notes'], a['poly_max']))
@@ -12286,7 +12553,7 @@ def t_probe_playable():
     assert ok_n >= 1, (
         'song.json 与 .mid 的可弹性读数**每一首**都差得超出容差 —— 两个入口的口径漂了：%s'
         % '; '.join(bad[:3]))
-    print('        %d 首在容差内（音数差 ≤max(4,3%%) 且同按上限一致）· %d 首不同步'
+    print('        %d 首在容差内（音数差 ≤max(4,6%%) 且同按上限一致）· %d 首不同步'
           % (ok_n, len(bad)))
 
 
@@ -12549,7 +12816,10 @@ def t_lead_override_contracts():
         pack = tp.load_pack(th)
         if not pack:
             continue
-        for spec, want in (('65,40', [65, 40]), ('sax', [sax]), ('0', [0])):
+        # ⚠ 用 `65,73` 而不是 `65,40`（2026-10-18）：GM40 小提琴已进 `LEAD_BLOCKED`
+        #   （用户"太垃圾" + 起音 418.5ms），点名它会**抛 SystemExit**，把这条守卫的
+        #   轮换断言变成"看谁能抛异常"。禁用的副作用不该污染"点名是否生效"这条判据。
+        for spec, want in (('65,73', [65, 73]), ('sax', [sax]), ('0', [0])):
             d, _o = quiet(ns.build_from_theme, pack, 'lead_probe', seed=1, ncand=1, lead=spec)
             seq = [(s.get('arr') or {}).get('melody_prog') for s in d['sections']]
             exp = [want[i % len(want)] for i in range(len(seq))]
@@ -13991,6 +14261,708 @@ def t_job_lifecycle_contracts():
         _sh.rmtree(d, ignore_errors=True)
     ok.append('覆盖重建清残留（只删别的曲子）')
     return '任务生命周期：' + ' · '.join(ok)
+
+
+@check
+def t_midi_to_song_roundtrip():
+    """MIDI → song.json → 引擎回放：**逐轨音符数必须一致**。
+
+    守的是 `midi_to_song.py`（2026-10-17 新增：让"现成的 .mid"第一次能进引擎）。
+    它的失败模式都是**静默**的，所以判据必须独立于它自己的中间结果：
+      · 轨映射错 → 两条源轨并进同一条引擎轨（音符数变少、音域乱）；
+      · `notes_extra` 小节/拍口径错 → 引擎静默丢弃（同族：`notes_extra_within_sections`）；
+      · 生成层没关 → 多出伴奏（实测凭空 2293 个鼓点，PITFALLS 313/314 同族）。
+    这里只比"源 MIDI 每轨音符数 vs 引擎事件数" —— 两边口径都来自**别的模块**，
+    改坏 `midi_to_song` 的实现不会同时改坏这把尺子。
+    """
+    import json_io
+    import midi_to_song as _m2s
+    import midi_file as _mf
+    import shutil
+    import tempfile
+    from collections import Counter
+
+    srcs = []
+    for d in song_dirs():
+        srcs.extend(sorted(glob.glob(os.path.join(d, '*.mid'))))
+    if not srcs:
+        return '跳过：曲库里没有 .mid 夹具'
+    src = srcs[0]
+    tmp = tempfile.mkdtemp(prefix='m2s_')
+    try:
+        out = os.path.join(tmp, 'song.json')
+        with redirect_stdout(io.StringIO()):
+            data, info = _m2s.build(src, name='probe', bars_per_section=8, verbose=False)
+            json_io.save(out, data)
+            eng = song_engine.load(out)
+            ev, _nb = song_engine.build_events(eng)
+
+        # 逐音比对：**源 MIDI 的 (全局拍, 音高, 力度)** vs 引擎事件。
+        # 拍只保留 0.01（MIDI tick 量化的量级）；时值不比（<0.25 拍会被抬到 0.25，是明文规则）。
+        mm = _mf.import_midi(src)
+        src_map = {}
+        for tr in _m2s.expand_channels(mm['tracks']):
+            if not tr['notes']:
+                continue
+            dst = _m2s.pick_track(tr['name'], tr['channel'], tr['program'])
+            for (b, _d, p, v) in tr['notes']:
+                if b is None or p is None:
+                    continue
+                src_map.setdefault(dst, []).append(
+                    (round(float(b), 2), int(p), int(v) if v is not None else 100))
+        bad = []
+        for tr, want in src_map.items():
+            got = [(round(float(e[0]), 2), int(e[2]), int(e[3]))
+                   for e in ev.get(tr, [])]
+            ca, cb = Counter(want), Counter(got)
+            if ca != cb:
+                bad.append('%s 源 %d / 引擎 %d（缺 %d · 多 %d）'
+                           % (tr, len(want), len(got),
+                              sum((ca - cb).values()), sum((cb - ca).values())))
+        assert not bad, ('逐音不一致（%s）：%s' % (os.path.basename(src), '; '.join(bad)))
+        return ('MIDI 导入回放：%d 轨 / %d 音逐音一致（%s）'
+                % (len(src_map), sum(len(v) for v in src_map.values()),
+                   os.path.basename(src)))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check
+def t_midi_to_song_type0():
+    """Type 0（单轨混多通道）必须按通道拆开 —— 不拆会**静默毁曲**。
+
+    实测（2026-10-17，合成夹具）：钢琴 ch0 / 贝斯 ch1 / 鼓 ch9 被并成一条轨，
+    又因轨名像 Drums 而整条用鼓音色发声（7 个音全变鼓），零报错。
+    判据看**三件事**：拆出的轨名集合、逐轨音符数、Drums 里不许混进别的通道的音。
+    """
+    import midi_file as _mf
+    import midi_to_song as _m2s
+    import shutil
+
+    def _tr(name, ch, prog, notes, ccs=(), bends=()):
+        return {'index': 0, 'name': name, 'channel': ch, 'program': prog,
+                'drum': ch == 9, 'mute': False, 'solo': False, 'hidden': False,
+                'notes': notes, 'ccs': list(ccs), 'program_changes': [], 'markers': [],
+                'pitch_bends': list(bends)}
+
+    tmp = tempfile.mkdtemp(prefix='m2s_type0_')
+    try:
+        model = {'format': 0, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+                 'title': 't0', 'end_beat': 8.0,
+                 'tracks': [
+                     _tr('Piano', 0, 0, [[0, 1, 60, 100], [1, 1, 64, 90], [2, 1, 67, 80]],
+                         ccs=[[0, 7, 90]], bends=[[0, -100]]),
+                     _tr('Bass', 1, 33, [[0, 1, 36, 110], [1, 1, 38, 110]],
+                         ccs=[[1, 7, 70]]),
+                     _tr('Drums', 9, None, [[0, 0.1, 36, 120], [2, 0.1, 42, 90]],
+                         ccs=[[0, 10, 64]]),
+                 ]}
+        src = os.path.join(tmp, 't0.mid')
+        _mf.export_midi(model, src, fmt=0)
+        data, _info = _m2s.build(src, name='t0', verbose=False)
+        ne = data['notes_extra']
+        assert set(ne) == {'Piano', 'Bass', 'Drums'}, \
+            'Type 0 没按通道拆：notes_extra 的轨 = %s（应 Piano/Bass/Drums）' % sorted(ne)
+        got = {t: len(ne[t]) for t in ('Piano', 'Bass', 'Drums')}
+        assert got == {'Piano': 3, 'Bass': 2, 'Drums': 2}, \
+            '按通道拆后音符数不对：%s' % got
+        assert all(n[3] in (36, 42) for n in ne['Drums']), \
+            'Drums 里混进了别的通道的音（没拆干净）：%s' % [n[3] for n in ne['Drums']]
+        auto = data.get('automation') or {}
+        assert len((auto.get('Piano') or {}).get('ccs') or []) == 1, auto
+        assert len((auto.get('Piano') or {}).get('pitch_bends') or []) == 1, auto
+        assert len((auto.get('Bass') or {}).get('ccs') or []) == 1, auto
+        assert len((auto.get('Drums') or {}).get('ccs') or []) == 1, auto
+        return 'Type 0 拆轨：Piano 3 / Bass 2 / Drums 2 · CC/弯音也按通道'
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check
+def t_midi_to_song_tempo_map():
+    """多 tempo：默认必须**拒绝**；显式允许后按**秒**重排（不是按首个 tempo 硬算）。
+
+    实测（合成夹具：0 拍 120BPM、2 拍转 60BPM）：默认不拒绝就会把后半段按 120 算，
+    整条时间轴静默错位。允许后第二个音在 **beat 3**（变速点之后），真实秒 = 2.0s，
+    目标 60BPM ⇒ 必须落在 **2.0 拍**；按首个 tempo 硬算会得到 1.5 拍。
+    """
+    import midi_file as _mf
+    import midi_to_song as _m2s
+    import shutil
+
+    tmp = tempfile.mkdtemp(prefix='m2s_tmap_')
+    try:
+        model = {'format': 1, 'division': 480, 'bpm': 120.0, 'mpqn': 500000,
+                 'tempo_map': [[0, 500000], [2, 1000000]],
+                 'timesig': [4, 4], 'title': 'tmap', 'end_beat': 8.0,
+                 'tracks': [{'index': 0, 'name': 'Piano', 'channel': 0, 'program': 0,
+                             'drum': False, 'mute': False, 'solo': False, 'hidden': False,
+                             'notes': [[0, 1, 60, 100], [3, 1, 62, 100]],
+                             'ccs': [], 'program_changes': [], 'markers': []}]}
+        src = os.path.join(tmp, 'tmap.mid')
+        _mf.export_midi(model, src, fmt=1, use_tempo_map=True)
+        try:
+            _m2s.build(src, name='t', verbose=False)
+            raise AssertionError('多 tempo 没被拒绝（会静默错时间轴）')
+        except SystemExit:
+            pass
+        d, _ = _m2s.build(src, name='t', bpm=60.0, verbose=False,
+                          allow_tempo_change=True)
+        ne = d['notes_extra']['Piano']
+        starts = sorted(n[0] * 4 + n[1] for n in ne)
+        assert abs(starts[1] - 2.0) < 0.02, \
+            '按秒重排后第二个音应在 2.0 拍（2 秒 @60BPM），实得 %s' % starts
+        return '多 tempo：默认拒绝 · 允许后第二音 2.0 拍'
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check
+def t_midi_to_song_from_model():
+    """编辑器内存模型 → 引擎，必须与"先写文件再导入"**逐音一致**。
+
+    面板的「→ 引擎」走 `build_from_model(model)`；CLI 走 `build(path)`。
+    两条入口若漂移，用户在编辑器里改完送进引擎的结果会和"导出再导入"不同（静默）。
+    """
+    import midi_file as _mf
+    import midi_to_song as _m2s
+    import midi_probe as _mp
+
+    srcs = []
+    for d in song_dirs():
+        srcs.extend(sorted(glob.glob(os.path.join(d, '*.mid'))))
+    if not srcs:
+        return '跳过：曲库里没有 .mid 夹具'
+    src = srcs[0]
+    raw = _mp.parse_full(src)
+    if _m2s.has_tempo_change([(t, m) for (t, m) in (raw.get('tempo_map') or [])]):
+        return '跳过：夹具是多 tempo（模型版不带 tempo_map，比不了）'
+    with redirect_stdout(io.StringIO()):
+        file_data, _ = _m2s.build(src, name='from_file', verbose=False)
+        model = _mf.import_midi(src)
+        mem_data, _ = _m2s.build_from_model(model, name='from_model', verbose=False)
+
+    def _flat(d):
+        return sorted((t, n[0], round(n[1], 3), n[2], n[3])
+                      for t, arr in (d.get('notes_extra') or {}).items() for n in arr)
+
+    a, b = _flat(file_data), _flat(mem_data)
+    assert a == b, ('两个入口不一致：文件 %d 音 / 模型 %d 音（例 %s / %s）'
+                    % (len(a), len(b), a[:1], b[:1]))
+    return '模型版 == 文件版：%d 音' % len(a)
+
+
+@check
+def t_import_song_contracts():
+    """曲库 ↔ 编辑器 的接线（A2）：路由、按钮、JS 调用三处必须对上。
+
+    这类"接线"改名/漏绑不会报错，只会**点了没反应**（静默失效）——所以用文本断言盯住。
+    """
+    def _read(*p):
+        with open(os.path.join(ROOT, *p), encoding='utf-8') as f:
+            return f.read()
+
+    srv = _read('studio', 'server.py')
+    html = _read('studio', 'web', 'ed.html')
+    js = _read('studio', 'web', 'ed.js')
+    assert '/api/ed/to-song' in srv, 'server 没有 /api/ed/to-song 路由'
+    assert "if body.get('song'):" in srv and "sid = str(body['song']).strip()" in srv, \
+        'server 的 /api/ed/import 没有 song 分支（曲库 → 编辑器打不开）'
+    assert 'id="btnToSong"' in html, 'ed.html 没有「→ 引擎」按钮'
+    assert 'id="btnOpenSong"' in html and 'id="songSel"' in html, \
+        'ed.html 没有「曲库打开」的下拉/按钮'
+    assert "/api/ed/to-song" in js, 'ed.js 没有调用 /api/ed/to-song'
+    assert "post('/api/ed/import', { song:" in js, 'ed.js 没有按 song 打开曲库'
+    assert "$('btnToSong').onclick" in js and "$('btnOpenSong').onclick" in js, \
+        'ed.js 没有绑定两个按钮'
+    return '曲库↔编辑器接线：路由 / 按钮 / JS 三处一致'
+
+
+@check
+def t_midi_bend_roundtrip():
+    """弯音必须原样往返（导入 → 导出 → 再导入）。
+
+    2026-10-17 实测缺口：`import_midi` 根本没复制 `pitch_bends`、`export_midi` 也不写，
+    而 `roundtrip_report` 只核对音符/CC/标记 —— 带弯音的 MIDI "往返一致"是**假绿**。
+    """
+    import midi_file as _mf
+    import shutil
+
+    tmp = tempfile.mkdtemp(prefix='bend_')
+    try:
+        model = {'format': 1, 'division': 480, 'bpm': 120.0, 'timesig': [4, 4],
+                 'title': 'bend', 'end_beat': 8.0,
+                 'tracks': [{'index': 0, 'name': 'Lead', 'channel': 0, 'program': 0,
+                             'drum': False, 'mute': False, 'solo': False, 'hidden': False,
+                             'notes': [[0, 1, 60, 100]], 'ccs': [[0, 7, 100]],
+                             'program_changes': [], 'markers': [],
+                             'pitch_bends': [[0.0, -8192], [1.0, 0], [2.0, 4095]]}]}
+        src = os.path.join(tmp, 'bend.mid')
+        _mf.export_midi(model, src, fmt=1)
+        back = _mf.import_midi(src)
+        bends = back['tracks'][0].get('pitch_bends') or []
+        assert len(bends) == 3, '弯音没写进文件：回读 %d 条' % len(bends)
+        assert [int(v) for _t, v in bends] == [-8192, 0, 4095], bends
+        rt = _mf.roundtrip_report(src, os.path.join(tmp, 'rt.mid'))
+        assert rt['ok'], '往返校验没通过：%s' % rt['bad']
+        return '弯音往返：3 条（-8192 / 0 / 4095）'
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check
+def t_midi_to_song_automation():
+    """导入引擎时，源 MIDI 的 CC / 弯音条数必须**报出来**（引擎不保留表情自动化）。"""
+    import midi_to_song as _m2s
+
+    m = {'bpm': 120.0, 'timesig': [4, 4], 'end_beat': 4.0,
+         'tracks': [
+             {'index': 0, 'name': 'Lead', 'channel': 0, 'program': 0, 'drum': False,
+              'notes': [[0, 1, 60, 100]], 'ccs': [[0, 7, 100], [1, 11, 90]],
+              'pitch_bends': [[0, -100], [2, 300]]},
+             {'index': 1, 'name': 'Bass', 'channel': 1, 'program': 33, 'drum': False,
+              'notes': [[0, 1, 36, 100]], 'ccs': [[0, 7, 80]], 'pitch_bends': []},
+         ]}
+    _data, info = _m2s.build_from_model(m, name='t', verbose=False)
+    assert info.get('cc_count') == 3, 'CC 计数不对：%s' % info.get('cc_count')
+    assert info.get('bend_count') == 2, '弯音计数不对：%s' % info.get('bend_count')
+    auto = _data.get('automation') or {}
+    assert len((auto.get('Melody') or {}).get('ccs') or []) == 2, auto
+    assert len((auto.get('Melody') or {}).get('pitch_bends') or []) == 2, auto
+    assert len((auto.get('Bass') or {}).get('ccs') or []) == 1, auto
+    return 'CC 3 / 弯音 2 → automation（Melody 2+2 / Bass 1）'
+
+
+@check
+def t_song_automation_roundtrip():
+    """`song.json` 的 automation（CC / 弯音）必须真的写进 MIDI。
+
+    2026-10-17：引擎原本只有音符；`automation` 是新维度。它失败的形态是**静默**的：
+    数据在、渲染没声（`write_midi` 没读它）。
+    """
+    import json_io as _jio
+    import midi_file as _mf
+    import song_engine as _se
+    import shutil
+
+    tmp = tempfile.mkdtemp(prefix='auto_')
+    try:
+        d = {'name': 'auto', 'bpm': 120.0, 'meter': [4, 4],
+             'chords': {'C': [48, [60, 64, 67]]},
+             'sections': [{'name': 'A', 'bars': 2, 'chords': ['C', 'C'],
+                           'melody': 'a', 'arr': {'perc': 0}}],
+             'melody': {'a': []},
+             'notes_extra': {'Piano': [[0, 0.0, 1.0, 60, 100]]},
+             'programs': {'Piano': [0, 2]},
+             'automation': {'Piano': {
+                 'ccs': [[0, 7, 80], [2, 11, 100]],
+                 'pitch_bends': [[0, -8192], [1, 0], [2, 4095]]}}}
+        out = os.path.join(tmp, 'song.json')
+        _jio.save(out, d)
+        mid = os.path.join(tmp, 'auto.mid')
+        with redirect_stdout(io.StringIO()):
+            _se.compose(out, mid, quiet=True)
+        back = _mf.import_midi(mid)
+        tr = next((t for t in back['tracks'] if t['name'] == 'Piano'), None)
+        assert tr is not None, 'MIDI 里没有 Piano 轨'
+        bends = [int(v) for _t, v in (tr.get('pitch_bends') or [])]
+        assert bends and bends[0] == -8192 and bends[-1] == 4095, \
+            '弯音首尾不对：%s' % (bends[:3] + bends[-3:] if bends else [])
+        assert len(bends) > 10, \
+            '弯音没有插值（只有 %d 条事件）—— MIDI 会是阶跃，听感"突然走音"' % len(bends)
+        ccs = [(round(t, 3), int(c), int(v)) for t, c, v in (tr.get('ccs') or [])]
+        assert (0.0, 7, 80) in ccs and (2.0, 11, 100) in ccs, 'CC 没写进去：%s' % ccs
+        tail7 = [v for t, c, v in ccs if c == 7 and t == 0.0]
+        assert tail7 and tail7[-1] == 80, 'CC7 没覆盖默认值（同 tick 顺序错）：%s' % tail7
+        return 'automation 回读：弯音 %d 条（首尾 -8192/4095）· CC 覆盖默认' % len(bends)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check
+def t_automation_panel_contracts():
+    """自动化面板的接线（2026-10-17）：canvas / 按钮 / 渲染 / 保存校验，四处缺一不可。
+
+    这类"接线"断了不会报错，只会**点了没反应**（面板画不出、保存不校验）。
+    """
+    def _read(*p):
+        with open(os.path.join(ROOT, *p), encoding='utf-8') as f:
+            return f.read()
+
+    srv = _read('studio', 'server.py')
+    html = _read('studio', 'web', 'index.html')
+    js = _read('studio', 'web', 'app.js')
+    assert 'renderSearchSec, renderAuto' in js, \
+        'renderAll 没接 renderAuto（面板永远不画）'
+    assert 'function renderAuto' in js and 'function bindAuto' in js, \
+        'app.js 缺 renderAuto / bindAuto'
+    assert 'function autoSetPoints' in js, 'app.js 缺 autoSetPoints（改了不写进 song）'
+    for el in ('autoCanvas', 'btnAutoSave', 'autoTrack', 'autoParam'):
+        assert ('id="%s"' % el) in html, 'index.html 缺 #%s' % el
+    assert 'song_engine.validate_automation(d)' in srv, \
+        '保存时没校验 automation（坏数据会写进 song.json，渲染才炸）'
+    # ── 2026-10-17 补（交接 §6 项 2）：撤销/重做 · 框选 · 参数表 ──────────────
+    # 失效形态同样是静默的：按钮在但没接线 / 框选了但选择集合从不写 / 参数下拉只有 5 个。
+    for el in ('btnAutoUndo', 'btnAutoRedo'):
+        assert ('id="%s"' % el) in html, 'index.html 缺 #%s（撤销/重做按钮）' % el
+    for fn in ('function autoUndo', 'function autoRedo', 'function autoPushUndo'):
+        assert fn in js, 'app.js 缺 %s（撤销栈没接线）' % fn
+    # ⚠ 断言要写成**赋值那句**（`S.auto.rect = {x0`），不能只写 `"S.auto.rect" in js` ——
+    #   实测变异把它改名成 `S.auto.rectX` 时，子串仍然命中，注入**抓不到**（假绿）。
+    assert 'S.auto.rect = {x0' in js and 'S.auto.sel = autoPoints()' in js, \
+        'app.js 没有框选（Shift+拖 → S.auto.rect → 写选择集合），用户只能一个个点'
+    assert "S.auto.sel" in js and "'Delete'" in js, \
+        'app.js 没有"选中集合 + Del 删除"（框选完删不掉等于没框选）'
+    assert 'autoUndo()' in js and 'autoRedo()' in js, '按钮没接到 autoUndo/autoRedo'
+    n_cc = html.count('<option value="cc')
+    assert n_cc >= 8, '参数下拉只有 %d 个 CC（交接要求扩参数表；至少 8 个）' % n_cc
+    for cc in ('cc74', 'cc91'):
+        assert ('value="%s"' % cc) in html, '参数表缺 %s（亮度/混响是常用表情）' % cc
+    return ('自动化面板：canvas/按钮/渲染/保存校验 四处一致 · 撤销重做 · 框选+Del · '
+            '%d 个参数' % (n_cc + 1))
+
+
+@check
+def t_song_mix_ramp():
+    """段界 CC7 渐变（`patterns.mix_ramp`，opt-in）：段界前必须渐变、不是阶跃。
+
+    2026-10-17：用户"突然变大声"同族问题 —— `sections[].arr.mix` 原来只在段起点写一个
+    CC7，段界音量瞬变。这个开关默认关（老曲逐字节不变）。
+    """
+    import json_io as _jio
+    import midi_file as _mf
+    import song_engine as _se
+    import shutil
+
+    tmp = tempfile.mkdtemp(prefix='ramp_')
+    try:
+        d = {'name': 'ramp', 'bpm': 120.0, 'meter': [4, 4],
+             'chords': {'C': [48, [60, 64, 67]]},
+             'sections': [
+                 {'name': 'A', 'bars': 2, 'chords': ['C', 'C'], 'melody': 'a',
+                  'arr': {'perc': 0, 'mix': {'Piano': 100}}},
+                 {'name': 'B', 'bars': 2, 'chords': ['C', 'C'], 'melody': 'a',
+                  'arr': {'perc': 0, 'mix': {'Piano': 40}}},
+             ],
+             'melody': {'a': []},
+             'notes_extra': {'Piano': [[0, 0.0, 1.0, 60, 100],
+                                       [2, 0.0, 1.0, 60, 100]]},
+             'programs': {'Piano': [0, 2]},
+             'patterns': {'notes_extra_full': True, 'mix_ramp': 0.5}}
+        js = os.path.join(tmp, 'song.json')
+        _jio.save(js, d)
+        mid = os.path.join(tmp, 'r.mid')
+        with redirect_stdout(io.StringIO()):
+            _se.compose(js, mid, quiet=True)
+        back = _mf.import_midi(mid)
+        tr = next(t for t in back['tracks'] if t['name'] == 'Piano')
+        ccs = [(round(t, 3), int(c), int(v)) for t, c, v in tr['ccs']]
+        ramp = [(t, v) for t, c, v in ccs if c == 7 and 7.4 < t < 8.01]
+        assert len(ramp) >= 4, '段界没有渐变（只有 %d 个 CC7 点）：%s' % (len(ramp), ramp)
+        assert ramp[-1] == (8.0, 40), '段界终点不是 40：%s' % (ramp[-1],)
+        assert all(ramp[i][1] >= ramp[i + 1][1] for i in range(len(ramp) - 1)), \
+            '渐变不单调：%s' % ramp
+        return '段界 CC7：%d 个渐变点（100→40）' % len(ramp)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check
+def t_automation_empty_track():
+    """**空轨上的 automation 必须报出来**，不许静默丢（2026-10-17 交接 §6 未完成项 3）。
+
+    失效形态是**静默**的：`song.json` 里写了 CC / 弯音，那轨却没有音符 →
+    `write_midi` 跳过空轨（否则 DAW 里一堆空轨），挂在上面的 CC / 弯音 / 段级 CC7
+    **跟着一起消失**，而保存与渲染都"成功"、一个字都不提示。
+    判据分三层：① `automation_dropped` 自己给出"哪轨 + 各多少条"（守卫直呼）
+    ② 渲染时把这句喊出来（用户看得见）③ 空轨仍然不写进 MIDI（既有契约不变）。
+    """
+    import json_io as _jio
+    import midi_file as _mf
+    import song_engine as _se
+    import shutil
+
+    tmp = tempfile.mkdtemp(prefix='drop_')
+    try:
+        # 'Solo' / 'Aux' 不是引擎任何生成层的名字 ⇒ 它们必然是空轨（没有音符），
+        # 而 programs 里有它们（validate_automation 放行）。Piano 有音符当对照。
+        d = {'name': 'drop', 'bpm': 120.0, 'meter': [4, 4],
+             'chords': {'C': [48, [60, 64, 67]]},
+             'sections': [{'name': 'A', 'bars': 2, 'chords': ['C', 'C'], 'melody': 'a',
+                           'arr': {'perc': 0, 'mix': {'Solo': 90, 'Aux': 70}}}],
+             'melody': {'a': []},
+             'notes_extra': {'Piano': [[0, 0.0, 1.0, 60, 100]]},
+             'programs': {'Piano': [0, 2], 'Solo': [73, 3], 'Aux': [89, 4]},
+             'automation': {'Solo': {'ccs': [[0, 11, 100], [2, 11, 20]],
+                                     'pitch_bends': [[0, 0], [1, 2048]]}}}
+        js = os.path.join(tmp, 'song.json')
+        _jio.save(js, d)
+        mid = os.path.join(tmp, 'drop.mid')
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            _se.compose(js, mid, quiet=True)
+        out = buf.getvalue()
+
+        # ① 判据本身（直呼）
+        with redirect_stdout(io.StringIO()):
+            dd = _se.load(js)
+            ev, _nb = _se.build_events(dd)
+        drop = dict(_se.automation_dropped(dd, ev))
+        assert drop.get('Solo') == {'ccs': 2, 'bends': 2, 'mix': 1}, \
+            'automation_dropped 没认出空轨 Solo：%r' % (drop,)
+        assert drop.get('Aux') == {'ccs': 0, 'bends': 0, 'mix': 1}, \
+            'automation_dropped 没认出"只有段级 mix"的空轨 Aux：%r' % (drop,)
+        assert 'Piano' not in drop, '有音符的轨被误报成空轨：%r' % (drop,)
+
+        # ② 用户看得见（渲染时打印，带轨名与条数）
+        assert '!! automation 被丢弃' in out, \
+            '空轨 automation 被静默丢弃（渲染输出里一个字都没有）：%r' % out[:200]
+        for want in ("'Solo'", 'CC 2 条', '弯音 2 条', "'Aux'", '段级 CC7 1 处'):
+            assert want in out, '丢弃提示缺 %r：%r' % (want, out[-300:])
+
+        # ③ 既有契约不变：空轨仍然不写进 MIDI（否则 DAW 里一堆空轨）
+        back = _mf.import_midi(mid)
+        names = [t['name'] for t in back['tracks']]
+        assert 'Piano' in names, '对照轨 Piano 没写进 MIDI：%s' % names
+        assert 'Solo' not in names and 'Aux' not in names, \
+            '空轨被写进 MIDI 了（契约变了）：%s' % names
+        return '空轨 automation：Solo（CC2·弯音2·mix1）/ Aux（mix1）都被报出，空轨仍不写'
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check
+def t_midi_type2_kar():
+    """**Type 2 明确拒绝 · `.kar`（Type 0 + 歌词 meta）能导入**（2026-10-17）。
+
+    两种格式此前都**没测过**，而失败形态都是静默的：
+      · **Type 2** = 多条**互不相关**的序列（每个 MTrk 各自从 tick 0 起）——
+        叠在一条时间轴上不会报错，只会**整段错位**（老式打谱软件的"分轨导出"常是它）；
+      · **`.kar`** = 卡拉OK MIDI（歌词是 meta 0x05）：不处理本来也不崩，但用户
+        不知道"歌词没进来"；而一旦把歌词当文本音符合成，会凭空多出一条轨。
+    判据：① Type 2 抛 SystemExit 且话说清"没有共同时间轴、请导成 0/1"
+          ② `.kar` 的音符数/音高**一个不差**（歌词不参与）
+          ③ 歌词被**统计**出来并在输出里说"已忽略 N 行"
+    """
+    import struct as _struct
+    import midi_file as _mf
+    import midi_probe as _mp
+    import midi_to_song as _m2s
+    import shutil
+
+    def _vlq(n):
+        out = bytearray([int(n) & 0x7F])
+        n = int(n) >> 7
+        while n:
+            out.insert(0, (n & 0x7F) | 0x80)
+            n >>= 7
+        return bytes(out)
+
+    def _track(evs):
+        body, last = b'', 0
+        for tick, data in evs:
+            body += _vlq(tick - last) + data
+            last = tick
+        body += _vlq(0) + b'\xff\x2f\x00'
+        return b'MTrk' + _struct.pack('>I', len(body)) + body
+
+    def _write(path, fmt, div, tracks):
+        open(path, 'wb').write(
+            b'MThd' + _struct.pack('>IHHH', 6, fmt, len(tracks), div) + b''.join(tracks))
+
+    note_on = lambda ch, p, v: bytes([0x90 | ch, p, v])
+    note_off = lambda ch, p: bytes([0x80 | ch, p, 0])
+    meta = lambda kind, payload: b'\xff' + bytes([kind]) + _vlq(len(payload)) + payload
+
+    tmp = tempfile.mkdtemp(prefix='type2kar_')
+    try:
+        # ① Type 2：两条各自独立的序列（本判据只看"必须拒绝"，不关心内容）
+        t2 = os.path.join(tmp, 't2.mid')
+        _write(t2, 2, 480, [
+            _track([(0, note_on(0, 60, 100)), (480, note_off(0, 60))]),
+            _track([(0, note_on(0, 67, 100)), (480, note_off(0, 67))]),
+        ])
+        try:
+            with redirect_stdout(io.StringIO()):
+                _mf.import_midi(t2)
+        except SystemExit as e:
+            msg = str(e)
+        else:
+            raise AssertionError('Type 2 被当成 Type 1 导入了（会静默错位）—— 没有拒绝')
+        assert 'Type 2' in msg and '0 / 1' in msg and '共同时间轴' in msg, \
+            '提示没把"为什么不能导 + 该怎么办"说清：%r' % msg[:300]
+
+        # ② `.kar`：Type 0，两条轨 —— 轨 0 = tempo + 3 行歌词，轨 1 = 4 个音
+        kar = os.path.join(tmp, 'song.kar')
+        lyr = ['[01]la', '[02]la', '[03]la']
+        _write(kar, 0, 480, [
+            _track([(0, meta(0x51, (500000).to_bytes(3, 'big'))),
+                    (0, meta(0x58, bytes([4, 2, 24, 8])))]
+                   + [(i * 480, meta(0x05, s.encode('utf-8'))) for i, s in enumerate(lyr)]),
+            _track([(0, note_on(0, 60, 100)), (960, note_off(0, 60)),
+                    (960, note_on(0, 64, 100)), (1920, note_off(0, 64)),
+                    (1920, note_on(0, 67, 100)), (2880, note_off(0, 67)),
+                    (2880, note_on(0, 72, 100)), (3840, note_off(0, 72))]),
+        ])
+        m = _mf.import_midi(kar)
+        flat = [p for t in m['tracks'] for p in [n[2] for n in (t['notes'] or [])]]
+        assert sorted(flat) == [60, 64, 67, 72], \
+            '.kar 的音符被弄错了（歌词不该变成音）：%r' % (flat,)
+        nl = sum(len(t.get('lyrics') or []) for t in m['tracks'])
+        assert nl == len(lyr), '.kar 的歌词没记下来（记到 %d 行，应为 %d）' % (nl, len(lyr))
+
+        # ③ 导入引擎：歌词只统计、不进 song.json，并在输出里说明
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            d, info = _m2s.build_from_model(m, name='kar_probe', verbose=True)
+        out = buf.getvalue()
+        assert info.get('lyric_lines') == len(lyr), \
+            'info.lyric_lines 不对：%r' % (info.get('lyric_lines'),)
+        assert '歌词' in out and '已忽略' in out, \
+            '导入时没说"歌词已忽略"（用户以为歌词跟着进来了）：%r' % out[-300:]
+        assert 'lyrics' not in json.dumps(d), \
+            '歌词被写进 song.json 了（它不是可演奏内容）：%s' % json.dumps(d)[:200]
+        return 'Type 2 拒绝（说明 0/1）· .kar 4 音全对 · 歌词 %d 行只统计不导入' % nl
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+@check
+def t_extract_editor_autopen():
+    """提取完 → 编辑器**自动打开**（2026-10-17 交接 §6 项 6）。
+
+    失效形态是静默的：提取任务照旧跑完、产物都在，但用户得自己从编辑器顶栏的下拉里
+    「📚 打开」—— 他会以为"提取没产出"（交接原文："现在要手动从曲库下拉打开"）。
+    判据是**接线四处都在**：① 提取那条 `watchJob` 带 `autoEditor`
+    ② **只有成功**才跳（失败/中断也跳 = 让人对着半成品）③ 编辑器认识 `?song=` 深链接
+    ④ 真的改 `location.href`（只弹一句 toast 等于没打开）。
+    """
+    def _read(*p):
+        with open(os.path.join(ROOT, *p), encoding='utf-8') as f:
+            return f.read()
+
+    create = _read('studio', 'web', 'create.js')
+    ed = _read('studio', 'web', 'ed.js')
+    assert 'watchJob(r.job, id, {autoEditor: true})' in create, \
+        '提取那条 watchJob 没带 autoEditor ⇒ 提取完不会自动打开编辑器（回到手动下拉）'
+    assert "st === 'done' && opts.autoEditor" in create, \
+        '自动打开没有判定"只有成功才跳"（失败/中断也会跳，用户会对着半成品）'
+    assert "location.href = '/editor?song='" in create, \
+        '没有真的跳转（只 toast 一句等于没打开）：找不到 location.href → /editor?song='
+    assert 'function openSong(argId)' in ed, '编辑器的 openSong 不接受曲目 id 参数（深链接打不开）'
+    assert "q.get('song')" in ed and 'openSong(sid)' in ed, \
+        '编辑器不认识 ?song= 深链接（自动打开会落在空编辑器上）'
+    return '提取完自动打开：提取→autoEditor · 仅 done 跳 · /editor?song= · 编辑器认深链接'
+
+
+@check
+def t_mix_ramp_for_new_songs():
+    """**新歌默认带 `mix_ramp`，引擎默认仍然关**（2026-10-17 交接 §6 项 4）。
+
+    两件事必须同时成立，缺一条都会出事：
+      ① **新生成曲**要有 `patterns.mix_ramp > 0` —— 否则生成曲的 `arr.mix` 段界还是
+         **阶跃**（用户"到某个点突然变大声"的原始症状），而交接原来写的是"要显式开"；
+      ② **引擎默认仍是 0** —— 老曲没有这个键，渲染必须**逐字节不变**
+         （`t_determinism_and_bytes` 盯已交付 MIDI；这里直接量 `section_mix_points`）。
+    """
+    import new_song as NS
+    import song_engine as SE
+    import theme_pack as TP
+    import midi_file as _mf
+
+    pack = TP.load_pack('cheerful')
+    with redirect_stdout(io.StringIO()):
+        d = NS.build_from_theme(pack, 'zz_mixramp_probe', seed=7, ncand=1)
+    ramp = (d.get('patterns') or {}).get('mix_ramp')
+    assert ramp and float(ramp) > 0, \
+        '新生成曲没带 patterns.mix_ramp（段界 CC7 还是阶跃）：%r' % (ramp,)
+    n_mix = sum(1 for s in (d.get('sections') or []) if (s.get('arr') or {}).get('mix'))
+    assert n_mix, '夹具曲没有 arr.mix（这条检查会空转：没有段级 CC7 就无从渐变）'
+
+    # ② 引擎侧：没有 mix_ramp 的曲目**一个渐变点都不许多**
+    base = {'bar_beats': 4.0, 'mix': {'Piano': (64, 100)},
+            'sections': [{'bars': 2, 'arr': {'mix': {'Piano': 100}}},
+                         {'bars': 2, 'arr': {'mix': {'Piano': 40}}}],
+            'patterns': {}}
+    pts0 = SE.section_mix_points(base)
+    assert len(pts0['Piano']) == 2, \
+        '没写 mix_ramp 却多出了点（老曲字节会变）：%s' % (pts0['Piano'],)
+    base2 = dict(base, patterns={'mix_ramp': 0.5})
+    pts1 = SE.section_mix_points(base2)
+    assert len(pts1['Piano']) > 2, \
+        '写了 mix_ramp 却没有渐变点（开关没接线）：%s' % (pts1['Piano'],)
+    assert pts1['Piano'][-1][0] == 8.0 and pts1['Piano'][-1][2] == 40, \
+        '渐变终点不是段界那个点（第 2 段从第 8 拍起、值 40）：%s' % (pts1['Piano'][-3:],)
+
+    # ③ 端到端：真编一遍，段界附近的 CC7 点必须多于 2（首点 + 段界点 + 渐变）
+    import json_io as _jio
+    js = os.path.join(TMP, 'mixramp_probe.json')
+    _jio.save(js, d)
+    mid = os.path.join(TMP, 'mixramp_probe.mid')
+    with redirect_stdout(io.StringIO()):
+        SE.compose(js, mid, quiet=True)
+    back = _mf.import_midi(mid)
+    tr = next((t for t in back['tracks'] if t['name'] == 'Piano'), None)
+    assert tr is not None, 'MIDI 里没有 Piano 轨（夹具不对）'
+    ccs7 = sorted(t for t, c, _v in tr['ccs'] if int(c) == 7)
+    assert len(ccs7) > len(d['sections']), \
+        '段界 CC7 只有 %d 个点（≈段数）—— 渐变没进 MIDI' % len(ccs7)
+    return ('新歌 mix_ramp=%.2f 拍 · %d 段带 arr.mix · 引擎默认仍 0（2 点不变）· '
+            'MIDI 里 CC7 %d 点' % (float(ramp), n_mix, len(ccs7)))
+
+
+@check
+def t_bend_masking_probe():
+    """**弯音掩蔽探针的尺子本身是对的**（2026-10-17 交接 §6 项 5）。
+
+    探针 `bend_masking_probe.py` 用"同曲两版（带弯音/不带弯音）的窄带能量差 Δ247"判断
+     弯音在混音里还在不在。它自己会踩两个坑，这里各钉一条（都是**实测踩过**的）：
+      ① **弯音值越界**：1 半音 = 4096，SMF 上限 8191 —— 按 8192 算 `--depth 2` 会直接
+         被引擎拒（`automation[Strings] 弯音越界：[24.0, 8192]`）；
+      ② **尺子分不开标称/弯音频率**：`_narrow` 必须在 220Hz 与 247Hz 上给出**可分辨**的
+         能量差，否则"Δ247≈0"会被误读成"被掩蔽"（实际是尺子坏了）。
+    """
+    import bend_masking_probe as BM
+    import shutil
+
+    # ① 弯音值夹在 SMF 上限内
+    d2 = BM.build_song(depth=2.0, with_bend=True, dense=False)
+    bend2 = d2['automation']['Strings']['pitch_bends'][1][1]
+    assert bend2 == 8191, '深度 2 半音的弯音值应是 8191（上限），实得 %r' % (bend2,)
+    d4 = BM.build_song(depth=4.0, with_bend=True, dense=False)
+    assert d4['automation']['Strings']['pitch_bends'][1][1] == 8191, \
+        '深度 4 半音越界了（必须夹到 8191，否则引擎直接拒）'
+    assert 'C' in d4['chords'] and d4['notes_extra'].get('Strings'), '夹具曲缺素材'
+    d0 = BM.build_song(depth=2.0, with_bend=False, dense=False)
+    assert 'automation' not in d0, 'with_bend=False 仍写了 automation（唯一变量没控住）'
+
+    # ② 尺子分辨力：220Hz 与 247Hz 两段音，`_narrow` 必须各认各的
+    import numpy as _np
+    import soundfile as _sf
+    tmp = tempfile.mkdtemp(prefix='bendrule_')
+    try:
+        sr = 22050
+        t = _np.arange(int(sr * 2.0)) / float(sr)
+        w220 = os.path.join(tmp, 'a220.wav')
+        w247 = os.path.join(tmp, 'a247.wav')
+        _sf.write(w220, (0.2 * _np.sin(2 * _np.pi * 220.0 * t)).astype('float32'), sr)
+        _sf.write(w247, (0.2 * _np.sin(2 * _np.pi * 246.94 * t)).astype('float32'), sr)
+        y220, _ = BM._load(w220)
+        y247, _ = BM._load(w247)
+        e220_at_220 = BM._narrow(y220, sr, 0.2, 1.8, 220.0)
+        e220_at_247 = BM._narrow(y220, sr, 0.2, 1.8, 246.94)
+        e247_at_247 = BM._narrow(y247, sr, 0.2, 1.8, 246.94)
+        e247_at_220 = BM._narrow(y247, sr, 0.2, 1.8, 220.0)
+        assert BM._db(e220_at_220) - BM._db(e220_at_247) > 20.0, \
+            '尺子分不开 220 与 247Hz（220 音在 247 带上也有能量）—— Δ247 会假报"没被掩蔽"'
+        assert BM._db(e247_at_247) - BM._db(e247_at_220) > 20.0, \
+            '尺子分不开 247 与 220Hz（247 音在 220 带上也有能量）'
+        # 弯音目标频率必须按"半音"算对（+2 半音 = ×2^(2/12)）
+        assert abs(246.94 - 220.0 * 2 ** (2 / 12.0)) < 0.1, '目标频率换算错了'
+        return '弯音上限夹到 8191 · 尺子在 220/247Hz 上分辨力 >20dB · with_bend 是唯一变量'
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 import cli_utf8 as _cu; _cu.setup()   # 控制台编码兜底（GBK 下打印 ✓ 会崩）

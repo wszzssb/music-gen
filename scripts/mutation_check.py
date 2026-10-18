@@ -2630,6 +2630,13 @@ def main():
                         lambda: Mut(_as, 'VEL_LO', 0.10)))
     results.append(case('一键链：默认改成"删静音段的音"', 'restore_oneshot_chain',
                         lambda: Mut(_ro, 'DEFAULT_ALLOW_STEM_CUT', True)))
+    # 69b. **力度来源过期**必须被抓（2026-10-18，BGM29）：`--apply` 覆盖整首力度却不改
+    #      `velocity_source` ⇒ 全库自检把红指到 `Piano: FAILED`（红的是记录）。两条坏法：
+    #      ① 不改写（记录永远停在上一阶段）；② 函数写了但 `main` 没接线。
+    results.append(case('一键链：力度来源不改写（记录停在上一阶段）', 'restore_oneshot_chain',
+                        lambda: Mut(_vf, 'tag_source', lambda old, ref: str(old or ''))))
+    results.append(case('一键链：改了函数但 main 没接线', 'restore_oneshot_chain',
+                        lambda: Mut(_vf, 'record_source', lambda d, ref: {})))
 
     # 63. `patterns.melody_exempt` 的**理由写成空话**时不许放行（2026-09-25）——
     #     "理由空白 = 没写 = 不放行"这条口径必须有变异用例守着，否则豁免会变成
@@ -4304,6 +4311,219 @@ def main():
     results.append(case('任务：账本读回不标 interrupted（前端永远 running）',
                         'job_lifecycle_contracts',
                         lambda: Mut(_SVm, 'INTERRUPTED_STATE', 'running')))
+
+    # 106. **MIDI 导入（midi_to_song.py）的口径错**（2026-10-17）。
+    #      小节号两套口径（melody 段内 / notes_extra 全局）写错时，音符数一个不少、
+    #      只是位置整体错位 —— 数量型判据抓不到，所以这条专门注入"小节内拍 = 全局拍"。
+    import midi_to_song as _m2sm     # noqa: E402
+    results.append(case('MIDI 导入：小节内拍写成全局拍（位置整体错位）',
+                        'midi_to_song_roundtrip',
+                        lambda: Mut(_m2sm, 'beat_in_bar',
+                                    lambda beat, bar, bb: round(beat, 4))))
+    # 106b. **Type 0 不按通道拆**（2026-10-17）：钢琴/贝斯/鼓全并成一条轨，且因轨名
+    #       像 Drums 而整条用鼓音色发声 —— 零报错、听感全毁。判据看"拆出的轨名集合"。
+    results.append(case('MIDI 导入：Type 0 不按通道拆（全并成一条）',
+                        'midi_to_song_type0',
+                        lambda: Mut(_m2sm, 'expand_channels',
+                                    lambda tracks: list(tracks))))
+    # 106c. **多 tempo 的两种坏法**（2026-10-17）：① 不拒绝（按首个 tempo 硬算 → 后半段错位）
+    #       ② 拒绝后重排忽略 tempo_map（等于没重排）。
+    results.append(case('MIDI 导入：多 tempo 不拒绝（按首个 tempo 硬算）',
+                        'midi_to_song_tempo_map',
+                        lambda: Mut(_m2sm, 'has_tempo_change', lambda tmap: False)))
+    results.append(case('MIDI 导入：多 tempo 重排忽略 tempo_map',
+                        'midi_to_song_tempo_map',
+                        lambda: Mut(_m2sm, 'sec_at',
+                                    lambda beat, tmap, mpqn=500000: beat * mpqn / 1e6)))
+    # 106d. **编辑器 → 引擎的入口漂移**（2026-10-17 A2）：面板走模型、CLI 走文件，
+    #       两条入口的结果必须逐音一致。这里把文件版替换成"空模型"来注入漂移。
+    def _empty_build(path, **kw):
+        return _m2sm.build_from_model(
+            {'tracks': [], 'timesig': [4, 4], 'end_beat': 0.0}, **kw)
+    results.append(case('MIDI 导入：模型版/文件版入口漂移（文件版返回空）',
+                        'midi_to_song_from_model',
+                        lambda: Mut(_m2sm, 'build', _empty_build)))
+    # 106e. **曲库 ↔ 编辑器接线**（2026-10-17 A2）：按钮改名/漏绑 = 点了没反应，零报错。
+    results.append(case('A2：ed.js 的「→ 引擎」绑定被改名（点了没反应）',
+                        'import_song_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'web', 'ed.js'),
+                                          "$('btnToSong').onclick",
+                                          "$('btnToSongX').onclick", 'toSong 绑定')))
+    results.append(case('A2：server 的 song 分支被改名（曲库打不开）',
+                        'import_song_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'server.py'),
+                                          "if body.get('song'):", "if body.get('songX'):",
+                                          'song 分支')))
+    # 106f. **弯音往返**（2026-10-17）：import_midi 丢掉 pitch_bends 时，
+    #       "往返一致"会变成假绿（roundtrip_report 原来不比弯音）。
+    import midi_file as _mfm      # noqa: E402
+    _orig_import = _mfm.import_midi
+
+    def _strip_bends(path, **kw):
+        m = _orig_import(path, **kw)
+        for t in m.get('tracks') or []:
+            t['pitch_bends'] = []
+        return m
+    results.append(case('弯音：import_midi 丢掉 pitch_bends（往返假绿）',
+                        'midi_bend_roundtrip',
+                        lambda: Mut(_mfm, 'import_midi', _strip_bends)))
+    # 106g. **表情自动化必须报数**（2026-10-17）：不报 = 用户以为 CC/弯音被保留。
+    results.append(case('导入引擎：CC/弯音计数恒 0（静默丢弃）',
+                        'midi_to_song_automation',
+                        lambda: Mut(_m2sm, 'count_automation', lambda m: (0, 0))))
+    # 106h. **automation 写不进 MIDI**（2026-10-17）：数据在、渲染没声 —— 最隐蔽的失效。
+    import song_engine as _sem      # noqa: E402
+    results.append(case('自动化轨：write_midi 不读 automation（数据在、没声）',
+                        'song_automation_roundtrip',
+                        lambda: Mut(_sem, 'automation_of', lambda d: {})))
+    results.append(case('自动化轨：弯音不插值（阶跃走音）',
+                        'song_automation_roundtrip',
+                        lambda: Mut(_sem, 'densify_points',
+                                    lambda pts, step: sorted(
+                                        (float(t), float(v)) for t, v in pts))))
+    # 106k. **段界 CC7 不渐变**（2026-10-17，与"突然变大声"同族）：段界音量瞬变。
+    results.append(case('段界 CC7：mix_ramp 不生效（阶跃）',
+                        'song_mix_ramp',
+                        lambda: Mut(_sem, 'mix_ramp_points', lambda *a, **k: [])))
+    # 106l. **空轨上的 automation 静默丢**（2026-10-17 交接 §6 未完成项 3）：
+    #       数据在、那轨没音符 ⇒ CC/弯音/段级 CC7 一起消失，保存和渲染都"成功"。
+    results.append(case('空轨 automation：丢弃不报（回到静默）',
+                        'automation_empty_track',
+                        lambda: Mut(_sem, 'automation_dropped',
+                                    lambda *a, **k: [])))
+    results.append(case('空轨 automation：段级 mix 不计（只报 CC/弯音）',
+                        'automation_empty_track',
+                        lambda: Mut(_sem, 'section_mix_points', lambda d: {})))
+    # 106m. **空分轨被判"可以校准力度"**（2026-10-17）：整轨 −82.8dB 的 bass.wav 上
+    #       逐音串音峰 > −60dB，旧版判"可以" ⇒ 噪声底被排成"看着正常"的力度（静默造假）。
+    import measure_velocity as _mvm      # noqa: E402
+    results.append(case('空分轨：--self-test 仍判"可以校准"（门槛被摘）',
+                        'measure_velocity_empty_stem',
+                        lambda: Mut(_mvm, '_RMS_FLOOR_DB', -200.0)))
+    # 106n. **Type 2 / .kar**（2026-10-17）：Type 2（多条独立序列）叠成一条时间轴是
+    #       **静默错位**；`.kar` 的歌词只统计不导入，但要在输出里说"已忽略 N 行"。
+    import midi_probe as _mpm      # noqa: E402
+    results.append(case('Type 2：不再拒绝（当 Type 1 叠成一条时间轴）',
+                        'midi_type2_kar',
+                        lambda: Mut(_mpm, 'SUPPORTED_FORMATS', (0, 1, 2))))
+    results.append(case('.kar：歌词 meta 不认（用户不知道歌词没进来）',
+                        'midi_type2_kar',
+                        lambda: Mut(_mpm, 'LYRIC_META', 0x7F)))
+    # 106o. **提取完自动打开编辑器**（2026-10-17 交接 §6 项 6）：两处断法都是静默的 ——
+    #       ① 提取不再带 autoEditor（回到"自己从下拉里打开"）
+    #       ② 编辑器不认识 ?song=（自动打开落在空编辑器上）
+    results.append(case('提取完不开编辑器（回到手动下拉）',
+                        'extract_editor_autopen',
+                        lambda: _text_mut(os.path.join('studio', 'web', 'create.js'),
+                                          'watchJob(r.job, id, {autoEditor: true})',
+                                          'watchJob(r.job, id)', 'autoEditor')))
+    results.append(case('编辑器不认 ?song= 深链接（打开成空编辑器）',
+                        'extract_editor_autopen',
+                        lambda: _text_mut(os.path.join('studio', 'web', 'ed.js'),
+                                          "q.get('song')", "q.get('songX')", 'song 参数')))
+    # 106p. **自动化面板的撤销/框选/参数表**（2026-10-17 交接 §6 项 2）：
+    #       按钮在没接线、框选不写选择集合 —— 都是"看着有、点了没用"。
+    results.append(case('自动化面板：撤销按钮被摘（改错只能重画）',
+                        'automation_panel_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'web', 'index.html'),
+                                          'id="btnAutoUndo"', 'id="btnAutoUndoX"', '撤销按钮')))
+    results.append(case('自动化面板：框选不写选择集合（选不中）',
+                        'automation_panel_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'web', 'app.js'),
+                                          'S.auto.rect = {x0', 'S.auto.rectX = {x0', '框选')))
+    results.append(case('自动化面板：参数表退回到 5 个（没有 CC74/91）',
+                        'automation_panel_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'web', 'index.html'),
+                                          '<option value="cc74">', '<option value="ccX74">', 'CC74')))
+    # 106q. **新歌不带 mix_ramp**（2026-10-17 交接 §6 项 4）：段界 CC7 退回阶跃。
+    #       ⚠ 这里**不能**用 `_text_mut` 改 new_song.py 源码：`new_song` 在本进程里
+    #       早就 import 过了（其它用例在用），改磁盘上的字看不见 ⇒ 注入等于没注入。
+    #       改成**替换函数**：包一层 `build_from_theme`，把返回值里的 mix_ramp 摘掉。
+    import new_song as _nsm      # noqa: E402
+    _orig_bft = _nsm.build_from_theme
+
+    def _strip_mix_ramp(*a, **kw):
+        d = _orig_bft(*a, **kw)
+        (d.get('patterns') or {}).pop('mix_ramp', None)
+        return d
+    results.append(case('新歌 mix_ramp 默认被摘（段界回到阶跃）',
+                        'mix_ramp_for_new_songs',
+                        lambda: Mut(_nsm, 'build_from_theme', _strip_mix_ramp)))
+    # 106s. **共用旋律的段被换成不同和弦**（2026-10-18，用户"不协调"的根因）：
+    #       ① 退回"按完整段名哈希"（B/B2/B3 各一套进行）② 全塌成一条进行（段间没有对比）。
+    import zlib as _zl
+
+    def _prog_by_full_name(pack, seed, name, pi, n_progs):
+        if seed is None or not pi or n_progs <= 1:
+            return pi
+        nz = list(range(1, n_progs))
+        mix = 'progidx|%s|%d|%s' % (pack.get('theme') or '?',
+                                    int(seed) & 0xFFFFFFFF, name)
+        return nz[_zl.crc32(mix.encode('utf-8')) % len(nz)]
+    results.append(case('和弦进行：按完整段名哈希（B/B2/B3 三套进行）',
+                        'theme_progression_repeat_consistent',
+                        lambda: Mut(_nsm, 'prog_index_for_section', _prog_by_full_name)))
+    results.append(case('和弦进行：全塌成一条（B/C 没有和声对比）',
+                        'theme_progression_repeat_consistent',
+                        lambda: Mut(_nsm, 'prog_index_for_section',
+                                    lambda pack, seed, name, pi, n: (pi if not pi else 1))))
+    # 106t. **被点名禁用的主奏音色又被放回来**（2026-10-18，用户"GM 小提琴太垃圾"）。
+    results.append(case('禁用主奏音色：GM40 小提琴又能选了',
+                        'lead_bad_timbre_blocked',
+                        lambda: Mut(_nsm, 'LEAD_BLOCKED', {})))
+    # 106r. **弯音掩蔽探针的尺子**（2026-10-17 交接 §6 项 5）：窄带量不出 220/247 的差别时，
+    #       "Δ247≈0" 会被误读成"被掩蔽"（实际是尺子坏了）；弯音值越界则整条探针跑不起来。
+    import bend_masking_probe as _bmm      # noqa: E402
+    results.append(case('弯音探针：窄带尺子失效（220/247 分不开）',
+                        'bend_masking_probe',
+                        lambda: Mut(_bmm, '_narrow', lambda *a, **k: 1.0)))
+    _bmm_orig_build = _bmm.build_song
+
+    def _bmm_noclamp(depth=2.0, with_bend=True, dense=False):
+        """模拟"忘了夹到 SMF 上限"：把弯音值改成 8192（越界）。"""
+        d = _bmm_orig_build(depth, with_bend, dense)
+        for tr in (d.get('automation') or {}).values():
+            for it in (tr.get('pitch_bends') or []):
+                if it[1]:
+                    it[1] = 8192
+        return d
+    results.append(case('弯音探针：弯音值不夹到 SMF 上限（越界被引擎拒）',
+                        'bend_masking_probe',
+                        lambda: Mut(_bmm, 'build_song', _bmm_noclamp)))
+    results.append(case('自动化轨：导入器不搬 CC/弯音（静默丢）',
+                        'midi_to_song_automation',
+                        lambda: Mut(_m2sm, 'collect_automation', lambda *a, **k: {})))
+    # 106i. **Type 0 的 CC 没按通道拆**（2026-10-17）：表情全塞给最后一条通道。
+    results.append(case('MIDI 导入：Type 0 的 CC 没按通道拆（全塞给最后一条）',
+                        'midi_to_song_type0',
+                        lambda: Mut(_m2sm, 'channel_ccs', lambda tr, ch: [])))
+    # 106j. **自动化面板的接线**（2026-10-17）：renderAll 漏挂 = 面板永远不画；
+    #       保存不校验 = 坏数据写进 song.json，等渲染才炸。
+    results.append(case('自动化面板：renderAll 漏挂 renderAuto（永远不画）',
+                        'automation_panel_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'web', 'app.js'),
+                                          'renderSearchSec, renderAuto',
+                                          'renderSearchSec', 'renderAll 列表')))
+    results.append(case('自动化面板：保存时不校验 automation（坏数据写盘）',
+                        'automation_panel_contracts',
+                        lambda: _text_mut(os.path.join('studio', 'server.py'),
+                                          'song_engine.validate_automation(d);',
+                                          '', '保存校验')))
+
+    # 107. **八度校正器退化成纯规则**（2026-10-18 新工具）：`hybrid` 的语义是
+    #      "规则优先 + 模型只补规则弃权的近八度"，注入 = 直接返回 pyin ⇒ 模型补判永远不生效。
+    import octave_corrector as _ocm      # noqa: E402
+    results.append(case('八度校正器：hybrid 退化成纯 pyin 规则',
+                        'octave_corrector_contracts',
+                        lambda: Mut(_ocm, 'combine_hybrid',
+                                    lambda ps, ms, pr, h: list(ps))))
+
+    # 108. **面板 i18n 字典漏一条**（2026-10-18）：`i18n_check` 原来不进 selftest，
+    #      自动化面板 20 条 + 编辑器曲库入口 8 条漏翻后全量自检仍全绿。注入 = 删掉
+    #      编辑器「曲库…」那条；`i18n_coverage` 必须红。
+    results.append(case('面板 i18n：字典漏一条（英文态中文）', 'i18n_coverage',
+                        lambda: _text_mut(os.path.join('studio', 'web', 'i18n.js'),
+                                          "'曲库…': 'Library…',", '', 'i18n 曲库…')))
 
     print('\n结果: %d/%d 个故障被抓到' % (sum(results), len(results)))
     if not all(results):

@@ -1377,6 +1377,69 @@ async function doExport(fmt) {
   } catch (e) { setStatus('导出失败'); log('!! 导出失败：' + e.message); }
 }
 
+/* **编辑器 → 引擎**（2026-10-17 A2）：把当前会话模型直接写成 songs/<名>/song.json，
+ * 不用"先导出 .mid、再去创作台导入"。落盘后可在引擎面板渲染 / 体检 / 继续编配。 */
+async function toSong() {
+  if (!S.model || !S.model.tracks) { setStatus('先导入一个 MIDI'); return; }
+  const base = String(S.model.title || 'editor_import')
+    .replace(/[^\w\u4e00-\u9fff-]+/g, '_').slice(0, 40) || 'editor_import';
+  const id = window.prompt('曲目名（写进曲库 songs/<名>/）', base);
+  if (!id) { return; }
+  const bps = window.prompt('每段小节数', '8');
+  if (!bps) { return; }
+  setStatus('正在送到引擎…');
+  try {
+    const payload = { model: S.model, id: id.trim(),
+                      bars_per_section: Number(bps) || 8 };
+    const url = '/api/ed/to-song?eid=' + encodeURIComponent(S.eid);
+    let r;
+    try {
+      r = await post(url, payload);
+    } catch (e) {
+      // 同名默认拒绝：确认后才覆盖（打开曲库曲目改完 → 存回原曲目是常见路径）
+      if (String(e.message || '').indexOf('已经有') < 0) { throw e; }
+      if (!window.confirm('曲库里已有同名曲目「' + id.trim() + '」，覆盖它？')) {
+        setStatus('已取消'); return;
+      }
+      r = await post(url, Object.assign({}, payload, { force: true }));
+    }
+    $('exportInfo').textContent = '已送到引擎：' + r.id + ' · ' + (r.tracks || '?') +
+      ' 轨 / ' + (r.notes || '?') + ' 音' +
+      ((r.cc || r.bends) ? '（CC ' + (r.cc || 0) + ' / 弯音 ' + (r.bends || 0) + ' 已写入 automation）' : '') +
+      '（去引擎面板渲染）';
+    setStatus('已写入 songs/' + r.id + '/song.json');
+    log('→ 引擎：' + r.id + '（' + (r.tracks || '?') + ' 轨 / ' + (r.notes || '?') + ' 音）');
+  } catch (e) { setStatus('送到引擎失败'); log('!! 送到引擎失败：' + e.message); }
+}
+
+/* **曲库 → 编辑器**（A2 回程）：下拉列出曲库，选中后直接打开曲目目录里的 .mid。 */
+async function loadSongs() {
+  try {
+    const r = await api('/api/songs');
+    const sel = $('songSel');
+    sel.innerHTML = '<option value="">曲库…</option>' + (r.songs || []).map(s =>
+      '<option value="' + String(s.id).replace(/"/g, '&quot;') + '">' + s.id + '</option>').join('');
+  } catch (e) { /* 曲库读不到不影响编辑器 */ }
+}
+async function openSong(argId) {
+  const id = String(argId || $('songSel').value || '').trim();
+  if (!id) { setStatus('先在下拉里选一个曲目'); return; }
+  setStatus('正在打开 ' + id + '…');
+  try {
+    const r = await post('/api/ed/import', { song: id });
+    S.eid = r.eid; S.model = r.model; S.summary = r.summary;
+    S.selTracks.clear(); S.selNotes = []; S.undo = []; S.redo = [];
+    S.lowPitch = 36; S.highPitch = 84; S.x0 = 0; S.posBeat = 0; S.dirty = false;
+    S.scheduled.clear();
+    const ps = allNotes().map(n => n[2]);
+    if (ps.length) { S.lowPitch = Math.max(0, Math.min(...ps) - 2); S.highPitch = Math.min(127, Math.max(...ps) + 2); }
+    renderAll(); updateUndoUI();
+    log('从曲库打开 ' + id + '：' + r.summary.tracks.length + ' 轨 / ' + r.summary.stats.notes + ' 音符');
+    setStatus('已打开 ' + id);
+    autoRenderAudio();
+  } catch (e) { setStatus('打开失败'); log('!! 打开失败：' + e.message); }
+}
+
 /* 编辑模式：默认**只读**（载入别人的 .mid 时不该一碰就改），点「🔒 只读」切换成可编辑。
  * 只读时卷帘不响应鼠标编辑（浏览/播放/缩放/循环照常），工具条上的编辑按钮也会被拦下。 */
 function setEditMode(on) {
@@ -1545,6 +1608,8 @@ function bind() {
   $('fileIn').onchange = (e) => { if (e.target.files[0]) doImport(e.target.files[0]); e.target.value = ''; };
   $('btnExport').onclick = () => doExport(1);
   $('btnExport0').onclick = () => doExport(0);
+  $('btnToSong').onclick = () => toSong();
+  $('btnOpenSong').onclick = () => openSong();
   $('btnUndo').onclick = undo; $('btnRedo').onclick = redo;
   $('btnPlay').onclick = togglePlay; $('btnStop').onclick = () => { stopPlay(); seek(0); renderRoll(); };
   $('seek').oninput = () => {                       // 拖进度条 = 定位（卷帘/力度通道跟着走）
@@ -1631,12 +1696,24 @@ bind();
 renderAll();
 updateUndoUI();
 setEditMode(false);        // 默认只读（导入别人的 .mid 时不会一碰就被改）
+loadSongs();               // 曲库下拉（A2 回程；读不到不影响编辑）
 log('就绪：点「⬆ 导入 MIDI」选一个 .mid（文件不上传，只在本地解析）；改音符前先点右上「🔒 只读」解锁');
 
-/* **直链带路径进来**：`/editor?import=<路径>` —— 主面板的「📂 打开」用它把 .mid 交过来。 */
+/* **直链带路径进来**：`/editor?import=<路径>` —— 主面板的「📂 打开」用它把 .mid 交过来。
+ * **直链带曲目进来**（2026-10-17）：`/editor?song=<曲目 id>` —— 创作台提取完之后
+ * 自动打开这里（原来要用户自己从下拉里「📚 打开」，多一步）。 */
 (function () {
-  let p = null;
-  try { p = new URLSearchParams(location.search).get('import'); } catch (e) { p = null; }
-  if (!p) return;
-  doImportPath(p).catch(e => log('!! 按路径导入失败：' + (e && e.message ? e.message : e)));
+  let p = null, sid = null;
+  try {
+    const q = new URLSearchParams(location.search);
+    p = q.get('import');
+    sid = q.get('song');
+  } catch (e) { p = null; sid = null; }
+  if (p) {
+    doImportPath(p).catch(e => log('!! 按路径导入失败：' + (e && e.message ? e.message : e)));
+    return;
+  }
+  if (sid) {
+    openSong(sid).catch(e => log('!! 按曲目打开失败：' + (e && e.message ? e.message : e)));
+  }
 })();

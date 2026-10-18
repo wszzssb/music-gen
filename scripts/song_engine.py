@@ -13,6 +13,7 @@
 song.json 结构见 songs/05_d135_cheerful/song.json；字段缺省会自动补默认值。
 """
 import json
+import math
 import os
 import sys
 
@@ -340,10 +341,18 @@ PAT_KEYS = (
     'bass_exempt',
     # 音域与还原
     'range_fix', 'legato_trim', 'notes_extra_full',
+    # 自动化（2026-10-17）：段界 CC7 渐变（拍，默认 0 = 关）· 插值步长（拍，默认 1/16）
+    'mix_ramp', 'automation_step',
     # 逐音力度的**来源留痕**（见 `transcribe_to_song.py`）：`{轨名: 分轨文件名}`，
     # 量失败写 `'FAILED'`。引擎不读它（力度本身在 `notes_extra` 的第 5 位），
     # 它只用来事后分辨"这一首量过力度"还是"退回恒 100 的打字机"。
     'velocity_source',
+    # **主奏音色的来源留痕**（2026-10-18）：`--lead` 手工指定时写
+    # `patterns.lead_prog_source = 'manual:<GM 号>（原因）'`。引擎不读它（音色本身在
+    # `sections[].arr.melody_prog`），它只用来事后分辨"这条主奏是自动挑的还是人点的"——
+    # 用户现场（123 的小提琴）就是靠这个才确认是面板里点出来的。不进这张表每次渲染都会刷
+    # "引擎不认识这个键"（同族 PITFALLS 364）。
+    'lead_prog_source',
     # 逐音力度的**三种登记**（2026-10-04 加，全部只读留痕，引擎不读）：
     #   `velocity_exempt`     —— 不适用（例如被带力度的新版取代），写实测理由放行
     #   `velocity_pending`    —— 知道要修、素材在、**刻意没动**（用户已认可的成品）
@@ -798,6 +807,11 @@ def load(path):
     mix.update(preset.get('mix', {}))
     mix.update({k: tuple(v) for k, v in d.get('mix', {}).items()})
     d['mix'] = mix
+
+    # ── **自动化轨（CC / 弯音）校验**（2026-10-17）────────────────────────────
+    # `automation = {轨: {"ccs": [[全局拍, CC号, 值]], "pitch_bends": [[全局拍, -8192..8191]]}}`
+    # 判据与面板保存共用 `validate_automation`（错了**当场报**，不静默）。
+    d['automation'] = validate_automation(d)
 
     # ── **还原曲：生成层默认关 · 输入了哪条轨才开哪条**（2026-10-04 定） ──────────
     # 引擎的身份是**作曲器**（生成曲的 song.json 只有和弦+段落，所有声部都得由它展开）；
@@ -3145,6 +3159,161 @@ def section_shifts(d, track, base):
     return out or None
 
 
+def automation_of(d):
+    """`song.json` 的自动化轨（CC / 弯音）。缺失 = {}（老曲逐字节不变）。
+
+    抽成模块级函数是为了让守卫能**行为注入**：`write_midi` 若读不到它，
+    "写了 automation 却没进 MIDI"会是**静默**的。
+    """
+    return d.get('automation') or {}
+
+
+def densify_points(points, step):
+    """`[(拍, 值), ...]` → 线性插值稠密化（每 `step` 拍一个点，保留原端点）。
+
+    ⚠ **为什么必须**（2026-10-17 用户实测）：MIDI 的 CC/弯音是**阶跃事件**，只写两端点
+      等于"瞬间跳变"——CC11 20→127 = **+35dB 瞬跳**、弯音 +1→-1 半音 = **走音**，
+      用户原话"到 3 秒突然变大声不和谐不好听"。插值后才是"渐强/滑音"。
+    """
+    pts = sorted((float(t), float(v)) for t, v in points)
+    if len(pts) < 2 or step <= 0:
+        return pts
+    out = [pts[0]]
+    for (t0, v0), (t1, v1) in zip(pts, pts[1:]):
+        n = max(1, int(math.ceil((t1 - t0) / step)))
+        for k in range(1, n):
+            f = k / float(n)
+            out.append((t0 + (t1 - t0) * f, v0 + (v1 - v0) * f))
+        out.append((t1, v1))
+    return out
+
+
+def mix_ramp_points(prev, target, start, ramp, step=0.0625):
+    """段界 CC7 渐变点：从 `prev` 线性过渡到 `target`，落在 `[start-ramp, start)`。
+
+    ⚠ 为什么需要（2026-10-17，与用户"突然变大声"同族）：`sections[].arr.mix` 原来只在
+      段起点写**一个** CC7 —— 段界是**阶跃**（音量瞬变、有时还爆音）。`patterns.mix_ramp`
+      是 **opt-in**（默认 0 = 老行为逐字节不变，`t_determinism_and_bytes` 不会被打破）。
+    """
+    if ramp <= 0 or int(prev) == int(target):
+        return []
+    n = max(1, int(math.ceil(ramp / step)))
+    out = []
+    for k in range(1, n):
+        t = start - ramp + ramp * k / n
+        if t < 0:
+            continue
+        v = int(round(prev + (target - prev) * k / float(n)))
+        out.append((t, 7, max(0, min(127, v))))
+    return out
+
+
+def section_mix_points(d):
+    """段落级 `sections[].arr.mix` → `{轨: [(拍, CC7, 值), ...]}`（段起点；`mix_ramp` 时带渐变点）。
+
+    抽成独立函数（2026-10-17）是为了让"**空轨上的段级 CC7 被丢掉**"能被守卫**直呼**：
+    原来这段内联在 `write_midi` 里，守卫只能读源码或读 stdout。
+    """
+    auto = {}
+    bar0 = 0
+    B = float(d.get('bar_beats') or 4.0)
+    _ramp = float((d.get('patterns') or {}).get('mix_ramp') or 0.0)
+    _prev = {name: int(d['mix'][name][1]) for name in d['mix']}
+    for sec in d.get('sections', []):
+        a = sec.get('arr') or {}
+        amix = a.get('mix') or {}
+        for name, vol in amix.items():
+            t0 = bar0 * B
+            v = max(0, min(127, int(vol)))
+            if _ramp > 0 and name in _prev and _prev[name] != v:
+                auto.setdefault(name, []).extend(
+                    mix_ramp_points(_prev[name], v, t0, _ramp))
+            auto.setdefault(name, []).append((t0, 7, v))
+            _prev[name] = v
+        bar0 += sec['bars']
+    return auto
+
+
+def automation_dropped(d, ev, mix_points=None):
+    """哪些轨**没有音符**却挂了 automation / 段级 mix → `[(轨, {'ccs','bends','mix'}), ...]`。
+
+    ⚠ **为什么必须报**（2026-10-17 交接 §6 未完成项 3）：`write_midi` 跳过空轨
+      （否则 DAW 里多一堆空轨），可挂在这些轨上的 CC / 弯音 / 段级 CC7 会**跟着一起丢** ——
+      `song.json` 里看着是"写了"，保存和渲染都"成功"，**没有任何提示**。
+      这是本仓库最怕的失效形态（静默），所以单列成一个可被守卫直呼的判据，
+      而不是只在 `write_midi` 里塞一句 print。
+    """
+    mix = section_mix_points(d) if mix_points is None else mix_points
+    autom = d.get('automation') or {}
+    out = []
+    for tr in list(autom) + [t for t in mix if t not in autom]:
+        if ev.get(tr):
+            continue
+        a = autom.get(tr) or {}
+        cnt = {'ccs': len(a.get('ccs') or []),
+               'bends': len(a.get('pitch_bends') or []),
+               'mix': len(mix.get(tr) or [])}
+        if any(cnt.values()):
+            out.append((tr, cnt))
+    return out
+
+
+def densify_cc(ccs, step):
+    """`[(拍, CC号, 值)]` 按 CC 号分组线性插值。
+
+    ⚠ CC64（延音踏板）是**开关**，不插值（中间值没有音乐意义）。
+    """
+    by = {}
+    for (t, cc, v) in ccs:
+        by.setdefault(int(cc), []).append((float(t), float(v)))
+    out = []
+    for cc, pts in by.items():
+        if cc == 64:
+            out += [(t, cc, int(round(v))) for t, v in pts]
+            continue
+        for (t, v) in densify_points(pts, step):
+            out.append((t, cc, max(0, min(127, int(round(v))))))
+    return out
+
+
+def validate_automation(d):
+    """校验并返回规范化后的 `automation`（非法直接 SystemExit）。
+
+    `load()` 与面板保存（`/api/song`）**共用同一套判据**：面板存坏数据时当场拒绝，
+    而不是等渲染才发现（引擎既有纪律：不许静默）。
+    轨名允许 `programs` 里的，也允许引擎默认 9 轨（生成曲常常不写 `programs`）。
+    """
+    auto = d.get('automation') or {}
+    if not isinstance(auto, dict):
+        raise SystemExit('automation 必须是对象（轨名 → {ccs, pitch_bends}）')
+    B = float(d.get('bar_beats') or bar_beats(_norm_meter(d.get('meter'))))
+    end = sum(int(s.get('bars') or 0) for s in (d.get('sections') or [])) * B
+    allowed = set(d.get('programs') or {}) | set(DEFAULT_PROGRAMS)
+    for tr, a in auto.items():
+        if tr not in allowed:
+            raise SystemExit('automation 的轨 %r 不在 programs 里（可用 %s）'
+                             % (tr, ', '.join(sorted(allowed))))
+        for it in (a.get('ccs') or []):
+            if len(it) != 3:
+                raise SystemExit('automation[%s].ccs 要写成 [拍, CC号, 值]，收到 %r'
+                                 % (tr, it))
+            t, cc, v = float(it[0]), int(it[1]), int(it[2])
+            if not (0 <= cc <= 127 and 0 <= v <= 127):
+                raise SystemExit('automation[%s] CC 越界：%r' % (tr, it))
+            if not (0 <= t <= end + 1e-6):
+                raise SystemExit('automation[%s] 的拍 %r 越界（0..%g）' % (tr, t, end))
+        for it in (a.get('pitch_bends') or []):
+            if len(it) != 2:
+                raise SystemExit('automation[%s].pitch_bends 要写成 [拍, -8192..8191]，收到 %r'
+                                 % (tr, it))
+            t, v = float(it[0]), int(it[1])
+            if not (-8192 <= v <= 8191):
+                raise SystemExit('automation[%s] 弯音越界：%r' % (tr, it))
+            if not (0 <= t <= end + 1e-6):
+                raise SystemExit('automation[%s] 的拍 %r 越界（0..%g）' % (tr, t, end))
+    return auto
+
+
 def write_midi(d, ev, path):
     # **联合句法层**（opt-in `patterns.joint_cadence`，默认关 = 全库逐字节不变）。
     # 2026-10-13：用户口径"生成要**全部分轨一起做**"（分开做 → 音乐性不够）。这是 M1 第一步，
@@ -3281,17 +3450,11 @@ def write_midi(d, ev, path):
             print('  段界力度平滑（seg_fade）：调整 %d 个音' % _n)
     tracks = []
     skipped = []
+    _autom = automation_of(d)
     # 段落级混音自动化（opt-in）：`sections[i].arr.mix = {"Strings": 74, ...}`
     # → 在该段起点写 CC7。这是"起伏"最直接的手段：不用改音符，光靠推子就能做出层次。
-    auto = {}
-    bar0 = 0
-    B = float(d.get('bar_beats') or 4.0)
-    for sec in d.get('sections', []):
-        a = sec.get('arr') or {}
-        amix = a.get('mix') or {}
-        for name, vol in amix.items():
-            auto.setdefault(name, []).append(((bar0) * B, 7, max(0, min(127, int(vol)))))
-        bar0 += sec['bars']
+    # `patterns.mix_ramp`（opt-in，默认 0）：段界前 ramp 拍内线性过渡，避免段界音量阶跃。
+    auto = section_mix_points(d)
     # **段级音色（program change）** —— 逐段写在各轨的段起点上；口径与判据见
     # `section_prog_events()`（抽成函数是为了让自检/变异能直接验它）。
     aprog = section_prog_events(d)
@@ -3304,7 +3467,14 @@ def write_midi(d, ev, path):
         # 混在一起排序会 TypeError（第一版就这么写的）。
         ccs = [(0.0, 10, pan), (0.0, 7, vol)] + sorted(auto.get(name, []))
         ccs += sorted(aprog.get(name, []), key=lambda z: z[0])
-        tracks.append((name, prog, chan, ev[name], ccs))
+        _a = _autom.get(name) or {}
+        _step = float((d.get('patterns') or {}).get('automation_step') or 0.0625)
+        _ccs = densify_cc(_a.get('ccs') or [], _step) if _a.get('ccs') else []
+        _bends = (densify_points(_a.get('pitch_bends') or [], _step)
+                  if _a.get('pitch_bends') else [])
+        ccs += sorted(_ccs, key=lambda z: z[0])
+        bends = sorted(_bends, key=lambda z: z[0])
+        tracks.append((name, prog, chan, ev[name], ccs, bends))
     # **音域夹取：写盘前统一兜底（始终生效）** —— 2026-09-24。
     #   `TR_RANGE` 是"这个乐器**物理上**能合理弹到哪儿"，越界就是错（**MIDI 合法 ≠ 乐器合理**），
     #   不该由口味开关（`patterns.range_fix`）决定修不修。
@@ -3333,6 +3503,19 @@ def write_midi(d, ev, path):
         print('  音域夹取（写盘前兜底）：移八度 %d 个' % _n_oct0)
     if skipped:
         print('  (跳过空轨: %s)' % ', '.join(skipped))
+    # **空轨上的 automation 会跟着丢**（2026-10-17）：空轨不写（否则 DAW 里一堆空轨），
+    # 但挂在它上面的 CC / 弯音 / 段级 CC7 也就**一起消失**，而 song.json 里看着"写了"。
+    # 判据是 `automation_dropped`（守卫直呼它），这里只负责把结果喊出来。
+    for _tr, _cnt in automation_dropped(d, ev, auto):
+        _what = []
+        if _cnt['ccs']:
+            _what.append('CC %d 条' % _cnt['ccs'])
+        if _cnt['bends']:
+            _what.append('弯音 %d 条' % _cnt['bends'])
+        if _cnt['mix']:
+            _what.append('段级 CC7 %d 处' % _cnt['mix'])
+        print('  !! automation 被丢弃：轨 %r 没有音符（%s）—— 这些事件不会进 MIDI；'
+              '要么给它写音符，要么删掉这些自动化' % (_tr, ' · '.join(_what)))
     bs.BPM = d['bpm']
     bs.write_midi(path, tracks, ppq=480, meter=tuple(d.get('meter') or (4, 4)))
 

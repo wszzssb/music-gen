@@ -6,6 +6,16 @@
 import struct
 import sys
 
+# **能导入的 SMF 格式**（2026-10-17）：0 = 单轨多通道，1 = 多轨同一时间轴。
+# Type 2 是"**多条互不相关的序列**"（每个 MTrk 是一首独立的曲子，各自从 tick 0 起），
+# 把它们叠在一条时间轴上就是**静默错位**（老式打谱软件的分轨导出常见）⇒ 明确拒绝，
+# 并告诉用户怎么办（导成 Type 0/1）。这条做成模块级常量是为了守卫/变异能直呼它。
+SUPPORTED_FORMATS = (0, 1)
+# 歌词 meta（`.kar` 卡拉OK 的文本）+ 文本 meta：**只记录、不导入成音符**。
+# `.kar` 常把歌词写成 0x05，同时音符仍是正常的 note-on/off —— 不处理它本来也不崩，
+# 但"这份 .kar 有 N 行歌词、已被忽略"要能报出来，否则用户以为歌词跟着进来了。
+LYRIC_META = 0x05
+
 NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 GM_FAMILY = {
     0: '钢琴', 6: '羽管键琴', 8: '钢片琴/钟琴', 11: '颤音琴', 13: '木琴',
@@ -49,6 +59,14 @@ def parse_full(path):
     if data[:4] != b'MThd':
         raise SystemExit('不是标准 MIDI 文件（缺 MThd）：%s' % path)
     fmt, ntrk, div = struct.unpack('>HHH', data[8:14])
+    if fmt not in SUPPORTED_FORMATS:
+        if fmt == 2:
+            raise SystemExit(
+                '这是 SMF **Type 2**（多条互不相关的序列，每个 MTrk 都是独立的曲子）：%s\n'
+                '  → 它们没有共同时间轴，叠起来会静默错位；请先导成 Type 0 / 1 再导入'
+                '（老式打谱软件的"分轨导出"常是 Type 2）' % path)
+        raise SystemExit('不支持的 SMF 格式 %r（只支持 %s）：%s'
+                         % (fmt, ' / '.join(str(x) for x in SUPPORTED_FORMATS), path))
     pos = 14
     res = {'format': fmt, 'division': div or 480, 'bpm': None, 'timesig': None,
            'end_tick': 0, 'tempo_map': [], 'tracks': []}
@@ -64,6 +82,11 @@ def parse_full(path):
         program = None
         channel = 0
         notes, ccs, progs, bends, markers = [], [], [], [], []
+        lyrics = []                      # `.kar` 的歌词文本（meta 0x05）；**只记录不导入**
+        notes_ch = {}                    # 通道 → 音符（Type 0 单轨多通道时按通道拆要用）
+        progs_ch = {}                    # 通道 → [(tick, program)]
+        ccs_ch = {}                      # 通道 → [(tick, cc, val)]
+        bends_ch = {}                    # 通道 → [(tick, value)]
         active = {}                      # (通道, 音高) → [start_tick...]（重叠音按先入先出配对）
         while i < len(body):
             d, i = _read_vlq(body, i)
@@ -97,6 +120,8 @@ def parse_full(path):
                     name = payload.decode('utf-8', 'replace')
                 elif meta in (0x06, 0x01):   # marker / text
                     markers.append((tick, payload.decode('utf-8', 'replace')))
+                elif meta == LYRIC_META:     # `.kar` 歌词：记录，不当音符合成
+                    lyrics.append((tick, payload.decode('utf-8', 'replace')))
                 elif meta == 0x2F:
                     break
             elif st in (0xF0, 0xF7):
@@ -122,15 +147,23 @@ def parse_full(path):
                             # 而 running status 下 0x90+vel0 也算松键 —— 拿松键的 vel 当力度
                             # 会把整首曲子压成"力度 0~96"（实测外部 MIDI 全被写成 96）。
                             notes.append([s, tick - s, p1, vel])
+                            # ⚠ 同一轨里可能混多个通道（SMF Type 0 的常态：所有乐器一条轨）。
+                            #   只给 4 元的 `notes` 会把通道信息丢掉 → 导入引擎时**全部并成一条轨**
+                            #   （实测：Type 0 的钢琴/贝斯/鼓被并进 Drums，用鼓音色发声）。
+                            notes_ch.setdefault(ch, []).append([s, tick - s, p1, vel])
                     elif hi == 0xB0:
                         ccs.append((tick, p1, p2))
+                        ccs_ch.setdefault(ch, []).append((tick, p1, p2))
                     elif hi == 0xE0:
-                        bends.append((tick, ((p2 << 7) | p1) - 8192))
+                        bv = ((p2 << 7) | p1) - 8192
+                        bends.append((tick, bv))
+                        bends_ch.setdefault(ch, []).append((tick, bv))
                 elif hi == 0xC0:
                     if i >= len(body):
                         break
                     program = body[i]
                     progs.append((tick, program))
+                    progs_ch.setdefault(ch, []).append((tick, program))
                     i += 1
                 elif hi == 0xD0:
                     i += 1
@@ -138,14 +171,26 @@ def parse_full(path):
         tail = max([tick] + [n[0] + n[1] for n in notes] + [ccs[-1][0] if ccs else 0])
         for (_ch, p), q in sorted(active.items()):
             for (s, vel) in q:
-                notes.append([s, max(1, tail - s), p, vel])
+                it = [s, max(1, tail - s), p, vel]
+                notes.append(it)
+                notes_ch.setdefault(_ch, []).append(it)
         notes.sort()
         if notes:
             res['end_tick'] = max(res['end_tick'], max(n[0] + n[1] for n in notes))
-        res['tracks'].append({'index': t, 'name': name, 'channel': channel,
-                              'program': program, 'notes': notes, 'ccs': ccs,
-                              'program_changes': progs, 'pitch_bends': bends,
-                              'markers': markers})
+        tr = {'index': t, 'name': name, 'channel': channel,
+              'program': program, 'notes': notes, 'ccs': ccs,
+              'program_changes': progs, 'pitch_bends': bends,
+              'markers': markers, 'lyrics': lyrics}
+        # 多通道轨道（Type 0）额外给**按通道拆开的**副本：`notes` 保持 4 元不变
+        # （下游 `import_midi`/编辑器都按 4 元解包，改结构会全线崩）。
+        _nb = {k: sorted(v) for k, v in notes_ch.items() if v}
+        if len(_nb) > 1:
+            tr['notes_by_ch'] = _nb
+            tr['progs_by_ch'] = {k: v for k, v in progs_ch.items() if v}
+            # CC / 弯音也按通道给副本（Type 0 单轨里各乐器的表情不能全塞给最后一条通道）
+            tr['ccs_by_ch'] = {k: v for k, v in ccs_ch.items() if v}
+            tr['bends_by_ch'] = {k: v for k, v in bends_ch.items() if v}
+        res['tracks'].append(tr)
     if res['tempo_map']:
         res['bpm'] = 60000000.0 / res['tempo_map'][0][1]
     else:

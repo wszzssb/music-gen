@@ -789,6 +789,8 @@ def _editor_summary(model):
         tr.append({'index': t.get('index'), 'name': t.get('name'),
                    'channel': t.get('channel'), 'program': t.get('program'),
                    'drum': t.get('drum'), 'notes': len(ns),
+                   'ccs': len(t.get('ccs') or []),
+                   'bends': len(t.get('pitch_bends') or []),
                    'range': [_mp.note_name(min(ps)), _mp.note_name(max(ps))] if ps else None,
                    'vel': [min([n[3] for n in ns] or [0]), max([n[3] for n in ns] or [0])]})
     return {'title': model.get('title'), 'format': model.get('format'),
@@ -1348,7 +1350,12 @@ class Handler(BaseHTTPRequestHandler):
             if u.path == '/api/song':
                 d = song_dir(sid)
                 rc, ev = run_py(['scripts/song_events.py', os.path.join(d, 'song.json'), '--json'])
-                events = json.loads(ev) if rc == 0 and ev.strip().startswith('{') else None
+                # ⚠ `song_engine.load` 会往 stdout 打日志（"[还原曲] 生成层默认关…"），
+                #   原来用 `ev.startswith('{')` 判 JSON ⇒ 所有还原曲的 events 都变成 None
+                #   （2026-10-17 查自动化面板时实测：BGM29/auto_panel_test 全中）。
+                #   改为**从第一个 `{` 开始**解析。
+                _i = (ev or '').find('{')
+                events = (json.loads(ev[_i:]) if rc == 0 and _i >= 0 else None)
                 return self._json({'ok': True, 'song': read_json(os.path.join(d, 'song.json')),
                                    'render': read_json(os.path.join(d, 'render.json')) or {},
                                    'events': events, 'events_err': None if events else ev[-800:]})
@@ -1562,8 +1569,12 @@ class Handler(BaseHTTPRequestHandler):
                 tmp = os.path.join(d, 'song.json.tmp')
                 with open(tmp, 'w', encoding='utf-8') as f:
                     json.dump(song, f, ensure_ascii=False, indent=1)
-                rc, out = run_py(['-c',
-                                  'import sys,json_io;json_io.normalize(sys.argv[1])', tmp])
+                # 保存前校验 automation（非法当场拒，别写坏了等渲染才炸）
+                _chk = ("import sys,json,json_io,song_engine;"
+                        "d=json.load(open(sys.argv[1],encoding='utf-8'));"
+                        "song_engine.validate_automation(d);"
+                        "json_io.normalize(sys.argv[1])")
+                rc, out = run_py(['-c', _chk, tmp])
                 if rc != 0:
                     os.remove(tmp)
                     return self._json({'ok': False, 'error': '规范写回失败: ' + out[-400:]})
@@ -1748,6 +1759,60 @@ class Handler(BaseHTTPRequestHandler):
                     f.write(blob)
                 return self._json({'ok': True, 'path': p, 'bytes': len(blob), 'id': nid,
                                    'name': os.path.basename(str(body.get('name') or ''))})
+            if u.path == '/api/import-midi':
+                # **从 MIDI 新建**（2026-10-17）：现成的 .mid → songs/<id>/song.json。
+                # 与 `/api/extract` 的分工：提取是"音频 → 转录 → 数据"（分钟级、要起任务），
+                # 这里只是"已有 MIDI → 引擎"（秒级），所以同步跑、不走任务队列。
+                body = self._body()
+                nid, _eerr = check_song_name(body.get('id'))
+                if _eerr:
+                    return self._err('%s（%s）' % (_eerr, SONG_NAME_HINT))
+                try:
+                    bps = int(body.get('bars_per_section') or 8)
+                except (TypeError, ValueError):
+                    return self._err('每段小节数必须是整数')
+                if not (1 <= bps <= 64):
+                    return self._err('每段小节数要在 1~64 之间')
+                src = None
+                if body.get('path'):
+                    src = os.path.abspath(str(body['path']))
+                    if not os.path.isfile(src):
+                        return self._err('MIDI 文件不存在：%s' % src)
+                elif body.get('data_b64'):
+                    raw = base64.b64decode(body.get('data_b64') or '')
+                    if raw[:4] != b'MThd':
+                        return self._err('这不是标准 MIDI 文件（缺 MThd 头）')
+                    d = os.path.join(TMP_AUDIO, 'import')
+                    os.makedirs(d, exist_ok=True)
+                    src = os.path.join(d, nid + '.mid')
+                    with open(src, 'wb') as f:
+                        f.write(raw)
+                else:
+                    return self._err('没有收到 MIDI（path 或 data_b64 二选一）')
+                if any(s.get('id') == nid for s in songs_list()) and not body.get('force'):
+                    return self._err('曲库里已经有 %s 了 —— 换个名字，或勾上"同名重建"' % nid)
+                cmd = [sys.executable, os.path.join(ROOT, 'scripts', 'midi_to_song.py'),
+                       src, '--name', nid, '--bars-per-section', str(bps)]
+                if body.get('bpm'):
+                    try:
+                        cmd += ['--bpm', str(float(body['bpm']))]
+                    except (TypeError, ValueError):
+                        return self._err('BPM 必须是数字')
+                if body.get('force'):
+                    cmd += ['--force']
+                try:
+                    r = subprocess.run(cmd, capture_output=True, text=True,
+                                       timeout=180, cwd=ROOT, encoding='utf-8',
+                                       errors='replace')
+                except subprocess.TimeoutExpired:
+                    return self._err('导入超时（>180 秒）')
+                out = ((r.stdout or '') + (r.stderr or '')).strip()
+                if r.returncode != 0:
+                    return self._err('导入失败：\n%s' % out[-1500:])
+                m = re.search(r'写出 .*?（(\d+) 轨 / (\d+) 音）', out)
+                return self._json({'ok': True, 'id': nid, 'log': out[-3000:],
+                                   'tracks': int(m.group(1)) if m else None,
+                                   'notes': int(m.group(2)) if m else None})
             if u.path == '/api/extract':
                 body = self._body()
                 nid, _eerr = check_song_name(body.get('id'))
@@ -1815,7 +1880,12 @@ class Handler(BaseHTTPRequestHandler):
                 except FileNotFoundError as e:
                     return self._json({'ok': False, 'rc': 1, 'log': str(e),
                                        'fails': [], 'other': 0, 'audio_only': True})
-                rc, out = run_py(['scripts/check_song.py', sid])
+                # ⚠ **必须带 `--fast`**（2026-10-18 实测）：不带时跑全套 263 项，
+                #   `check_song.py 123` 实测 **161 秒**（面板上像卡死）；`--fast` 只跑
+                #   `DATA_CHECKS`，同一曲 **1.8 秒**。本文件顶部的路由注释本来就写着"2 秒"。
+                #   全套在沙箱里还会跑 7 项依赖 `scripts/` 的检查 → 7 条 FileNotFoundError
+                #   （指向 `_lint_sandbox_<pid>\scripts\...`），`--fast` 不会有。
+                rc, out = run_py(['scripts/check_song.py', sid, '--fast'])
                 ok = '数据契约没问题' in out
                 # 沙箱里那份清单含"交付物/跨曲目"类噪声，只把 **[数据契约]** 的报出来
                 fails = re.findall(r'^  - \[数据契约\] (\S+) → (.*)$', out, re.M)
@@ -1840,7 +1910,16 @@ class Handler(BaseHTTPRequestHandler):
             # ---------------- MIDI 编辑器 ----------------
             if u.path == '/api/ed/import':
                 body = self._body()
-                if body.get('path'):
+                if body.get('song'):
+                    # **曲库 → 编辑器**（2026-10-17 A2 回程）：曲目目录里的 .mid 直接开，
+                    # 不用先知道文件路径（引擎写出的文件名不一定等于曲目名）。
+                    import glob as _glob
+                    sid = str(body['song']).strip()
+                    cands = sorted(_glob.glob(os.path.join(ROOT, 'songs', sid, '*.mid')))
+                    if not cands:
+                        return self._err('曲目 %s 里没有 .mid（先渲染 / 导出一次）' % sid)
+                    eid, model = edit_import_path(cands[0])
+                elif body.get('path'):
                     eid, model = edit_import_path(body['path'])
                 else:
                     raw = base64.b64decode(body.get('data_b64') or '')
@@ -1886,6 +1965,50 @@ class Handler(BaseHTTPRequestHandler):
                     return self._err('body 里没有 model')
                 m = edit_save(eid, model)
                 return self._json({'ok': True, 'stats': m['_stats']})
+            if u.path == '/api/ed/to-song':
+                # **编辑器 → 引擎**（2026-10-17 A2）：当前编辑会话直接落成
+                # `songs/<id>/song.json` —— 不用"先导出 .mid、再去创作台导入"。
+                # 内存模型优先（未保存的改动也算数）；没传就用会话落盘的那份。
+                body = self._body()
+                eid = (q.get('eid') or [''])[0]
+                nid, _eerr = check_song_name(body.get('id'))
+                if _eerr:
+                    return self._err('%s（%s）' % (_eerr, SONG_NAME_HINT))
+                model = body.get('model') or edit_load(eid)
+                if not model or not (model.get('tracks') or []):
+                    return self._err('编辑会话是空的（没有轨）')
+                try:
+                    bps = int(body.get('bars_per_section') or 8)
+                except (TypeError, ValueError):
+                    return self._err('每段小节数必须是整数')
+                if not (1 <= bps <= 64):
+                    return self._err('每段小节数要在 1~64 之间')
+                dest = os.path.join(ROOT, 'songs', nid)
+                if os.path.exists(os.path.join(dest, 'song.json')) and not body.get('force'):
+                    return self._err('曲库里已经有 %s 了 —— 换个名字，或勾上"覆盖重建"' % nid)
+                try:
+                    import json_io as _jio
+                    import midi_to_song as _m2s
+                    import song_engine as _se
+                    data, info = _m2s.build_from_model(
+                        model, name=nid, bpm=body.get('bpm'),
+                        bars_per_section=bps, verbose=False)
+                    if not data.get('notes_extra'):
+                        return self._err('这个 MIDI 里没有可导入的音符（全是空轨？）')
+                    os.makedirs(dest, exist_ok=True)
+                    out = os.path.join(dest, 'song.json')
+                    _jio.save(out, data)
+                    _se.compose(out, os.path.join(dest, nid + '.mid'), quiet=True)
+                except SystemExit as e:
+                    return self._err(str(e))
+                except Exception as e:                     # noqa: BLE001
+                    return self._err('转换失败：%s' % e)
+                return self._json({'ok': True, 'id': nid,
+                                   'tracks': len(info['counts']),
+                                   'notes': sum(info['counts'].values()),
+                                   'cc': info.get('kept_cc', 0),
+                                   'bends': info.get('kept_bends', 0),
+                                   'songs': [s.get('id') for s in songs_list()]})
             if u.path == '/api/ed/export':
                 import midi_file as _mf
                 body = self._body()

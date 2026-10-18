@@ -212,7 +212,45 @@
       'Render the current edit to audio with the real soundfont (GeneralUser GS, same pipeline as the engine panel); re-render after editing notes (seconds to a minute)',
     '选中的音（或整轨）按半音移调': 'Transpose selected notes (or the whole track) by semitones',
     '锁定 / 解锁编辑：锁定时卷帘只读（防误改），点一下进入编辑':
-      'Lock / unlock editing: when locked the roll is read-only (prevents accidents); click to start editing'
+      'Lock / unlock editing: when locked the roll is read-only (prevents accidents); click to start editing',
+
+    /* ── 2026-10-18 补：自动化面板（index）+ 编辑器「曲库 → 引擎」（ed）──
+     * 两块都是 2026-10-17 新加的功能，当时没进字典 ⇒ 英文态仍是中文，
+     * `i18n_check.py` 红 28 条（这次实测补的）。 */
+    '自动化': 'Automation',
+    '（点=添加 · 拖=移动 · 右键=删除 · Shift+拖=框选 · Del=删选中 · Ctrl+Z/Y=撤销/重做）':
+      '(click=add · drag=move · right-click=delete · Shift+drag=box-select · Del=delete selected · Ctrl+Z/Y=undo/redo)',
+    '↶ 撤销': '↶ Undo',
+    '↷ 重做': '↷ Redo',
+    '💾 保存自动化': '💾 Save automation',
+    '轨': 'Track',
+    '参数': 'Parameter',
+    '弯音（-8192..8191）': 'Pitch bend (-8192..8191)',
+    'CC7 音量': 'CC7 Volume',
+    'CC11 表情': 'CC11 Expression',
+    'CC1 调制': 'CC1 Modulation',
+    'CC2 呼吸': 'CC2 Breath',
+    'CC10 声像': 'CC10 Pan',
+    'CC71 共振': 'CC71 Resonance',
+    'CC74 亮度': 'CC74 Brightness',
+    'CC91 混响': 'CC91 Reverb',
+    'CC93 合唱': 'CC93 Chorus',
+    'CC64 延音（开关，不插值）': 'CC64 Sustain (switch, no interpolation)',
+    '撤销上一次自动化编辑（Ctrl+Z）': 'Undo last automation edit (Ctrl+Z)',
+    '把当前自动化写回 song.json（不动音符）':
+      'Write current automation back to song.json (notes untouched)',
+    '曲库…': 'Library…',
+    '📚 打开': '📚 Open',
+    '→ 引擎': '→ Engine',
+    '从曲库打开（曲目目录里的 .mid）': 'Open from library (.mid in a song folder)',
+    '把曲库里选中的曲目打开到编辑器（之后改完可以「→ 引擎」写回去）':
+      'Open the selected library song in the editor (then 「→ Engine」 writes it back)',
+    '把当前编辑结果直接写进曲库（songs/<名>/song.json）——之后可渲染 / 体检 / 继续编配，不用先导出文件':
+      'Write the current edit result straight into the library (songs/<name>/song.json) — then render / inspect / keep arranging without exporting a file first',
+    '空白处按下并往右拖 = 建一个音并拉长；拖音符 = 移动（默认不改音高）；Alt+拖 = 移调；右缘 7px 内 = 改时值；右键 = 删除；滚轮 = 横向滚动；Ctrl+滚轮 = 缩放':
+      'Drag on empty space = create a note and stretch it; drag a note = move (pitch unchanged by default); Alt+drag = transpose; within 7px of the right edge = duration; right-click = delete; wheel = horizontal scroll; Ctrl+wheel = zoom',
+    '（空白拖=建音并拉时值 · 拖=移动 · Alt+拖=移调 · 右缘拖=改时值 ·\n        右键=删 · 双击=删/建 · 滚轮=横向滚动 · Ctrl+滚轮=缩放 · Shift+滚轮=纵向缩放 ·\n        方向键=微调）':
+      '(drag empty=create note and stretch · drag=move · Alt+drag=transpose · right-edge drag=duration ·\n        right-click=delete · double-click=delete/create · wheel=horizontal scroll · Ctrl+wheel=zoom · Shift+wheel=vertical zoom ·\n        arrow keys=nudge)'
   };
 
   /* 动态区：app.js / ed.js **运行时写进 DOM** 的词，HTML 里找不到它们
@@ -276,7 +314,11 @@
       'Change library folder (current: $1)\n= parent folder containing songs/; remembered after restart'],
     /* app.js:170 `#searchEta` */
     [/^切片最长 (\d+) 小节 · 最多 (\d+) 次渲染 \/ (\d+)s（实测约 ([\d.]+)s\/次 → 预计 (\d+) 秒）$/,
-      'longest slice $1 bars · up to $2 renders / $3s (~$4s each → about $5 s)']
+      'longest slice $1 bars · up to $2 renders / $3s (~$4s each → about $5 s)'],
+    /* app.js:1542 自动化计数：`0 点 · 480 拍` / `3 点 · 选中 2 · 480 拍` */
+    [/^(\d+) 点( · 选中 (\d+))? · (\d+) 拍$/, function (m, n, _sel, selN, beats) {
+      return n + ' points' + (selN ? ' · ' + selN + ' selected' : '') + ' · ' + beats + ' beats';
+    }]
   ];
 
   var ATTRS = ['title', 'placeholder'];

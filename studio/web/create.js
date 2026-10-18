@@ -429,7 +429,7 @@
         parts: ST.path === 'partial' ? parts.join(',') : '',
         force: $('extForce').value === '1'
       });
-      watchJob(r.job, id);
+      watchJob(r.job, id, {autoEditor: true});
     } catch (e) {
       toast(e.message, true);
     } finally {
@@ -485,8 +485,9 @@
   }
 
   var _t0 = 0;
-  async function watchJob(jid, songId) {
+  async function watchJob(jid, songId, opts) {
     ST.jid = jid; ST.cur = songId || ST.cur;
+    opts = opts || {};
     _t0 = Date.now();
     var timer = setInterval(function () {
       $('jobClock').textContent = '已跑 ' + Math.round((Date.now() - _t0) / 1000) + 's';
@@ -521,6 +522,17 @@
           toast(st === 'done' ? '做完啦：' + ST.cur
             : (st === 'interrupted' ? '面板重启过，这条任务状态丢了 —— 产物请刷新曲库核对'
               : '任务结束：' + st), st !== 'done');
+          // **提取完 → 编辑器自动打开**（2026-10-17）：原来提取完要用户自己从
+          // 编辑器顶栏的下拉里"📚 打开"，多一步且容易以为任务没产出。
+          // 走 `/editor?song=<id>` 深链接（与 `/editor?import=<路径>` 同一套入口）。
+          if (st === 'done' && opts.autoEditor) {
+            $('jobState').textContent = '✅ 完成 —— 正在打开编辑器…';
+            log('→ 1.5 秒后自动打开编辑器（/editor?song=' + ST.cur
+                + '；要留在这里看日志，就在打开后按浏览器后退）');
+            setTimeout(function () {
+              location.href = '/editor?song=' + encodeURIComponent(ST.cur);
+            }, 1500);
+          }
           break;
         }
         await new Promise(function (r2) { setTimeout(r2, 1000); });
@@ -798,6 +810,59 @@
   Array.prototype.forEach.call(document.querySelectorAll('#extParts .part'), function (el) {
     el.onclick = function () { el.classList.toggle('on'); };
   });
+
+  /* ---- ②b 从 MIDI 新建（2026-10-17）：已有 .mid → 直接进引擎 ---- */
+  var midFile = null;
+  function pickMidi(f) {
+    if (!f) { return; }
+    if (!/\.(mid|midi)$/i.test(f.name)) { toast('只收 .mid / .midi', true); return; }
+    midFile = f;
+    $('midName').textContent = f.name + ' · ' + Math.round(f.size / 1024) + ' KB';
+    $('midName').classList.remove('hidden');
+    $('btnImportMidi').disabled = false;
+    $('midHint').textContent = '可以导入了 —— 秒级，导入后直接进曲库。';
+    var base = f.name.replace(/\.[^.]+$/, '').replace(/[^0-9A-Za-z_-]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    if (base && !$('midId').value) { $('midId').value = base.slice(0, 40); }
+  }
+  $('midDrop').onclick = function () { $('midInput').click(); };
+  $('midInput').onchange = function () { pickMidi(this.files && this.files[0]); };
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    $('midDrop').addEventListener(ev, function (e) {
+      e.preventDefault(); $('midDrop').classList.add('over');
+    });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    $('midDrop').addEventListener(ev, function (e) {
+      e.preventDefault(); $('midDrop').classList.remove('over');
+    });
+  });
+  $('midDrop').addEventListener('drop', function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) { pickMidi(f); }
+  });
+  $('btnImportMidi').onclick = async function () {
+    var id = $('midId').value.trim();
+    var idErr = nameErr(id);
+    if (idErr) { toast(idErr + '（' + SN_HINT + '）', true); return; }
+    if (!midFile) { toast('先选一个 .mid 文件', true); return; }
+    var b = $('btnImportMidi');
+    b.disabled = true; b.textContent = '正在导入…';
+    try {
+      var b64 = await fileToB64(midFile);
+      var r = await post('/api/import-midi', {
+        id: id, data_b64: b64,
+        bars_per_section: Number($('midBars').value) || 8
+      });
+      toast('导入完成：' + id + (r.notes ? '（' + r.notes + ' 音）' : ''));
+      await loadSongs();
+      $('midHint').textContent = '已导入 ' + id + '，在左侧曲库点它就能看产物。';
+    } catch (e) {
+      toast(e.message, true);
+    } finally {
+      b.disabled = false; b.textContent = '🎹 导入 MIDI';
+    }
+  };
 
   boot();
 })();

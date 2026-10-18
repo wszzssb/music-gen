@@ -385,6 +385,8 @@ DATA_CHECKS = ('song_json_buildable', 'style_unknown', 'bad_arr_key_warns',
                # 注：`theme_pack_valid`（整包体检）不在数据契约里 —— 它是仓库级判据，
                # 与"这一首能不能渲染"无关（完整自检/非 --fast 的 check_song 照样会报它）。
                'theme_basis_whitelist',
+               # MIDI 导入（2026-10-17 新增）：逐音回放一致性 —— 与"这一首能不能渲染"直接相关
+               'midi_to_song_roundtrip',
                'strict_downbeats')
 
 

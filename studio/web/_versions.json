@@ -1,24 +1,24 @@
 {
  "_note": "前端资源版本清单（生成物）：{文件: {v: html 里的 ?v=, sha: 内容 sha256 前 16 位}}。改了 studio/web/*.js|*.css 要**先把 html 的 ?v= 加 1**，再跑 `python scripts\\asset_versions.py --write` 刷新本文件；守卫 `selftest.t_frontend_versions` 会核对这份清单。",
  "app.js": {
-  "sha": "ff5e6597c4e0aed6",
-  "v": 29
+  "sha": "000358fa5872a9f3",
+  "v": 34
  },
  "create.css": {
   "sha": "416e4c1d0691721d",
   "v": 4
  },
  "create.js": {
-  "sha": "8d6517285efd5a7b",
-  "v": 20
+  "sha": "9add7fb4eaded2f9",
+  "v": 22
  },
  "ed.css": {
   "sha": "e42b7a59d2efe284",
   "v": 6
  },
  "ed.js": {
-  "sha": "8f6d4f95d4d5e5e6",
-  "v": 10
+  "sha": "78c4b3f39d42d607",
+  "v": 16
  },
  "engine.js": {
   "sha": "1576c0d51c002f9f",
@@ -29,15 +29,15 @@
   "v": 1
  },
  "i18n.js": {
-  "sha": "5cec66816cf407bb",
-  "v": 3
+  "sha": "ccc28371fec30a75",
+  "v": 4
  },
  "solo.js": {
   "sha": "07b31437585c7e46",
   "v": 2
  },
  "style.css": {
-  "sha": "f04e329939e0f9a1",
-  "v": 15
+  "sha": "f2c56f4c15954e93",
+  "v": 16
  }
 }

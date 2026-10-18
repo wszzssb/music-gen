@@ -53,6 +53,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import midi_file                                              # noqa: E402
 
+# **整轨电平门槛**（2026-10-17）：低于它就判"这条分轨没有内容"，别拿它校准力度。
+# 依据（实测）：有内容的 demucs 分轨 RMS 在 −25 ~ −50 dB（piano −29.1 / other −25.5 /
+# drums −38.1 / guitar −49.9），而 BGM36 被留空的 bass **−82.8 dB**、vocals **−80.9 dB** ——
+# 两档之间差 30 dB 以上，取 −60 dB 分得开。**别拿"逐音峰值 > −60dB"代替它**：
+# 空轨上的串音峰值也能到 −57 dB（实测），那会把噪声排成"看着正常"的力度。
+_RMS_FLOOR_DB = -60.0
+
 
 def peak_db_map(wav, notes, spb, bpm_check=None):
     """→ 每个音符在其窗口内的峰值（dBFS）。`notes` 是 [start_beat, dur_beat, pitch, vel]。
@@ -258,6 +265,11 @@ def self_test(wav, mid, p50=51.0, k=9.0, max_db=18.0):
     实测把 `--self-test` 按文档敲上去会得到 `unrecognized arguments` —— 判据只写在文档里、
     没落成代码，等于没有。而这一步是**必需的**：分轨是空的时候，`calibrate()` 会把
     一整轨噪声底映射成"看起来很正常的力度"（它只保证中位落在 `--p50`，不保证有信号）。
+
+    ⚠ **2026-10-17 补的硬门槛**（实测：BGM36 的 `bass.wav` 整轨 RMS **−82.8 dB**、只有串音，
+      逐音峰值中位 −57.4 dB —— 旧版只看"有没有音 > −60dB"，于是 6/15 个噪声峰就让它
+      判"**可以**拿它校准"，而这个"可以"会把噪声底排成力度）。现在先看**整轨电平**：
+      低于 `_RMS_FLOOR_DB` 直接判"没有内容"、返回 4 —— 逐音峰值在空轨上没有音乐意义。
     """
     y, sr = sf.read(wav, always_2d=True)
     y = y.mean(axis=1)
@@ -266,9 +278,17 @@ def self_test(wav, mid, p50=51.0, k=9.0, max_db=18.0):
         return 4
     rms = float(np.sqrt((y ** 2).mean()))
     pk = float(np.abs(y).max())
+    rms_db = 20.0 * np.log10(max(rms, 1e-12))
     print('分轨 %s' % wav)
     print('  整轨 RMS %.1f dB · 峰值 %.1f dB（RMS 是内容参考，不是严格噪声底）'
-          % (20.0 * np.log10(max(rms, 1e-12)), 20.0 * np.log10(max(pk, 1e-12))))
+          % (rms_db, 20.0 * np.log10(max(pk, 1e-12))))
+    if rms_db < _RMS_FLOOR_DB:
+        # 内容判据在**整轨电平**上：空轨的逐音峰值可以高过 −60dB（串音/泄漏），
+        # 但那不是这条分轨里的乐器 —— 拿它校准等于把噪声排成力度。
+        print('  !! 整轨 RMS %.1f dB 低于 %.0f dB ⇒ **这条分轨没有内容**'
+              '（demucs 把这条留空了），逐音峰值全是串音/噪声：'
+              '**别拿它校准力度**' % (rms_db, _RMS_FLOOR_DB))
+        return 4
     d = midi_file.import_midi(mid)
     spb = 60.0 / max(1e-9, float(d.get('bpm') or 120.0))
     usable = 0

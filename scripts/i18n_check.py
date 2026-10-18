@@ -26,6 +26,20 @@ WEB = os.path.join(os.path.dirname(HERE), 'studio', 'web')
 ATTRS = ('title', 'placeholder')
 
 
+def _unesc(s):
+    """把 JS 字面量里的转义还原成**运行时字符串**（与浏览器里 DICT 的键一致）。
+
+    ⚠ 2026-10-18 修：原来只还原 `\\'`，于是带 `\\n` 的**多行文案**永远被判"缺字典"
+    —— `i18n.js` 里明明写了 `'…·\\n        右键…'`，运行时是换行、检查器拿到的是
+    反斜杠+n，两边对不上。HTML 里多行提示因此成了"永远修不好的漏项"。
+    """
+    def rep(m):
+        c = m.group(1)
+        return {'n': '\n', 't': '\t', 'r': '\r', "'": "'", '"': '"',
+                '\\': '\\'}.get(c, '\\' + c)
+    return re.sub(r'\\(.)', rep, s)
+
+
 def dict_entries(path):
     """返回 (DICT 键集合, REGEX 模式列表)。只解析 DICT/REGEX 两个块的字面量。"""
     src = io.open(path, encoding='utf-8').read()
@@ -37,7 +51,8 @@ def dict_entries(path):
     # 文本节点的 nodeValue 比对的，而那两个拿到的**已经是解码后的文本**（`&lt;` → `<`）。
     # 早先在这步 unescape 过，结果字典里写 `&lt;` 也算"通过检查"，运行时却匹配不上
     # —— 那几条 title 一直没翻，检查脚本反倒把 bug 藏住了。
-    keys = set(k.replace("\\'", "'")
+    # 但 **JS 字符串转义**（`\n` / `\t` / `\'`）必须还原，否则多行文案恒判缺（见 `_unesc`）。
+    keys = set(_unesc(k)
                for k in re.findall(r"'((?:[^'\\]|\\.)*)'\s*:", body))
     pats = []
     m = re.search(r'var REGEX = \[(.*?)\n  \];', src, re.S)

@@ -38,6 +38,34 @@ V_LO, V_HI = 75.0, 110.0
 CLIP = (60, 118)
 
 
+def tag_source(old, ref_name):
+    """`<原来源> → vel_from_ref(<ref>)`。**幂等**，且 `FAILED` 不当头（自检按前缀判红）。"""
+    old = str(old or '').strip()
+    head = old.split(' → vel_from_ref(')[0].strip()
+    if not head or head.upper().startswith('FAIL'):
+        head = '分轨未量到'
+    return '%s → vel_from_ref(%s)' % (head, os.path.basename(str(ref_name)))
+
+
+def record_source(d, ref_name):
+    """把**最终**力度来源写回 `patterns.velocity_source`（返回该 dict）。
+
+    为什么必须由本工具自己写（2026-10-18，BGM29 实测）：`--apply` 会把**整首**音符的力度
+    重写一遍（实测 `Bass` 85 种 28~112 → **10 种 102~111**、`Piano` 恒 100 → 12 种 99~110），
+    可 `velocity_source` 还是**转录音那一步**写的"从哪条分轨量的"。于是全库自检
+    `velocity_measured` 指着 `Piano: FAILED`（那条分轨真的空）—— 红的是**记录过期**，
+    不是数据。记录过期比缺记录更难查：它看起来有出处。
+    """
+    pats = d.setdefault('patterns', {})
+    vs = pats.get('velocity_source')
+    if not isinstance(vs, dict):
+        vs = {}
+        pats['velocity_source'] = vs
+    for tr in (d.get('notes_extra') or {}):
+        vs[tr] = tag_source(vs.get(tr), ref_name)
+    return vs
+
+
 def map_vel(db_value):
     """**纯映射**：dB（相对全曲 P95）→ 力度（夹 60–118）。写成纯函数供自检/变异直取。"""
     return int(np.clip(V_LO + (float(db_value) - DB_LO) / (DB_HI - DB_LO) * (V_HI - V_LO), *CLIP))
@@ -135,6 +163,8 @@ def main():
     if a.dry or not a.apply:
         print("（--dry / 未加 --apply：没写文件）")
         return 0
+    vs = record_source(d, a.ref)
+    print("力度来源已改写 %d 轨（例：%s）" % (len(vs), next(iter(vs.values()), '—')))
     shutil.copy2(a.song_json, a.song_json + ".pre_velref.bak")
     json_io.save(a.song_json, d)
     print("已写回 %s（备份 .pre_velref.bak）" % a.song_json)

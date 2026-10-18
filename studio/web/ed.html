@@ -11,8 +11,11 @@
   <span class="brand">🎹 MIDI Studio</span>
   <button id="btnImport" title="导入 .mid / .midi / .kar（也可以用浏览器原生的文件选择，文件只在本地解析）">⬆ 导入 MIDI</button>
   <input type="file" id="fileIn" accept=".mid,.midi,.kar" hidden>
+  <select id="songSel" title="从曲库打开（曲目目录里的 .mid）"><option value="">曲库…</option></select>
+  <button id="btnOpenSong" title="把曲库里选中的曲目打开到编辑器（之后改完可以「→ 引擎」写回去）">📚 打开</button>
   <button id="btnExport" title="导出标准 MIDI（Type 1 多轨）">⬇ 导出 .mid</button>
   <button id="btnExport0" title="导出 Type 0（单轨，所有轨合并）">⬇ Type 0</button>
+  <button id="btnToSong" title="把当前编辑结果直接写进曲库（songs/&lt;名&gt;/song.json）——之后可渲染 / 体检 / 继续编配，不用先导出文件">→ 引擎</button>
   <span class="sep"></span>
   <button id="btnUndo" title="撤销（Ctrl+Z）">↶</button>
   <button id="btnRedo" title="重做（Ctrl+Y）">↷</button>
@@ -115,7 +118,7 @@
 </main>
 
 <footer id="logWrap" class="panel"><pre id="log"></pre></footer>
-<audio id="player" preload="auto"></audio><script src="/ed.js?v=10"></script>
-<script src="/i18n.js?v=3"></script>
+<audio id="player" preload="auto"></audio><script src="/ed.js?v=16"></script>
+<script src="/i18n.js?v=4"></script>
 </body>
 </html>

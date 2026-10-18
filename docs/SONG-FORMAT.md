@@ -71,6 +71,10 @@
 **`sections[i].arr.harmony`**：副旋律/加厚层 —— 给旋律配和弦内的低三度，走 Strings（无则 Hook/Piano）
 **`sections[i].arr.mix`**：段落级 CC7 自动化，如 `{"Strings":80,"Perc":46}`
   —— **做"起伏"最直接的手段**，也是"段间对比"（像不像的关键）的实现方式
+  ⚠ **空轨上的自动化（`arr.mix` 与顶层 `automation`）会被丢弃并打印 `!! automation 被丢弃`**：
+  引擎只写非空轨，所以要么给它写音符、要么删掉（坑 368）
+  ⚠ **弯音写在被压住的轨上等于没写**：实测 4 轨伴奏下 ±2 半音的频谱位移只有 **+0.1dB**（solo 是 +34dB）
+  → 只放在该音区的主奏轨上（量法 `bend_masking_probe.py`，坑 369）
 
 **`patterns.joint_cadence` / `phrase_vary` / `legato_fill`**（opt-in，默认关 = 老行为**逐字节不变**）：
   联合句法层 · 伴奏逐句换句型（0/1/2）· 内声部补空隙（拍数，≈0.5 = 真人量级）→ README 对应三行。

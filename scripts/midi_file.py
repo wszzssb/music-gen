@@ -84,7 +84,7 @@ def import_midi(path, title=None):
            'tracks': []}
     for t in r['tracks']:
         ch = t['channel']
-        out['tracks'].append({
+        ot = {
             'index': t['index'],
             'name': t['name'] or ('Track %d' % (t['index'] + 1)),
             'channel': ch,
@@ -95,8 +95,31 @@ def import_midi(path, title=None):
                       for (a, d, p, v) in t['notes']],
             'ccs': [[_beat(a, div), int(c), int(v)] for (a, c, v) in t['ccs']],
             'program_changes': [[_beat(a, div), int(p)] for (a, p) in t['program_changes']],
+            # 弯音（-8192..8191）：**必须带过来**，否则"导入 → 导出"会静默丢掉表情，
+            # 而往返校验只核对音符/CC 时还是绿的（实测 2026-10-17 补的缺口）。
+            'pitch_bends': [[_beat(a, div), int(v)] for (a, v) in (t.get('pitch_bends') or [])],
             'markers': [[_beat(a, div), s] for (a, s) in t['markers']],
-        })
+            # `.kar` 歌词（meta 0x05）：**只带过来、不变成音符**。用户要能看见
+            # "这份 .kar 有 N 行歌词、已被忽略"，否则会以为歌词跟着进来了。
+            'lyrics': [[_beat(a, div), s] for (a, s) in (t.get('lyrics') or [])],
+        }
+        # Type 0（一条轨混多通道）的**按通道副本**：仅当解析器给了才带，4 元的 `notes` 不变。
+        # 导入引擎（`midi_to_song.py`）靠它把钢琴/贝斯/鼓拆回各自的轨，否则会全并成一条。
+        if t.get('notes_by_ch'):
+            ot['notes_by_ch'] = {
+                c: [[_beat(a, div), _dur(a, a + d, div), int(p), int(v)]
+                    for (a, d, p, v) in ns]
+                for c, ns in t['notes_by_ch'].items()}
+            ot['progs_by_ch'] = {
+                c: [[_beat(a, div), int(p)] for (a, p) in v]
+                for c, v in (t.get('progs_by_ch') or {}).items()}
+            ot['ccs_by_ch'] = {
+                c: [[_beat(a, div), int(cc), int(val)] for (a, cc, val) in v]
+                for c, v in (t.get('ccs_by_ch') or {}).items()}
+            ot['bends_by_ch'] = {
+                c: [[_beat(a, div), int(val)] for (a, val) in v]
+                for c, v in (t.get('bends_by_ch') or {}).items()}
+        out['tracks'].append(ot)
     return out
 
 
@@ -113,11 +136,14 @@ def _meta(kind, payload):
     return b'\xff' + bytes([kind]) + _vlq(len(payload)) + payload
 
 
-def export_midi(model, path, fmt=None):
+def export_midi(model, path, fmt=None, use_tempo_map=False):
     """编辑器数据模型 → 标准 MIDI 文件。
 
     `fmt=1`（默认）= 多轨（每轨 MTrk，轨 0 带速度/拍号）
     `fmt=0` = 单轨（所有轨合并进一条 MTrk，**每条轨分配独立通道**；鼓轨固定 9）
+    `use_tempo_map=True` 且模型带 `tempo_map` 时写**多 tempo**；默认单 tempo（向后兼容）——
+    ⚠ 默认必须是单 tempo：`import_midi → 改 bpm → export_midi` 是既有用法，若自动继承
+    导入时的变速，导出的"已改成单 tempo"文件仍含旧变速（`truth_eval` 尺子自检当场红）。
     返回实际写入的 format。
     """
     fmt = int(fmt if fmt is not None else (model.get('format') or 1))
@@ -155,7 +181,14 @@ def export_midi(model, path, fmt=None):
         if with_meta_head:
             nm = (t.get('name') or '').encode('utf-8')[:120]
             ev.append((0, W_META, _meta(0x03, nm)))
-            ev.append((0, W_META, _meta(0x51, int(60_000_000 / max(1.0, bpm)).to_bytes(3, 'big'))))
+            tmap = (model.get('tempo_map') or []) if use_tempo_map else []
+            if tmap:
+                # 多 tempo（opt-in）：`[[beat, mpqn], ...]`；没给就按单一 bpm 写一条
+                for (bt, mpqn) in tmap:
+                    v = max(1, min(0xFFFFFF, int(mpqn)))
+                    ev.append((tick(bt), W_META, _meta(0x51, v.to_bytes(3, 'big'))))
+            else:
+                ev.append((0, W_META, _meta(0x51, int(60_000_000 / max(1.0, bpm)).to_bytes(3, 'big'))))
             clocks = max(1, int(round(24.0 * 4.0 / int(den))))
             ev.append((0, W_META, _meta(0x58, bytes([int(num) & 0xFF, den_exp, clocks, 8]))))
         elif t.get('name'):
@@ -183,6 +216,10 @@ def export_midi(model, path, fmt=None):
         for (bt, cc, val) in (t.get('ccs') or []):
             ev.append((tick(bt), W_PROG, bytes([0xB0 | ch, int(cc) & 0x7F,
                                                 max(0, min(127, int(val)))])))
+        # 弯音：模型存 -8192..8191（与解析器同口径），SMF 里是 0..16383 的 14 位
+        for (bt, val) in (t.get('pitch_bends') or []):
+            v = max(0, min(16383, int(val) + 8192))
+            ev.append((tick(bt), W_PROG, bytes([0xE0 | ch, v & 0x7F, (v >> 7) & 0x7F])))
         for (bt, txt) in (t.get('markers') or []):
             ev.append((tick(bt), W_MARK, _meta(0x06, str(txt).encode('utf-8')[:120])))
         for n in (t.get('notes') or []):
@@ -344,6 +381,13 @@ def roundtrip_report(path, out=None):
         if len(a.get('ccs') or []) != len(b.get('ccs') or []):
             bad.append('轨 %s CC 数 %d → %d'
                        % (a['name'], len(a.get('ccs') or []), len(b.get('ccs') or [])))
+        pa = [(round(t, 4), int(v)) for t, v in (a.get('pitch_bends') or [])]
+        pb = [(round(t, 4), int(v)) for t, v in (b.get('pitch_bends') or [])]
+        if len(pa) != len(pb):
+            bad.append('轨 %s 弯音数 %d → %d' % (a['name'], len(pa), len(pb)))
+        elif pa != pb:
+            bad.append('轨 %s 弯音位置/值变了（例 %s vs %s）'
+                       % (a['name'], pa[:2], pb[:2]))
         if len(a.get('markers') or []) != len(b.get('markers') or []):
             bad.append('轨 %s 标记数变了' % a['name'])
     return {'ok': not bad, 'bad': bad[:8], 'out': out, 'fmt': fmt,

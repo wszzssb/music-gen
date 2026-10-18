@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -226,6 +226,31 @@
       </div>
     </section>
 
+    <!-- ②b 从 MIDI 新建（2026-10-17）：已有 .mid → 直接进引擎 -->
+    <section class="card">
+      <h2>②b 从 MIDI 新建 <span class="muted">已有 .mid？直接进引擎继续做</span></h2>
+      <div class="drop" id="midDrop">
+        <div class="big">把 .mid 拖进来，或点这里选文件</div>
+        <div class="hint">标准 MIDI（Type 0/1 · .mid / .midi）→ 落到曲库，可渲染 / 体检 / 继续编配</div>
+        <div class="file hidden" id="midName"></div>
+        <input type="file" id="midInput" accept=".mid,.midi" class="hidden">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>曲目名</label>
+          <input type="text" id="midId" placeholder="例：my_midi_01">
+        </div>
+        <div class="field">
+          <label>每段小节数</label>
+          <input type="number" id="midBars" value="8" min="1" max="64">
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="btnImportMidi" disabled>🎹 导入 MIDI</button>
+        <span class="muted" id="midHint">导入后出现在曲库里；生成层会自动关，不会凭空多出伴奏。</span>
+      </div>
+    </section>
+
     <!-- ③ 任务 -->
     <section class="card hidden" id="jobCard">
       <h2>③ 任务 <span class="muted" id="jobKind"></span></h2>
@@ -253,6 +278,6 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="/gm.js?v=1"></script>
-<script src="/create.js?v=20"></script>
+<script src="/create.js?v=22"></script>
 </body>
 </html>

@@ -341,9 +341,10 @@ def _vlq(n):
 
 
 def write_midi(path, tracks, ppq=480, meter=None):
-    """tracks: (name, program, channel, events[, ccs])
+    """tracks: (name, program, channel, events[, ccs[, bends]])
     events = [(起始拍, 时值拍, 音高, 力度)]
     ccs    = [(拍, CC号, 值)]  —— 用来写声像 CC10 / 音量 CC7 等
+    bends  = [(拍, -8192..8191)] —— 弯音（opt-in；不写 = 老行为逐字节不变）
     meter  = (拍数, 音符单位)，默认 (4,4)：写**拍号元事件**（FF 58）。
              **不给就会让 DAW/播放器按 4/4 显示** —— 3/4 的曲子必须写对，
              否则小节线在外部软件里全是错的（内部网格再对也没用）。"""
@@ -356,6 +357,7 @@ def write_midi(path, tracks, ppq=480, meter=None):
     for idx, track in enumerate(tracks):
         name, program, channel, events = track[:4]
         ccs = track[4] if len(track) > 4 else []
+        bends = track[5] if len(track) > 5 else []
         ev = []
         # 轨名放在 tick 0（规范做法：必须在 End-of-Track 之前，否则 DAW 读不到）
         nb = name.encode()
@@ -376,6 +378,10 @@ def write_midi(path, tracks, ppq=480, meter=None):
                 continue
             ev.append((int(tick * ppq), bytes([0xB0 | channel, cc & 0x7F,
                                                max(0, min(127, int(val)))])))
+        for (tick, val) in bends:
+            # 弯音：模型口径 -8192..8191，SMF 是 0..16383 的 14 位（lsb 在前）
+            v = max(0, min(16383, int(val) + 8192))
+            ev.append((int(tick * ppq), bytes([0xE0 | channel, v & 0x7F, (v >> 7) & 0x7F])))
         for (start, dur, note, vel) in events:
             # 越界数据必须报错，不能靠 & 0x7F 静默回绕（128 会变成 0，音高悄悄错掉）
             if not 0 <= note <= 127:

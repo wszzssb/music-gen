@@ -1,0 +1,41 @@
+# 八度校正器交付清单（SHA256 · 2026-10-18）
+# 格式：sha256  字节  绝对路径
+
+## 1. 工具与守卫
+61b1598838d9d84ccff47aabc8fbb1cc1fd7d8cb6058dc51e31f6bb85c0910db       52850  D:\software\skill\music-gen\scripts\octave_corrector.py
+efb9f05ca9a9919fdc403d1f4f579bb1f1a31a4c4eee940c58027dcbf16ae482      884970  D:\software\skill\music-gen\scripts\selftest.py
+4f1a072632eb36f2bfd918cf8f3741467851114b043a3ff6d11055da4b034e03      277764  D:\software\skill\music-gen\scripts\mutation_check.py
+a2b37779741621baca46cbabce2fbc2c5b6471437b384635043220c2b606e8fe       99838  D:\software\skill\music-gen\README.md
+eb32484488afdca1468a291c50acce5eb647ba35f068da074dac20761e7cc43f        9027  D:\software\skill\music-gen\docs\HANDOFF-OCTAVE-CORRECTOR.md
+
+## 2. 输入（只读，未改动）
+bda78f11fda16e9381db93c27d61fa69119e0d2f3edb6b3ef803a86650544426       36490  D:\software\skill\music-gen\_extract\BGM29\ymt3\BGM29.mid
+22f3f78dab930ec95c00445849e569580aa92a994164d070fd4bda1fb633f959    46989244  D:\software\skill\music-gen\_extract\BGM29\stems\htdemucs_6s\source\bass.wav
+d92c9ff8ebce944b7d48925a2e1ebe9ed941af45f9a21feaa1defefef4c0c8bf       64459  D:\software\skill\music-gen\_extract\BGM35\ymt3\BGM35.mid
+a83c75863a61fa4fbc8612897a3b23dec95e90f887422b1c2b350af81a1f7c4d    58543204  D:\software\skill\music-gen\_extract\BGM35\stems\htdemucs_6s\source\bass.wav
+44e9907441dbe0f126b3a1247c416b7b7a4baf75d3e2921222b39f96a5b2e25c        1850  D:\software\skill\music-gen\_extract\BGM01\ymt3\BGM01_stems\BGM01_Bass.mid
+781fe066c7ac89a302d1ee5dfd83ff277d7845a75cff09b6c37d9e2e247abb43    40682292  D:\software\skill\music-gen\_extract\BGM01\stems\htdemucs_6s\source\bass.wav
+5bfd8633eb673f062b844664030e77f87ab22495400e4eefc672057636125694        1205  D:\software\skill\music-gen\_extract\已至\ymt3\已至_stems\已至_Bass.mid
+2f0b3e1bd8eaab18a0777adc1756f26f249c7a3d145d4df656b75d2aa2bab8de    31172096  D:\software\skill\music-gen\_extract\已至\stems\htdemucs_6s\source\bass.wav
+e0ddf0f86ce1282b854bdf7490c55b116fa447bc374eb70afc4f0e95b6da5352        8507  D:\test\llm_direct\projects\bgm29\ymt3\bgm29_bass_ymt3.mid
+cb767a90012dd08603e3914ce93755f2244d4e9b2480c42be1a71a09e6300518       25152  D:\test\llm_direct\projects\bgm29\midi\bp_bass4.mid
+a0e6d0d7f6089625da9bbafcc2813fb2c39872aa7fa9158e1def051b2d2add1c       23060  D:\test\llm_direct\projects\bgm29\midi\bp_bass6.mid
+
+## 3. 交付产物
+42ec80b6de9f8ab2e09e9b92ad29f47343140c05a202f2573081f60746f5be24       46507  D:\test\octave-corrector\BGM29_ens_base.mid
+1cf500b176e6c152e8ba3043c51683379cc42a48df614914fbd831fa58112f23       45468  D:\test\octave-corrector\BGM29_ens_filled.mid
+7a36b656565beb9f3cba90559a141a534369ace292c7f6ee303ae27d008674ab       45377  D:\test\octave-corrector\BGM29_ens_hybrid.mid
+7a36b656565beb9f3cba90559a141a534369ace292c7f6ee303ae27d008674ab       45377  D:\test\octave-corrector\BGM29_ens_learned.mid
+cd75233e8770ddc0accdd77b971c2a5a3e03b2c76e8048ec65d992f681ad6d87       45361  D:\test\octave-corrector\BGM29_ens_mode.mid
+0c7d77f341607915f9d5e8c63dd703887f49df363e88dd653a798c1d761ffe69       45400  D:\test\octave-corrector\BGM29_ens_pyin.mid
+317e299ea1a3a5eeee7138689f01f969d35191801d93887e51184f4f7f674fd0       73098  D:\test\octave-corrector\BGM35_full_filled.mid
+eb8a060e7fc4d69c082e3e7d9c0151427d8f885cbf536cfff1e9f3c6d243de83       72899  D:\test\octave-corrector\BGM35_full_hybrid.mid
+93457a4db58b3a0df9ffb42c1a6e2fd1b4978015de1eef6a0dcb08ce32811cc5       72899  D:\test\octave-corrector\BGM35_full_mode.mid
+934e349b712b76dee50888bab35d1afe6d698e3333f582beede64c25655f70e7        1485  D:\test\octave-corrector\FILL-LOG.md
+be2d5e7f084edaa85a2278c2a396d022721902622992a3912d152ce82478a241        8024  D:\test\octave-corrector\MISS-EVIDENCE.md
+91c89b3841afa534b029b3d18834057595d8a8ff31c733f02b90aa46a274b771       19890  D:\test\octave-corrector\REPORT.md
+b0446cdb7f0848635b978b725270f7e2395fea6de782be9de8433f4a259ddb66        7139  D:\test\octave-corrector\fill_log.csv
+f2d3f9fd583c6b4f20eeb6b75d239e39f46038e75b49a094a6cd77484b6d851c       72403  D:\test\octave-corrector\miss_runs.csv
+5e41cca409e7a8d772b6b8901fce2c7d3b25ee3f54609c9983aaa0c5994591e7       16973  D:\test\octave-corrector\model_all_songs.npz
+5e6f09535a47a90fc977aa2f78fa623e1b4305507462ed916190bfb32caa3d57       16932  D:\test\octave-corrector\model_excl_BGM29.npz
+9b9bfc300347a128aa2ab5960b6d5fa8cd1dd991b791b9f30b3e71e6cc626134       16931  D:\test\octave-corrector\model_excl_BGM35.npz
