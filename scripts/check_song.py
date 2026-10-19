@@ -81,7 +81,13 @@ def lint_dirs(songs):
             shutil.copytree(src, dst, ignore=shutil.ignore_patterns('__pycache__'))
     for fn in os.listdir(ROOT):
         src, dst = os.path.join(ROOT, fn), os.path.join(tmp_root, fn)
-        if fn.endswith('.md') and os.path.exists(src) and not os.path.exists(dst):
+        # 根目录的 `*.md` 与**安装入口**（`setup.cmd` / `install.ps1` 之类）一起带进来：
+        # `install_entrypoints` 判的就是这些文件在不在，沙箱里缺了它会报"新人入口不见了"
+        # 的假红（2026-10-19 实测：单曲检查固定 1 条假 FAIL）。
+        if not (fn.endswith('.md') or fn.endswith('.cmd') or fn.endswith('.ps1')
+                or fn in ('LICENSE',)):
+            continue
+        if os.path.exists(src) and not os.path.exists(dst):
             shutil.copy2(src, dst)
     # ⚠ 不要把 `scripts/` 也链进来"图省事"：沙箱换的是 `selftest.ROOT`，而读脚本源码的检查
     #   （`t_ffmpeg_exe_is_local`）应当用 `HERE` 拿真实仓库的路径（见坑 223 的修法）。
@@ -397,11 +403,18 @@ def main():
     as_json = '--json' in sys.argv
     strict_mode = '--strict' in sys.argv
     fast = '--fast' in sys.argv      # 只跑数据契约批
+    # **单曲检查也要看得到全库**（2026-10-19，用户："库里只有 1~2 首 → 空转改掉"）：
+    # 原先 `lint_dirs([songs[0]])` 只把这一首链进沙箱 ⇒ 所有跨曲目判据（theme_fit /
+    # melody_distinct / accompaniment_harmony / section_transition …）永远看到 **1 首**，
+    # 一致报"可判曲目太少 → 空转"。**空转不是数据问题，是沙箱口径问题**。
+    # `--isolated` 保留旧口径（排查"这首自身"时用）。
+    isolated = '--isolated' in sys.argv
 
+    lib = sorted(d for d in os.listdir(SONGS)
+                 if os.path.isdir(os.path.join(SONGS, d))
+                 and os.path.exists(os.path.join(SONGS, d, 'song.json')))
     if do_all:
-        songs = sorted(d for d in os.listdir(SONGS)
-                       if os.path.isdir(os.path.join(SONGS, d))
-                       and os.path.exists(os.path.join(SONGS, d, 'song.json')))
+        songs = lib
     elif args:
         songs = [args[0]]
     else:
@@ -420,7 +433,10 @@ def main():
             if f:
                 fixed_total.append((s, f))
 
-    tmp = lint_dirs(songs)
+    # 沙箱曲目：**目标曲目排第一**（`songs[0]` 下面要跑 compose 干跑），其余全库跟着链进去
+    sandbox_songs = songs if (do_all or isolated) else \
+        ([songs[0]] + [x for x in lib if x != songs[0]])
+    tmp = lint_dirs(sandbox_songs)
     try:
         results, fails = run_checks_on(tmp, only=(DATA_CHECKS if fast else None))
     finally:

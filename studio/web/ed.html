@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>MIDI Studio — 导入 / 编辑 / 导出</title>
-<link rel="stylesheet" href="/ed.css?v=6">
+<link rel="stylesheet" href="/ed.css?v=7">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>♪</text></svg>">
 </head>
 <body>
@@ -45,6 +45,7 @@
   <span class="dim" id="status"></span>
   <a class="link" href="/" title="回到引擎面板（作曲/渲染/混音/指标）">🎛 引擎面板</a>
   <a class="link" href="/create" title="创作台：提要求生成 / 扒谱提取 / 导出">✨ 创作台</a>
+  <div id="skinBox"></div>
 </header>
 
 <section id="tools" class="panel">
@@ -118,7 +119,8 @@
 </main>
 
 <footer id="logWrap" class="panel"><pre id="log"></pre></footer>
-<audio id="player" preload="auto"></audio><script src="/ed.js?v=16"></script>
+<audio id="player" preload="auto"></audio><script src="/skin.js?v=6"></script>
+<script src="/ed.js?v=16"></script>
 <script src="/i18n.js?v=4"></script>
 </body>
 </html>

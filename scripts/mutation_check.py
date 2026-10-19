@@ -1800,6 +1800,16 @@ def main():
     results.append(case('力度：关掉乐句力度包络',
                         'melody_dyn_optin',
                         lambda: Mut(_se, 'mel_dyn_env', lambda *a: 1.0)))
+    # ⑨b **`strict` 契约**（2026-10-19）：把伴奏让步关成恒等函数 → 守卫里"默认应整层 drop"
+    #     那个校准点必须变红（它同时证明"strict 的对照列真的在跑"，不是恒真）
+    results.append(case('编排：关掉伴奏让步（strict 契约的默认列）',
+                        'strict_contracts',
+                        lambda: Mut(_se, 'yield_to_melody', lambda bucket, mel: {})))
+    # ⑨c `strict` 漏登记进 `PAT_KEYS`（引擎会打印"不认识这个键"并静默忽略）→ 接线断言必红
+    results.append(case('编排：strict 漏登记 PAT_KEYS',
+                        'strict_contracts',
+                        lambda: Mut(_se, 'PAT_KEYS',
+                                    tuple(k for k in _se.PAT_KEYS if k != 'strict'))))
     # ⑨ 把音区分工换回**非八度移调**（旧表）→ 伴奏整轨被移到和弦外 →
     #    和弦贴合 + 音区分离两条必须同时抓到（这是"旋律和伴奏配合不好"的根因）
     results.append(case('配合：音区分工换回非八度移调（伴奏跑调）',

@@ -7,7 +7,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.5 "Segoe UI",syst
 .sep{width:1px;height:22px;background:var(--line)}
 button{background:#252a37;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
 button:hover{border-color:var(--acc)}
-button.primary{background:#1d4f6b;border-color:#2b7fa8}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
 button.mini{padding:2px 8px;font-size:12px}
 select,input[type=number]{background:#252a37;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 input[type=range]{width:88px;vertical-align:middle}
@@ -31,16 +31,16 @@ input[type=range]{width:88px;vertical-align:middle}
 .track .row label{color:var(--dim);width:34px}
 .track .n{color:var(--dim);font-size:11px;margin-left:auto}
 #secStrip{display:flex;gap:4px;overflow-x:auto;padding-bottom:6px;min-width:0}
-.sec{flex:0 0 auto;border:1px solid var(--line);border-radius:6px;padding:4px 6px;cursor:pointer;background:#232838;font-size:11px;text-align:center;min-width:44px}
-.sec.sel{border-color:var(--acc);background:#1d3345}
+.sec{flex:0 0 auto;border:1px solid var(--line);border-radius:6px;padding:4px 6px;cursor:pointer;background:var(--panel);font-size:11px;text-align:center;min-width:44px}
+.sec.sel{border-color:var(--acc);background:color-mix(in oklch, var(--acc) 18%, var(--panel))}
 .sec b{display:block;font-size:11px}
 #secEdit{margin:6px 0 10px;font-size:12px}
 #secEdit .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px;margin-top:6px}
 #secEdit .cell{border:1px solid var(--line);border-radius:6px;padding:4px}
 #secEdit .chips{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
-.chip{border:1px solid var(--line);border-radius:12px;padding:1px 8px;cursor:pointer;background:#232838;font-size:11px}
-.chip.on{background:#1d4f6b;border-color:#2b7fa8}
-#roll{width:100%;height:360px;background:#0f1117;border:1px solid var(--line);border-radius:8px;cursor:crosshair}
+.chip{border:1px solid var(--line);border-radius:12px;padding:1px 8px;cursor:pointer;background:var(--panel);font-size:11px}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#roll{width:100%;height:360px;background:var(--roll-bg);border:1px solid var(--line);border-radius:8px;cursor:crosshair}
 /* 播放头叠加层：脱离卷帘画布。画在画布上会**留残影** —— 拖进度条时旧线全留下＝满屏红色竖条 */
 #rollWrap{position:relative;line-height:0}
 #rollPh{position:absolute;top:1px;bottom:1px;left:0;width:2px;background:#ff6b6b;opacity:0;
@@ -51,7 +51,7 @@ input[type=range]{width:88px;vertical-align:middle}
 .bandrow{display:grid;grid-template-columns:66px 1fr 46px;gap:4px;align-items:center;margin:2px 0;font-size:11px}
 .bandbar{position:relative;height:12px;background:#0f1117;border:1px solid var(--line);border-radius:3px;overflow:hidden}
 .bandbar i{position:absolute;top:0;bottom:0;left:0}
-.bandbar i.mine{background:linear-gradient(90deg,#2b7fa8,#5cc8ff);height:6px}
+.bandbar i.mine{background:var(--acc);height:6px}
 .bandbar i.ref{background:#8b90a4;height:6px;top:6px;opacity:.9}
 .kv{display:flex;justify-content:space-between;font-size:12px;border-bottom:1px dashed var(--line);padding:2px 0}
 table.mini{width:100%;border-collapse:collapse;font-size:11px}
@@ -60,8 +60,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{border:0;border-radius:0;background:#1f2430;padding:4px 8px}
-.seg button.on{background:#1d4f6b}
-#wave{width:100%;height:56px;background:#0f1117;border:1px solid var(--line);border-radius:8px;cursor:pointer;display:block;margin:6px 0}
+.seg button.on{background:var(--acc);color:#fff}
+#wave{width:100%;height:56px;background:var(--roll-bg);border:1px solid var(--line);border-radius:8px;cursor:pointer;display:block;margin:6px 0}
 #mixer{margin:0 10px 10px}
 #strips{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px}
 .strip{border:1px solid var(--line);border-radius:8px;padding:6px;background:#1d2130}
@@ -83,4 +83,30 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .hint{color:var(--dim);font-size:11px}
 /* 自动化编辑器（2026-10-17）：canvas 自适应面板宽度 */
 #autoWrap{width:100%}
-#autoCanvas{width:100%;height:180px;display:block;background:#0c0e12;border:1px solid var(--line);border-radius:6px;cursor:crosshair}
+#autoCanvas{width:100%;height:180px;display:block;background:var(--roll-bg);border:1px solid var(--line);border-radius:6px;cursor:crosshair}
+
+/* ── 配色切换（skin.js，2026-10-19）——引擎页与创作台共用一套颜色逻辑 ── */
+#skinBox{display:flex;align-items:center;gap:6px}
+.skin-lbl{font-size:11px;color:var(--dim)}
+.skin-dot{width:14px;height:14px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;transition:transform .15s}
+.skin-dot:hover{transform:scale(1.15)}
+.skin-dot.on{border-color:var(--fg);box-shadow:0 0 0 2px var(--panel) inset}
+.skin-mode{background:transparent;border:1px solid var(--line);border-radius:6px;padding:1px 6px;cursor:pointer;font-size:12px;opacity:.55;line-height:1.4;color:var(--fg)}
+.skin-mode:hover{opacity:.9}
+.skin-mode.on{opacity:1;border-color:var(--acc);background:rgba(255,255,255,.06)}
+.sep-d{width:1px;height:16px;background:var(--line)}
+
+/* ── 浅色模式：引擎页有一批**写死的深色**（按钮 #252a37 / 日志 #c8cddd 等）——
+ * 只换 `--bg/--panel/--fg` 会留下"白底深按钮"的怪相，这里按元素补一遍（2026-10-19）。 */
+html[data-mode="light"] button{background:#eef1f8;color:var(--fg)}
+html[data-mode="light"] button:hover{border-color:var(--acc)}
+html[data-mode="light"] button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+html[data-mode="light"] select,html[data-mode="light"] input[type=number],
+html[data-mode="light"] input[type=text]{background:#fff;color:var(--fg);border-color:var(--line)}
+html[data-mode="light"] #log{color:#3a3f4d;background:var(--panel)}
+html[data-mode="light"] #autoCanvas{background:#f3f5fa}
+html[data-mode="light"] .track.sel{background:#eef2fb}
+html[data-mode="light"] .sec{background:#eef1f8}
+html[data-mode="light"] .sec.sel{background:#e2ebfb}
+html[data-mode="light"] .modal .box{box-shadow:0 10px 30px rgba(0,0,0,.18)}
+html[data-mode="light"] .skin-mode.on{background:rgba(0,0,0,.05)}

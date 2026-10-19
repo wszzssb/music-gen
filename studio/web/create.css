@@ -26,6 +26,11 @@
   --accent: oklch(0.66 0.17 268);
   --accent-hover: oklch(0.71 0.16 268);
   --accent-dim: oklch(0.66 0.17 268 / 16%);
+  /* 渐变的第 2/3 段与"强调底色上的文字"——以前这三处**写死成蓝色**，
+   * 换强调色时只有第一段变，看起来就像"没换"（2026-10-19 截图确认）。 */
+  --accent-2: oklch(0.58 0.2 300);
+  --accent-3: oklch(0.72 0.15 200);
+  --accent-fg: oklch(0.84 0.1 268);
   /* 语义 */
   --ok: oklch(0.75 0.16 162);
   --warn: oklch(0.8 0.15 82);
@@ -52,7 +57,7 @@ body {
 /* 顶部一层很淡的光晕，避免大面积纯色显得"死" */
 body::before {
   content: ""; position: fixed; inset: 0 0 auto 0; height: 320px; pointer-events: none;
-  background: radial-gradient(900px 260px at 22% -60px, oklch(0.66 0.17 268 / 14%), transparent 70%);
+  background: radial-gradient(900px 260px at 22% -60px, var(--accent-dim), transparent 70%);
 }
 h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -.01em; }
 h1 { font-size: 21px; }
@@ -77,8 +82,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .brand .logo {
   width: 32px; height: 32px; display: grid; place-items: center; flex: none;
   border-radius: 10px; font-size: 17px;
-  background: linear-gradient(145deg, var(--accent), oklch(0.58 0.2 300));
-  box-shadow: 0 4px 14px oklch(0.66 0.17 268 / 30%);
+  background: linear-gradient(145deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 14px var(--accent-dim);
 }
 .brand b { display: block; font-size: 14.5px; letter-spacing: -.01em; }
 .brand small { display: block; color: var(--text-3); font-size: 11.5px; }
@@ -91,7 +96,7 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 }
 .nav-item:hover { background: oklch(1 0 0 / 5%); color: var(--text); }
 .nav-item.active {
-  background: var(--accent-dim); color: oklch(0.84 0.1 268); font-weight: 500;
+  background: var(--accent-dim); color: var(--accent-fg); font-weight: 500;
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
@@ -144,9 +149,9 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 .btn:active { transform: translateY(1px); }
 .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 .btn.primary {
-  background: linear-gradient(180deg, var(--accent), oklch(0.6 0.18 268));
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
   color: oklch(0.99 0 0); font-weight: 500;
-  box-shadow: 0 2px 12px oklch(0.66 0.17 268 / 26%);
+  box-shadow: 0 2px 12px var(--accent-dim);
 }
 .btn.primary:hover { background: linear-gradient(180deg, var(--accent-hover), var(--accent)); }
 .btn.ghost { background: transparent; border-color: var(--border-strong); color: var(--text-2); }
@@ -160,8 +165,8 @@ input[type=text], input[type=number], textarea, select {
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 input:focus, textarea:focus, select:focus {
-  border-color: oklch(0.66 0.17 268 / 60%);
-  box-shadow: 0 0 0 3px oklch(0.66 0.17 268 / 18%);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 textarea { resize: vertical; min-height: 76px; line-height: 1.6; }
 input::placeholder, textarea::placeholder { color: var(--text-3); }
@@ -175,19 +180,23 @@ input::placeholder, textarea::placeholder { color: var(--text-3); }
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 3px 9px; border-radius: 999px; font-size: 12px;
-  background: oklch(1 0 0 / 6%); border: 1px solid var(--border); color: var(--text-2);
+  /* ⚠ 原来写的是 `oklch(1 0 0 / 6%)`（**白色半透明**）：深色底上刚好，浅色底上就几乎看不见
+   * —— 用户"白色主题很怪"的一半原因（2026-10-19 截图确认）。改成随主题的表面色。 */
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2);
 }
 .chip b { color: var(--text); font-weight: 600; }
-.chip.theme { background: oklch(0.66 0.17 268 / 15%); border-color: oklch(0.66 0.17 268 / 30%); color: oklch(0.86 0.07 268); }
+.chip.theme { background: var(--accent-dim); border-color: var(--accent-dim); color: var(--accent-fg); }
 .chip.warn { background: oklch(0.8 0.15 82 / 14%); border-color: oklch(0.8 0.15 82 / 28%); color: oklch(0.87 0.1 82); }
+html[data-mode="light"] .chip.warn { color: oklch(0.46 0.12 82); }
 /* **可点选的 chip**（2026-10-08）：编配白名单 / 独奏化的乐器按钮，点一下切换选中。
-   `.on` 用与 `.chip.theme` 同一套色系（紫），一眼看出"选了哪几件"。 */
+   ⚠ 原来 `.on` 与 hover 都写死了紫蓝色 ⇒ 换强调色时这排按钮**不跟着变**（用户"主题颜色没变化"的
+   另一半原因）。现在统一走 `--accent*`。 */
 button.chip { cursor: pointer; user-select: none; font: inherit; }
-button.chip:hover { border-color: oklch(0.66 0.17 268 / 45%); }
+button.chip:hover { border-color: var(--accent); }
 button.chip.on {
-  background: oklch(0.66 0.17 268 / 34%);
-  border-color: oklch(0.66 0.17 268 / 62%);
-  color: #fff;
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent-fg);
 }
 /* 当前用途下**不适用**的乐器：灰掉且不可点（例：独奏化不支持"打击/垫子/琶音"这类编配层） */
 button.chip.off {
@@ -232,7 +241,7 @@ button.chip.off {
   transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .mode:hover { border-color: var(--border-strong); }
-.mode.on { border-color: oklch(0.66 0.17 268 / 65%); background: var(--accent-dim); }
+.mode.on { border-color: var(--accent-dim); background: var(--accent-dim); }
 .mode b { display: block; font-size: 13.5px; }
 .mode span { display: block; color: var(--text-3); font-size: 11.5px; margin-top: 2px; }
 
@@ -240,7 +249,7 @@ button.chip.off {
 .bar { height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .bar > i {
   display: block; height: 100%; width: 0%;
-  background: linear-gradient(90deg, var(--accent), oklch(0.72 0.15 200));
+  background: linear-gradient(90deg, var(--accent), var(--accent-3));
   transition: width 400ms var(--ease);
 }
 .bar.indet > i { width: 35%; animation: slide 1.5s ease-in-out infinite; }
@@ -262,7 +271,7 @@ button.chip.off {
   border-radius: 999px; font-size: 11.5px; background: oklch(1 0 0 / 5%);
   border: 1px solid var(--border); color: var(--text-3);
 }
-.step-pill.on { background: var(--accent-dim); border-color: oklch(0.66 0.17 268 / 35%); color: var(--text); }
+.step-pill.on { background: var(--accent-dim); border-color: var(--accent-dim); color: var(--text); }
 .step-pill.done { background: oklch(0.75 0.16 162 / 14%); border-color: oklch(0.75 0.16 162 / 28%); color: oklch(0.85 0.1 162); }
 
 /* 产物卡片 */
@@ -299,3 +308,31 @@ button.chip.off {
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ── 配色切换（skin.js，2026-10-19）────────────────────────────────────
+ * 只改 CSS 变量：`--accent` 一处变，全站的按钮/选中态/进度条跟着变。
+ * 明/暗由 `skin.js` 换 `--bg/--surface-*/--text*`，这里只补浅色下的细节。 */
+#skinBox { display: flex; align-items: center; gap: 6px; }
+.skin-lbl { font-size: 11px; color: var(--text-3); }
+.skin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid transparent;
+  padding: 0; cursor: pointer; transition: transform .15s; }
+.skin-dot:hover { transform: scale(1.15); }
+.skin-dot.on { border-color: var(--text); box-shadow: 0 0 0 2px var(--surface-1) inset; }
+.skin-mode { background: transparent; border: 1px solid var(--border); border-radius: 6px;
+  padding: 1px 6px; cursor: pointer; font-size: 12px; opacity: .55; line-height: 1.4; }
+.skin-mode:hover { opacity: .9; }
+.skin-mode.on { opacity: 1; border-color: var(--accent); background: var(--accent-dim); }
+.sep-d { width: 1px; height: 16px; background: var(--border); }
+
+/* 逐轨音色表：与卡片内其它表单同宽，行高收紧，下拉铺满 */
+.inst-table { margin-top: 4px; }
+.inst-table th { font-weight: 500; color: var(--text-3); font-size: 11px;
+  border-bottom: 1px solid var(--border); padding: 3px 6px; }
+.inst-table td { border-bottom: 1px solid var(--border); padding: 3px 6px; }
+.inst-table tr:last-child td { border-bottom: none; }
+.inst-table select { width: 100%; min-width: 120px; }
+
+/* 浅色模式：卡片加一层极淡投影，避免白底上"看不出层次" */
+html[data-mode="light"] .card { box-shadow: 0 1px 2px oklch(0 0 0 / 6%); }
+html[data-mode="light"] .sidebar { background: var(--surface-1); }
+

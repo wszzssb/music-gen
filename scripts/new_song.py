@@ -2434,6 +2434,74 @@ def link_to_studio_lib(name, src):
                  dst, os.path.abspath(src)))
 
 
+def apply_program_overrides(song_json, spec):
+    """`--programs "Melody=73,Strings=49,Hook=24"` → 覆盖 `song.json` 的 programs。
+
+    为什么要有（2026-10-19 面板需求）：主题默认音色以前是**隐藏**的 —— 面板只给"主奏"选项，
+    其余轨（Strings/Pad/Glock/Hook/Bass）用了什么用户看不到、也改不了。这条让面板能把
+    **每一轨的默认音色**列出来并允许改，改完随生成一起下发（不静默、打印逐轨前后值）。
+
+    ⚠ **只改音色，不改"开不开"**（2026-10-19 用户问"为什么不能改成无"）：
+      本函数只写 `programs[轨] = (GM 号, 通道)` —— GM 号必须是 0~127，没有"无"这个值。
+      关掉一轨是**编配开关**（`sections[*].arr`），走 `--arr-only`（面板「编配」那一排）；
+      而且主奏 `Melody` 关不掉（没有旋律就没有曲子）、`Perc` 也没有音色（第 10 通道固定鼓组）。
+    """
+    import song_engine as _se
+    d = json_io.load(song_json)
+    progs = d.setdefault('programs', {})
+    changed = []
+    for part in str(spec).split(','):
+        part = part.strip()
+        if not part:
+            continue
+        if '=' not in part:
+            raise SystemExit('--programs 要写成 "轨名=GM号,..."（收到 %r）' % part)
+        tr, val = [x.strip() for x in part.split('=', 1)]
+        if tr not in _se.CH:
+            raise SystemExit('--programs 里的轨名 %r 不合法（可用：%s）'
+                             % (tr, ', '.join(_se.CH)))
+        try:
+            gm = int(val)
+        except ValueError:
+            raise SystemExit('--programs 里 %s 的音色号要整数（收到 %r）' % (tr, val))
+        if not 0 <= gm <= 127:
+            raise SystemExit('--programs 里 %s=%d 超出 0~127' % (tr, gm))
+        old = (progs.get(tr) or [None])[0]
+        progs[tr] = [gm, _se.CH[tr]]
+        changed.append('%s %s → %d' % (tr, old, gm))
+    json_io.save(song_json, d)
+    print('  乐器覆盖：%s' % ' · '.join(changed))
+
+
+MUTE_TRACK_TO_ARR = {'Hook': 'ep', 'Piano': 'piano', 'Strings': 'strings',
+                     'Pad': 'pad', 'Glock': 'glock', 'Bass': 'bass', 'Arp': 'arp'}
+
+
+def apply_mute(song_json, spec):
+    """`--mute "Pad,Glock"` → **逐段**把对应层的 `arr` 关掉（2026-10-19 面板需求）。
+
+    用户："有些轨我不想用，能不能从默认改成无"。
+    与 `--programs` 的区别：那个改**音色**（GM 号），这个改**开不开**（`sections[*].arr`）。
+    ⚠ 主奏 `Melody` 不在可关列表里（没有旋律就没有曲子）；`Perc` 走 `perc` 键、另有开关。
+    逐段写、并打印改了哪些段 —— 引擎没有"全局关闭"这种字段，`arr` 本来就是逐段的。
+    """
+    d = json_io.load(song_json)
+    names = [x.strip() for x in str(spec).replace('，', ',').split(',') if x.strip()]
+    bad = [n for n in names if n not in MUTE_TRACK_TO_ARR]
+    if bad:
+        raise SystemExit('--mute 里的轨名不认识：%s（可用：%s）'
+                         % ('、'.join(bad), '、'.join(MUTE_TRACK_TO_ARR)))
+    n = 0
+    for s in d.get('sections') or []:
+        a = s.setdefault('arr', {})
+        for nm in names:
+            a[MUTE_TRACK_TO_ARR[nm]] = False
+        n += 1
+    json_io.save(song_json, d)
+    print('  关掉轨：%s（逐 %d 段写 arr=False）'
+          % ('、'.join(names), n))
+
+
 def main():
     if '--list-styles' in sys.argv:
         sys.path.insert(0, HERE)
@@ -2542,6 +2610,20 @@ def main():
         # ⚠ **挂曲库必须跟着 `theme_mode` 的出口**：main 末尾那处调用**走不到这里**
         #   —— `--theme` 路径在下面这样一行就 return 了。第一版我把调用写在 main 末尾，
         #   实测 3 首变体全是 404、日志里也没有"已挂面板曲库"（加了 ≠ 生效）。
+        if rc == 0 and '--programs' in sys.argv:
+            try:
+                _spec = sys.argv[sys.argv.index('--programs') + 1]
+            except IndexError:
+                print('✗ --programs 后面要给值（例："Melody=73,Strings=49"）')
+                return 1
+            apply_program_overrides(os.path.join(SONGS, new, 'song.json'), _spec)
+        if rc == 0 and '--mute' in sys.argv:
+            try:
+                _mspec = sys.argv[sys.argv.index('--mute') + 1]
+            except IndexError:
+                print('✗ --mute 后面要给值（例："Pad,Glock"）')
+                return 1
+            apply_mute(os.path.join(SONGS, new, 'song.json'), _mspec)
         if rc == 0:
             link_to_studio_lib(new, os.path.join(SONGS, new))
         return rc

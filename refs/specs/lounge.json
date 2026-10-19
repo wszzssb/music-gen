@@ -1,0 +1,24 @@
+{
+  "theme": "lounge", "label": "酒馆爵士",
+  "bpm": 126, "bpm_range": [120, 156], "duration_sec": 120, "mix_target": "none",
+  "meter": [4, 4],
+  "harmony": {"rhythm": "1 小节 2 和弦（ii-V 走向）", "why": "爵士的推进感来自和声节奏而非鼓", "source": "tension model（arXiv:1707.00972）；ii-V-I 见功能进行文献"},
+  "drums": {
+    "kick": [[0, 88], [8, 84]],
+    "snare": [[4, 70], [12, 74]],
+    "hat": [[0, 58], [2, 46], [4, 58], [6, 46], [8, 58], [10, 46], [12, 58], [14, 46]],
+    "open": [],
+    "source": "Groove MIDI Dataset：爵士用轻鼓刷（力度低、反拍重音弱）；swing 由 patterns.swing 承担",
+    "why": "鼓要'扫'不要'砸'"
+  },
+  "orchestration": {
+    "lead": {"program": 61, "name": "Brass Section", "source": "Rimsky-Korsakov：铜管乐组适合酒馆/爵士的中音区主奏（主题池含 61）"},
+    "bed": {"program": 48, "name": "String Ensemble 1"},
+    "rhythm_gtr": {"program": 26, "name": "Jazz Guitar", "source": "爵士吉他的切分和弦（主题 uku 池 26）"},
+    "why": "萨克斯 + 爵士吉他 + 行走贝斯", "source": "主题包 prog_pool"
+  },
+  "arrangement": {"perc": 1, "strings": true, "bass": true, "ep": true, "piano": true, "pad": false, "glock": false,
+    "source": "[待验] 小编制爵士骨架"},
+  "intro_layers": ["piano", "bass"],
+  "dynamics": {"intro": "钢琴+贝斯", "A": "加萨克斯", "B": "加鼓与吉他", "C": "只留贝斯与鼓", "outro": "收", "source": "[待验]"}
+}

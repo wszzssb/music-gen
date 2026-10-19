@@ -1,0 +1,54 @@
+{
+  "theme": "battle",
+  "label": "战斗",
+  "_note": "论文/公开语料驱动的设计规格（不是模板统计）。每个字段带 source；标 [待验] 的是工程取值，必须 A/B 才算数。",
+  "bpm": 144,
+  "bpm_range": [126, 174],
+  "duration_sec": 120,
+  "mix_target": "none",
+  "bpm_source": "模板区间 126–174 的中段（144 已是本题材常见行进速度）；[待验] 与 150/156 的差别",
+  "meter": [4, 4],
+  "meter_source": "战斗/进行曲体裁的稳定 4/4（强拍锚点明确）",
+  "harmony": {
+    "rhythm": "1 小节 1 和弦",
+    "why": "快速段落里和声节奏放慢，让节奏层承担推进；和弦仍取自主题词表（不自造）",
+    "source": "tension model（arXiv:1707.00972）与配器/和声张力综述"
+  },
+  "drums": {
+    "kick": [[0, 118], [4, 112], [8, 118], [12, 112], [14, 88]],
+    "snare": [[4, 116], [12, 118]],
+    "hat": [[0, 78], [2, 70], [4, 78], [6, 70], [8, 78], [10, 70], [12, 78], [14, 74]],
+    "open": [[14, 84]],
+    "source": "Groove MIDI Dataset（Magenta，公开语料）里 4/4 强拍底鼓 + 2/4 拍军鼓的通用型；16 分踩镲承载推进感",
+    "why": "底鼓每拍 = 稳定脉冲（战斗的'脚步'）；军鼓 2/4 拍 = 清晰的反拍重心；踩镲连续 = 高速感"
+  },
+  "orchestration": {
+    "lead": {"program": 61, "name": "Brass Section", "source": "Rimsky-Korsakov《Principles of Orchestration》：铜管更适合号角式主题；弦乐负责铺底"},
+    "bed": {"program": 48, "name": "String Ensemble 1"},
+    "rhythm_gtr": {"program": 28, "name": "Muted Guitar"},
+    "piano": null,
+    "pad": null,
+    "glock": null,
+    "why": "battle 的模板里 pad/glock 出现率 0、piano 仅 45% —— 亮色层会削弱'硬'的听感",
+    "source": "主题包 arr_share（仅作交叉验证）"
+  },
+  "arrangement": {
+    "perc": 2,
+    "strings": true,
+    "bass": true,
+    "ep": true,
+    "piano": false,
+    "pad": false,
+    "glock": false,
+    "source": "[待验] 用'强拍锚点 + 中频厚度'的两层骨架，去掉亮色层"
+  },
+  "intro_layers": ["strings", "bass"],
+  "dynamics": {
+    "intro": "无鼓，只弦乐+贝斯长音",
+    "A": "全编制",
+    "B": "全编制 + 底鼓加倍",
+    "C": "半速（底鼓 0/8、军鼓 8）",
+    "outro": "逐小节退场",
+    "source": "[待验] 依据战斗曲式惯例（引子—主题—副歌—桥段—回归—尾声）"
+  }
+}

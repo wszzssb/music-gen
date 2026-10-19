@@ -1,0 +1,23 @@
+{
+  "theme": "gorgeous", "label": "华丽",
+  "bpm": 104, "bpm_range": [60, 120], "duration_sec": 120, "mix_target": "none",
+  "meter": [4, 4],
+  "harmony": {"rhythm": "1 小节 1 和弦，副歌加七/九度色彩", "why": "华丽靠'厚'不靠'快'：和声色彩 > 和声频率", "source": "tension model（arXiv:1707.00972）：七和弦/九度提升张力与色彩"},
+  "drums": {
+    "kick": [[0, 108], [8, 104], [12, 88]],
+    "snare": [[4, 96], [12, 100]],
+    "hat": [[0, 66], [4, 62], [8, 66], [12, 62]],
+    "open": [[14, 78]],
+    "source": "Groove MIDI Dataset：中速管弦流行的稳重鼓型",
+    "why": "鼓给骨架，厚度交给弦乐与钟琴"
+  },
+  "orchestration": {
+    "lead": {"program": 73, "name": "Flute", "source": "Rimsky-Korsakov：木管主奏 + 弦乐铺底是'华丽'最经济的组合（主题池含 73）"},
+    "bed": {"program": 49, "name": "String Ensemble 2"},
+    "why": "弦乐组 + 钟琴 = 宽频带（竖琴 46 不在本主题池里，先不用）", "source": "主题包 arr_share（strings 0.82）"
+  },
+  "arrangement": {"perc": 2, "strings": true, "bass": true, "ep": true, "piano": true, "pad": false, "glock": true,
+    "source": "[待验] 华丽骨架：弦乐组 + 竖琴 + 钟琴"},
+  "intro_layers": ["piano", "strings"],
+  "dynamics": {"intro": "钢琴+弦乐", "A": "加贝斯与竖琴", "B": "加钟琴与九度色彩", "C": "抽空到弦乐", "outro": "逐小节退场", "source": "[待验]"}
+}

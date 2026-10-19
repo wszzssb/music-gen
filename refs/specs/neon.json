@@ -1,0 +1,24 @@
+{
+  "theme": "neon", "label": "霓虹电子",
+  "bpm": 132, "bpm_range": [130, 165], "duration_sec": 120, "mix_target": "none",
+  "meter": [4, 4],
+  "harmony": {"rhythm": "1 小节 1~2 和弦", "why": "电子舞曲的和声变化让位于节奏与音色", "source": "tension model（arXiv:1707.00972）"},
+  "drums": {
+    "kick": [[0, 120], [4, 120], [8, 120], [12, 120]],
+    "snare": [[4, 118], [12, 118]],
+    "hat": [[2, 72], [6, 72], [10, 72], [14, 72]],
+    "open": [[6, 80], [14, 80]],
+    "source": "Groove MIDI Dataset：电子 four-on-the-floor（每拍底鼓 + 2/4 拍军鼓）",
+    "why": "底鼓每拍 = 舞池脉冲；反拍开镲 = 推进"
+  },
+  "orchestration": {
+    "lead": {"program": 81, "name": "Lead 2 (sawtooth)", "source": "主题包候选池：锯齿波是电子主奏的典型"},
+    "bed": {"program": 50, "name": "Synth Strings 1"},
+    "rhythm_gtr": {"program": 28, "name": "Muted Guitar", "source": "琶音层用合成/闷音音色 [待验]"},
+    "why": "合成器为主，不用原声乐器", "source": "主题包 prog_pool"
+  },
+  "arrangement": {"perc": 2, "strings": false, "bass": true, "ep": true, "piano": false, "pad": true, "glock": false,
+    "source": "[待验] 电子骨架：主奏 + 琶音 + 合成垫"},
+  "intro_layers": ["pad", "ep"],
+  "dynamics": {"intro": "垫子+琶音，无鼓", "A": "加贝斯", "B": "全编制 four-on-floor", "C": "去鼓留琶音", "outro": "淡出", "source": "[待验]"}
+}

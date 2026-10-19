@@ -1,0 +1,24 @@
+{
+  "theme": "waltz", "label": "三拍圆舞",
+  "bpm": 120, "bpm_range": [60, 140], "duration_sec": 120, "mix_target": "none",
+  "meter": [3, 4],
+  "harmony": {"rhythm": "1 小节 1 和弦", "why": "圆舞曲一小节一个和声，强拍落在第 1 拍", "source": "tension model（arXiv:1707.00972）"},
+  "drums": {
+    "kick": [[0, 112]],
+    "snare": [[4, 76], [8, 76]],
+    "hat": [],
+    "open": [],
+    "source": "Groove MIDI Dataset：3/4 的 oom-pah-pah（第 1 拍底鼓，第 2/3 拍轻击）",
+    "why": "圆舞曲的三拍循环必须被听见；[待验] 第 2/3 拍用军鼓还是踩镲"
+  },
+  "orchestration": {
+    "lead": {"program": 60, "name": "French Horn", "source": "Rimsky-Korsakov：圆号适合圆舞曲的中音区主题（主题池含 60）"},
+    "bed": {"program": 48, "name": "String Ensemble 1"},
+    "piano": {"program": 0, "name": "Acoustic Grand"},
+    "why": "弦乐 + 钢琴的三拍伴奏", "source": "主题包 prog_pool"
+  },
+  "arrangement": {"perc": 1, "strings": true, "bass": true, "ep": false, "piano": true, "pad": false, "glock": false,
+    "source": "[待验] 圆舞曲骨架"},
+  "intro_layers": ["piano"],
+  "dynamics": {"intro": "钢琴独奏", "A": "加弦乐与贝斯", "B": "加鼓", "C": "回到钢琴", "outro": "收束", "source": "[待验]"}
+}

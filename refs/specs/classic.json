@@ -1,0 +1,19 @@
+{
+  "theme": "classic", "label": "古典庄重",
+  "bpm": 96, "bpm_range": [92, 144], "duration_sec": 120, "mix_target": "none",
+  "meter": [4, 4],
+  "harmony": {"rhythm": "1 小节 1 和弦，句末可 2 小节 1 和弦", "why": "古典句法靠终止式而不是频繁换和弦", "source": "tension model（arXiv:1707.00972）；句法见 Narmour 期待模型"},
+  "drums": {"kick": [[0, 104], [8, 100]], "snare": [], "hat": [], "open": [],
+    "source": "Groove MIDI Dataset：古典/室内乐段落通常无鼓组，只有定音鼓重音 [待验]",
+    "why": "留出空间给分句与终止式"},
+  "orchestration": {
+    "lead": {"program": 68, "name": "Oboe", "source": "Rimsky-Korsakov：双簧管适合庄重主题的清晰线条"},
+    "bed": {"program": 48, "name": "String Ensemble 1"},
+    "piano": {"program": 6, "name": "Harpsichord", "source": "巴洛克/古典的持续低音声部常用大键琴（主题池含 6）"},
+    "why": "弦乐铺底 + 大键琴提供和声骨架", "source": "主题包 prog_pool"
+  },
+  "arrangement": {"perc": 1, "strings": true, "bass": true, "ep": false, "piano": true, "pad": false, "glock": false,
+    "source": "[待验] 室内乐骨架"},
+  "intro_layers": ["piano"],
+  "dynamics": {"intro": "大键琴独奏", "A": "加弦乐", "B": "主奏换双簧管", "C": "回到大键琴", "outro": "收束", "source": "[待验]"}
+}

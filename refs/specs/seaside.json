@@ -1,0 +1,24 @@
+{
+  "theme": "seaside", "label": "海边",
+  "bpm": 130, "bpm_range": [128, 158], "duration_sec": 120, "mix_target": "none",
+  "meter": [4, 4],
+  "harmony": {"rhythm": "1 小节 1 和弦", "why": "海边/民谣以旋律与织体为主", "source": "tension model（arXiv:1707.00972）"},
+  "drums": {
+    "kick": [[0, 96], [8, 92]],
+    "snare": [[12, 80]],
+    "hat": [[0, 54], [2, 48], [4, 54], [6, 48], [8, 54], [10, 48], [12, 54], [14, 48]],
+    "open": [],
+    "source": "Groove MIDI Dataset：轻民谣/海边段落的沙锤型（无强军鼓）",
+    "why": "浪感来自连续的高频沙锤，不是反拍军鼓"
+  },
+  "orchestration": {
+    "lead": {"program": 72, "name": "Piccolo", "source": "主题包候选池：短笛的明亮线条适合海天场景 [待验]"},
+    "bed": {"program": 48, "name": "String Ensemble 1"},
+    "rhythm_gtr": {"program": 24, "name": "Nylon Guitar", "source": "海边/民谣的尼龙弦分解（主题池 24/25/26）"},
+    "why": "尼龙吉他 + 弦乐薄层 + 沙锤", "source": "主题包 prog_pool"
+  },
+  "arrangement": {"perc": 1, "strings": true, "bass": true, "ep": false, "piano": true, "pad": false, "glock": false,
+    "source": "[待验] 民谣骨架"},
+  "intro_layers": ["piano", "ep"],
+  "dynamics": {"intro": "钢琴+吉他", "A": "加沙锤与贝斯", "B": "加弦乐", "C": "回到吉他", "outro": "退场", "source": "[待验]"}
+}

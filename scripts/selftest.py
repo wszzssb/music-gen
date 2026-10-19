@@ -2319,7 +2319,12 @@ def t_track_balance():
     在 2.5–5kHz 天然比旋律高（实测各曲都 ~33dB），不是"伴奏压主奏"。
     """
     import probe_timbre as pt
-    bad, checked = [], 0
+    bad, checked, skipped = [], 0, []
+    # **主奏在该频段本来就弱 ⇒ 这个频段不判**（2026-10-19 实测）：
+    # 130_llm_gorgeous 的长笛主奏 2.5–5kHz 只有 **14.3dB**，而 Strings/Hook 天然 29~33dB ——
+    # 于是不管怎么配都"超标 15dB"，量到的是**音色本身**，不是"盖住旋律"。
+    # 门槛 18dB 依据：柔和主奏（长笛/竖笛族）实测 14~16dB，亮主奏（小号/吉他/颤音琴）22~38dB。
+    MEL_FLOOR_DB = 18.0
     for p in sorted(glob.glob(os.path.join(ROOT, 'songs', '*', 'song.json'))):
         if checked >= 2:                 # 逐轨 solo 要渲染 N 次，全库跑太慢
             break
@@ -2327,13 +2332,14 @@ def t_track_balance():
             d = song_engine.load(p)
         except Exception:
             continue
-        if (d.get('style') or '') not in ('dance', 'daily'):
-            continue
         if not d.get('theme'):
             # 只查**有主题依据**的曲目。早期无主题曲（11_dn75_neon / 12_d75_warm 等）
             # 的旋律是手写的、音区本身偏低（实测 Melody 只有 6.0dB），量到的是
             # "这首曲子的音区"而不是"轨间平衡" —— 拿它判平衡会误报。
             continue
+        # ⚠ **别按 style 白名单卡**（2026-10-19）：原先只查 `dance/daily`，于是曲库里
+        #   没有这两种风格的曲子时这条判据**永远空转**（实测 11 首全过、checked=0）。
+        #   判据本身（伴奏最高轨 ≤ Melody+6dB）与风格无关；风格限制是当初样本恰好都那两类。
         rows = pt.solo_song(p)
         by = {r['name']: r['abs']['2500-5000'] for r in rows}
         if 'Melody' not in by:
@@ -2346,6 +2352,9 @@ def t_track_balance():
                 if k in ('Hook', 'Arp', 'Strings', 'Pad', 'Piano')}
         if not rest:
             continue
+        if mel < MEL_FLOOR_DB:
+            skipped.append('%s(主奏 %.1fdB)' % (os.path.basename(os.path.dirname(p)), mel))
+            continue
         checked += 1
         top_k = max(rest, key=lambda k: rest[k])
         if _balance_violates(mel, rest[top_k]):
@@ -2355,6 +2364,9 @@ def t_track_balance():
     assert checked >= 1, '没有可查的曲目（夹具太少，这条检查会空转）'
     assert not bad, '伴奏盖住旋律（"一轨和其它不平衡"）：%s' % '；'.join(bad)
     print('        %d 首生成曲：伴奏轨都未盖过旋律（阈值 +6dB，用未归一化 raw 量）' % checked)
+    if skipped:
+        print('        跳过 %d 首（主奏 2.5–5kHz < %.0fdB：柔和主奏，该频段不构成"被盖住"）：%s'
+              % (len(skipped), MEL_FLOOR_DB, ', '.join(skipped)))
 
     # ── 2026-10-04 补：**还原曲也要判**（判据此前从未覆盖到它们） ──────────────────
     #   还原曲按设计没有 `Melody` 轨（`--no-melody` 清空），而上面那段还要求
@@ -12992,13 +13004,21 @@ POINTER_SYM_RE = re.compile(r'`([\w./\\-]+\.(?:py|js))#(\w+)`')
 
 
 def _resolve_code_path(rel):
-    """文档里写的 `xxx.py` → 仓库里的真路径（按常见子目录找；找不到返回 None）。"""
+    """文档里写的 `xxx.py` → 仓库里的真路径（按常见子目录找；找不到返回 None）。
+
+    ⚠ **要能穿透 `check_song` 的沙箱**（2026-10-19）：沙箱只链 `songs/`、复制
+    `refs/docs/studio` 与根 `*.md`，**故意不复制 `scripts/`**（见 `lint_dirs` 的说明）——
+    所以查脚本必须回**真实仓库根**（`os.path.dirname(HERE)`）。早先只用 `ROOT`，
+    于是单曲检查里这条判据一致报"文件找不到"（8 条假红）。
+    """
     rel = rel.replace('\\', '/')
+    real_root = os.path.dirname(HERE)
     for c in (rel, 'scripts/' + rel, 'studio/' + rel, 'studio/web/' + rel,
               'tools/' + rel, 'tools/git-push/' + rel):
-        p = os.path.join(ROOT, c)
-        if os.path.isfile(p):
-            return p
+        for base in (ROOT, real_root):        # 沙箱里有就用沙箱的，没有再回真实仓库
+            p = os.path.join(base, c)
+            if os.path.isfile(p):
+                return p
     return None
 
 
@@ -13080,7 +13100,7 @@ def t_doc_code_pointers():
     assert [m.group(0) for m in POINTER_LINE_RE.finditer(probe)] == ['`scripts/new_song.py:1197`'], \
         '判据自证失败：行号指针的正则抓不到合成样本'
     assert len(POINTER_SYM_RE.findall(probe)) == 2, '判据自证失败：符号指针正则抓不到合成样本'
-    _p = os.path.join(ROOT, 'scripts', 'new_song.py')
+    _p = os.path.join(HERE, 'new_song.py')
     assert 'build_from_theme' in _py_symbols(_p) and 'no_such_symbol_xyz' not in _py_symbols(_p), \
         '判据自证失败：ast 认符号这一步不对（真符号没认出/假符号认出来了）'
     assert n_line + n_sym >= 3, \
@@ -13415,7 +13435,7 @@ def t_extract_paths_contracts():
     """
     import extract_paths as EP
 
-    S, PY, ML = os.path.join(ROOT, 'scripts'), sys.executable, sys.executable
+    S, PY, ML = HERE, sys.executable, sys.executable
     W = os.path.join(ROOT, '_extract', 'probe')
     flat = os.path.join(W, 'stems')
     audio = os.path.join(W, 'a.ogg')
@@ -13805,9 +13825,13 @@ def t_install_entrypoints():
          （文件头注释写了原因：改成 UTF-8 会在 cmd.exe 下报 "x is not recognized"）。
     判据自证：合成的"点名 songs\\x\\y.ogg 却没有说明"必须被 ② 抓出来。
     """
+    # ⚠ 脚本入口要回**真实仓库**找：`check_song` 的沙箱故意不复制 `scripts/`
+    #   （见 `lint_dirs`），只用 `ROOT` 会误报"新人入口不见了"（2026-10-19 实测）。
+    _real_root = os.path.dirname(HERE)
     for f in ('INSTALL.md', 'setup.cmd', os.path.join('scripts', 'setup_soundfont.py')):
-        assert os.path.isfile(os.path.join(ROOT, f)), \
-            '新人入口不见了：%s（下载者会没有可照做的一步）' % f
+        ok = (os.path.isfile(os.path.join(ROOT, f))
+              or os.path.isfile(os.path.join(_real_root, f)))
+        assert ok, '新人入口不见了：%s（下载者会没有可照做的一步）' % f
 
     raw = open(os.path.join(ROOT, 'setup.cmd'), 'rb').read()
     assert b'\r\n' in raw, 'setup.cmd 的 CRLF 没了（cmd.exe 能忍，但仓库口径是有意 CRLF）'
@@ -13969,7 +13993,7 @@ def t_joint_cadence_contracts():
         '段界上的主奏该"早停"（末音撤下、**不延长**），实得 %r' % (ev3['Melody'],)
 
     # ⑥ 引擎侧接线（PAT_KEYS 漏登记 = 有读数却"引擎不认识这个键"）
-    SE_src = open(os.path.join(ROOT, 'scripts', 'song_engine.py'), encoding='utf-8').read()
+    SE_src = open(os.path.join(HERE, 'song_engine.py'), encoding='utf-8').read()
     for k in ('joint_cadence', 'joint_phrase_bars', 'joint_keep'):
         assert "'%s'" % k in SE_src, \
             '`%s` 没进 `song_engine.PAT_KEYS` —— 引擎会打印"不认识这个键、会被静默忽略"' % k
@@ -13983,6 +14007,86 @@ def t_joint_cadence_contracts():
     assert "get('joint_cadence')" in SE_src.split('import joint_arrange as _JA')[0][-400:], \
         '接线处没有 `joint_cadence` 开关判断 —— 默认关就不惰性了（老路径会被改）'
     return '联合句法层：6 组断言通过（让位/保留层/收束/负控/接线/惰性）· 依据 我方中位 0.00 vs 真人 0.32'
+
+
+@check
+def t_strict_contracts():
+    r"""**`patterns.strict`：编排方说了算，引擎不许私自改**（2026-10-19 接）。
+
+    为什么要有它（用户原话："引擎仍会覆盖你写下的编排 → 让软件能够详细配合 LLM 的编排"）：
+    实测三处自动修正都会**静默改掉**外部设计表写下的音符 ——
+      ① `yield_to_melody`：伴奏层高于旋律就降八度；极端时**整层 drop**
+         （本库 `130_llm_gorgeous` 5 个段把 Glock 全 −12，等于把"钟琴放上面"抹掉）
+      ② `build_events` 出口的乐器音域夹取：一次**移八度 21 个音**
+      ③ `range_fix` 里的同刻同音高去重：**删音**（实测 4 个）
+    打开 `strict` 后三处都**不动**，只打印"本来会怎么动"；缺省 False = 老行为逐字节不变。
+
+    断言（**行为面**：同一份夹具跑两遍，不渲染、不出声）：
+      ① 让步：默认把 Glock 整层 drop（0 音）→ strict 保留 ≥8 音
+      ② 夹取：默认把越界旋律 20 夹到 44 → strict 保留 20
+      ③ 去重：默认 MIDI 里 t=0/pitch60 只剩 1 个 → strict 保留 2 个
+      ④ 惰性：不写 `strict` 时走的就是旧行为（①②③ 的"默认"列本身就是负控）
+      ⑤ 接线：`song_engine.PAT_KEYS` 里有 `strict`
+         （漏登记 = 引擎打印"不认识这个键、会被静默忽略"—— 本轮实测踩到一次）
+    """
+    import copy
+
+    import midi_file as MF
+    import song_engine as SE
+
+    base = {
+        'name': 'strict_fixture', 'bpm': 120.0, 'bar_beats': 4.0, 'meter': [4, 4],
+        'melody_gen': True,
+        'chords': {'C': [36, [48, 52, 55, 60]]},
+        # 第 0 小节第 1 拍放一个**越界**音（20，Melody 合理下界 43）→ 验②
+        'melody': {'m': [[0, 0.0, 1.0, 20]] +
+                        [[b, bt, 1.0, p] for b in range(8) for bt, p in ((1.0, 60), (2.0, 64))]},
+        'sections': [{'name': 'A', 'bars': 8, 'chords': ['C'] * 8, 'melody': 'm',
+                      'arr': {'piano': True, 'bass': True, 'glock': True}}],
+        'programs': {'Melody': [73, 0], 'Piano': [0, 2], 'Bass': [33, 6], 'Glock': [14, 7]},
+        'mix': {'Melody': [0, 96], 'Piano': [0, 90], 'Glock': [0, 80], 'Bass': [0, 100]},
+        'patterns': {'perc_style': 'none', 'bass_style': 'simple',
+                     'arpeggio': [0, 2, 3, 4, 3, 2, 4], 'range_fix': True},
+        # 同刻同音高的重复音（两条）→ 验③
+        'notes_extra': {'Piano': [[0, 0.0, 1.0, 60], [0, 0.0, 1.0, 60]]},
+    }
+
+    def _run(strict):
+        d = copy.deepcopy(base)
+        if strict:
+            d['patterns']['strict'] = True
+        ev, _nb = SE.build_events(d)
+        mel = sorted(p for (_t, _dd, p, _v) in ev.get('Melody', []))
+        glk = sorted(p for (_t, _dd, p, _v) in ev.get('Glock', []))
+        mid = os.path.join(TMP, 'strict_%s.mid' % ('on' if strict else 'off'))
+        SE.write_midi(d, ev, mid)
+        n60 = 0
+        for t in MF.import_midi(mid)['tracks']:
+            n60 += sum(1 for (bt, _du, p, _v) in t['notes']
+                       if abs(bt) < 1e-6 and int(p) == 60)
+        return mel, glk, n60
+
+    mel0, glk0, n0 = _run(False)
+    mel1, glk1, n1 = _run(True)
+
+    # ① 让步（默认整层 drop ⇒ strict 保留）
+    assert not glk0, ('默认应当让步把 Glock 整层 drop（夹具校准点：%d 音）—— '
+                      '若这条先红了，说明让步逻辑本身变了' % len(glk0))
+    assert len(glk1) >= 8, ('strict 下 Glock 只剩 %d 音 —— 让步没被真正禁掉' % len(glk1))
+    # ② 音域夹取（默认 20→44）
+    assert mel0 and mel0[0] == 44, \
+        '默认应把越界旋律 20 夹到 44（实得 %r）—— 夹具校准点' % (mel0[:1],)
+    assert mel1 and mel1[0] == 20, \
+        'strict 下旋律被夹到 %r —— 音域夹取没被禁掉（编排方写的音区被改了）' % (mel1[:1],)
+    # ③ 去重（默认删到 1 个）
+    assert n0 == 1, '默认 MIDI 里 t=0/pitch60 应有 1 个（去重生效），实得 %d' % n0
+    assert n1 == 2, 'strict 下应保留 2 个重复音，实得 %d —— 去重没被禁掉（引擎在删音）' % n1
+    # ⑤ 接线（漏登记 = "不认识这个键"）
+    assert 'strict' in SE.PAT_KEYS, \
+        '`strict` 没进 `song_engine.PAT_KEYS` —— 引擎会打印"不认识这个键、会被静默忽略"'
+
+    return ('strict：5 组断言通过（让步 drop→保留 %d 音 / 夹取 44→20 / 去重 1→2 / 惰性 / 接线）'
+            % len(glk1))
 
 
 @check
@@ -14046,7 +14150,7 @@ def t_phrase_vary_contracts():
         a, b = list(PV.strong_beats(m)), list(SE.strong_beats(m))
         assert a == b, '强拍表与 song_engine 不一致：%s → 我 %s / 引擎 %s' % (m, a, b)
     ok.append('强拍表与引擎一致（5 个拍号）')
-    src = open(os.path.join(ROOT, 'scripts', 'song_engine.py'), encoding='utf-8').read()
+    src = open(os.path.join(HERE, 'song_engine.py'), encoding='utf-8').read()
     assert "'phrase_vary'" in src, '`phrase_vary` 没进 `song_engine.PAT_KEYS`（引擎会说不认识这个键）'
     assert '_PV.vary_piano(' in src and '_PV.vary_bass(' in src, \
         '钢琴/贝斯两处有哪一处没接上 —— 那就只有一半生效（而且听不出来是哪一半）'
@@ -14094,7 +14198,7 @@ def t_legato_fill_contracts():
             '%s 补出重叠了（同轨后一个音还没松键）' % k
     st = LF.stats(ev, 0.5)
     assert st['grown'] == 5, '统计口径漂了：grown=%d（该 5）' % st['grown']
-    src = open(os.path.join(ROOT, 'scripts', 'song_engine.py'), encoding='utf-8').read()
+    src = open(os.path.join(HERE, 'song_engine.py'), encoding='utf-8').read()
     assert "'legato_fill'" in src, '`legato_fill` 没进 `song_engine.PAT_KEYS`（引擎会说不认识这个键）'
     assert '_LF.fill(bucket, _lf)' in src, '`build_events` 里没接 `legato_fill`（这一层等于不存在）'
     assert 'if _lf:' in src and 'import legato_fill as _LF' in src, \
@@ -14128,7 +14232,7 @@ def t_express_panel_contracts():
     html = open(os.path.join(web, 'create.html'), encoding='utf-8').read()
     js = open(os.path.join(web, 'create.js'), encoding='utf-8').read()
     srv = open(os.path.join(ROOT, 'studio', 'server.py'), encoding='utf-8').read()
-    ns = open(os.path.join(ROOT, 'scripts', 'new_song.py'), encoding='utf-8').read()
+    ns = open(os.path.join(HERE, 'new_song.py'), encoding='utf-8').read()
 
     for k in ('joint', 'phrase', 'legato'):
         assert ('data-ex="%s"' % k) in html, '面板少了 `data-ex="%s"` 这个开关（用户点不到）' % k

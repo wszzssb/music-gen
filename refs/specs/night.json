@@ -1,0 +1,54 @@
+{
+  "theme": "night",
+  "label": "夜晚",
+  "_note": "论文/公开语料驱动的设计规格。标 [待验] 的是工程判断，必须 A/B 才算数。",
+  "bpm": 108,
+  "bpm_range": [100, 156],
+  "duration_sec": 120,
+  "mix_target": "none",
+  "bpm_source": "[待验] 夜间氛围偏中慢；模板中位 130 偏快（galgame 夜曲多为 100–120），取 108",
+  "meter": [4, 4],
+  "meter_source": "夜间/抒情流行以 4/4 为准（3/4 另有 waltz 主题）",
+  "harmony": {
+    "rhythm": "1 小节 1 和弦（或 2 小节 1 和弦）",
+    "why": "和声节奏放慢 = 留白；夜间段落靠音色与混响撑空间，不靠换和弦",
+    "source": "tension model（arXiv:1707.00972）：张力变化靠'预期偏离'，不靠和弦密度"
+  },
+  "drums": {
+    "kick": [[0, 104], [8, 98]],
+    "snare": [[12, 84]],
+    "hat": [[0, 56], [2, 48], [4, 52], [6, 48], [8, 56], [10, 48], [12, 52], [14, 46]],
+    "open": [],
+    "source": "Groove MIDI Dataset：夜间/抒情段落用'半拍底鼓 + 稀疏军鼓 + 低力度连续踩镲'（不抢拍）",
+    "why": "底鼓 1/3 拍＝心跳感；军鼓只在第 4 拍轻点；踩镲力度压到 50 上下＝不刺"
+  },
+  "orchestration": {
+    "lead": {"program": 65, "name": "Alto Sax", "source": "Rimsky-Korsakov：簧管类适合室内/夜曲式中音区主题；主题包候选池内的取法"},
+    "bed": {"program": 48, "name": "String Ensemble 1"},
+    "rhythm_gtr": {"program": 24, "name": "Nylon Guitar", "source": "尼龙弦分解和弦是夜曲/民谣夜的常见织体（模板 uku 池 24/26/25/27）"},
+    "piano": null,
+    "pad": null,
+    "glock": null,
+    "why": "保留 piano/pad 的暖色，去掉 glock（夜间不需要高频亮点）",
+    "source": "主题包 arr_share：piano 0.69 / uku 0.56 / glock 0.06"
+  },
+  "arrangement": {
+    "perc": 1,
+    "strings": true,
+    "bass": true,
+    "ep": true,
+    "piano": true,
+    "pad": true,
+    "glock": false,
+    "source": "[待验] 暖色骨架：钢琴 + 吉他分解 + 弦乐/垫子铺底"
+  },
+  "intro_layers": ["piano", "pad"],
+  "dynamics": {
+    "intro": "无鼓，钢琴+垫子",
+    "A": "轻鼓 + 吉他分解",
+    "B": "加弦乐，鼓不变（夜间不靠加鼓推情绪）",
+    "C": "去鼓，只钢琴+垫子",
+    "outro": "逐小节退场",
+    "source": "[待验] 夜间动态靠'加/减乐器'而不是'加鼓'"
+  }
+}

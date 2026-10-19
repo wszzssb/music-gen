@@ -1,11 +1,20 @@
 /* BGM Studio 前端 —— 纯 DOM + Canvas，无框架（面板只跟本地 /api 说话） */
+/* **主题色读取**（2026-10-19）：卷帘/波形/自动化都是逐帧 canvas，颜色以前写死
+ * （深底 #0f1117 + 白半透明网格），切浅色主题时**整块还是黑的**。这里统一从 CSS 变量读，
+ * 变量由 skin.js 按明/暗两套写进 :root；换肤时 skin.js 发 `bgm-skin` 事件触发重绘。 */
+function TC(n, dflt) {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    return v || dflt;
+  } catch (e) { return dflt; }
+}
 const GM = {0:'Acoustic Grand',4:'E.Piano 1',8:'Celesta',9:'Glockenspiel',11:'Music Box',
   14:'Tubular Bells',24:'Nylon Guitar',25:'Steel Guitar',32:'Acoustic Bass',33:'Fingered Bass',
   38:'Synth Bass 1',43:'Contrabass',46:'Harp',48:'Strings 1',49:'Strings 2',
   51:'Synth Strings 1',52:'Choir Aahs',53:'Voice Oohs',74:'Flute',81:'Lead 2',87:'Lead 8',
   95:'Pad Sweep',96:'FX Rain',99:'FX Crystal',112:'Tinkle Bell'};
-const COLOR = {Melody:'#5cc8ff',Hook:'#ffc857',Piano:'#a0e57c',Arp:'#c792ea',Pad:'#7cd7d7',
-  Strings:'#ff9db1',Bass:'#ff8a5c',Glock:'#e6e8ef',Perc:'#8b90a4'};
+const COLOR = {Melody:TC('--roll-accent','#5cc8ff'),Hook:'#ffc857',Piano:'#a0e57c',Arp:'#c792ea',Pad:'#7cd7d7',
+  Strings:'#ff9db1',Bass:'#ff8a5c',Glock:'#e6e8ef',Perc:TC('--roll-text','#8b90a4')};
 const FLAG = {Hook:'uku',Piano:'piano',Arp:'arp',Pad:'pad',Strings:'strings',Bass:'bass',
   Glock:'glock',Perc:'perc'};
 const EXTRA = {Hook:['ep'],Arp:['shimmer'],Strings:['harmony'],Glock:['glock_all']};
@@ -580,14 +589,14 @@ function renderRoll(){
 }
 function paintRoll(g){
   const {ctx,W,H,v}=g;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle='#0f1117'; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle=TC('--roll-bg','#0f1117'); ctx.fillRect(0,0,W,H);
   /* ⚠ 曲目还没加载进来时必须**自己说清楚**（用户报"卷帘是空的"）：
    *   原来这里直接 `S.song.sections` → 未加载时抛 TypeError → 整个重绘中断 →
    *   画布保持空白、也没有任何提示，看起来就是"功能坏了"。
    *   所以：没数据就画一句人话（并说明怎么修），而不是让异常把画面吃掉。 */
   if(!S.song){
     S.rollG=null;                                   // 没数据 → 播放头也不该停在旧位置
-    ctx.fillStyle='#8b90a4'; ctx.font=(13*(devicePixelRatio||1))+'px sans-serif';
+    ctx.fillStyle=TC('--roll-text','#8b90a4'); ctx.font=(13*(devicePixelRatio||1))+'px sans-serif';
     ctx.fillText(S.loadErr?('曲目加载失败：'+S.loadErr):'还没加载曲目 —— 左上角选一首（或按 ↻ 刷新）',
                  14, 26);
     if(S.loadErr){
@@ -602,24 +611,26 @@ function paintRoll(g){
   for(let b=Math.floor(v.st/bg)*bg; b<v.st+v.span+bg; b+=bg){
     const cn=chordAtBeat(b+0.01); if(!cn) continue;
     const tones=chordTones(cn);
-    ctx.fillStyle='rgba(87,209,139,.07)';
+    ctx.fillStyle=TC('--roll-beat','rgba(87,209,139,.07)');
     for(const pc of tones){ for(let p=g.lo;p<=g.hi;p++) if(p%12===pc) ctx.fillRect(g.x(b),g.y(p),g.x(b+bg)-g.x(b),rowH); }
   }
   // ② 段落底色 + 边界 + 和弦名
   let t0=0;
   ((S.song&&S.song.sections)||[]).forEach((sec,i)=>{
     const x0=g.x(t0), x1=g.x(t0+sec.bars*bg);
-    ctx.fillStyle=(i%2)?'rgba(255,255,255,.02)':'rgba(255,255,255,.05)';
+    ctx.fillStyle=(i%2)?TC('--roll-grid','rgba(255,255,255,.02)'):TC('--roll-grid2','rgba(255,255,255,.05)');
     ctx.fillRect(x0,0,Math.max(0,x1-x0),H);
-    ctx.strokeStyle='#5cc8ff'; ctx.globalAlpha=.5; ctx.beginPath();
+    ctx.strokeStyle=TC('--roll-accent','#5cc8ff'); ctx.globalAlpha=.5; ctx.beginPath();
     ctx.moveTo(x0,0); ctx.lineTo(x0,H); ctx.stroke(); ctx.globalAlpha=1;
-    ctx.fillStyle='#8b90a4'; ctx.font=(11*devicePixelRatio)+'px sans-serif';
+    /* 段落名单独用 `--roll-label`：浅色下 `--roll-text` 太淡、字号又小，
+     * 叠在段落底色上几乎看不清（2026-10-19 实截图确认）。 */
+    ctx.fillStyle=TC('--roll-label','#c9cedd'); ctx.font='600 '+(11*devicePixelRatio)+'px sans-serif';
     if(x1-x0>26) ctx.fillText(sec.name,x0+3,12*devicePixelRatio);
     for(let b=0;b<sec.bars;b++){
       const xb=g.x(t0+b*bg);
-      ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.beginPath(); ctx.moveTo(xb,0); ctx.lineTo(xb,H); ctx.stroke();
+      ctx.strokeStyle=TC('--roll-line','rgba(255,255,255,.08)'); ctx.beginPath(); ctx.moveTo(xb,0); ctx.lineTo(xb,H); ctx.stroke();
       const ch=(sec.chords||[])[b];
-      if(ch && (x1-x0)>60) { ctx.fillStyle='#6f7690'; ctx.fillText(ch,xb+3,H-4*devicePixelRatio); }
+      if(ch && (x1-x0)>60) { ctx.fillStyle=TC('--roll-sub','#6f7690'); ctx.fillText(ch,xb+3,H-4*devicePixelRatio); }
     }
     t0+=sec.bars*bg;
   });
@@ -639,7 +650,7 @@ function paintRoll(g){
       const cn=chordAtBeat(n.beat), pc=n.pitch%12;
       const bad = cn && isStrongBeat(n.beat) && !chordTones(cn).includes(pc);
       ctx.globalAlpha=1; ctx.lineWidth=bad?2:1;
-      ctx.strokeStyle = bad ? '#ff6b6b' : (S.selNote===n ? '#5cc8ff' : 'rgba(255,255,255,.5)');
+      ctx.strokeStyle = bad ? '#ff6b6b' : (S.selNote===n ? TC('--roll-accent','#5cc8ff') : 'rgba(255,255,255,.5)');
       ctx.strokeRect(x,y,w,h);
       if(S.selNote===n){ ctx.fillStyle='#fff'; ctx.fillRect(x+w-3,y,3,h); }   // 右边缘=改时值
     }
@@ -655,7 +666,7 @@ function paintRoll(g){
     const ns = allNotes();
     const tot = ns.length, ed = ns.filter(n=>n.editable).length;
     ctx.globalAlpha=1;
-    ctx.fillStyle='rgba(15,17,23,.72)';
+    ctx.fillStyle=TC('--roll-overlay','rgba(15,17,23,.72)');
     ctx.fillRect(0,0,240,18);
     ctx.fillStyle = tot ? '#7f8a9a' : '#ffb454';
     ctx.font=(11*(devicePixelRatio||1))+'px sans-serif';
@@ -666,6 +677,23 @@ function paintRoll(g){
       ctx.fillText('绘制错误：' + S.drawErrs[0], 6, 30);
     }
   } catch(e) { /* 自证信息不该影响主绘制 */ }
+  // **只读提示**（2026-10-19）：非 Melody 轨由引擎按 arr 展开，卷帘只能看不能改。
+  //   以前只有标题旁一行小字，用户点开某条伴奏轨后直接拖、没反应 —— 以为功能坏了。
+  if (S.track && S.track !== 'Melody') {
+    try {
+      const dp = devicePixelRatio || 1;
+      const msg = '只读：' + S.track + ' 由引擎展开（改编配用左侧开关）';
+      ctx.save();
+      ctx.font = (12 * dp) + 'px sans-serif';
+      const tw = ctx.measureText(msg).width;
+      const pad = 7 * dp, bh = 22 * dp;
+      ctx.fillStyle = TC('--roll-overlay', 'rgba(15,17,23,.72)');
+      ctx.fillRect(W - tw - pad * 2, 6 * dp, tw + pad * 2, bh);
+      ctx.fillStyle = TC('--roll-label', '#c9cedd');
+      ctx.fillText(msg, W - tw - pad, 6 * dp + 15 * dp);
+      ctx.restore();
+    } catch (e) { /* 提示不该影响主绘制 */ }
+  }
   S.rollG=g;                       // 播放头用**同一次绘制**的几何（保证与音符严格对齐）
   drawPlayhead(g);
 }
@@ -1164,7 +1192,7 @@ function seekTo(sec){
 function drawWave(light){
   const c=$('wave'); if(!c) return;
   const W=c.width=c.clientWidth*devicePixelRatio, H=c.height=56*devicePixelRatio;
-  const g=c.getContext('2d'); g.clearRect(0,0,W,H); g.fillStyle='#0f1117'; g.fillRect(0,0,W,H);
+  const g=c.getContext('2d'); g.clearRect(0,0,W,H); g.fillStyle=TC('--roll-bg','#0f1117'); g.fillRect(0,0,W,H);
   const d=ENG.state().dur||0;
   const spb=60/((S.song&&S.song.bpm)||120);
   /* **时间轴必须与卷帘同一坐标系**（用户 2026-09-19："钢琴卷帘上下两个有进度时红线对齐"）。
@@ -1178,7 +1206,7 @@ function drawWave(light){
                      : ((b) => b / ((totalBeats()*spb)||d||1) * W);
   const p=ENG.peaks(2400);
   if(p){
-    g.fillStyle='#3a4152';
+    g.fillStyle=TC('--roll-wave','#3a4152');
     for(let i=0;i<p.length;i++){
       const sec = i/p.length*d;
       const x = beat2x(sec/spb);
@@ -1190,14 +1218,14 @@ function drawWave(light){
     const [a,b]=ENG.state().loop;
     if(a!=null&&b!=null){
       const x1=beat2x(a/spb), x2=beat2x(b/spb);
-      g.fillStyle='rgba(92,200,255,.12)';
+      g.fillStyle=TC('--roll-accent-dim','rgba(92,200,255,.12)');
       g.fillRect(Math.max(0,x1), 0, Math.min(W,x2)-Math.max(0,x1), H);
     }
     const x=beat2x(ENG.position()/spb);
     g.fillStyle='#ff6b6b';
     if(x>=0 && x<=W) g.fillRect(x-1,0,2,H);        // 视野外不画（卷帘那边也是隐藏）
   }
-  if(!light) g.fillStyle='#6f7690';
+  if(!light) g.fillStyle=TC('--roll-sub','#6f7690');
 }
 
 /* ---------------- 混音台（分轨实时混音） ---------------- */
@@ -1497,7 +1525,7 @@ function renderAuto() {
   if (!S.song) { $('autoCount').textContent = '（没有曲目）'; return; }
   const G = autoGeom(), g = cv.getContext('2d');
   g.clearRect(0, 0, G.w, G.h);
-  g.fillStyle = '#0c0e12'; g.fillRect(0, 0, G.w, G.h);
+  g.fillStyle = TC('--roll-bg','#0c0e12'); g.fillRect(0, 0, G.w, G.h);
   const bb = autoBarBeats();
   g.strokeStyle = '#262b38'; g.lineWidth = 1;
   for (let b = 0; b * bb <= G.total + 1e-6; b++) {
@@ -1510,7 +1538,7 @@ function renderAuto() {
   const pts = autoPoints();
   const sel = S.auto.sel;
   if (pts.length) {
-    g.strokeStyle = '#5cc8ff'; g.lineWidth = 1.5;
+    g.strokeStyle = TC('--roll-accent','#5cc8ff'); g.lineWidth = 1.5;
     g.beginPath();
     pts.forEach(([t, v], i) => {
       const px = G.x(t), py = G.y(v);
@@ -1532,7 +1560,7 @@ function renderAuto() {
   if (S.auto.rect) {
     const r = S.auto.rect;
     g.strokeStyle = 'rgba(92,200,255,.9)'; g.lineWidth = 1;
-    g.fillStyle = 'rgba(92,200,255,.10)';
+    g.fillStyle = TC('--roll-accent-dim','rgba(92,200,255,.10)');
     const x0 = Math.min(r.x0, r.x1), y0 = Math.min(r.y0, r.y1);
     const w = Math.abs(r.x1 - r.x0), h = Math.abs(r.y1 - r.y0);
     g.fillRect(x0, y0, w, h); g.strokeRect(x0, y0, w, h);
@@ -1696,3 +1724,10 @@ window.__studioProbe = () => {
           mode: st.mode || S.mode, playing: !!st.playing,
           ctxState: (ENG && ENG.ctx && ENG.ctx.state) || null};
 };
+
+/* 换肤后**重画 canvas**（2026-10-19）：卷帘/波形的颜色存在 CSS 变量里，
+ * skin.js 换完会发 bgm-skin；不重画的话只有 DOM 变了、canvas 仍是旧色。 */
+document.addEventListener('bgm-skin', function () {
+  try { renderRoll(); } catch (e) {}
+  try { if (typeof drawWave === 'function') drawWave(); } catch (e) {}
+});

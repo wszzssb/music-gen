@@ -1,0 +1,19 @@
+{
+  "theme": "tender", "label": "温柔抒情",
+  "bpm": 92, "bpm_range": [70, 136], "duration_sec": 120, "mix_target": "none",
+  "meter": [4, 4],
+  "harmony": {"rhythm": "1 小节 1 和弦，必要时 2 小节", "why": "抒情曲要留呼吸，和声不催", "source": "tension model（arXiv:1707.00972）"},
+  "drums": {"kick": [[0, 88], [8, 84]], "snare": [], "hat": [[0, 44], [4, 44], [8, 44], [12, 44]], "open": [],
+    "source": "Groove MIDI Dataset：抒情段落几乎无鼓，只有极轻的脉冲 [待验]",
+    "why": "有拍感但不打扰旋律"},
+  "orchestration": {
+    "lead": {"program": 73, "name": "Flute", "source": "Rimsky-Korsakov：木管适合温柔线条（主题池含 73）"},
+    "bed": {"program": 48, "name": "String Ensemble 1"},
+    "rhythm_gtr": {"program": 24, "name": "Nylon Guitar"},
+    "why": "钢琴/吉他分解 + 弦乐薄铺", "source": "主题包 prog_pool"
+  },
+  "arrangement": {"perc": 1, "strings": true, "bass": true, "ep": true, "piano": true, "pad": true, "glock": false,
+    "source": "[待验] 柔色骨架"},
+  "intro_layers": ["piano", "pad"],
+  "dynamics": {"intro": "钢琴+垫子", "A": "加弦乐", "B": "加长笛", "C": "只钢琴", "outro": "渐弱", "source": "[待验]"}
+}

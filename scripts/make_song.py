@@ -398,6 +398,15 @@ def main():
     mid = os.path.join(folder, cfg.get('mid', song + '.mid'))
     out = os.path.join(folder, cfg.get('out', song + '_sf'))
     ref_name = cfg.get('ref', 'bgm01c')
+    # **`ref: "none"` = "别追混音目标"**（2026-10-19 修）：混音目标是**别人的真实录音**，
+    # 它的频谱不等于"这个主题该有的样子"。实测：sorrow 的 8 首参考录音质心 4104，
+    # 而"悲伤=钢琴+弦乐、无亮色层"的编配只有 1984 —— 自动调参会一路把高频推上去，
+    # 成绩单还会建议"加 Glock"，把主题性格反过来改了（本末倒置）。
+    # 指定 none 时：**不调参、不出成绩单**（没有参考就没有"差"），只按固定参数渲染。
+    _ref_raw = ref_name
+    _no_ref = str(ref_name).strip().lower() in ('none', 'off', '')
+    if _no_ref:
+        ref_name = None
     # 必须在这里先定义：第 331 行「改过 song.json 却跳过作曲」那条检查要用它。
     # 原先只在更下面（原 341 行）赋值 → 走到那条分支就 UnboundLocalError 崩掉。
     song_json = os.path.join(folder, 'song.json')
@@ -419,7 +428,7 @@ def main():
         pass
     try:
         import scorecard as _sc
-        _ref_bpm = float((_sc.load_ref(ref_name) or {}).get('bpm') or 0) or None
+        _ref_bpm = None if _no_ref else (float((_sc.load_ref(ref_name) or {}).get('bpm') or 0) or None)
     except Exception:
         pass
     # ⚠ 判"是否同一首"要容忍**倍/半速**：项目自带画像 `refs/BGM22.json` 的 bpm=71.0，
@@ -518,7 +527,9 @@ def main():
                  ('low', 0.0), ('drive', 1.6), ('mid_db', 0.0)):
         cfg.setdefault(k, v)
 
-    ref = scorecard.load_ref(ref_name)
+    ref = None if _no_ref else scorecard.load_ref(ref_name)
+    if _no_ref:
+        print('  · 本曲按规格**不追混音目标**（render.json 的 ref=none）：不调参、不出对照成绩单')
     data = None
     if os.path.exists(song_json):
         try:
@@ -539,7 +550,7 @@ def main():
         print('  ! render.json 的响度口径 = %s（当前 %s）：重渲染会变响（更贴近参考，'
               '最多 ~2.1dB）—— 别用 --no-tune 做 A/B，让它跑自动调参重新收敛。'
               % (cfg.get('norm') or '未标记（旧：双声道 RMS）', render_midi.NORM))
-    if '--no-render' not in sys.argv and '--no-tune' not in sys.argv:
+    if '--no-render' not in sys.argv and '--no-tune' not in sys.argv and not _no_ref:
         print('[2/3] 渲染 + 自动调参（最多 6 轮，内部闭环）')
         cfg = autotune(cfg, ref, mid, out, data=data)
         cfg['norm'] = render_midi.NORM          # 记下"这份参数是哪个口径调出来的"
@@ -602,6 +613,22 @@ def main():
         print('  !! **音频比 MIDI 旧**（%.0f 秒）：%s 不含最新数据 ——'
               % (os.path.getmtime(mid) - os.path.getmtime(wav), os.path.basename(wav)))
         print('     交付前必须重渲染：把 song.json 的改动落回音频（去掉 --no-compose 重跑）。')
+    if _no_ref:
+        # 没有参考就没有"差"——只报客观量（响度/宽度/时长），不制造"该往哪调"的假指令
+        if os.path.exists(wav):
+            import soundfile as _sf
+            import numpy as _np
+            _x, _sr = _sf.read(wav, always_2d=True)
+            _m = _x.mean(axis=1)
+            _rms = 20 * _np.log10(float(_np.sqrt(_np.mean(_m ** 2))) + 1e-12)
+            _mid = (_x[:, 0] + _x[:, 1]) / 2
+            _side = (_x[:, 0] - _x[:, 1]) / 2
+            _w = float(_np.sqrt(_np.mean(_side ** 2)) / (_np.sqrt(_np.mean(_mid ** 2)) + 1e-12))
+            print('  · 规格模式：响度 %.1f dBFS · 宽度 %.3f · 时长 %.1fs（**不追参考**）'
+                  % (_rms, _w, len(_m) / float(_sr)))
+        else:
+            print('  还没渲染出 %s' % wav)
+        return 0
     if os.path.exists(wav):
         argv = ['scorecard.py', wav, '--ref', ref_name,
                 '--render', os.path.relpath(mid, ROOT)]

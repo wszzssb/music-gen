@@ -1,0 +1,19 @@
+{
+  "theme": "mystery", "label": "神秘",
+  "bpm": 96, "bpm_range": [94, 130], "duration_sec": 120, "mix_target": "none",
+  "meter": [4, 4],
+  "harmony": {"rhythm": "2 小节 1 和弦", "why": "神秘靠'迟迟不给解决'，和弦停留久一点", "source": "tension model（arXiv:1707.00972）：预期延迟 = 张力"},
+  "drums": {"kick": [], "snare": [], "hat": [], "open": [],
+    "source": "Groove MIDI Dataset：悬疑段落常无鼓组，靠低音与不规则重音 [待验]",
+    "why": "没有脉冲 = 没有安全感"},
+  "orchestration": {
+    "lead": {"program": 58, "name": "Tuba", "source": "Rimsky-Korsakov：低音铜管适合不祥/压迫感主题（主题池含 58）"},
+    "bed": {"program": 48, "name": "String Ensemble 1", "source": "低音区铺底，避免中高频暴露"},
+    "piano": {"program": 0, "name": "Acoustic Grand"},
+    "why": "整体压向低音区，留高频空洞", "source": "主题包 prog_pool"
+  },
+  "arrangement": {"perc": 0, "strings": true, "bass": true, "ep": false, "piano": true, "pad": true, "glock": false,
+    "source": "[待验] 低音骨架，无鼓"},
+  "intro_layers": ["piano", "pad"],
+  "dynamics": {"intro": "钢琴极轻", "A": "加低音弦乐", "B": "加铜管", "C": "只剩钢琴", "outro": "消失", "source": "[待验]"}
+}

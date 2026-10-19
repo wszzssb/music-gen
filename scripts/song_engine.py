@@ -323,6 +323,10 @@ PAT_KEYS = (
     # 逐音确定性抖动，见 `apply_micro_timing`。⚠ 实测本项目手头的真分轨（BGM35/BGM29）
     # **swing ≈ 0（直拍）**，所以这两个键**默认关**（缺省 0 = 老行为逐字节不变）。
     'swing', 'swing_humanize',
+    # `strict`（2026-10-19）：**严格服从编排** —— 禁掉"伴奏给旋律让位 / 音域夹取移八度 /
+    # 同刻同音高去重"三处自动修正，只报告"本来会怎么动"。由 `expand_sections --plan`
+    # 的 `"strict": true` 写入。⚠ **漏登记 = 静默失效**（同 `comp_vary` 那条）。
+    'strict',
     # 旋律维度的**带理由豁免**（见 `selftest._exempt_dims`）：画像本身如此、与别的守卫
     # 互斥时，写清理由放行该维（空理由 = 没写）。
     'melody_exempt',
@@ -2093,6 +2097,13 @@ def build_events(d):
     ch_all = {k: (v[0], v[1]) for k, v in d['chords'].items()}
     mel_all = d['melody']
     pat = d['patterns']
+    # **`patterns.strict`（2026-10-19）：严格服从编排** —— 一旦为真，下面三处自动修正
+    # **一律不动**，只**报告**"本来会怎么动"：
+    #   ① `yield_to_melody` 伴奏让位（会把 Glock/Hook 降八度，实测把"钟琴放上面"的编排抹掉）
+    #   ② `build_events` 出口的乐器音域夹取（会移八度，实测一次移 21 个音）
+    #   ③ `range_fix` 里的"同刻同音高去重"（会**删音**）
+    # 缺省 False = 老行为逐字节不变。由 `expand_sections --plan` 的 `"strict": true` 写入。
+    STRICT = bool(pat.get('strict'))
     shift = pat.get('voicing_shift', 0)      # 和弦声部整体上/下移（华丽太厚时 +12 更清亮）
     B = float(d.get('bar_beats') or 4.0)     # 一小节几个四分音符（拍号；默认 4 = 老行为）
 
@@ -2642,12 +2653,20 @@ def build_events(d):
         # ⚠ **还原/扒带曲不让位**（`melody_gen` 标记 = 旋律是引擎写的）：那边的旋律是
         #   原曲的音符层，编配也该服从原曲 —— 为过指标改它就是"判据服从原曲"那条红线
         #   （PITFALLS 255/256 同族）。
-        _yld = yield_to_melody(bucket, mel) if d.get('melody_gen') else {}
-        if _yld:
-            print('  [让步] 段 %-8s 旋律中位 %3d → %s'
-                  % (sec.get('name') or sec_i,
-                     sorted(x[3] for x in mel)[len(mel) // 2],
-                     ' · '.join('%s%s' % (k, v) for k, v in _yld.items())))
+        # ⚠ **`patterns.strict` = 编排方说了算**：不让位，但要报"本来会怎么动"（2026-10-19）。
+        if d.get('melody_gen') and STRICT:
+            _would = yield_to_melody({k: list(v) for k, v in bucket.items()}, mel)
+            if _would:
+                print('  [strict] 段 %-8s **拒绝让步**（本会调：%s）'
+                      % (sec.get('name') or sec_i,
+                         ' · '.join('%s%s' % (k, v) for k, v in _would.items())))
+        elif d.get('melody_gen'):
+            _yld = yield_to_melody(bucket, mel)
+            if _yld:
+                print('  [让步] 段 %-8s 旋律中位 %3d → %s'
+                      % (sec.get('name') or sec_i,
+                         sorted(x[3] for x in mel)[len(mel) // 2],
+                         ' · '.join('%s%s' % (k, v) for k, v in _yld.items())))
         # **引子切入手法**（只对第一段；见 `shape_intro_add` 与旧的 `shape_intro`）
         # ⚠ 两套并存：新曲用**加音型**（`ADD_ONLY_STYLES`，一个音都不删）；
         #   老曲里写着的 `pickup/solo_first/silence/drums_first` 仍走旧那套（删音型），
@@ -3046,21 +3065,35 @@ def build_events(d):
     #   正解 = **在 `build_events` 的返回值之前**修（`ev` 同时是 `write_midi` 的输入，
     #   一处修、两个入口都对）。夹取幂等，`write_midi` 里那次重复无害。
     _n_oct0 = 0
-    for _k, _lst in ev.items():
-        _rg = TR_RANGE.get(_k)
-        if not _rg:
-            continue
-        for _i, (_t, _dd, _m, _v) in enumerate(_lst):
-            _m2 = _m
-            while _m2 < _rg[0]:
-                _m2 += 12
-            while _m2 > _rg[1]:
-                _m2 -= 12
-            if _m2 != _m:
-                _n_oct0 += 1
-                _lst[_i] = (_t, _dd, _m2, _v)
+    _bad_rg = []
+    if STRICT:
+        # `strict`：**按编排保留**越界音，只报出来（编排方自己决定要不要改 plan）
+        for _k, _lst in ev.items():
+            _rg = TR_RANGE.get(_k)
+            if not _rg:
+                continue
+            _n = sum(1 for (_t, _dd, _m, _v) in _lst if not (_rg[0] <= _m <= _rg[1]))
+            if _n:
+                _bad_rg.append('%s:%d' % (_k, _n))
+    else:
+        for _k, _lst in ev.items():
+            _rg = TR_RANGE.get(_k)
+            if not _rg:
+                continue
+            for _i, (_t, _dd, _m, _v) in enumerate(_lst):
+                _m2 = _m
+                while _m2 < _rg[0]:
+                    _m2 += 12
+                while _m2 > _rg[1]:
+                    _m2 -= 12
+                if _m2 != _m:
+                    _n_oct0 += 1
+                    _lst[_i] = (_t, _dd, _m2, _v)
     if _n_oct0:
         print('  音域夹取（build_events 出口）：移八度 %d 个' % _n_oct0)
+    if _bad_rg:
+        print('  [strict] 音域夹取**已禁用**：越出乐器音域的音按编排保留（%s）'
+              ' —— 要修就在 plan 里改音区，别指望引擎动' % ' · '.join(_bad_rg))
     if _lf_tot['grown']:
         print('  内声部补空隙（legato_fill=%.2f 拍）：补长 %d 个音 · 共 +%.1f 拍（打击乐不补）'
               % (_lf, _lf_tot['grown'], _lf_tot['add']))
@@ -3362,20 +3395,27 @@ def write_midi(d, ev, path):
         #   实测未修 15 个 → 移八度后 **56 个**（Arp 10→44、Hook 2→9）。
         #   所以移完必须去重：同轨、同 tick、同音高只留**力度最大**的那个。
         _n_dup = 0
-        for _k, _lst in list(ev.items()):
-            _seen = {}
-            for _i, (_t, _dd, _m, _v) in enumerate(_lst):
-                _key = (round(_t, 3), _m)
-                if _key in _seen:
-                    _n_dup += 1
-                    if _v > _lst[_seen[_key]][3]:
-                        _seen[_key] = _i
-                else:
-                    _seen[_key] = _i
+        if (d.get('patterns') or {}).get('strict'):
+            # `strict`：**不删音**，只报重复数（删音 = 改编排，得由 plan 自己决定）
+            for _k, _lst in ev.items():
+                _n_dup += len(_lst) - len({(round(_t, 3), _m) for (_t, _dd, _m, _v) in _lst})
             if _n_dup:
-                ev[_k] = [_lst[_i] for _i in sorted(_seen.values())]
-        if _n_dup:
-            print('  音区修正：同刻同音高去重 %d 个' % _n_dup)
+                print('  [strict] 同刻同音高去重**已禁用**：%d 个重复音按编排保留' % _n_dup)
+        else:
+            for _k, _lst in list(ev.items()):
+                _seen = {}
+                for _i, (_t, _dd, _m, _v) in enumerate(_lst):
+                    _key = (round(_t, 3), _m)
+                    if _key in _seen:
+                        _n_dup += 1
+                        if _v > _lst[_seen[_key]][3]:
+                            _seen[_key] = _i
+                    else:
+                        _seen[_key] = _i
+                if _n_dup:
+                    ev[_k] = [_lst[_i] for _i in sorted(_seen.values())]
+            if _n_dup:
+                print('  音区修正：同刻同音高去重 %d 个' % _n_dup)
     # **微时序**（opt-in `patterns.swing` / `swing_humanize`；缺省 0 = 老行为逐字节不变）。
     # ⚠ **必须在 `legato_trim` 之前**：移位会改起音，腿音修剪要看到移动后的时刻，
     #   否则"同轨同音高不重叠"会被重新破坏（部分 GM 音源会吞掉后一个音）。

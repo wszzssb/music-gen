@@ -1,0 +1,24 @@
+{
+  "theme": "daily", "label": "日常",
+  "bpm": 112, "bpm_range": [103, 137], "duration_sec": 120, "mix_target": "none",
+  "meter": [4, 4],
+  "harmony": {"rhythm": "1 小节 1 和弦", "why": "日常BGM不抢注意力，和声平稳", "source": "tension model（arXiv:1707.00972）"},
+  "drums": {
+    "kick": [[0, 100], [8, 96]],
+    "snare": [[4, 88], [12, 92]],
+    "hat": [[0, 62], [2, 56], [4, 62], [6, 56], [8, 62], [10, 56], [12, 62], [14, 56]],
+    "open": [],
+    "source": "Groove MIDI Dataset：日常/流行段落的轻鼓型（力度整体压 10~15）",
+    "why": "有律动但不抢戏"
+  },
+  "orchestration": {
+    "lead": {"program": 85, "name": "Lead 6 (voice)", "source": "主题包候选池；柔和主奏避免刺耳 [待验]"},
+    "bed": {"program": 48, "name": "String Ensemble 1"},
+    "rhythm_gtr": {"program": 25, "name": "Steel Guitar"},
+    "why": "干净的分解和弦 + 柔和主奏", "source": "主题包 prog_pool"
+  },
+  "arrangement": {"perc": 1, "strings": true, "bass": true, "ep": true, "piano": true, "pad": false, "glock": false,
+    "source": "[待验] 日常骨架：钢琴 + 分解 + 轻鼓"},
+  "intro_layers": ["piano", "pad"],
+  "dynamics": {"intro": "钢琴+垫子", "A": "加贝斯与轻鼓", "B": "加弦乐", "C": "去鼓", "outro": "退场", "source": "[待验]"}
+}

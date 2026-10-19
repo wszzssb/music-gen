@@ -1,0 +1,24 @@
+{
+  "theme": "retro", "label": "复古游戏",
+  "bpm": 140, "bpm_range": [125, 165], "duration_sec": 120, "mix_target": "none",
+  "meter": [4, 4],
+  "harmony": {"rhythm": "1 小节 1 和弦", "why": "8-bit 时代的和声简单直接", "source": "tension model（arXiv:1707.00972）"},
+  "drums": {
+    "kick": [[0, 116], [8, 116]],
+    "snare": [[4, 112], [12, 112]],
+    "hat": [[2, 70], [6, 70], [10, 70], [14, 70]],
+    "open": [],
+    "source": "Groove MIDI Dataset：chiptune 的'底鼓 1/3 拍 + 噪声军鼓'（音色本身是合成）",
+    "why": "节奏要方正，不要人性化"
+  },
+  "orchestration": {
+    "lead": {"program": 80, "name": "Lead 1 (square)", "source": "主题包候选池：方波是 8-bit 主奏"},
+    "bed": {"program": 38, "name": "Synth Bass 1", "source": "芯片音的贝斯声部"},
+    "rhythm_gtr": {"program": 87, "name": "Lead 8 (bass+lead)", "source": "副旋律层用同一合成音色族"},
+    "why": "全部合成音色，不用原声", "source": "主题包 prog_pool"
+  },
+  "arrangement": {"perc": 2, "strings": false, "bass": true, "ep": false, "piano": false, "pad": false, "glock": false,
+    "source": "[待验] 芯片音骨架：主奏 + 贝斯 + 鼓"},
+  "intro_layers": ["ep"],
+  "dynamics": {"intro": "主奏独奏", "A": "加贝斯与鼓", "B": "加副旋律", "C": "去鼓", "outro": "收", "source": "[待验]"}
+}

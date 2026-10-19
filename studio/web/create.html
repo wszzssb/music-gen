@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BGM Studio 创作台</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>♪</text></svg>">
-<link rel="stylesheet" href="/create.css?v=4">
+<link rel="stylesheet" href="/create.css?v=7">
 </head>
 <body>
 <div class="app">
@@ -39,22 +39,16 @@
         <p class="sub">说一句要求就能生成；给一段音频就能扒成 MIDI</p>
       </div>
       <div class="topbar-right">
+        <div id="skinBox"></div>
         <span class="dot" id="engineDot"></span>
         <span class="muted" id="engineInfo">正在连接引擎…</span>
       </div>
     </div>
 
-    <!-- ① 提要求 -->
+    <!-- ① 生成参数（2026-10-19 去掉"提要求"问答；默认值全部来自主题画像并逐项标出） -->
     <section class="card">
-      <h2>① 提要求 <span class="muted">中文口语就行，解析结果可以逐项改</span></h2>
-      <textarea id="askText" placeholder="例：来一首欢快的钢琴曲，90 秒，不要太吵"></textarea>
-      <div class="row">
-        <button class="btn primary" id="btnAsk">读一下我的要求</button>
-        <span class="muted" id="askHint">它只会提参数，不会直接出声 —— 你先看一眼读得对不对。</span>
-      </div>
-      <div class="chips hidden" id="askChips"></div>
-
-      <div id="genForm" class="hidden" style="display:flex;flex-direction:column;gap:var(--sp-3)">
+      <h2>① 生成参数 <span class="muted">默认值来自主题画像，看得见、改得动</span></h2>
+      <div id="genForm" style="display:flex;flex-direction:column;gap:var(--sp-3)">
         <div class="grid2">
           <div class="field">
             <label>曲目名（曲库里不能重名）</label>
@@ -78,8 +72,10 @@
             <input type="number" id="genSeed" placeholder="留空即可">
           </div>
           <div class="field">
-            <label>能量 <span class="muted" id="gainVal">1.00</span></label>
-            <input type="range" id="genGain" min="0.8" max="1.3" step="0.05" value="1">
+            <label>段间起伏 <span class="muted" id="gainVal">×1.00</span>
+              <span class="muted">相对：只缩放段与段的强弱差，<b>不改总音量</b></span></label>
+            <input type="range" id="genGain" min="0.8" max="1.3" step="0.05" value="1"
+                   title="×1.00 = 照抄主题模板实测的每 8 小节起伏；0.8 = 打八折；1.3 = 放大 1.3 倍（再夹 ±4dB）">
           </div>
         </div>
         <!-- **主奏音色 = 旋律用什么乐器**（2026-10-08 用户："为什么直接生成没有萨克斯"）。
@@ -97,10 +93,38 @@
           </div>
           <div class="chips" id="leadChips" style="margin-top:6px"></div>
           <p class="muted" style="margin-top:4px">
-            两级：**大类 → 小类**（例：弦乐 → 中提琴/大提琴/弦乐合奏…）。两端只传 GM 号，所以
+            两级：<b>大类 → 小类</b>（例：弦乐 → 中提琴/大提琴/弦乐合奏…）。两端只传 GM 号，所以
             128 个音色都能选（80 号以上是合成音色）。
           </p>
         </div>
+        <!-- **默认乐器：逐轨列出来（可改）**（2026-10-19 用户："默认使用的乐器要标出来，
+             不是隐藏、不能更改"）。以前这里只给「主奏音色」一排，其余轨（弦乐/垫子/钟琴/
+             贝斯/分解）用了什么既看不到也改不了。下拉里第一项 = 主题默认（池首选），
+             选了具体音色就随生成下发（`--programs`），生成日志会逐轨打印前后值。 -->
+        <div class="field">
+          <label>默认乐器（逐轨） <span class="muted">第一项 = 主题默认；改了会覆盖</span></label>
+          <table class="inst-table" id="instTable" style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr><th style="text-align:left;padding:2px 6px">轨</th>
+              <th style="text-align:left;padding:2px 6px">主题默认</th>
+              <th style="text-align:left;padding:2px 6px">改成</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <!-- **为什么没有"无"这个选项**（2026-10-19 用户问）：
+               这张表改的是"**用什么音色**"（GM 编号），不是"**开不开这一轨**"。
+               关轨是另一个开关（`arr`，逐段生效），入口在上面「编配 → 生成时只用这几件」
+               —— 一件都不勾 = 只剩主奏（`--arr-only none`）。
+               另外两条是硬约束：主奏 Melody 不能关（没有旋律就没有曲子）；
+               鼓 Perc 没有"音色"一说（GM 第 10 通道固定是鼓组），开关在「乐器 → 🥁 打击」。 -->
+          <p class="muted" style="margin-top:4px">
+            下拉里的「<b>无（关掉这一轨）</b>」会把这一层<b>逐段关掉</b>（生成日志会写"关掉轨：Pad"）——
+            它和改音色是两个字段，可以只关不改、也可以只改不关。<br>
+            表里显示「<b>— 该主题不用这件乐器</b>」的行，是因为<b>这个主题的模板里本来就没有它</b>
+            （`arr_share = 0`，例如 battle 没有垫子/钟琴）—— 那一轨根本不会出现，所以没有可选音色。<br>
+            两条硬限制：<b>主奏</b>不能关（没有旋律就没有曲子）；<b>鼓</b>没有音色概念
+            （第 10 通道固定鼓组，开关在「乐器 → 🥁 打击」/ 主题的 `perc_style`）。
+          </p>
+        </div>
+
         <!-- **创作台只管"生成"**（2026-10-08 用户口径："独奏化和直接写歌在一起不知道怎么用"）：
              这里原来还混着「独奏化（改造已有曲子）」——那是另一件事，已移到引擎面板，对**当前
              选中的那首曲子**操作（见 studio/web/index.html 的 🎹 独奏化）。创作台只保留
@@ -157,7 +181,7 @@
 
     <!-- ② 扒谱提取 -->
     <section class="card">
-      <h2>② 扒谱提取 <span class="muted">给一段音频，扒成能编辑的 MIDI</span></h2>
+      <h2>① 扒谱提取 <span class="muted">给一段音频，扒成能编辑的 MIDI</span></h2>
       <div class="drop" id="drop">
         <div class="big">把音频拖进来，或点这里选文件</div>
         <div class="hint">支持 ogg / wav / mp3 / flac / m4a</div>
@@ -278,6 +302,7 @@
 </div>
 <div class="toast" id="toast"></div>
 <script src="/gm.js?v=1"></script>
-<script src="/create.js?v=22"></script>
+<script src="/skin.js?v=6"></script>
+<script src="/create.js?v=26"></script>
 </body>
 </html>

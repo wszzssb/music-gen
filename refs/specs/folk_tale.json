@@ -1,0 +1,19 @@
+{
+  "theme": "folk_tale", "label": "民谣叙事",
+  "bpm": 100, "bpm_range": [89, 161], "duration_sec": 120, "mix_target": "none",
+  "meter": [4, 4],
+  "harmony": {"rhythm": "1 小节 1 和弦", "why": "叙事曲以歌词/旋律为主，和声不复杂", "source": "tension model（arXiv:1707.00972）"},
+  "drums": {"kick": [[0, 92], [8, 88]], "snare": [], "hat": [[0, 52], [4, 52], [8, 52], [12, 52]], "open": [],
+    "source": "Groove MIDI Dataset：民谣以脚踩/沙锤为主，无军鼓 [待验]",
+    "why": "叙事段不能有强反拍"},
+  "orchestration": {
+    "lead": {"program": 73, "name": "Flute", "source": "Rimsky-Korsakov：木管适合叙事性旋律；主题池含 73"},
+    "bed": {"program": 48, "name": "String Ensemble 1"},
+    "rhythm_gtr": {"program": 24, "name": "Nylon Guitar", "source": "民谣的尼龙弦分解（主题 uku 池 24/25/26）"},
+    "why": "吉他分解是叙事曲的骨架", "source": "主题包 prog_pool"
+  },
+  "arrangement": {"perc": 1, "strings": true, "bass": true, "ep": false, "piano": false, "pad": false, "glock": false,
+    "source": "[待验] 吉他+长笛的极简骨架"},
+  "intro_layers": ["ep"],
+  "dynamics": {"intro": "吉他独奏", "A": "加长笛", "B": "加弦乐", "C": "回到吉他", "outro": "吉他收尾", "source": "[待验]"}
+}

@@ -156,6 +156,7 @@
     $('bpmHint').textContent = t.bpm
       ? ('主题实测中位 ' + t.bpm + '，区间 ' + t.bpm_p25 + '~' + t.bpm_p75)
       : '（该主题画像没记速度）';
+    renderInstTable();       // 默认乐器逐轨跟着主题刷新（2026-10-19）
     renderThemeMeta();
   }
   /** 想把总时长压到 `sec` 秒，BPM 得是多少（超出常用区间就只报数、不硬填） */
@@ -295,7 +296,7 @@
       // 填表单（主题已在上面定好）
       if (p.seed != null) { $('genSeed').value = p.seed; }
       if (p.energy_gain) { $('genGain').value = p.energy_gain; }
-      $('gainVal').textContent = Number($('genGain').value).toFixed(2);
+      $('gainVal').textContent = '×' + Number($('genGain').value).toFixed(2);
       $('genForm').classList.remove('hidden');
       renderThemeMeta();     // 最终 BPM（可能被"要 N 秒"改过）与元信息对齐
       var extra = (p.notes || []).join(' · ');
@@ -305,6 +306,67 @@
     } finally {
       b.disabled = false; b.textContent = '读一下我的要求';
     }
+  }
+
+  /* ---- 默认乐器：逐轨列出（可改） --------------------------------------
+   * 2026-10-19 用户："默认使用的乐器要标出来，不是隐藏、不能更改"。
+   * 原来只给「主奏音色」一排，其余轨（弦乐/垫子/钟琴/贝斯/分解）用了什么既看不到也改不了。
+   * 这里按主题包的 `prog_pool` 逐轨列出**主题默认**，下拉可改成池内任一音色；
+   * 选了具体值才随生成下发（`--programs`），第一项"默认"= 不覆盖（保留 seed 变化）。 */
+  var INST_ROWS = [['Melody', 'ep', '主奏'], ['Hook', 'uku', '分解/节奏'],
+                   ['Piano', 'piano', '钢琴'], ['Strings', 'strings', '弦乐'],
+                   ['Pad', 'pad', '垫子'], ['Glock', 'glock', '钟琴'],
+                   ['Bass', 'bass', '贝斯']];
+  function gmName(n) { return (window.GM_NAMES || {})[n] || ('GM ' + n); }
+  function renderInstTable() {
+    var tb = $('instTable') && $('instTable').querySelector('tbody');
+    if (!tb) { return; }
+    var t = curTheme(), pool = t.prog_pool || {}, rows = [];
+    INST_ROWS.forEach(function (r) {
+      var track = r[0], role = r[1], cn = r[2];
+      var cands = (pool[role] || []).slice();
+      var def = cands.length ? cands[0] : null;
+      if (!cands.length) {
+        // **该主题的模板里根本不用这件乐器**（`arr_share=0` / `prog_pool` 无此角色）：
+        // 不给假选项，直接说明"这一轨不会生成"。不是控件坏了，也不是漏了"无"。
+        rows.push('<tr><td style="padding:2px 6px">' + esc(cn) + '</td>'
+          + '<td style="padding:2px 6px" class="muted">—</td>'
+          + '<td style="padding:2px 6px"><select class="mini" disabled '
+          + 'title="这个主题的模板里没有这件乐器（arr_share=0）：生成时这一轨本来就不会出现">'
+          + '<option>— 该主题不用这件乐器 —</option></select></td></tr>');
+        return;
+      }
+      var opts = ['<option value="">默认（' + esc(gmName(def)) + '）</option>',
+                  '<option value="__off__">无（关掉这一轨）</option>'];
+      cands.forEach(function (g) {
+        opts.push('<option value="' + g + '">' + esc(gmName(g)) + '（' + g + '）</option>');
+      });
+      rows.push('<tr><td style="padding:2px 6px">' + esc(cn) + '</td>'
+        + '<td style="padding:2px 6px" class="muted">'
+        + esc(gmName(def)) + '（' + def + '）</td>'
+        + '<td style="padding:2px 6px"><select class="mini" data-inst-track="' + track + '">'
+        + opts.join('') + '</select></td></tr>');
+    });
+    tb.innerHTML = rows.join('');
+  }
+  function collectPrograms() {
+    var out = [], sels = document.querySelectorAll('#instTable select[data-inst-track]');
+    for (var i = 0; i < sels.length; i++) {
+      if (sels[i].value !== '' && sels[i].value !== '__off__') {
+        out.push(sels[i].getAttribute('data-inst-track') + '=' + sels[i].value);
+      }
+    }
+    return out.join(',');
+  }
+  /** 「无（关掉这一轨）」→ 传给 `--mute`（逐段把 arr 置 False）。 */
+  function collectMute() {
+    var out = [], sels = document.querySelectorAll('#instTable select[data-inst-track]');
+    for (var i = 0; i < sels.length; i++) {
+      if (sels[i].value === '__off__') {
+        out.push(sels[i].getAttribute('data-inst-track'));
+      }
+    }
+    return out.join(',');
   }
 
   /* ------------------------------------------------------------ 生成 */
@@ -331,6 +393,12 @@
         arr_only: (ST.use === 'arr') ? (_keys.join(',') || 'none') : null,
         // **主奏音色**（`--lead <GM 号>`）：null = 跟随主题（不传该参数）
         lead: (ST.lead == null) ? null : String(ST.lead),
+        // **逐轨音色覆盖**（`--programs "Melody=73,Strings=49"`）：只有用户在下拉里
+        // 明确改了才传；第一项"默认"不传（保留主题 + seed 的变化）。
+        programs: collectPrograms() || null,
+        // **逐轨关掉**（`--mute "Pad,Glock"`）：下拉选「无（关掉这一轨）」的那些轨。
+        // 与 programs 是两件事：这个改"开不开"（逐段写 arr），那个改"用什么音色"。
+        mute: collectMute() || null,
         // **想要的时长（秒）**（`--seconds`）：生成端**联合解**「段数 + BPM」，速度尽量留在
         // 该主题模板的实测区间内（`new_song.duration_plan`）。给了它就不再走下面
         // "生成后回写 bpm"那条路 —— 那条只改速度、不改结构。
@@ -710,17 +778,13 @@
     }
   })();
   setUse('auto');
-  $('btnAsk').onclick = ask;
-  $('askText').addEventListener('keydown', function (e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { ask(); }
-  });
   $('btnGen').onclick = generate;
   $('btnExtract').onclick = extract;
   $('btnStopJob').onclick = stopJob;
   $('btnRefresh').onclick = function () {
     loadSongs().then(function () { toast('曲库已刷新'); }, function (e) { toast(e.message, true); });
   };
-  $('genGain').oninput = function () { $('gainVal').textContent = Number(this.value).toFixed(2); };
+  $('genGain').oninput = function () { $('gainVal').textContent = '×' + Number(this.value).toFixed(2); };
   $('genTheme').onchange = onThemeChange;
   $('genBpm').oninput = function () {
     ST.bpmTouched = true;

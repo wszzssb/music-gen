@@ -94,3 +94,19 @@ section.panel h2 {
 
 #logWrap { max-height: 108px; overflow: auto; }
 #log { margin: 0; font: 11.5px/1.4 ui-monospace, Consolas, monospace; color: #9aa3b2; white-space: pre-wrap; }
+
+/* ── 配色切换（skin.js，2026-10-19）——编辑器页也要跟着换 ────────────────
+ * 这一页的变量名与引擎页一致（--bg/--panel/--panel2/--line/--fg/--dim/--acc），
+ * 所以 skin.js 写变量即可；这里只补控件样式与浅色下的几处写死色。 */
+#skinBox { display: flex; align-items: center; gap: 6px; }
+.skin-lbl { font-size: 10.5px; color: var(--dim); }
+.skin-dot { width: 13px; height: 13px; border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer; }
+.skin-dot.on { border-color: var(--fg); box-shadow: 0 0 0 2px var(--panel) inset; }
+.skin-mode { background: transparent; border: 1px solid var(--line); border-radius: 5px;
+  padding: 0 5px; cursor: pointer; font-size: 11px; opacity: .55; color: var(--fg); line-height: 1.5; }
+.skin-mode.on { opacity: 1; border-color: var(--acc); }
+.sep-d { width: 1px; height: 14px; background: var(--line); }
+html[data-mode="light"] #chordList .chord b { color: #2b5f9e; }
+html[data-mode="light"] #log { color: #4a5262; }
+html[data-mode="light"] button { background: #eef1f8; color: var(--fg); }
+html[data-mode="light"] input, html[data-mode="light"] select { background: #fff; color: var(--fg); }

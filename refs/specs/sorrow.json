@@ -1,0 +1,51 @@
+{
+  "theme": "sorrow",
+  "label": "悲伤",
+  "_note": "论文/公开语料驱动的设计规格。标 [待验] 的是工程判断，必须 A/B 才算数。",
+  "bpm": 84,
+  "bpm_range": [76, 120],
+  "duration_sec": 120,
+  "mix_target": "none",
+  "bpm_source": "[待验] 悲伤/抒情偏慢；模板中位 95，取 84 让长音有呼吸",
+  "meter": [4, 4],
+  "meter_source": "抒情曲以 4/4 为准（3/4 另有 waltz 主题）",
+  "harmony": {
+    "rhythm": "1 小节 1 和弦（必要时 2 小节 1 和弦）",
+    "why": "和声节奏放慢，让旋律长音承担情绪；和弦取自主题词表（不自造）",
+    "source": "tension model（arXiv:1707.00972）：悲伤段靠'延迟解决'而非频繁换和弦"
+  },
+  "drums": {
+    "kick": [[0, 92], [8, 88]],
+    "snare": [],
+    "hat": [],
+    "open": [],
+    "source": "Groove MIDI Dataset：抒情段落常用'极稀底鼓/无军鼓'（不给反拍重心）",
+    "why": "没有军鼓反拍 = 不推着走；底鼓只在 1/3 拍 = 心跳"
+  },
+  "orchestration": {
+    "lead": {"program": 71, "name": "Clarinet", "source": "Rimsky-Korsakov：单簧管适合中低音区的哀伤主题；在主题候选池内"},
+    "bed": {"program": 48, "name": "String Ensemble 1"},
+    "piano": {"program": 0, "name": "Acoustic Grand"},
+    "why": "钢琴是主体（模板 arr_share 0.81）、弦乐薄薄一层；**贝斯 0.19 → 关**、垫子/钟琴 0 → 关",
+    "source": "主题包 arr_share（仅作交叉验证）"
+  },
+  "arrangement": {
+    "perc": 1,
+    "strings": true,
+    "bass": false,
+    "ep": false,
+    "piano": true,
+    "pad": false,
+    "glock": false,
+    "source": "[待验] 钢琴为主、无贝斯；靠'空'表现悲伤"
+  },
+  "intro_layers": ["piano"],
+  "dynamics": {
+    "intro": "只有钢琴",
+    "A": "钢琴 + 弦乐",
+    "B": "加弦乐厚度（不加鼓）",
+    "C": "回到钢琴独奏",
+    "outro": "逐小节退场",
+    "source": "[待验] 悲伤段靠'加/减乐器'而非加鼓推情绪"
+  }
+}

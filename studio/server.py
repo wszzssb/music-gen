@@ -259,6 +259,9 @@ def theme_list():
                     'bpm_p75': bpm.get('p75'),
                     'engine_style': prof.get('engine_style'),
                     'meter': _meter,
+                    # **默认音色池**（2026-10-19 面板需求）：创作台要**列出每一轨的默认乐器**
+                    # 并允许改（以前只给"主奏"，其余轨隐藏）。键 = 池角色，值 = GM 号候选。
+                    'prog_pool': (prof.get('arrangement') or {}).get('prog_pool'),
                     'total_bars': form.get('total_bars')})
     return out
 
@@ -1631,6 +1634,17 @@ class Handler(BaseHTTPRequestHandler):
                 lead = (body.get('lead') or '').strip()
                 if lead:
                     args += ['--lead', lead]
+                # **逐轨音色覆盖**（`--programs "Melody=73,Strings=49"`，2026-10-19）：
+                # 主题默认音色以前只显示"主奏"，其余轨隐藏且改不了；现在面板把每轨列出来，
+                # 改过的随生成下发（`new_song.apply_program_overrides` 逐轨打印前后值）。
+                prog = (body.get('programs') or '').strip()
+                if prog:
+                    args += ['--programs', prog]
+                # **逐轨关掉**（`--mute "Pad,Glock"`，2026-10-19）：面板「默认乐器」里选
+                # 「无（关掉这一轨）」的那些轨 → 逐段把 `arr` 置 False（与改音色是两件事）。
+                mute = (body.get('mute') or '').strip()
+                if mute:
+                    args += ['--mute', mute]
                 # **想要的时长（秒）**（`--seconds`，2026-10-08 第二轮④）：与"改 BPM"是同一个量的
                 #   两种写法，但 `--seconds` 会**联合解**「段数 + BPM」，尽量让速度留在该主题模板
                 #   的实测区间内（见 `new_song.duration_plan`）。给了它，前端就**不要再**走

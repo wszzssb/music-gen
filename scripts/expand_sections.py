@@ -35,6 +35,19 @@ r"""expand_sections.py —— 把主题包生成的骨架**扩成多段大曲式
     --new-melody    允许段落引用 `song.json` 里**还不存在**的旋律名
                     （之后**必须先**跑 `melody_gen.py` 把它填上，否则 compose 会缺旋律）
 
+## 让模型来设计（`--brief` / `--json-errors` / `--fix`，2026-10-19）
+
+    python scripts\expand_sections.py --brief gorgeous            # 设计说明书（JSON，喂给模型）
+    python scripts\expand_sections.py 130_x --plan p.json --dry-run --json-errors
+    python scripts\expand_sections.py 130_x --plan p.json --fix   # 先修结构错，再照常写入
+
+* `--brief <主题>`：一次性给出**合法空间**——可用和弦词表（给曲目时取该曲 `chords` 表）、
+  主题包的进行候选、段长惯例、`arr` 合法键、鼓件与 16 格、以及一张**能直接跑**的 `example_plan`。
+  模型从它改起，不要从空白写。
+* `--json-errors`：校验失败输出 `{"ok":false,"errors":[{"msg":…}]}`、退出码 2（默认是中文 `SystemExit`）。
+* `--fix`：写回并修四类硬错（和弦数≠小节 · 未知和弦 → 就近替换 · 非法 `arr` 键 → 丢弃 ·
+  `drums.per_bar` 长度 · 缺 `structure_source`）。**只修结构，不改音乐内容**。
+
 ## 结构表（`--plan`）字段
 
 ```jsonc
@@ -93,6 +106,79 @@ SONGS = os.path.join(ROOT, 'songs')
 THEME_PLAN_PREFIX = 'theme_pack-plan:'      # 留痕前缀（变异用例注入这一条来验检查坏得起来）
 LEGAL_SRC_RE = re.compile(r'^(?:imitate:|theme_pack-plan:)\S+$')
 DRUM_BANDS = ('kick', 'snare', 'hat', 'open')
+
+# ── 详细编排：**arr 的键名合法还不够，值也必须合法**（2026-10-19）──────────────
+# 以前只查"键在不在 ARR_KEYS 里"，值写错（`density: 9` / `perc: "on"`）会被引擎
+# 静默夹取或忽略 —— 对模型来说就是"我写了但没生效，而且没人告诉我"。
+# 这张表只登记**值域确定**的键（不确定的不登记，避免误杀）。
+ARR_VALUE_RULES = {
+    'density': ('int', 0, 4),
+    'perc': ('int', 0, 2),
+    'harmony_add': ('int', 0, 2),
+    'glock_from_bar': ('int', 0, 64),
+    'ending_fade': ('int', 0, 32),
+    'glock_oct': ('int', -24, 48),
+    'perc_target': ('num', 0, 64),
+    'melody_prog': ('int', 0, 127),
+}
+
+# 段级 `arr` 键 → 引擎产出的轨名（只登记**一一对应**的；`uku/glock_starved/…` 不猜）
+ARR_TO_TRACK = {
+    'piano': 'Piano', 'ep': 'Hook', 'strings': 'Strings', 'glock': 'Glock',
+    'bass': 'Bass', 'pad': 'Pad', 'arp': 'Arp', 'perc': 'Perc',
+}
+
+TRACK_NAMES = ('Melody', 'Hook', 'Piano', 'Strings', 'Pad', 'Glock', 'Bass', 'Arp', 'Perc')
+
+# `strict` 时**清掉**的"引擎启发式"——它们都会改音符/时值/力度，而 plan 没点名要它们。
+# 依据（2026-10-19 实测这一首）：`joint_cadence` 让位 12 个起音 · `legato_fill` 补长 349 个音 ·
+# `range_fix` 抬 130 个弱起音 · `seg_fade`/`mix_ramp` 改力度。编排方没写就不该发生。
+# ⚠ 只清"编辑类"；`perc_style`/`bass_style`/`arpeggio`/`drum_grid`/`guitar_beats` 是**生成参数**，保留。
+STRICT_CLEAR = (
+    'joint_cadence', 'joint_phrase_bars', 'legato_fill', 'avoid_lead', 'phrase_vary',
+    'seg_fade', 'section_gap', 'mix_ramp', 'range_fix', 'legato_trim',
+    'melody_dyn', 'dyn_vel', 'space', 'guitar_vary', 'swing', 'swing_humanize',
+    'melody_exempt', 'lead_prog_source',
+)
+
+
+def _check_arr_values(tag, arr):
+    """段级 `arr` 的**值**校验（键名合法性在 `validate_plan` 里查）。
+
+    模型最容易犯的不是"键写错"，而是"键对、值离谱"（`density: 9` / `perc: "on"` /
+    `prog` 用轨名以外的字符串）—— 这类错在引擎里会**静默夹取或忽略**，所以必须在这里拦。
+    """
+    for k, v in arr.items():
+        rule = ARR_VALUE_RULES.get(k)
+        if rule:
+            kind, lo, hi = rule
+            if k == 'perc' and isinstance(v, bool):
+                continue                      # 老写法 `perc: true/false` 仍收
+            num_ok = (isinstance(v, int) and not isinstance(v, bool)) if kind == 'int' \
+                else (isinstance(v, (int, float)) and not isinstance(v, bool))
+            if not num_ok or not (lo <= float(v) <= hi):
+                raise PlanError('%s 的 arr.%s=%r 不合法：要 %s，范围 %s~%s'
+                                % (tag, k, v, kind, lo, hi))
+        if k == 'prog':
+            if not isinstance(v, dict):
+                raise PlanError('%s 的 arr.prog 必须是 {轨名: GM 音色号}' % tag)
+            for t, pr in v.items():
+                if t not in TRACK_NAMES:
+                    raise PlanError('%s 的 arr.prog 键 %r 不是合法轨名（%s）'
+                                    % (tag, t, ', '.join(TRACK_NAMES)))
+                if isinstance(pr, bool) or not isinstance(pr, int) or not (0 <= pr <= 127):
+                    raise PlanError('%s 的 arr.prog[%r]=%r 必须是 0~127 的整数'
+                                    % (tag, t, pr))
+        if k == 'shift':
+            if not isinstance(v, dict):
+                raise PlanError('%s 的 arr.shift 必须是 {轨名: 半音数}' % tag)
+            for t, sh in v.items():
+                if t not in TRACK_NAMES:
+                    raise PlanError('%s 的 arr.shift 键 %r 不是合法轨名（%s）'
+                                    % (tag, t, ', '.join(TRACK_NAMES)))
+                if isinstance(sh, bool) or not isinstance(sh, int) or sh % 12:
+                    raise PlanError('%s 的 arr.shift[%r]=%r 必须是 12 的倍数（整八度）'
+                                    % (tag, t, sh))
 
 
 class PlanError(ValueError):
@@ -166,6 +252,7 @@ def validate_plan(plan, song=None, allow_new_melody=False):
                     raise PlanError('%s 的 arr 有引擎不认的键 %s（合法键 = song_engine.ARR_KEYS'
                                     ' + ARR_KEYS_EXTRA：%s）'
                                     % (tag, bad, ', '.join(sorted(arr_keys))))
+            _check_arr_values(tag, arr)
         total += bars
     # ── 鼓型 ──
     drums = plan.get('drums')
@@ -283,6 +370,245 @@ def apply_plan(song, plan, allow_new_melody=False):
     return out, total
 
 
+# ── 给 LLM 用：设计说明书 / 机器可读报错 / 自动修复 ────────────────────────
+PACKS = os.path.join(ROOT, 'refs', 'themes')
+
+
+def _pack_of(theme):
+    """主题包 → (theme_pack 模块, 包 dict)。**只读**，不改任何状态。"""
+    import theme_pack as tp
+    p = os.path.join(PACKS, '%s.json' % theme)
+    if not os.path.exists(p):
+        die('找不到主题包 %s —— 可用主题见 `theme_pack.py --list-themes`' % p)
+    return tp, json.load(open(p, encoding='utf-8'))
+
+
+def design_brief(theme, song=None):
+    """**给 LLM 的设计说明书**（`--brief <主题>` 输出 JSON）。
+
+    为什么要它（2026-10-19）：让模型"设计"曲子时，它必须先知道**合法空间**——
+    可用和弦词表、段长惯例、`arr` 合法键、鼓件与格数 —— 否则产出必然在
+    `validate_plan` 上撞墙（撞一次就废一轮）。这里把"能写什么"一次给全。
+
+    `legal_chords` 的口径：**给曲目就取该曲 `song.json` 的 chords 表**（那才是
+    `validate_plan` 认的唯一集合）；不给曲目就取主题包 `chord_pool`（= 建曲时的词表）。
+    """
+    tp, pack = _pack_of(theme)
+    pc = int(((pack.get('key') or {}).get('pc')) or 0)
+    h = pack.get('harmony') or {}
+    pool = []
+    for c in (h.get('chord_pool') or []):
+        sym = tp.NAMES[(pc + int(c.get('degree') or 0)) % 12] + (c.get('suffix') or '')
+        pool.append({'symbol': sym, 'roman': c.get('roman'),
+                     'degree': c.get('degree'), 'count': c.get('count')})
+    legal, seen = [], set()
+    for c in pool:
+        if c['symbol'] not in seen:
+            seen.add(c['symbol'])
+            legal.append(c['symbol'])
+    # 进行里真实用到的和弦也必须算合法 —— 建曲时 `song.json` 的 chords 表就是
+    # 「pool ∪ 进行里出现的符号」，只给 pool 会让示例结构表用上词表外的名字（实测踩到）
+    for p in (h.get('progressions_4') or []) + (h.get('progressions_2') or []):
+        for sym in (p.get('symbols') or []):
+            if sym not in seen:
+                seen.add(sym)
+                legal.append(sym)
+    if song and song.get('chords'):
+        legal = sorted(song['chords'])                    # 曲目已有和弦表 = 唯一可用集
+    primary = list(h.get('primary') or [])
+    return {
+        'usage': '把 example_plan 改成你的设计，存成 .json 后给 `expand_sections.py <曲> --plan <文件>`',
+        'theme': theme,
+        'meter': pack.get('meter') or [4, 4],
+        'bpm': pack.get('bpm') or {},
+        'key': pack.get('key') or {},
+        'legal_chords': legal,
+        'chords_detail': pool,
+        'progressions': [
+            {'symbols': p.get('symbols'), 'romans': p.get('romans'),
+             'count': p.get('count'), 'share': p.get('template_share')}
+            for p in (h.get('progressions_4') or []) if p.get('usable') is not False],
+        'primary_progression': primary,
+        'section_bars_typical': (pack.get('form') or {}).get('section_bars'),
+        'form_example': (pack.get('form') or {}).get('plan') or [],
+        'arr_keys': list(getattr(SE, 'ARR_KEYS', ())) + list(getattr(SE, 'ARR_KEYS_EXTRA', ())),
+        'section_knobs': {
+            'bool_keys': list(getattr(SE, 'ARR_KEYS', ())),
+            'ranges': {k: '%s %s~%s' % v for k, v in ARR_VALUE_RULES.items()},
+            'maps': {
+                'prog': '{轨名: GM 音色号 0~127} —— 段级换音色，轨名 ∈ %s' % (TRACK_NAMES,),
+                'shift': '{轨名: ±12 的倍数} —— 段级整八度移调（保音级）',
+            },
+            'tracks': list(TRACK_NAMES),
+        },
+        'arr_share': (pack.get('arrangement') or {}).get('arr_share') or {},
+        'drum_bands': list(DRUM_BANDS),
+        'drum_slots': 16,
+        'rules': [
+            '每段 chords 的长度必须 == bars（坑 242）',
+            '和弦只能用 legal_chords 里的名字（不要自造）',
+            'arr 的键只能用 arr_keys',
+            '段落名不许重复；旋律槽名 = 想复用的动机名（同名 = 共用旋律）',
+            'structure_source 用 theme_pack-plan:llm-<主题>-<总小节>bar',
+            'drums 可整块省略（引擎退回 perc_style）',
+        ],
+        'example_plan': _example_plan(pack, theme, primary, legal),
+    }
+
+
+def _example_plan(pack, theme, primary, legal):
+    """按主题包自己的段式铺一张**能直接跑**的结构表（LLM 从它改起，而不是从空白写）。"""
+    form = (pack.get('form') or {}).get('plan') or []
+    prog = primary or legal[:4] or ['C']
+    secs, total, seen = [], 0, {}
+    for i, p in enumerate(form):
+        name = str(p.get('name') or ('S%d' % (i + 1)))
+        bars = int(p.get('bars') or 8)
+        base = re.sub(r'\d+$', '', name) or name          # A2 → A
+        # **段名必须唯一**（`validate_plan` 会拦），但旋律槽要复用：
+        # 第 2 次出现叫 `A2`、旋律仍是 `A` —— 这正是"同名角色共用一支旋律"的口径
+        seen[base] = seen.get(base, 0) + 1
+        sec_name = base if seen[base] == 1 else '%s%d' % (base, seen[base])
+        chords = [prog[(j + i) % len(prog)] for j in range(bars)]
+        secs.append({'name': sec_name, 'bars': bars, 'melody': base, 'chords': chords})
+        total += bars
+    return {'structure_source': 'theme_pack-plan:llm-%s-%dbar' % (theme, total),
+            'sections': secs}
+
+
+def fix_plan(plan, song=None):
+    """**自动修复** LLM 最常见的四类硬错（坑 242 类），返回 `(新 plan, 修复说明列表)`。
+
+    只修**结构错误**，不动音乐内容：和弦数量对齐、未知和弦就近替换、未知 arr 键丢弃、
+    `drums.per_bar` 对齐小节数、补 `structure_source`。修不了的（如段名重复）留给报错。
+    """
+    import copy
+    out = copy.deepcopy(plan)
+    fixes = []
+    secs = out.get('sections')
+    if not isinstance(secs, list):
+        return out, fixes
+    legal = sorted((song or {}).get('chords') or {})
+    legal_pcs = []
+    if legal:
+        try:
+            import theme_pack as tp
+            for s in legal:
+                _pc, _suf = tp.split_symbol(s)
+                if _pc is not None:
+                    legal_pcs.append((_pc % 12, s))
+        except Exception:
+            legal_pcs = []
+    arr_keys = set(getattr(SE, 'ARR_KEYS', ())) | set(getattr(SE, 'ARR_KEYS_EXTRA', ()))
+    total = 0
+    for i, s in enumerate(secs):
+        if not isinstance(s, dict):
+            continue
+        bars = s.get('bars')
+        bars = bars if isinstance(bars, int) and bars >= 1 else 8
+        s['bars'] = bars
+        total += bars
+        chords = s.get('chords') or []
+        if not isinstance(chords, list):
+            chords = []
+        had = len(chords)
+        if had < bars:
+            fill = chords[-1] if chords else (legal[0] if legal else 'C')
+            chords = chords + [fill] * (bars - had)
+            fixes.append('%s: 和弦补齐 %d → %d' % (s.get('name'), had, bars))
+        elif had > bars:
+            fixes.append('%s: 和弦截断 %d → %d' % (s.get('name'), had, bars))
+            chords = chords[:bars]
+        if legal_pcs:
+            fixed = []
+            for c in chords:
+                if c in legal:
+                    fixed.append(c)
+                    continue
+                try:
+                    import theme_pack as tp
+                    cp, _sf = tp.split_symbol(str(c))
+                except Exception:
+                    cp = None
+                if cp is None:
+                    fixed.append(legal[0])
+                    fixes.append('%s: 认不出的和弦 %r → %s' % (s.get('name'), c, legal[0]))
+                    continue
+                best = min(legal_pcs, key=lambda t: min((cp - t[0]) % 12, (t[0] - cp) % 12))[1]
+                fixed.append(best)
+                fixes.append('%s: 和弦 %s 不在词表 → 就近替换 %s' % (s.get('name'), c, best))
+            chords = fixed
+        s['chords'] = chords
+        arr = s.get('arr')
+        if isinstance(arr, dict):
+            bad = [k for k in arr if k not in arr_keys]
+            for k in bad:
+                arr.pop(k, None)
+            if bad:
+                fixes.append('%s: 丢弃非法 arr 键 %s' % (s.get('name'), bad))
+    drums = out.get('drums')
+    if isinstance(drums, dict) and isinstance(drums.get('per_bar'), list):
+        pats = drums.get('patterns') if isinstance(drums.get('patterns'), dict) else {}
+        for _pname, _pat in list(pats.items()):
+            if isinstance(_pat, dict):
+                for _b in [b for b in _pat if b not in DRUM_BANDS]:
+                    _pat.pop(_b, None)
+                    fixes.append('鼓型 %r: 丢弃非法鼓件 %r' % (_pname, _b))
+        pb = drums['per_bar']
+        # 先修"引用了不存在的鼓型名"——否则长度对齐了照样过不了校验
+        for _i, _it in enumerate(pb):
+            if isinstance(_it, str) and _it not in pats:
+                pb[_i] = None
+                fixes.append('drums.per_bar[%d]: 鼓型 %r 未定义 → null' % (_i, _it))
+        if len(pb) < total:
+            fill = next((x for x in reversed(pb) if x), None)
+            pb += [fill] * (total - len(pb))
+            fixes.append('drums.per_bar 补齐 → %d 项' % total)
+        elif len(pb) > total:
+            del pb[total:]
+            fixes.append('drums.per_bar 截断 → %d 项' % total)
+    if not out.get('structure_source'):
+        out['structure_source'] = 'theme_pack-plan:llm-%dbar' % total
+        fixes.append('补 structure_source = %s' % out['structure_source'])
+    return out, fixes
+
+
+def arrangement_report(out):
+    """**逐段 × 逐轨**音符数 + "指令未生效"清单（`--report`）。
+
+    为什么要有它：模型写 `"arp": true` 之后，引擎可能因为该轨没内容而**整轨跳过**
+    （只打印一行 `(跳过空轨: Arp)`）。对模型来说这是**静默失败**——它不知道自己的指令
+    被吃掉了。这里把"每段每轨实际出了多少音"与"要了这层却 0 音"一次列清楚，
+    让"详细编排"变成可核对的账，而不是写完就赌。
+    """
+    import copy
+    dd = copy.deepcopy(out)
+    # ⚠ `build_events` 的桶是按 `programs` 的键建的（`ev = {k: [] for k in d['programs']}`），
+    #   而 `song.json` 里没有 Perc/Arp 这两个键（引擎在 `load()` 里补）——
+    #   直接喂会 `KeyError: 'Perc'`（实测踩到）。这里补成与 `load()` 同口径。
+    progs = dd.setdefault('programs', {})
+    for _t in TRACK_NAMES:
+        progs.setdefault(_t, [0, 0])
+    dd.setdefault('bar_beats', 4.0)
+    ev, _nbars = SE.build_events(dd)      # ⚠ 返回的是 (ev, nbars)，不是单个 dict
+    B = 4.0
+    rows, bar0 = [], 0
+    for s in (out.get('sections') or []):
+        nb = int(s.get('bars') or 0)
+        t0, t1 = bar0 * B, (bar0 + nb) * B
+        counts = {}
+        for tr, notes in ev.items():
+            n = sum(1 for it in notes if t0 - 1e-6 <= it[0] < t1 - 1e-6)
+            if n:
+                counts[tr] = n
+        arr = s.get('arr') or {}
+        dead = ['%s→%s' % (k, tr) for k, tr in ARR_TO_TRACK.items()
+                if arr.get(k) and not counts.get(tr)]
+        rows.append({'name': s.get('name'), 'bars': nb, 'notes': counts, 'dead': dead})
+        bar0 += nb
+    return rows
+
+
 # ── 入口 ────────────────────────────────────────────────────────────────────
 def song_path_of(arg):
     if arg.endswith('.json') and os.path.exists(arg):
@@ -297,13 +623,35 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description='把主题包生成的骨架扩成多段大曲式（含逐小节鼓型）',
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('song', help='曲目名（songs/<名>）或 song.json 路径')
-    ap.add_argument('--plan', required=True, help='结构表 JSON')
+    ap.add_argument('song', nargs='?', help='曲目名（songs/<名>）或 song.json 路径')
+    ap.add_argument('--plan', help='结构表 JSON')
     ap.add_argument('--dry-run', action='store_true', help='只校验 + 打印，不写盘')
     ap.add_argument('--bpm', type=float, default=None, help='覆盖结构表里的 bpm')
     ap.add_argument('--new-melody', action='store_true',
                     help='允许引用还不存在的旋律名（之后必须先跑 melody_gen）')
+    # ── 面向 LLM 的三个开关（2026-10-19；只增不改，缺省行为逐字节不变）──
+    ap.add_argument('--brief', metavar='主题',
+                    help='打印**给模型的设计说明书**（合法和弦/段长/arr 键/鼓件/示例结构表，JSON）')
+    ap.add_argument('--json-errors', action='store_true',
+                    help='校验失败时输出机器可读 JSON（{"ok":false,"errors":[…]}），退出码 2')
+    ap.add_argument('--fix', action='store_true',
+                    help='**写回**结构表并自动修复常见硬错（和弦数≠小节、未知和弦、非法 arr 键、'
+                         'drums.per_bar 长度、缺 structure_source）')
+    ap.add_argument('--strict', action='store_true',
+                    help='**严格服从编排**：引擎不再让步/移八度夹取/去重（写 patterns.strict），'
+                         '只报告"本来会怎么动"。也可在结构表里写 "strict": true')
+    ap.add_argument('--report', action='store_true',
+                    help='打印**逐段×逐轨**音符数与"指令未生效"清单'
+                         '（核对"写下的编排到底有没有落地"）')
     a = ap.parse_args(argv)
+
+    if a.brief:
+        song = json_io.load(song_path_of(a.song)) if a.song else None
+        print(json.dumps(design_brief(a.brief, song), ensure_ascii=False, indent=1))
+        return 0
+    if not a.song or not a.plan:
+        die('用法：expand_sections.py <曲目> --plan <结构表.json>'
+            '（或 --brief <主题> 先拿设计说明书）')
 
     sp = song_path_of(a.song)
     if not os.path.exists(a.plan):
@@ -312,10 +660,35 @@ def main(argv=None):
     if a.bpm is not None:
         plan['bpm'] = a.bpm
     song = json_io.load(sp)
+    if a.fix:
+        plan, fixes = fix_plan(plan, song=song)
+        # ⚠ 结构表不是 song.json，不走 `json_io.save`（那是 song.json 的规范格式）
+        with open(a.plan, 'w', encoding='utf-8') as f:
+            json.dump(plan, f, ensure_ascii=False, indent=1)
+        print('自动修复 %d 处（已写回 %s）：' % (len(fixes), a.plan))
+        for x in fixes:
+            print('  ·', x)
     try:
         out, total = apply_plan(song, plan, allow_new_melody=a.new_melody)
     except PlanError as e:
+        if a.json_errors:
+            print(json.dumps({'ok': False, 'errors': [{'msg': str(e)}]},
+                             ensure_ascii=False, indent=1))
+            return 2
         die('%s\n  （**未做任何修改**）' % e)
+
+    if a.strict or plan.get('strict'):
+        pat = out.setdefault('patterns', {})
+        keep = dict(plan.get('patterns') or {})
+        cleared = [k for k in STRICT_CLEAR if k in pat and k not in keep]
+        for k in cleared:
+            pat.pop(k, None)
+        pat.update({k: v for k, v in keep.items() if k not in ('arr_by_role', 'drum_grid')})
+        pat['strict'] = True
+        print('strict：引擎**不再**让步 / 移八度夹取 / 去重 —— 只报告"本来会怎么动"')
+        print('       已清掉 plan 没点名的引擎启发式 %d 项：%s'
+              % (len(cleared), ', '.join(cleared) if cleared else '无'))
+        print('       ⚠ 自动调参仍会调 EQ/宽度（不动音符与 mix）；要完全不动：make_song --no-tune')
 
     bpm = float(out.get('bpm') or 120.0)
     meter = out.get('meter') or [4, 4]
@@ -344,6 +717,21 @@ def main(argv=None):
         print('   %-8s %2d 小节  mel=%-6s perc=%s dens=%-4s prog=%-4s %s'
               % (s['name'], s['bars'], s['melody'], arr.get('perc'),
                  arr.get('density'), arr.get('melody_prog'), ','.join(on)))
+    if a.report:
+        rows = arrangement_report(out)
+        tracks = [t for t in TRACK_NAMES if any(r['notes'].get(t) for r in rows)]
+        print('逐段 × 逐轨（音符数，来自引擎实际产出）：')
+        print('  %-8s %3s  %s' % ('段', '小节', ' '.join('%6s' % t for t in tracks)))
+        for r in rows:
+            print('  %-8s %3d  %s' % (r['name'], r['bars'],
+                  ' '.join('%6s' % (r['notes'].get(t) or '-') for t in tracks)))
+        dead = [(r['name'], d) for r in rows for d in r['dead']]
+        if dead:
+            print('  !! 指令未生效（要了这层，但该段 0 音 —— 查音区/音色池/引擎跳过原因）：')
+            for nm, d in dead:
+                print('     · %s: %s' % (nm, d))
+        else:
+            print('  ✓ 所有"要了的层"都有音')
     if a.dry_run:
         print('（--dry-run：**未写盘**）')
         return 0
