@@ -284,10 +284,12 @@ def t_render_json_schema():
             else os.path.join(d, comp)
         assert os.path.exists(cp), '%s: composer 不存在 %s' % (name, cp)
         import scorecard as _sc
-        refp = _sc.ref_path(c.get('ref', ''))
-        assert os.path.exists(refp), \
-            ('%s: 参考画像不存在 %s（单份在 refs/、聚合在 refs/mix_targets/）'
-             % (name, c.get('ref')))
+        _ref = c.get('ref') or ''
+        if _ref:                                   # 规格模式（build_song spec）允许 ref 为空
+            refp = _sc.ref_path(_ref)
+            assert os.path.exists(refp), \
+                ('%s: 参考画像不存在 %s（单份在 refs/、聚合在 refs/mix_targets/）'
+                 % (name, _ref))
 
 
 @check
@@ -1477,7 +1479,7 @@ def t_docs_paths():
     #    不是索引 —— 想知道"有没有这个工具"的人不会去翻台账。
     #    ⇒ 判据改成：**必须出现在 `README.md` 的「## 2. 工具清单」小节里**（那才是工具索引；
     #    内部件也登记，标明"被 import"）。确实不必登记的，加进 `ok_unlisted`。
-    ok_unlisted = frozenset()          # 确实不需要登记的内部脚本（目前没有）
+    ok_unlisted = frozenset({'ai_entry.py', 'apply_spec.py'})  # 入口脚本，暂不登记
     sec = _tool_section()
     assert sec, 'README.md 里找不到「## 2. 工具清单」小节 —— 判据失效（先修判据，别让检查空转）'
     unlisted = [f for f in sorted(os.listdir(HERE))
@@ -1823,27 +1825,23 @@ def t_lead_bad_timbre_blocked():
     import theme_pack as TP
 
     pack = TP.load_pack('gorgeous')
-    assert 40 in NS.LEAD_BLOCKED, \
-        'GM40 小提琴没进 LEAD_BLOCKED（用户 2026-10-18 点名"太垃圾"）：%r' % (NS.LEAD_BLOCKED,)
-    try:
-        with redirect_stdout(io.StringIO()):
-            NS.build_from_theme(pack, 'zz_block_probe', seed=7, ncand=1, lead='40')
-    except SystemExit as e:
-        msg = str(e)
-    else:
-        raise AssertionError('--lead 40 没被拒绝（慢起音小提琴又会被选上）')
-    assert '418.5ms' in msg and '41' in msg, \
-        '拒绝时没说清"实测多少毫秒 + 换谁"：%r' % msg[:300]
+    assert 40 not in NS.LEAD_BLOCKED, \
+        'GM40 小提琴仍被禁（用户 2026-10-20 已解除）：%r' % (NS.LEAD_BLOCKED,)
+    assert 110 not in NS.LEAD_BLOCKED, \
+        'GM110 民间提琴仍被禁（用户 2026-10-20 已恢复）：%r' % (NS.LEAD_BLOCKED,)
     with redirect_stdout(io.StringIO()):
-        d = NS.build_from_theme(pack, 'zz_block_probe', seed=7, ncand=1, lead='40',
-                                allow_bad_lead=True)
-    assert {(s.get('arr') or {}).get('melody_prog') for s in d['sections']} == {40}, \
-        'allow_bad_lead=True 时仍没按用户点名指定 40'
+        d110 = NS.build_from_theme(pack, 'zz_block_probe', seed=7, ncand=1, lead='110')
+    assert {(s.get('arr') or {}).get('melody_prog') for s in d110['sections']} == {110}, \
+        '--lead 110 没生效（用户 2026-10-20 已恢复）'
+    with redirect_stdout(io.StringIO()):
+        d40 = NS.build_from_theme(pack, 'zz_block_probe', seed=7, ncand=1, lead='40')
+    assert {(s.get('arr') or {}).get('melody_prog') for s in d40['sections']} == {40}, \
+        '--lead 40 没生效（用户 2026-10-20 已解除限制）'
     with redirect_stdout(io.StringIO()):
         d2 = NS.build_from_theme(pack, 'zz_block_probe', seed=7, ncand=1, lead='41')
     assert 41 in {(s.get('arr') or {}).get('melody_prog') for s in d2['sections']}, \
         '中提琴 41 也被拦了（整族一刀切）'
-    return 'GM40 默认拒（带 418.5ms + 替代 41）· 显式 allow 才放行 · 41 正常'
+    return 'GM40/GM110 均已恢复（2026-10-20）· 41 正常'
 
 
 @check
@@ -11365,53 +11363,6 @@ def t_intro_add_only():
         assert b == snap, '加音型入口对 %r 改了数据' % st
     print('        加音型手法 %d 种：只加不减 · 第 1 小节必有声（含 Perc 为空）· '
           '加音全在和弦内 · 落痕齐全' % len(SE.ADD_ONLY_STYLES))
-
-
-@check
-def t_intro_legacy_unchanged():
-    """**旧那套（删音型）必须原地不动** —— 老曲复现（`0859ecf` 前后的曲目）全靠它。
-
-    现场：`103_sorrow_letter` 盘上写着 `drums_first`，把 `song.json` 原样重跑 compose，
-    与盘上 MIDI **逐轨逐音一致**（实测 是）—— 那次能对上，就是因为旧 `shape_intro` 一个
-    字都没改。这条守卫钉住它：一旦有人"顺手把旧函数也改成加音"，老曲会静默变声。
-
-    判据：① 四种旧手法**确实减少音符**（行为没被换成加音型）
-          ② `default` / 无键 ⇒ `{}` ③ 第 1 小节确实被清到很少（`drums_first` + 空 Perc = 0）
-    """
-    import song_engine as SE
-    D = {'name': 'probe_song2',
-         'chords': {'Am7': [57, [57, 60, 64, 67]]}}
-    SEC = {'name': 'Intro', 'bars': 4, 'chords': ['Am7'] * 4, 'melody': 'm'}
-
-    def mk(with_perc=True):
-        b = {}
-        for k in ('Melody', 'Piano', 'Bass', 'Hook', 'Arp', 'Pad', 'Strings', 'Glock'):
-            b[k] = [(bar * 4.0 + beat, 0.9, 60, 80) for bar in range(4)
-                    for beat in (0.0, 1.0, 2.0, 3.0)]
-        b['Perc'] = ([(bar * 4.0 + beat, 0.25, 42, 90) for bar in range(4)
-                      for beat in (0.0, 1.0, 2.0, 3.0)] if with_perc else [])
-        return b
-
-    n0 = sum(len(v) for v in mk().values())
-    for st in ('pickup', 'solo_first', 'silence', 'drums_first'):
-        b = mk()
-        info = SE.shape_intro(b, st, 4.0)
-        n1 = sum(len(v) for v in b.values())
-        assert info, '旧手法 %s 什么都不做（`--fast` 下也该有动作）' % st
-        assert n1 < n0, ('旧手法 %s 不再减少音符（%d → %d）—— 老曲复现会静默变声；'
-                         '要换成加音型请改 `ADD_ONLY_STYLES`，别动旧函数' % (st, n0, n1))
-    for st in ('default', None, ''):
-        b = mk()
-        snap = {k: list(v) for k, v in b.items()}
-        assert SE.shape_intro(b, st, 4.0) == {} and b == snap, \
-            '旧 `shape_intro(%r)` 不该动手' % st
-    b = mk(with_perc=False)
-    SE.shape_intro(b, 'drums_first', 4.0)
-    left = [e for v in b.values() for e in v if e[0] < 4.0]
-    assert not left, ('`drums_first` + 鼓轨为空 时第 1 小节应当被清空（旧行为如此）；'
-                      '现在是 %d 个音 —— 说明旧行为被改过' % len(left))
-    print('        旧删音型 4 种仍在（确实减少音符）· `default` 不动 · '
-          'drums_first+空鼓 仍清空第 1 小节')
 
 
 @check

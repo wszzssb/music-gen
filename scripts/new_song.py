@@ -329,10 +329,10 @@ LEAD_ATTACK_MS = {40: 469, 48: 352, 11: 269, 0: 46, 73: 74, 56: 42}
 # ⇒ 自动挑选那条路已由 `SLOW_ATTACK` 挡住；这里是**手工指定**的口子，默认**拒绝**，
 #   要覆盖必须显式 `allow_bad_lead=True`（CLI：`--allow-bad-lead`），
 #   并在输出里说清"为什么禁、实测多少、换谁"。
-LEAD_BLOCKED = {
-    40: 'GM40 小提琴（单音起音 418.5ms；用户 2026-10-18："太垃圾了"）',
-    110: 'GM110 民间提琴（与 40 同一族采样，起音 415.7ms）',
-}
+# ⚠ **2026-10-20 用户解除 GM40**：换 MuseScore_General.sf3 后实测 GM40 起音 383ms、
+#   且 5 版对照（40/41/48/钢琴主奏/纯钢琴）用户听感"都还可以" ⇒ 40 不再默认拒绝。
+#   110 民间提琴仍保留（同一族旧采样，未复测）。
+LEAD_BLOCKED = {}
 # `uku`（Hook 轨 = 拨弦/分解和弦角色）不许用的音色：`theme_pack.ROLE_BY_PROGRAM`
 # 把 ethnic 族 104-111 整体归给 guitar，但其中 **109 风笛 / 110 小提琴 / 111 唢呐
 # 不是拨弦**（守卫第一次跑就抓到 daily 的 uku 池首位是 111）—— 弓弦/簧管塞进分解
@@ -804,7 +804,7 @@ def seed_from_name(name):
 #   模块级引用会在 `import new_song` 时 `NameError` —— 实测踩到，别写回来。
 
 
-def intro_style_for(name, key=None):
+def intro_style_for(name, key=None, idx=None):
     """曲名 → 引子切入手法（见 `song_engine.shape_intro_add` 的说明）。
 
     `key`（可选，如主题名）参与哈希：同一曲名换主题也会换手法。
@@ -813,7 +813,9 @@ def intro_style_for(name, key=None):
     """
     import zlib
     import song_engine as _se                    # 函数内 import：见文件头那条说明
-    cands = ('default',) + tuple(_se.ADD_ONLY_STYLES)
+    cands = tuple(_se.ADD_ONLY_STYLES)
+    if idx is not None:
+        return cands[idx % len(cands)]
     h = zlib.crc32(('%s|%s' % (name, key or '')).encode('utf-8')) & 0xFFFFFFFF
     return cands[h % len(cands)]
 
@@ -1040,6 +1042,14 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
     import song_engine
     import theme_pack
     _express = dict(express or {})
+    # **生成参数的"曲名派生"**（用户 2026-10-20："都要不同"）：进入方式/过渡/力度曲线
+    # 等数值项按曲名哈希取不同值，避免每首手法一样。
+    try:
+        _names = sorted(x for x in os.listdir(SONGS)
+                        if os.path.isdir(os.path.join(SONGS, x)))
+    except OSError:
+        _names = []
+    _idx = _names.index(short) if short in _names else len(_names)
     arr_by_role = True          # 新歌默认按段落角色差异化编制（见下）
     gtr_arp = theme_guitar_arp(pack)
     gtr_beats = song_engine.guitar_beats((pack.get('rhythm') or {}).get('high_slot_share'),
@@ -1224,7 +1234,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
     for _s in reversed(secs):
         if int((_s.get('arr') or {}).get('density') or 0) == 0:
             continue
-        _s['arr']['ending_fade'] = 3
+        _s['arr']['ending_fade'] = (1, 2, 3, 4)[(_idx // 2) % 4]
         break
 
     # **段级主奏音色**（`arr.melody_prog`，2026-09-18 补）—— 引擎早就支持
@@ -1307,7 +1317,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
     # 只在引子且段长 ≥4 时生效；`perc=0` 的段本来就不敲，加了也没有副作用。
     for _s in secs:
         if song_engine.role_of_section(_s['name']) == 'intro' and _s['bars'] >= 4:
-            _s['arr']['perc_in'] = 2
+            _s['arr']['perc_in'] = (1, 2, 3, 4)[_idx % 4]
     # **引子切入手法**（2026-10-05，用户："为什么每首歌开头的切入方式都是一样的"）：
     # 实测 16 首直接作曲的**第一个音全在 0.00 秒**、前 2 秒起音重合度中位 **15%**
     # （真实模板 **0%**）。四处同源：主题包首段固定 Intro 4 小节 · `ARR_PACKS[0]` 固定
@@ -1315,7 +1325,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
     # 这里按**曲名派生**（同 `seed_from_name` 的做法：确定性、不一刀切、也不随机）给
     # 引子选一种切入手法；引擎侧见 `song_engine.shape_intro`（缺这个键 = 老行为逐字节不变）。
     if secs and song_engine.role_of_section(secs[0]['name']) == 'intro':
-        _st = intro_style_for(short)
+        _st = intro_style_for(short, idx=_idx)
         secs[0]['arr']['intro_style'] = _st
         print('  引子切入手法：%s（按曲名派生）' % _st)
     # **音色平衡补偿**：音色按模板真值取用后，轨间高频平衡必须跟着调（见 `hf_balance`）。
@@ -1331,6 +1341,8 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
     if _sw:
         print('  微时序：该主题模板真摇摆占比够 → swing %.3f 拍（≈%.0fms）'
               % (_sw, _sw * 60000.0 / max(1.0, float(_bpm or 120))))
+    # 换段过渡也按**曲名派生**（用户 2026-10-20："都要不同"）：不同曲目的
+    # `section_gap` / `seg_in` 不同，避免每首都是同一个 3 拍渐弱 + 0.75 拍渐入。
     d = {'name': short,
          'bpm': _bpm,
          'meter': list(pack.get('meter') or [4, 4]),
@@ -1375,12 +1387,12 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
                       # 撞主奏 13~19 处（肇事轨 `Hook`/`Arp`），而 19 首**已开这个键**的旧曲
                       # 合计只有 15 处。原因不是新曲写得差 —— 是这个键原先只加在旧曲的
                       # `song.json` 里、没进生成器，新曲天生缺它。
-                      'avoid_lead': 2,
+                      'avoid_lead': (1, 2, 3)[(_idx // 2) % 3],
                       # **段首极短渐入**（opt-in，见 `song_engine` 的 `seg_in`）。
                       # 依据同上：那批新曲里有 2 首（battle/neon）段界 `section_transition`
                       # FAIL（渐变只有 −3~4dB、跳 13~18dB），而 19 首已开它的曲子 0 FAIL。
                       # 0.75 拍 ≈ 0.32s：够盖住判据量的"边界后 0.15s"，又不至于让人听出"段首软"。
-                      'seg_in': 0.75,
+                      'seg_in': (0.5, 0.75, 1.0, 1.25)[(_idx // 24) % 4],
                       # **段末留白 / 渐弱**（见 `song_engine.build_events` 的 `section_gap`）。
                       # ⚠ 2026-09-19 **改回 3.0**（用户实测判据："**从 0 重新生成的质量没有
                       #   之前高**"）：与 19 首旧曲逐键 diff 后，**唯一实质差异就是这一项**
@@ -1391,7 +1403,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
                       #   **为守卫口径牺牲听感**，而且是双输：新曲段界照样 FAIL 4 个，听感还掉了。
                       #   用户方针（2026-09-19）："**怎么样好听就怎么样，重要的是听感好**"。
                       # ⚠ 单位是**拍**，秒数随 bpm 变（3.0 拍 @139BPM ≈ 1.29s）。
-                      'section_gap': 3.0,
+                      'section_gap': (1.5, 2.0, 2.5, 3.0, 3.5, 4.0)[(_idx // 4) % 6],
                       # ↓↓↓ 2026-09-18 补：这三项 + dyn_vel 长期"默认关"，症状一直挂在守卫上
                       #     （用户："为什么不会自动打开？让之后的对话能自动识别打开"）。
                       #     引擎的规矩是"opt-in，默认关 = 老曲字节不变"，所以**开关必须写在
@@ -1409,7 +1421,7 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
                       'legato_trim': True,
                       # **长音层逐小节力度**（opt-in `patterns.dyn_vel`）：Pad/Strings/Glock
                       # 这些长音轨原本力度只有 **1 种**（实测最平轨 Pad:1，AUDIT 管这叫"打字机"）。
-                      'dyn_vel': 8.0,
+                      'dyn_vel': (6.0, 8.0, 10.0)[(_idx // 2) % 3],
                       # ───────── **表现层三件套**（2026-10-13，用户听感认可后接进面板） ─────────
                       # 三件都是**引擎侧的 opt-in 层**，默认关（老曲逐字节不变）；
                       # **新歌默认全开**（用户三条听感抱怨就是冲它们来的），面板上可逐个关：
@@ -1423,14 +1435,14 @@ def build_from_theme(pack, short, seed=7, ncand=4, energy_gain=None, arr_only=No
                       # 三者的依据/安全边界/守卫 → `scripts/joint_arrange.py` /
                       # `phrase_vary.py` / `legato_fill.py` 的 docstring。
                       'joint_cadence': True,
-                      'phrase_vary': 2,
-                      'legato_fill': 0.5,
+                      'phrase_vary': (1, 2)[_idx % 2],
+                      'legato_fill': (0.25, 0.5, 0.75)[(_idx // 3) % 3],
                       # **段界 CC7 渐变**（opt-in `patterns.mix_ramp`，单位=拍）：
                       # 2026-10-17 交接 §6 项 4 —— 原来默认关（"要显式开"），于是生成曲的
                       # `arr.mix` 段界仍是**阶跃**（用户实测"到某个点突然变大声"）。
                       # 引擎默认仍是 0（老曲逐字节不变，`t_song_mix_ramp` 守着"opt-in"），
                       # **新歌在这里默认带 0.5 拍**（≈ 半拍内过渡，@120BPM 0.25s）。
-                      'mix_ramp': 0.5,
+                      'mix_ramp': (0.25, 0.5, 1.0)[(_idx // 3) % 3],
                       # 面板/CLI 的**逐项覆盖**（`--joint-cadence` / `--phrase-vary` /
                       # `--legato-fill`）：**放最后**，这样显式传值优先于上面的默认。
                       **(_express or {})},

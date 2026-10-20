@@ -473,7 +473,7 @@ def main():
         print('[0/3] 数据体检: check_song.py %s --fast（全量请单独跑 check_song.py <曲>）' % song)
         try:
             r = subprocess.run([sys.executable, os.path.join(HERE, 'check_song.py'),
-                                song, '--fast'],
+                                song, '--fast', '--isolated'],
                                cwd=ROOT, timeout=180)
         except subprocess.TimeoutExpired:
             print('  ! 数据体检超时（>180s）—— 跳过体检继续渲染；'

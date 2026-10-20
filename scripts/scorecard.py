@@ -99,6 +99,11 @@ def ref_audio(spec):
 
 
 def load_ref(spec):
+    # ref 为空 = 没有参考画像（216_agent_zero 这类新曲/外部曲常见）：
+    # 返回空画像，让调用方按"无参考"处理，**不许拿 `refs/.json` 去崩**
+    # （子代理实测：全量 check_song 逐曲都崩在 `找不到参考曲画像 refs\.json`）。
+    if not (spec or '').strip():
+        return {}
     p = ref_path(spec)
     if not os.path.exists(p):
         have = [f[:-5] for f in sorted(os.listdir(REFS)) if f.endswith('.json')] \

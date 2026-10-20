@@ -192,6 +192,18 @@ def build(spec, lo=55):
     for k in ('style', 'patterns', 'programs', 'mix', 'ref'):
         if spec.get(k) is not None:
             d[k] = spec[k]
+    # **spec 带 `theme` = 合规新歌**（2026-10-20 用户口径）：自由创作，但符合主题理论。
+    # 校验画像存在，写 `theme`/`basis` 供 `t_theme_basis_whitelist` 认。
+    _theme = str(spec.get('theme') or '').strip()
+    if _theme:
+        _pack = os.path.join(ROOT, 'refs', 'themes', _theme + '.json')
+        if not os.path.exists(_pack):
+            raise SystemExit('spec 的 theme=%r 找不到画像 %s' % (_theme, _pack))
+        _pd = json.load(open(_pack, encoding='utf-8'))
+        _tpls = [t['file'] for t in (_pd.get('templates') or [])]
+        d['theme'] = {'name': _theme, 'pack': 'refs/themes/%s.json' % _theme,
+                      'templates': _tpls, 'template_count': len(_tpls)}
+        d['basis'] = {'kind': 'theme_pack', 'structure_source': 'spec:llm-outline'}
     return d
 
 
@@ -367,10 +379,24 @@ def main():
     # 免得两条路混用（README §1 顶部"三条路径"的分叉表就是这个口径）。
     try:
         _secs = d.get('sections') or []
-        _nl = ['# %s（spec 路径：直接作曲）\n' % os.path.basename(out),
+        _has_theme = bool(str(spec.get('theme') or '').strip())
+        if _has_theme:
+            _head = '# %s（spec 路径：LLM 大纲 + 主题画像）\n' % os.path.basename(out)
+            _basis_line = ('| 依据 | **`spec.json`（LLM 大纲）+ 主题画像 '
+                           '`refs/themes/%s.json`**（2026-10-20 口径：自由创作但符合主题理论） |'
+                           % spec['theme'])
+            _tail = ('- **主题依据**：`refs/themes/%s.json`（主题画像）；'
+                     'spec 只是段落/和弦/旋律的规划。' % spec['theme'])
+        else:
+            _head = '# %s（spec 路径：直接作曲）\n' % os.path.basename(out)
+            _basis_line = ('| 依据 | **`spec.json`** —— 手写"和弦走向 + 旋律骨架"，'
+                           '时值/排列/编制由 `build_song.py` 推导 |')
+            _tail = ('- **模板依据**：这条路径**不引用主题模板包**（依据 = 你手写的 spec）。'
+                     '要走"同主题 ≥8 首模板聚合"的合规路径请用 `new_song.py --theme`，'
+                     '见 `docs/THEME-PACK.md`')
+        _nl = [_head,
                '| 项目 | 值 |', '|---|---|',
-               '| 依据 | **`spec.json`** —— 手写"和弦走向 + 旋律骨架"，'
-               '时值/排列/编制由 `build_song.py` 推导 |',
+               _basis_line,
                '| 风格 | %s |' % (d.get('style') or '-'),
                '| 速度·拍号 | %s BPM · %s |' % (d.get('bpm'), d.get('meter') or [4, 4]),
                '| 段落 | %s（共 %d 小节） |'
@@ -382,15 +408,12 @@ def main():
                '', '## 复现', '', '```powershell',
                r'$py = "<工具链根>\.venv\Scripts\python.exe"',
                'cd <工具链根>',
-               # 用**曲目目录里那份** spec 复现（spec 跟着歌走，见上面那段注释）
                r'& $py scripts\build_song.py songs\%s\spec.json --out songs\%s'
                % (os.path.basename(out), os.path.basename(out)),
                r'& $py scripts\make_song.py %s' % os.path.basename(out), '```', '',
                '## 还没验证什么', '',
                '- 未渲染/未对齐 —— 跑 `make_song.py` 才有成绩单',
-               '- **模板依据**：这条路径**不引用主题模板包**（依据 = 你手写的 spec）。'
-               '要走"同主题 ≥8 首模板聚合"的合规路径请用 `new_song.py --theme`，'
-               '见 `docs/THEME-PACK.md`']
+               _tail]
         with open(os.path.join(out, 'notes.md'), 'w', encoding='utf-8', newline='') as f:
             f.write('\n'.join(_nl) + '\n')
     except Exception as _e:                                  # noqa: BLE001

@@ -76,6 +76,7 @@ SKIP_DIRS = {'.venv', '.venv-ml', '.git', 'refs', '__pycache__', 'node_modules',
 # 并在 --check 输出里点名 —— 新文档忘了归类，一眼就能看见。
 GROUPS = [
     ('A. 上手 / 安装 / 环境', [
+        ('AGENTS.md', '**AI 进目录先读这 60 行**：三步开工（ai_entry 定位 / 体检 / 说明书）· 红线'),
         ('INSTALL.md', 'clone 之后第一件事：装环境 · 五分钟出第一首 · 仓库带什么不带什么'),
         ('README.md', '全貌：目录结构 / 工具清单 / 验证状态 / 产物 / 踩过的坑'),
         # 2026-10-08 新增：用户要的"音乐家用这个软件做音乐的最高标准"（红线与门）。
@@ -85,6 +86,7 @@ GROUPS = [
         ('tools/git-push/README.md', 'GitHub 连不上时的推送绕行'),
     ]),
     ('B. 写新歌（直接作曲）', [
+        ('docs/LLM-PATH.md', '**LLM 接入优先级**：有 LLM 先写大纲（build_song / imitate_plan / expand_sections）；无 LLM 走 MIDI-LLM 片段 → 引擎补全'),
         ('docs/THEME-PACK.md', '生成依据：主题模板包（≥8 首聚合）· 混音目标 · 来源白名单'),
         ('docs/SONG-FORMAT.md', 'song.json 结构 / 风格预设 / 段落曲线 / 渲染参数'),
         ('CHEATSHEET.md', '命令与开关速查'),

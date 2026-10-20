@@ -29,7 +29,7 @@ $py = <仓库根>\.venv\Scripts\python.exe
 | 路径 | 是什么 |
 |---|---|
 | `scripts\` | 工具。核心：`new_song` `expand_sections` `melody_gen` `make_song` `check_song` |
-| `refs\themes\*.json` | **15 个主题模板包 = 写歌的唯一合法依据**（各由 ≥8 首真实 MIDI 聚合） |
+| `refs\themes\*.json` | **15 个主题模板包 = 写歌的合规依据（LLM 写大纲时 spec 带 theme 即可）**（各由 ≥8 首真实 MIDI 聚合） |
 | `songs\<曲>\` | 曲库。一首 = `song.json` + `render.json` + `.mid` + `_sf.ogg` + `notes.md` |
 | `docs\` | 细则。按需：`STANDARD` `THEME-PACK` `SONG-FORMAT` `IMITATE-PATH` `RESTORE-METHOD` |
 | `studio\` | 面板（可视化听/改，`studio\start.cmd`） |

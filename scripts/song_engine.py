@@ -1651,7 +1651,8 @@ def yield_to_melody(bucket, mel):
 # 纪律：**只加不减**（一个音都不删）· 加分只落**和弦音** · 受音符预算与轨音域约束 ·
 #   同刻已有音就不再加（不去重就成"撞音"，见坑 219 ②）。
 ADD_ONLY_STYLES = ('downbeat_hit', 'layer_stack', 'beat_mid', 'pedal_root',
-                   'pickup_anacrusis', 'entry_ramp')
+                   'pickup_anacrusis', 'entry_ramp',
+                   'arp_rise', 'call_response', 'octave_drop')
 
 # 进入次序（`entry_ramp` / `layer_stack` 用）：三层，越靠前越先入（buildup 的骨架顺序）
 INTRO_LAYERS = (('Bass', 'Perc'), ('Piano', 'Hook', 'Pad', 'Strings'),
@@ -1870,83 +1871,52 @@ def shape_intro_add(bucket, style, B=4.0, d=None, sec=None, budget=None, bar0=0)
                     used[0] += 1
                     _bump(k)
                     info[k] = '起句跑动'
+    # ⑥ `arp_rise`：第 1/1.5/2/2.5 拍依次加**上行**和弦音（琶音式入场）
+    if style == 'arp_rise':
+        tones = tones_of(0)
+        if tones:
+            for j, at in enumerate((0.0, 0.5, 1.0, 1.5)):
+                k = ('Piano', 'Hook', 'Pad', 'Strings')[j % 4]
+                if k not in bucket or used[0] >= budget:
+                    continue
+                m = _intro_pitch(k, tones, ref=min(tones) + 2 * j)
+                if m is not None and _intro_add(bucket, k, t0 + at, 0.5, m, 92 - 4 * j):
+                    used[0] += 1
+                    _bump(k)
+                    info[k] = '琶音入场'
+    # ⑦ `call_response`：第 1 拍 Hook 短音（问），第 2 拍 Piano 回应（答）
+    if style == 'call_response':
+        tones = tones_of(0)
+        if tones:
+            base = _intro_pitch('Hook', tones)
+            if base is not None and 'Hook' in bucket and used[0] < budget:
+                if _intro_add(bucket, 'Hook', t0, 0.5, base, 96):
+                    used[0] += 1
+                    _bump('Hook')
+                    info['Hook'] = '问句'
+            if base is not None and 'Piano' in bucket and used[0] < budget:
+                m = _intro_pitch('Piano', tones, ref=base + 3)
+                if m is not None and _intro_add(bucket, 'Piano', t0 + 1.0, 0.75, m, 84):
+                    used[0] += 1
+                    _bump('Piano')
+                    info['Piano'] = '答句'
+    # ⑧ `octave_drop`：第 1 拍在**高八度**加一个和弦音（亮色砸下）
+    if style == 'octave_drop':
+        tones = tones_of(0)
+        if tones:
+            for k in ('Piano', 'Hook'):
+                if k not in bucket or used[0] >= budget:
+                    continue
+                m = _intro_pitch(k, tones)
+                if m is not None:
+                    if _intro_add(bucket, k, t0, min(1.5, B * 0.5), m + 12, 90):
+                        used[0] += 1
+                        _bump(k)
+                        info[k] = '高八度'
     # 统一落痕：**每个被加过音的轨**都要出现在返回里（旧版只有部分分支写 info，
     # 于是"加过音但没落痕"的轨在日志里看不见 —— 复盘时以为没动）
     for k, n in cnt.items():
         info.setdefault(k, '加 %d 音' % n)
-    return info
-    return info
-
-
-def shape_intro(bucket, style, B=4.0):
-    """按 `arr.intro_style` 改写**引子**的切入方式（只动第一段的前 2 小节；opt-in）。
-
-    ⚠ **这是旧那套（删音型）**：`pickup` / `solo_first` / `silence` / `drums_first`
-    都会**删掉开头的内容**，实测导致"开头先停一下"（见 `ADD_ONLY_STYLES` 上面那段）。
-    它保留**只为老曲复现**（`0859ecf` 前后生成的曲目重渲染要逐字节一致）；
-    **新曲请走 `shape_intro_add`**（`new_song.intro_style_for` 现在只发加音型手法）。
-
-    为什么（用户 2026-10-05："为什么每首歌开头的切入方式都是一样的"）：实测 16 首
-    直接作曲的曲子**第一个音全在 0.00 秒**、前 2 秒起音重合度中位 **15%**、前 9 秒
-    **16%**，而真实模板 MIDI 同一把尺子是 **0%** / 9%。四种手法：
-
-    · `pickup`      第 1 小节前 3 拍清空，只在第 4 拍留 1~2 个引音（弱起进句）
-    · `solo_first`  主奏 + 垫子先入，**其它轨第 3 小节才入**（伴奏让位两小节）
-    · `silence`     第 1 小节只留**一个和弦长音**（低音区），鼓第 1 小节清空
-    · `drums_first` 第 1 小节只有鼓，其它轨第 2 小节才入
-
-    ⚠ 缺这个键 = **老行为逐字节不变**（opt-in 纪律）；只对第一段生效，不动别处。
-    """
-    if not style or style == 'default':
-        return {}
-    info = {}
-
-    def _head_rest(ns, edge):
-        return ([e for e in ns if e[0] < edge], [e for e in ns if e[0] >= edge])
-
-    if style == 'silence':
-        for k in list(bucket):
-            if k == 'Perc':
-                bucket[k] = [e for e in bucket[k] if e[0] >= B]
-                info[k] = '第1小节清空'
-                continue
-            head, rest = _head_rest(bucket[k], B)
-            if not head:
-                continue
-            if k in ('Piano', 'Pad', 'Strings', 'Bass'):
-                low = min(head, key=lambda e: e[2])
-                bucket[k] = [(0.0, max(1.5, float(low[1])), low[2],
-                              max(36, int(low[3]) - 8))] + rest
-                info[k] = '留 1 个长音'
-            else:
-                bucket[k] = rest
-                info[k] = '第1小节清空'
-    elif style == 'pickup':
-        for k in list(bucket):
-            head, rest = _head_rest(bucket[k], B)
-            if not head:
-                continue
-            if k == 'Perc':
-                bucket[k] = rest
-            elif k in ('Melody', 'Bass', 'Piano'):
-                keep = [e for e in head if e[0] >= 0.75 * B]
-                bucket[k] = (keep[:2] or [head[-1]]) + rest
-            else:
-                bucket[k] = rest
-            info[k] = '弱起'
-    elif style == 'solo_first':
-        for k in list(bucket):
-            if k in ('Melody', 'Pad'):
-                continue
-            bucket[k] = [e for e in bucket[k] if e[0] >= 2.0 * B]
-            if k in ('Perc', 'Bass', 'Piano', 'Hook', 'Arp', 'Strings', 'Glock'):
-                info[k] = '第3小节才入'
-    elif style == 'drums_first':
-        for k in list(bucket):
-            if k == 'Perc':
-                continue
-            bucket[k] = [e for e in bucket[k] if e[0] >= B]
-            info[k] = '第2小节才入'
     return info
 
 
@@ -2673,12 +2643,10 @@ def build_events(d):
         #   这样 `0859ecf` 前后生成的曲目**重渲染逐字节不变**（替换手法要用户明说）。
         if sec_i == 0:
             _st = arr.get('intro_style')
-            if _st in ADD_ONLY_STYLES:
-                _ish = shape_intro_add(bucket, _st, B, d, sec, bar0=bar0)
-                _kind = '加音型'
-            else:
-                _ish = shape_intro(bucket, _st, B)
-                _kind = '删音型(旧)'
+            if _st and _st not in ADD_ONLY_STYLES:
+                print('  [引子] 旧手法 %r 已删除，按"无进入方式"渲染' % _st)
+            _ish = shape_intro_add(bucket, _st, B, d, sec, bar0=bar0) if _st else {}
+            _kind = '加音型'
             if _ish:
                 print('  [引子] %s 手法 %-16s → %s'
                       % (_kind, _st, ' · '.join('%s:%s' % kv for kv in sorted(_ish.items()))))
